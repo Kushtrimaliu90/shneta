@@ -28,6 +28,21 @@ function stripLocale(pathname: string): string {
   return pathname;
 }
 
+/**
+ * The locale prefix a path is already carrying, or `''` for the unprefixed default.
+ *
+ * Redirects must keep it. Sending someone from `/en/account` to `/auth/sign-in` drops them
+ * on the Albanian page — they asked for English and we changed the language mid-journey,
+ * which reads as a broken site rather than a sign-in prompt.
+ */
+function localePrefix(pathname: string): string {
+  for (const locale of routing.locales) {
+    if (locale === routing.defaultLocale) continue;
+    if (pathname === `/${locale}` || pathname.startsWith(`/${locale}/`)) return `/${locale}`;
+  }
+  return '';
+}
+
 function redirectPreservingCookies(request: NextRequest, source: NextResponse, to: URL) {
   const redirect = NextResponse.redirect(to);
   for (const cookie of source.cookies.getAll()) {
@@ -48,7 +63,8 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
 
   if (pathname.startsWith('/admin')) {
     if (!user) {
-      const signIn = new URL('/auth/sign-in', request.url);
+      // The admin UI is English-only in v1 (docs/01 §3), so its sign-in page is too.
+      const signIn = new URL('/en/auth/sign-in', request.url);
       signIn.searchParams.set('next', pathname);
       return redirectPreservingCookies(request, response, signIn);
     }
@@ -63,7 +79,7 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
   );
 
   if (needsSession && !user) {
-    const signIn = new URL('/auth/sign-in', request.url);
+    const signIn = new URL(`${localePrefix(pathname)}/auth/sign-in`, request.url);
     signIn.searchParams.set('next', pathname);
     return redirectPreservingCookies(request, response, signIn);
   }

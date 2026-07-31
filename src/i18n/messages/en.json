@@ -92,6 +92,103 @@
     "rights": "All rights reserved.",
     "disclaimer": "Food supplements are not a substitute for a balanced diet and a healthy lifestyle."
   },
+  "auth": {
+    "fields": {
+      "fullName": "Full name",
+      "email": "Email",
+      "password": "Password",
+      "newPassword": "New password",
+      "confirmPassword": "Confirm password",
+      "passwordHint": "At least 8 characters.",
+      "phone": "Phone",
+      "phoneHint": "e.g. 044 123 456 or +383 44 123 456."
+    },
+    "signIn": {
+      "title": "Sign in",
+      "subtitle": "Pick up where you left off.",
+      "submit": "Sign in",
+      "forgot": "Forgotten your password?",
+      "noAccount": "No account yet?",
+      "createAccount": "Create one"
+    },
+    "signUp": {
+      "title": "Create an account",
+      "subtitle": "Save addresses, track orders and collect points.",
+      "submit": "Create account",
+      "haveAccount": "Already have an account?",
+      "marketing": "Send me useful guidance and offers by email.",
+      "terms": "I agree to the <terms>terms of use</terms> and the <privacy>privacy policy</privacy>.",
+      "checkEmailTitle": "Check your email",
+      "checkEmail": "If that address is valid, we've sent a link to confirm your account."
+    },
+    "forgotPassword": {
+      "title": "Reset your password",
+      "subtitle": "Enter your email and we'll send you a link.",
+      "submit": "Send the link",
+      "sentTitle": "Check your email",
+      "sent": "If an account exists for that address, we've sent a reset link.",
+      "backToSignIn": "Back to sign in"
+    },
+    "resetPassword": {
+      "title": "Choose a new password",
+      "subtitle": "You'll be signed in once it's saved.",
+      "submit": "Save password"
+    },
+    "verify": {
+      "title": "Confirm your email",
+      "body": "We've sent you a link. Open it to activate your account.",
+      "backToSignIn": "Back to sign in"
+    },
+    "errors": {
+      "invalidCredentials": "That email or password isn't right.",
+      "checkFields": "Check the fields marked below.",
+      "tooManyAttempts": "Too many attempts. Please try again shortly.",
+      "termsRequired": "You need to accept the terms to continue.",
+      "resetLinkInvalid": "That link has expired. Request a new one.",
+      "linkInvalid": "That link is no longer valid. Please try again.",
+      "notSignedIn": "Your session expired. Please sign in again.",
+      "generic": "Something went wrong. Please try again."
+    }
+  },
+  "account": {
+    "title": "My account",
+    "greeting": "Hello, {name}",
+    "signOut": "Sign out",
+    "signingOut": "Signing out…",
+    "nav": {
+      "label": "Account navigation",
+      "overview": "Overview",
+      "orders": "Orders",
+      "subscriptions": "Subscriptions",
+      "addresses": "Addresses",
+      "wishlist": "Wishlist",
+      "reviews": "Reviews",
+      "loyalty": "Points",
+      "settings": "Settings"
+    },
+    "overview": {
+      "noOrdersYet": "You haven't ordered anything yet.",
+      "quickLinks": "Quick links"
+    },
+    "loyalty": {
+      "title": "Loyalty points",
+      "points": "{count, plural, =0 {0 points} one {# point} other {# points}}",
+      "toNextReward": "{count} more points until your next reward.",
+      "readyToRedeem": "You can exchange your points for a coupon."
+    },
+    "settings": {
+      "title": "Settings",
+      "profileTitle": "Your details",
+      "profileSubtitle": "These are used for orders and deliveries.",
+      "passwordTitle": "Password",
+      "passwordSubtitle": "Choose a new password whenever you like.",
+      "language": "Preferred language",
+      "save": "Save changes",
+      "saved": "Your changes were saved.",
+      "changePassword": "Change password",
+      "passwordChanged": "Your password was updated."
+    }
+  },
   "notFound": {
     "title": "We couldn't find that page",
     "body": "The link may be out of date or mistyped. Try a search, or start from the home page.",

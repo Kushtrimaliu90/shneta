@@ -92,6 +92,103 @@
     "rights": "Të gjitha të drejtat e rezervuara.",
     "disclaimer": "Suplementet ushqimore nuk zëvendësojnë një dietë të balancuar dhe një mënyrë jetese të shëndetshme."
   },
+  "auth": {
+    "fields": {
+      "fullName": "Emri i plotë",
+      "email": "Email",
+      "password": "Fjalëkalimi",
+      "newPassword": "Fjalëkalimi i ri",
+      "confirmPassword": "Konfirmo fjalëkalimin",
+      "passwordHint": "Të paktën 8 karaktere.",
+      "phone": "Telefoni",
+      "phoneHint": "P.sh. 044 123 456 ose +383 44 123 456."
+    },
+    "signIn": {
+      "title": "Hyr në llogari",
+      "subtitle": "Vazhdo aty ku e le.",
+      "submit": "Hyr",
+      "forgot": "Keni harruar fjalëkalimin?",
+      "noAccount": "Nuk keni llogari?",
+      "createAccount": "Krijo një llogari"
+    },
+    "signUp": {
+      "title": "Krijo llogari",
+      "subtitle": "Ruaj adresat, ndiq porositë dhe mblidh pikë.",
+      "submit": "Krijo llogarinë",
+      "haveAccount": "Keni tashmë llogari?",
+      "marketing": "Dua të marr këshilla dhe oferta me email.",
+      "terms": "Pajtohem me <terms>kushtet e përdorimit</terms> dhe <privacy>politikën e privatësisë</privacy>.",
+      "checkEmailTitle": "Kontrollo email-in",
+      "checkEmail": "Nëse adresa është e vlefshme, të dërguam një lidhje për ta konfirmuar llogarinë."
+    },
+    "forgotPassword": {
+      "title": "Rivendos fjalëkalimin",
+      "subtitle": "Shkruaj email-in dhe të dërgojmë një lidhje.",
+      "submit": "Dërgo lidhjen",
+      "sentTitle": "Kontrollo email-in",
+      "sent": "Nëse ekziston një llogari me këtë adresë, të dërguam një lidhje për rivendosje.",
+      "backToSignIn": "Kthehu te hyrja"
+    },
+    "resetPassword": {
+      "title": "Zgjidh një fjalëkalim të ri",
+      "subtitle": "Pas ruajtjes do të jesh i kyçur.",
+      "submit": "Ruaj fjalëkalimin"
+    },
+    "verify": {
+      "title": "Konfirmo email-in",
+      "body": "Të dërguam një lidhje. Hape atë për ta aktivizuar llogarinë.",
+      "backToSignIn": "Kthehu te hyrja"
+    },
+    "errors": {
+      "invalidCredentials": "Email-i ose fjalëkalimi nuk është i saktë.",
+      "checkFields": "Kontrollo fushat e shënuara më poshtë.",
+      "tooManyAttempts": "Shumë përpjekje. Provo përsëri pas pak.",
+      "termsRequired": "Duhet të pranosh kushtet për të vazhduar.",
+      "resetLinkInvalid": "Kjo lidhje ka skaduar. Kërko një të re.",
+      "linkInvalid": "Lidhja nuk është më e vlefshme. Provo përsëri.",
+      "notSignedIn": "Sesioni ka skaduar. Hyr përsëri.",
+      "generic": "Diçka shkoi keq. Provo përsëri."
+    }
+  },
+  "account": {
+    "title": "Llogaria ime",
+    "greeting": "Përshëndetje, {name}",
+    "signOut": "Dil",
+    "signingOut": "Duke dalë…",
+    "nav": {
+      "label": "Navigimi i llogarisë",
+      "overview": "Përmbledhje",
+      "orders": "Porositë",
+      "subscriptions": "Abonimet",
+      "addresses": "Adresat",
+      "wishlist": "Lista e dëshirave",
+      "reviews": "Vlerësimet",
+      "loyalty": "Pikët",
+      "settings": "Cilësimet"
+    },
+    "overview": {
+      "noOrdersYet": "Ende nuk ke porosi.",
+      "quickLinks": "Lidhje të shpejta"
+    },
+    "loyalty": {
+      "title": "Pikët e besnikërisë",
+      "points": "{count, plural, =0 {0 pikë} one {# pikë} other {# pikë}}",
+      "toNextReward": "Edhe {count} pikë deri te shpërblimi tjetër.",
+      "readyToRedeem": "Mund t'i shkëmbesh pikët për një kupon."
+    },
+    "settings": {
+      "title": "Cilësimet",
+      "profileTitle": "Të dhënat e mia",
+      "profileSubtitle": "Këto përdoren për porositë dhe dërgesat.",
+      "passwordTitle": "Fjalëkalimi",
+      "passwordSubtitle": "Zgjidh një fjalëkalim të ri kurdo.",
+      "language": "Gjuha e preferuar",
+      "save": "Ruaj ndryshimet",
+      "saved": "Ndryshimet u ruajtën.",
+      "changePassword": "Ndrysho fjalëkalimin",
+      "passwordChanged": "Fjalëkalimi u përditësua."
+    }
+  },
   "notFound": {
     "title": "Nuk e gjetëm këtë faqe",
     "body": "Lidhja mund të jetë e vjetër ose e shkruar gabim. Provo të kërkosh ose nis nga ballina.",
