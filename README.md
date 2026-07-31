@@ -114,16 +114,16 @@ The full list is in `CLAUDE.md`. The ones that bite hardest:
 
 ## Status
 
-| Milestone                     | State                                                                                                                                                |
-| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| M0 · Scaffold and foundations | ✅ **Done and verified** — tokens, i18n, lib layer, CI, bundle budget gate                                                                           |
-| M1 · Database and seed        | ✅ **Applied and verified** — 12 migrations + 24-product catalogue live on `rszbpdgfvyofvmuishmn`; 44/44 integration tests                           |
-| M2 · Auth and account shell   | ✅ **Done** — sign up/in/out, password reset, account overview and settings                                                                          |
-| M3 · Catalogue browse         | 🟡 **Core done** — PLP with filters, category pages, 48 prerendered PDPs, data-driven home, JSON-LD. Brands/goals/ingredients/knowledge pages remain |
-| M4 → M11                      | Not started — see `docs/12-build-plan.md`                                                                                                            |
-| Deployment pipeline           | ✅ **Ready** — health check, sitemap, cron, ISR purge, Sentry, `vercel.json`, budget gate. See `runbooks/deploy.md`                                  |
+| Milestone                     | State                                                                                                                                          |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| M0 · Scaffold and foundations | ✅ **Done and verified** — tokens, i18n, lib layer, CI, bundle budget gate                                                                     |
+| M1 · Database and seed        | ✅ **Applied and verified** — 12 migrations + 24-product catalogue live on `rszbpdgfvyofvmuishmn`; 44/44 integration tests                     |
+| M2 · Auth and account shell   | ✅ **Done** — sign up/in/out, password reset, account overview and settings                                                                    |
+| M3 · Catalogue browse         | 🟡 **Nearly done** — PLP, categories, PDPs, brands, goals, ingredients, home, JSON-LD. Knowledge and offers remain (both need article content) |
+| M4 → M11                      | Not started — see `docs/12-build-plan.md`                                                                                                      |
+| Deployment pipeline           | ✅ **Ready** — health check, sitemap, cron, ISR purge, Sentry, `vercel.json`, budget gate. See `runbooks/deploy.md`                            |
 
-Current test totals: **87 unit · 44 integration against the live database · 74 E2E** across
+Current test totals: **87 unit · 44 integration against the live database · 84 E2E** across
 desktop and mobile, with axe clean on every page built so far.
 
 **The storefront is browsable but nothing can be bought yet** — the cart and checkout are M4,

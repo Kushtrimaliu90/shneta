@@ -22,7 +22,7 @@ Legend: ✅ done and verified · 🟡 partial · ⬜ not started · ➖ not appl
 | RLS enabled on every public table (`docs/10 §4`)      | ✅    | `tables_without_rls()` → `[]`                           |
 | Integration suite against a real database             | ✅    | **44/44**, ~57 s                                        |
 | Unit suite                                            | ✅    | **87/87**                                               |
-| E2E + axe on both locales                             | ✅    | **74/74**, repeatable; zero serious/critical violations |
+| E2E + axe on both locales                             | ✅    | **84/84**, repeatable; zero serious/critical violations |
 | Generated DB types match the live schema              | ✅    | `db:types:linked` → 2902 lines, `pnpm verify` green     |
 | CI pipeline (quality · integration+E2E · audit)       | ✅    | `.github/workflows/ci.yml`                              |
 | Security headers (`docs/10 §5`)                       | ✅    | asserted by an E2E test                                 |

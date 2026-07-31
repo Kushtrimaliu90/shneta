@@ -256,6 +256,47 @@
     "noReviewsYet": "No reviews yet",
     "ratingSummary": "{rating} ({count})"
   },
+  "brands": {
+    "title": "Brands",
+    "metaDescription": "The supplement brands we carry, legally imported.",
+    "intro": "We work only with brands that fully disclose their ingredients and sourcing.",
+    "empty": "No brands to show."
+  },
+  "goals": {
+    "title": "Health goals",
+    "metaDescription": "Choose by what you want to support — energy, sleep, immunity and more.",
+    "intro": "Start from what matters to you and see the products related to that goal.",
+    "empty": "No goals to show."
+  },
+  "ingredients": {
+    "title": "Ingredients",
+    "metaDescription": "An ingredient library: summaries, dosage and safety notes.",
+    "intro": "What each ingredient is, how much is typically taken, and what to know before you do.",
+    "empty": "No ingredients to show.",
+    "alsoKnownAs": "Also known as",
+    "benefits": "What it is used for",
+    "dosage": "Dosage",
+    "safety": "Safety notes",
+    "productsContaining": "Products with {name}",
+    "noProducts": "No products with this ingredient yet.",
+    "disclaimer": "This content is educational and does not replace advice from a healthcare professional. Consult your doctor if you are pregnant, breastfeeding, taking medication, or under 18.",
+    "evidence": {
+      "strong": "Strong evidence",
+      "moderate": "Moderate evidence",
+      "emerging": "Emerging evidence",
+      "traditional": "Traditional use"
+    },
+    "categories": {
+      "vitamin": "Vitamins",
+      "mineral": "Minerals",
+      "herb": "Herbal",
+      "amino_acid": "Amino acids",
+      "protein": "Protein",
+      "fatty_acid": "Fatty acids",
+      "fibre": "Fibre",
+      "other": "Other"
+    }
+  },
   "notFound": {
     "title": "We couldn't find that page",
     "body": "The link may be out of date or mistyped. Try a search, or start from the home page.",

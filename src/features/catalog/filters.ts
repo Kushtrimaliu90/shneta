@@ -134,6 +134,30 @@ export const DIETARY_TAGS = [
 export type DietaryTag = (typeof DIETARY_TAGS)[number];
 
 /**
+ * `ingredients.category` is a free-form `text` column, so the same narrowing applies as for
+ * dietary tags: anything unrecognised groups under "other" rather than rendering a raw
+ * message key at a customer.
+ */
+export const INGREDIENT_CATEGORIES = [
+  'vitamin',
+  'mineral',
+  'herb',
+  'amino_acid',
+  'protein',
+  'fatty_acid',
+  'fibre',
+  'other',
+] as const;
+
+export type IngredientCategory = (typeof INGREDIENT_CATEGORIES)[number];
+
+export function ingredientCategory(value: string | null): IngredientCategory {
+  return (INGREDIENT_CATEGORIES as readonly string[]).includes(value ?? '')
+    ? (value as IngredientCategory)
+    : 'other';
+}
+
+/**
  * `products.dietary_tags` is a free-form `text[]` in Postgres, so a row can carry a tag we
  * have no label for. Narrowing here means `t('shop.tags.' + tag)` typechecks, and an
  * unrecognised tag is skipped rather than rendering a raw key at a customer.

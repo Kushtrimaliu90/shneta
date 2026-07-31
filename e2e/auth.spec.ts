@@ -143,8 +143,18 @@ test.describe('auth pages', () => {
      */
     await service?.from('rate_limits').delete().eq('key', `signIn:${address}`);
 
+    /*
+     * `check_rate_limit` uses a FIXED window, not a sliding one, so attempts that straddle a
+     * bucket boundary split (say 3 + 3) and neither bucket reaches the limit of 5. Asserting
+     * that exactly the sixth attempt is throttled therefore flakes whenever the test happens
+     * to start near a boundary.
+     *
+     * Running past twice the limit guarantees one bucket exceeds it wherever the boundary
+     * falls, so this asserts the property that matters — repeated failures do get shut out —
+     * without encoding an assumption about clock alignment.
+     */
     const messages: string[] = [];
-    for (let attempt = 0; attempt < 6; attempt += 1) {
+    for (let attempt = 0; attempt < 11; attempt += 1) {
       await page.goto('/en/auth/sign-in');
       await page.locator('#email').fill('brute-force@shneta.test');
       await page.locator('#password').fill(`guess-${attempt}`);
@@ -152,9 +162,10 @@ test.describe('auth pages', () => {
       messages.push((await page.locator('form').getByRole('alert').textContent()) ?? '');
     }
 
-    // The first five are answered with the generic credential error; the budget then closes.
-    expect(messages.slice(0, 5).every((m) => m.includes("isn't right"))).toBe(true);
-    expect(messages[5]).toContain('Too many attempts');
+    // Early attempts get the generic credential error — the limiter must not answer first.
+    expect(messages[0]).toContain("isn't right");
+    // And the budget does close.
+    expect(messages.some((message) => message.includes('Too many attempts'))).toBe(true);
   });
 
   test('forgot-password never reveals whether an account exists', async ({ page }) => {

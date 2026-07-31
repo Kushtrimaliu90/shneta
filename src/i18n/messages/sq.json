@@ -256,6 +256,47 @@
     "noReviewsYet": "Ende pa vlerësime",
     "ratingSummary": "{rating} ({count})"
   },
+  "brands": {
+    "title": "Markat",
+    "metaDescription": "Markat e suplementeve që mbajmë, të importuara ligjërisht.",
+    "intro": "Punojmë vetëm me marka që deklarojnë plotësisht përbërësit dhe origjinën.",
+    "empty": "Nuk ka marka për t'u shfaqur."
+  },
+  "goals": {
+    "title": "Qëllimet shëndetësore",
+    "metaDescription": "Zgjidh sipas asaj që dëshiron të mbështesësh — energji, gjumë, imunitet dhe më shumë.",
+    "intro": "Nis nga ajo që të intereson dhe shiko produktet që lidhen me atë qëllim.",
+    "empty": "Nuk ka qëllime për t'u shfaqur."
+  },
+  "ingredients": {
+    "title": "Përbërësit",
+    "metaDescription": "Bibliotekë e përbërësve: përmbledhje, dozim dhe shënime sigurie.",
+    "intro": "Çfarë është secili përbërës, sa merret dhe çfarë duhet ditur para se ta marrësh.",
+    "empty": "Nuk ka përbërës për t'u shfaqur.",
+    "alsoKnownAs": "Njihet edhe si",
+    "benefits": "Për çfarë përdoret",
+    "dosage": "Dozimi",
+    "safety": "Shënime sigurie",
+    "productsContaining": "Produkte me {name}",
+    "noProducts": "Ende asnjë produkt me këtë përbërës.",
+    "disclaimer": "Ky përmbajtje është informative dhe nuk zëvendëson këshillën e një profesionisti të shëndetit. Konsultohu me mjekun nëse jeni shtatzënë, në gjidhënie, merrni mjekim ose nën 18 vjeç.",
+    "evidence": {
+      "strong": "Dëshmi e forta",
+      "moderate": "Dëshmi mesatare",
+      "emerging": "Dëshmi në zhvillim",
+      "traditional": "Përdorim tradicional"
+    },
+    "categories": {
+      "vitamin": "Vitaminat",
+      "mineral": "Mineralet",
+      "herb": "Bimore",
+      "amino_acid": "Aminoacide",
+      "protein": "Proteina",
+      "fatty_acid": "Acide yndyrore",
+      "fibre": "Fibra",
+      "other": "Të tjera"
+    }
+  },
   "notFound": {
     "title": "Nuk e gjetëm këtë faqe",
     "body": "Lidhja mund të jetë e vjetër ose e shkruar gabim. Provo të kërkosh ose nis nga ballina.",

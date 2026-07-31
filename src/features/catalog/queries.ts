@@ -349,6 +349,124 @@ export const listGoals = cache(async () => {
   });
 });
 
+export const getBrandBySlug = cache(async (slug: string) => {
+  const supabase = createPublicClient();
+  const { data } = await supabase
+    .from('brands')
+    .select('slug, name, description, country_code, website_url, logo_path, banner_path')
+    .eq('slug', slug)
+    .maybeSingle();
+
+  if (!data) return null;
+  const brand = data as {
+    slug: string;
+    name: string;
+    description: unknown;
+    country_code: string | null;
+    website_url: string | null;
+    logo_path: string | null;
+    banner_path: string | null;
+  };
+
+  return {
+    slug: brand.slug,
+    name: brand.name,
+    description: asLocalizedField(brand.description),
+    countryCode: brand.country_code,
+    websiteUrl: brand.website_url,
+    logoPath: brand.logo_path,
+    bannerPath: brand.banner_path,
+  };
+});
+
+export const getGoalBySlug = cache(async (slug: string) => {
+  const supabase = createPublicClient();
+  const { data } = await supabase
+    .from('health_goals')
+    .select('slug, name, tagline, description, icon')
+    .eq('slug', slug)
+    .maybeSingle();
+
+  if (!data) return null;
+  const goal = data as {
+    slug: string;
+    name: unknown;
+    tagline: unknown;
+    description: unknown;
+    icon: string | null;
+  };
+
+  return {
+    slug: goal.slug,
+    name: asLocalizedField(goal.name),
+    tagline: asLocalizedField(goal.tagline),
+    description: asLocalizedField(goal.description),
+    icon: goal.icon,
+  };
+});
+
+/** docs/05 §6 — searchable A–Z list with a category filter (vitamin, mineral, herb…). */
+export const listIngredients = cache(async () => {
+  const supabase = createPublicClient();
+  const { data } = await supabase
+    .from('ingredients')
+    .select('slug, name, summary, evidence, category')
+    .order('slug');
+
+  return (data ?? []).map((row) => {
+    const ingredient = row as {
+      slug: string;
+      name: unknown;
+      summary: unknown;
+      evidence: string | null;
+      category: string | null;
+    };
+    return {
+      slug: ingredient.slug,
+      name: asLocalizedField(ingredient.name),
+      summary: asLocalizedField(ingredient.summary),
+      evidence: ingredient.evidence,
+      category: ingredient.category,
+    };
+  });
+});
+
+export const getIngredientBySlug = cache(async (slug: string) => {
+  const supabase = createPublicClient();
+  const { data } = await supabase
+    .from('ingredients')
+    .select(
+      'slug, name, other_names, summary, benefits, dosage_notes, safety_notes, evidence, category',
+    )
+    .eq('slug', slug)
+    .maybeSingle();
+
+  if (!data) return null;
+  const ingredient = data as {
+    slug: string;
+    name: unknown;
+    other_names: string[] | null;
+    summary: unknown;
+    benefits: unknown;
+    dosage_notes: unknown;
+    safety_notes: unknown;
+    evidence: string | null;
+    category: string | null;
+  };
+
+  return {
+    slug: ingredient.slug,
+    name: asLocalizedField(ingredient.name),
+    otherNames: ingredient.other_names ?? [],
+    summary: asLocalizedField(ingredient.summary),
+    benefits: asLocalizedField(ingredient.benefits),
+    dosageNotes: asLocalizedField(ingredient.dosage_notes),
+    safetyNotes: asLocalizedField(ingredient.safety_notes),
+    evidence: ingredient.evidence,
+    category: ingredient.category,
+  };
+});
+
 /** Bestsellers for the home page. docs/05 §1 falls back to `is_featured` before sales exist. */
 export const listFeaturedProducts = cache(async (limit = 8): Promise<ProductListItem[]> => {
   const featured = await listProducts({ sort: 'rating' });

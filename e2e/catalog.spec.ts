@@ -131,6 +131,47 @@ test.describe('product detail', () => {
   });
 });
 
+test.describe('taxonomy pages', () => {
+  test('the brand index groups alphabetically and links to a scoped listing', async ({ page }) => {
+    await page.goto('/en/brands');
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Brands');
+
+    await page.getByRole('link', { name: /Solgar/ }).click();
+    await expect(page).toHaveURL(/\/brands\/solgar$/);
+    // Scoped: Solgar has three products in the fixture, not all 24.
+    await expect(page.getByText('3 products').first()).toBeVisible();
+  });
+
+  test('a goal page scopes the listing and carries the disclaimer', async ({ page }) => {
+    await page.goto('/en/goals/gjumi');
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Better Sleep');
+    await expect(page.getByText('3 products').first()).toBeVisible();
+    // docs/08 §7.3 — goal pages are educational surfaces and need it.
+    await expect(page.getByText(/Food supplements are not a substitute/).first()).toBeVisible();
+  });
+
+  test('goal intros never leak the seed placeholder to a customer', async ({ page }) => {
+    await page.goto('/en/goals/energji');
+    await expect(page.getByText('[CONTENT')).toHaveCount(0);
+  });
+
+  test('an ingredient page always shows safety notes when present', async ({ page }) => {
+    // docs/05 §6 acceptance — melatonin has real warnings and they must be visible.
+    await page.goto('/en/ingredients/melatonin');
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Melatonin');
+    await expect(page.getByRole('heading', { name: 'Safety notes' })).toBeVisible();
+    await expect(page.getByText(/Not for pregnancy/)).toBeVisible();
+    // The evidence badge states the level as text, not by colour alone (docs/04 §10).
+    await expect(page.getByText('Strong evidence')).toBeVisible();
+  });
+
+  test('ingredient chips on a PDP land on the ingredient page', async ({ page }) => {
+    await page.goto('/en/product/jamieson-melatonin-3');
+    await page.getByRole('table').getByRole('link', { name: 'Melatonin' }).click();
+    await expect(page).toHaveURL(/\/ingredients\/melatonin$/);
+  });
+});
+
 test.describe('home', () => {
   test('shows bestsellers, goals and categories from the database', async ({ page }) => {
     await page.goto('/en');
