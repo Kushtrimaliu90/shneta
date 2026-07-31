@@ -33,6 +33,17 @@ const config = [
        */
       ...jsxA11y.flatConfigs.recommended.rules,
 
+      /**
+       * `label-has-associated-control` only looks two elements deep for text by default.
+       * Radio cards (checkout delivery/payment) legitimately nest text inside a flex wrapper
+       * to lay the price out opposite the name, which puts it at depth 3.
+       *
+       * Raising the depth keeps the real check — the label must still contain text — without
+       * flattening markup that exists for layout. The control association itself is separately
+       * guaranteed: every such label carries an explicit `htmlFor`.
+       */
+      'jsx-a11y/label-has-associated-control': ['error', { depth: 4 }],
+
       // CLAUDE.md §1 — strict TS, no escape hatches.
       '@typescript-eslint/no-explicit-any': 'error',
       '@typescript-eslint/no-non-null-assertion': 'error',

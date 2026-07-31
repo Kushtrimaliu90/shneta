@@ -5,6 +5,7 @@ import { BrandMark } from '@/components/storefront/brand-mark';
 import { MobileNav } from '@/components/storefront/mobile-nav';
 import { PRIMARY_NAV } from '@/components/storefront/nav-links';
 import { LocaleSwitcher } from '@/components/shared/locale-switcher';
+import { getCartItemCount } from '@/features/cart/queries';
 
 /**
  * docs/04 §6 — cream, hairline bottom border, sticky; logo left, nav centre, actions right.
@@ -13,7 +14,7 @@ import { LocaleSwitcher } from '@/components/shared/locale-switcher';
  * cart count arrive with M3/M4; the markup below is the surface they attach to.
  */
 export async function Navbar() {
-  const t = await getTranslations();
+  const [t, itemCount] = await Promise.all([getTranslations(), getCartItemCount()]);
 
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-cream/95 backdrop-blur-sm">
@@ -58,12 +59,26 @@ export async function Navbar() {
             <User className="size-5" aria-hidden="true" />
           </Link>
 
+          {/*
+            docs/05 §17 — count comes from the server on load. It is part of the accessible
+            label, so a screen-reader user hears "Cart, 2 items in cart" rather than just
+            "Cart" plus a number they cannot reach.
+          */}
           <Link
             href="/cart"
-            aria-label={t('common.cart')}
+            aria-label={`${t('common.cart')}, ${t('common.cartItems', { count: itemCount })}`}
             className="relative inline-flex size-11 items-center justify-center rounded-md text-forest-800 transition-colors hover:bg-forest-50"
           >
             <ShoppingBag className="size-5" aria-hidden="true" />
+            {itemCount > 0 && (
+              <span
+                aria-hidden="true"
+                className="absolute top-1.5 right-1 min-w-4 rounded-full bg-lime-500 px-1 text-[10px] leading-4 font-semibold text-lime-950"
+                data-numeric
+              >
+                {itemCount > 99 ? '99+' : itemCount}
+              </span>
+            )}
           </Link>
         </div>
       </div>

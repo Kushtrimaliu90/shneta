@@ -325,6 +325,115 @@ gate for M1 and `pnpm check:sql` is not.
 
 ---
 
+## I. What driving the checkout in a browser taught us
+
+§H was found by Postgres. Everything here was found by clicking through the money path with
+Playwright and axe. Each of these passed typecheck, lint, unit tests and the integration
+suite; none of them would have been found by reading the code again.
+
+### I1 · BLOCKER — coupon codes were case-sensitive despite being `citext`
+
+Typing `welcome10` for a coupon printed as `WELCOME10` returned "that coupon isn't valid".
+
+`coupons.code` is `extensions.citext` and PostgREST matches it case-insensitively, so this
+looked right from the app. Inside `checkout_create_order` it was not. The function was
+declared `set search_path = public`. The `::extensions.citext` casts resolved, being
+schema-qualified — but the `=` **operator** for citext also lives in `extensions`, and an
+operator cannot be schema-qualified inside an expression. With `extensions` off the
+search_path Postgres could not see `=(citext, citext)`; because citext is binary-coercible to
+text it silently resolved `=(text, text)`. No error, no warning, no log line: the comparison
+just quietly became case-sensitive.
+
+Phone keyboards capitalise, autocorrect lower-cases, and coupons are printed on flyers in
+caps. This would have produced a steady trickle of "the code doesn't work" with nothing in the
+logs to explain it.
+
+Fixed by migration `20260731001300_citext_search_path.sql` — an `alter function … set
+search_path = public, extensions` rather than a `create or replace`, so the 200-line body is
+not duplicated to change one parameter. Pinned by an integration test that deliberately
+lower-cases the code, and by `e2e/checkout.spec.ts`, which types `welcome10`.
+
+**Generalises to:** every function that compares a citext column needs `extensions` on its
+search_path. `triggers.sql` and the search RPC already did, for `unaccent` and `pg_trgm` — the
+checkout RPC was the one that missed it.
+
+### I2 · Six of thirty SKUs were unbuyable
+
+The M3 PDP rendered variants as inert `<span>`s with a "interactive selection lands with M4"
+note, and `AddToCart` was hard-wired to the **default** variant. So the 240-count D3, the
+634 g creatine, the vanilla whey, the 200-count omega-3 and the green shaker could be looked
+at and not bought. `on-gold-standard-whey` was worse than that: its default is the 900 g, but
+had the out-of-stock 2.27 kg been the default the product would have been a dead end.
+
+Replaced by `BuyBox` — one real `<form>` holding price, variant radios, stock line and the
+submit. Any variant is purchasable **before hydration**, because the radios post; the price
+and stock line follow the selection with no request, because every variant's data already
+arrived with the page; and the PDP stays statically renderable. Encoding the selection in
+`?variant=` would have read `searchParams` and made every PDP dynamic — losing ISR on the
+most-visited route type to save a few lines of state.
+
+### I3 · `SubmitButton` disabled its own double-submit guard
+
+```tsx
+<Button disabled={pending || props.disabled} {...props}>   // ← spread wins
+```
+
+The spread came last, so any caller passing `disabled={false}` — the add-to-cart button,
+whenever the variant is in stock — overwrote the pending state and left the button live for
+the whole round trip. Double-clicking added the item twice. `disabled` is now destructured out
+and recombined after the spread, and `e2e/checkout.spec.ts` double-clicks add-to-cart and
+asserts a quantity of 1.
+
+Checkout's Place-order button was accidentally safe: it passes no `disabled` prop, so the key
+was absent from the spread. It was one prop away from taking two orders.
+
+### I4 · Four redirects dropped the locale
+
+`redirect('/cart')` from `/en/checkout` lands on the **Albanian** cart. The same bug the
+sign-in action's `localizedRedirect` was written for, in four more places: empty-cart checkout,
+both order pages' access-gate misses, and the account layout's sign-in bounce. All four now go
+through `localizePath`, and the empty-cart case is asserted in E2E against `/en/cart`.
+
+### I5 · ink-500 on the forest-50 tint misses AA by 0.07
+
+axe measured **4.43:1** on the checkout payment card's body text; AA wants 4.5. §C had
+verified ink-500 against `cream` (4.53:1) and stopped there — but `forest-50` is the tint on
+every selected card and filled panel, and it is a hair darker. The rule is now **secondary
+text on a tint is ink-600, never ink-500** (6.22:1), and `tests/unit/contrast.test.ts` asserts
+both halves: that ink-600 passes on forest-50, and that ink-500 fails, so the rule fails a test
+rather than waiting to be rediscovered in a browser.
+
+### I6 · Order lookup cleared both fields on every failure
+
+People reach order lookup _because_ they are unsure of a 20-character order number, and the
+usual failure is one wrong character — so wiping both fields meant retyping everything to fix
+a digit. `LookupState` now carries the submitted values back (truncated before they re-enter
+the DOM, since on a schema failure they are arbitrary strings) and the inputs repopulate.
+
+### I7 · Two test suites quietly shared a rate-limit budget
+
+`checkout.spec.ts` allocated itself forwarded addresses in `198.51.100.0/24` — the block
+`auth.spec.ts` reserves for the one test that needs to own a budget outright. The checkout
+tests spent `198.51.100.2` before the mobile rate-limiter test ran, and it failed on an empty
+budget. The suite-wide allocation is now written down at the top of `checkout.spec.ts`:
+TEST-NET-3 for auth's per-test addresses, TEST-NET-2 for its fixed ones, TEST-NET-1 for
+checkout.
+
+### I8 · E2E checkout drains fixture stock
+
+The journeys buy from the real seeded catalogue — there is no way to place a believable order
+otherwise — so every run decremented `on_hand` for real variants. Left alone, the suite would
+have worked for a dozen runs and then failed because `NOW-D3-120` reported out of stock.
+
+`purgeFixtures` now writes a compensating `cancel_restock` movement through
+`apply_stock_movement()` before deleting a test order, and `e2e/global-teardown.ts` runs it
+after every Playwright run, pass or fail. Compensating rather than deleting the `sale` rows,
+because deleting a movement without touching `on_hand` creates exactly the drift
+`v_stock_ledger_drift` exists to catch, and touching `on_hand` directly is what §A7 forbids.
+Four consecutive full runs now come out at 116/116.
+
+---
+
 ## E. Stack decisions taken at M0
 
 | Item          | Spec                  | Built as            | Why                                                                                               |

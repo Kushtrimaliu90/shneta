@@ -9,11 +9,11 @@ import { clientEnv } from '@/lib/env.client';
 import { truncate } from '@/lib/utils';
 import { breadcrumbSchema, productSchema } from '@/lib/seo';
 import { JsonLd } from '@/components/shared/json-ld';
-import { PriceTag } from '@/components/storefront/price-tag';
 import { RatingStars } from '@/components/storefront/rating-stars';
 import { ProductImage } from '@/components/storefront/product-image';
 import { getProduct, listProducts } from '@/features/catalog/queries';
 import { knownDietaryTags } from '@/features/catalog/filters';
+import { BuyBox } from '@/features/cart/components/buy-box';
 import type { ProductVariantDetail } from '@/features/catalog/types';
 
 type Props = { params: Promise<{ locale: string; slug: string }> };
@@ -47,7 +47,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-/** The default variant, or the first one — never `undefined` for a published product. */
+/**
+ * The variant the structured data describes: the default, or the first one.
+ *
+ * Deliberately *not* the same choice `BuyBox` makes for its opening selection — that one
+ * skips an out-of-stock default so the customer does not land on a dead end, whereas the
+ * canonical offer in JSON-LD should stay stable across restocks rather than move whenever
+ * inventory changes.
+ */
 function primaryVariant(variants: ProductVariantDetail[]): ProductVariantDetail | undefined {
   return variants.find((variant) => variant.isDefault) ?? variants[0];
 }
@@ -99,7 +106,12 @@ export default async function ProductPage({ params }: Props) {
           brandName: product.brand.name,
           sku: variant?.sku ?? '',
           priceCents: variant?.priceCents ?? 0,
-          inStock: variant?.stockStatus !== 'out_of_stock',
+          /*
+           * Availability is a property of the product, not of one variant: the whey's
+           * default 900 g is in stock while its 2.27 kg is not, and marking the page
+           * out-of-stock over that would suppress a buyable offer in Search.
+           */
+          inStock: product.variants.some((option) => option.stockStatus !== 'out_of_stock'),
           ratingAvg: product.ratingAvg,
           ratingCount: product.ratingCount,
         })}
@@ -162,65 +174,13 @@ export default async function ProductPage({ params }: Props) {
               <p className="mt-4 text-ink-600">{pickLocale(product.subtitle, locale)}</p>
             )}
 
-            {variant && (
-              <div className="mt-6">
-                <PriceTag
-                  priceCents={variant.priceCents}
-                  compareAtPriceCents={variant.compareAtPriceCents}
-                  size="lg"
-                />
-                {/* docs/05 §3 — VAT-inclusive note sits with the price, not in the footer. */}
-                <p className="mt-1 text-sm text-ink-500">{t('product.vatIncluded')}</p>
-              </div>
-            )}
-
-            {/* docs/05 §3 — variants as a segmented list. Interactive selection lands with M4. */}
-            {product.variants.length > 1 && (
-              <div className="mt-6">
-                <h2 className="font-ui text-xs font-semibold tracking-[0.08em] text-ink-500 uppercase">
-                  {t('product.options')}
-                </h2>
-                <ul className="mt-3 flex flex-wrap gap-2">
-                  {product.variants.map((option) => {
-                    const unavailable = option.stockStatus === 'out_of_stock';
-                    return (
-                      <li key={option.id}>
-                        <span
-                          aria-disabled={unavailable}
-                          className={
-                            unavailable
-                              ? 'inline-flex min-h-11 items-center rounded-sm border border-dashed border-line-strong px-3.5 text-sm text-ink-500 line-through'
-                              : option.isDefault
-                                ? 'inline-flex min-h-11 items-center rounded-sm border border-forest-800 bg-forest-100 px-3.5 text-sm font-medium text-forest-900'
-                                : 'inline-flex min-h-11 items-center rounded-sm border border-line-strong px-3.5 text-sm text-ink-900'
-                          }
-                        >
-                          {pickLocale(option.name, locale)}
-                        </span>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </div>
-            )}
-
-            {/* Stock line (docs/05 §3) */}
-            {variant && (
-              <p className="mt-6 text-sm">
-                {variant.stockStatus === 'out_of_stock' ? (
-                  <span className="text-ink-600">{t('product.outOfStockLine')}</span>
-                ) : variant.stockStatus === 'low' ? (
-                  <span className="font-medium text-warning">{t('product.lowStockLine')}</span>
-                ) : (
-                  <span className="font-medium text-success">{t('product.inStockLine')}</span>
-                )}
-              </p>
-            )}
-
-            {/* M4 wires the real control; the surface is here so the layout is final. */}
-            <p className="mt-6 rounded-md border border-dashed border-line bg-forest-50 p-4 text-sm text-ink-600">
-              {t('product.addToCartComingSoon')}
-            </p>
+            {/*
+              docs/05 §3 — price, variant choice, stock line and the primary action are one
+              component because they are one decision; see the note in buy-box.tsx.
+            */}
+            <div className="mt-6">
+              <BuyBox variants={product.variants} />
+            </div>
 
             {/* Trust row (docs/04 §1.5 — microcopy near money) */}
             <ul className="mt-6 flex flex-col gap-2 text-sm text-ink-600">

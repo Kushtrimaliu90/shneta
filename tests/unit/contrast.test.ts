@@ -88,6 +88,24 @@ describe('text on filled surfaces', () => {
       expect(ratio(token(name), token('cream'))).toBeGreaterThanOrEqual(AA_TEXT);
     }
   });
+
+  /**
+   * forest-50 is the tint on every selected card and filled panel — the checkout delivery
+   * and payment options, the COD callout on the success page, the ingredient table head.
+   *
+   * It is very slightly darker than cream, and that is enough to matter: ink-500 clears AA
+   * on cream at 4.53:1 and misses it on forest-50 at 4.43:1. axe caught it on the payment
+   * radio card, which is not a place to be sloppy about legibility. These two assertions
+   * encode the resulting rule — **secondary text on a tint is ink-600, never ink-500** —
+   * so it is a test failure rather than something to rediscover with a browser.
+   */
+  it('ink-500 does NOT pass on the forest-50 tint, which is why tints use ink-600', () => {
+    expect(ratio(token('ink-500'), token('forest-50'))).toBeLessThan(AA_TEXT);
+  });
+
+  it('ink-600 passes comfortably on the forest-50 tint', () => {
+    expect(ratio(token('ink-600'), token('forest-50'))).toBeGreaterThanOrEqual(AA_TEXT);
+  });
 });
 
 describe('non-text contrast — WCAG SC 1.4.11', () => {

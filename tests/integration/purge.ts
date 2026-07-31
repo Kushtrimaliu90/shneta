@@ -36,6 +36,63 @@ export function envFromLocalFile(path = '.env.local'): Record<string, string> {
   return env;
 }
 
+type Recorder = (label: string, rows: { length: number } | null | undefined) => void;
+
+/**
+ * Gives back the stock a test order consumed, before the order row is deleted.
+ *
+ * This matters because the E2E checkout journeys buy from the **real seeded catalogue** —
+ * there is no way to place a believable order otherwise. Each run therefore decrements
+ * `on_hand` for real fixture variants, and without this the suite would quietly drain the
+ * catalogue until `NOW-D3-120` reported out of stock and journey 1 started failing for a
+ * reason that has nothing to do with the code.
+ *
+ * It writes a compensating `cancel_restock` movement through `apply_stock_movement()`
+ * rather than deleting the original `sale` rows and patching `on_hand`. Three reasons:
+ *   · `v_stock_ledger_drift` must stay empty — deleting a movement without touching
+ *     `on_hand` creates drift, and touching `on_hand` directly is exactly what
+ *     docs/13 §A7 forbids.
+ *   · it is what a real cancellation does, so the cleanup exercises a production path.
+ *   · the ledger stays a truthful history: the sale happened, then it was reversed.
+ */
+async function restockTestOrders(
+  db: SupabaseClient,
+  orderIds: string[],
+  record: Recorder,
+): Promise<void> {
+  const { data: warehouse } = await db
+    .from('warehouses')
+    .select('id')
+    .eq('is_default', true)
+    .maybeSingle();
+
+  // Same warehouse the checkout RPC sells from (rpc_checkout.sql — `where is_default`).
+  if (!warehouse) return;
+
+  const { data: items } = await db
+    .from('order_items')
+    .select('order_id, variant_id, quantity')
+    .in('order_id', orderIds)
+    .not('variant_id', 'is', null);
+
+  const restocked: { length: number }[] = [];
+
+  for (const item of items ?? []) {
+    const { error } = await db.rpc('apply_stock_movement', {
+      p_variant_id: item.variant_id,
+      p_warehouse_id: warehouse.id,
+      p_type: 'cancel_restock',
+      p_quantity: item.quantity,
+      p_reference_type: 'order',
+      p_reference_id: item.order_id,
+      p_note: 'Test fixture cleanup — reversing an E2E order.',
+    });
+    if (!error) restocked.push({ length: 1 });
+  }
+
+  record('stock restocked', restocked.length > 0 ? restocked : null);
+}
+
 export async function purgeFixtures(
   url: string,
   serviceKey: string,
@@ -123,6 +180,8 @@ export async function purgeFixtures(
   const orderIds = (orders ?? []).map((row) => row.id);
 
   if (orderIds.length > 0) {
+    await restockTestOrders(db, orderIds, record);
+
     record(
       'loyalty_transactions',
       (await db.from('loyalty_transactions').delete().in('order_id', orderIds).select('id')).data,

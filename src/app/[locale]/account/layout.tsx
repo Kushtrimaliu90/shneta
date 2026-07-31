@@ -1,6 +1,7 @@
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { redirect } from 'next/navigation';
 import { resolveLocale } from '@/i18n/locale';
+import { localizePath } from '@/lib/i18n';
 import { Navbar } from '@/components/storefront/navbar';
 import { Footer } from '@/components/storefront/footer';
 import { AccountNav } from '@/features/auth/components/account-nav';
@@ -21,10 +22,16 @@ export default async function AccountLayout({
   children: React.ReactNode;
   params: Promise<{ locale: string }>;
 }) {
-  setRequestLocale(resolveLocale((await params).locale));
+  const locale = resolveLocale((await params).locale);
+  setRequestLocale(locale);
 
   const profile = await getProfile();
-  if (!profile) redirect('/auth/sign-in?next=/account');
+  /*
+   * Localized, because a bare `redirect('/auth/sign-in')` always lands on the unprefixed —
+   * Albanian — route. An English visitor being bounced into Albanian to sign in is the same
+   * defect the sign-in action's `localizedRedirect` exists to avoid.
+   */
+  if (!profile) redirect(localizePath('/auth/sign-in?next=/account', locale));
 
   const t = await getTranslations();
 

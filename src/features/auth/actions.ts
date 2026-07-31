@@ -10,6 +10,7 @@ import { clientEnv } from '@/lib/env.client';
 import { limitByIp } from '@/lib/rate-limit';
 import { logger, describeError } from '@/lib/logger';
 import { fail, fromFieldErrors, ok, type ActionResult } from '@/lib/result';
+import { mergeGuestCart } from '@/features/cart/actions';
 import {
   changePasswordSchema,
   forgotPasswordSchema,
@@ -124,6 +125,10 @@ export const signIn: FormAction = async (_prevState, formData) => {
     logger.info('Sign-in rejected', { reason: error.code ?? error.message });
     return authFail('auth.errors.invalidCredentials');
   }
+
+  // docs/07 §3.3 — carry a guest cart across the sign-in boundary. Idempotent and
+  // failure-tolerant: it never blocks the sign-in it is attached to.
+  await mergeGuestCart();
 
   revalidatePath('/', 'layout');
   // Outside any try/catch: redirect() signals by throwing, and catching it would swallow

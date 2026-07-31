@@ -93,12 +93,27 @@ test.describe('product detail', () => {
     await expect(page.getByText(/Do not drive after taking/)).toBeVisible();
   });
 
-  test('marks an out-of-stock variant as unavailable', async ({ page }) => {
+  test('still lists an out-of-stock variant, marked unavailable', async ({ page }) => {
     // The 2.27 kg whey is the docs/11 §7 out-of-stock fixture.
     await page.goto('/en/product/on-gold-standard-whey');
-    const option = page.getByText('2.27 kg chocolate');
-    await expect(option).toBeVisible();
-    await expect(option).toHaveAttribute('aria-disabled', 'true');
+
+    /*
+     * It stays listed rather than being hidden: someone who came for the 2.27 kg needs to
+     * learn that it exists and is out of stock, not to conclude the shop never had it.
+     *
+     * The option is a real radio since M4, so "unavailable" is `disabled` on the input —
+     * which conveys it to assistive technology — plus a line-through for sighted users.
+     * That it cannot be *selected* is asserted in checkout.spec.ts, where buying is the
+     * subject; here the concern is that the catalogue shows it honestly.
+     */
+    const label = page.locator('label', { hasText: '2.27 kg chocolate' });
+    await expect(label).toBeVisible();
+    await expect(label).toHaveClass(/line-through/);
+
+    // The radio's accessible name carries the reason in words, not by strike-through alone
+    // (docs/04 §10 — never colour or decoration as the only signal).
+    const radio = page.getByRole('radio', { name: /2\.27 kg chocolate — Currently out of stock/ });
+    await expect(radio).toBeDisabled();
   });
 
   test('carries the mandatory supplement disclaimer (docs/08 §7.3)', async ({ page }) => {

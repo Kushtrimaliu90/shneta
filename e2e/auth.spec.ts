@@ -130,6 +130,10 @@ test.describe('auth pages', () => {
      * desktop and mobile runs would otherwise share it and the second would arrive to find
      * it already spent. 198.51.100.0/24 is TEST-NET-2, kept separate from the TEST-NET-3
      * range the per-test addresses use.
+     *
+     * This block belongs to this test alone. `e2e/checkout.spec.ts` originally took it too
+     * and spent 198.51.100.2 before the mobile run got here; the allocation for the whole
+     * suite is written out at the top of that file.
      */
     const projectOctet = testInfo.project.name === 'mobile' ? 2 : 1;
     const address = `198.51.100.${projectOctet}`;

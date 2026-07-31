@@ -236,7 +236,6 @@
     "inStockLine": "In stock · delivery 1–3 days",
     "lowStockLine": "Only a few left",
     "outOfStockLine": "Currently out of stock",
-    "addToCartComingSoon": "Add to cart becomes active with the next build step.",
     "description": "Description",
     "ingredients": "Ingredients and label",
     "ingredient": "Ingredient",
@@ -295,6 +294,125 @@
       "fatty_acid": "Fatty acids",
       "fibre": "Fibre",
       "other": "Other"
+    }
+  },
+  "cart": {
+    "title": "Cart",
+    "addToCart": "Add to cart",
+    "adding": "Adding…",
+    "added": "Added to your cart.",
+    "remove": "Remove",
+    "increase": "Add one",
+    "decrease": "Remove one",
+    "quantityIs": "Quantity: {count}",
+    "linesLabel": "Items in your cart",
+    "summary": "Summary",
+    "subtotal": "Subtotal",
+    "shipping": "Delivery",
+    "shippingAtCheckout": "Calculated next",
+    "checkout": "Continue to payment",
+    "codNote": "You pay the courier in cash on delivery.",
+    "lineOutOfStock": "Out of stock — remove it to continue.",
+    "prunedNotice": "{count, plural, one {# item was removed from your cart because it is no longer available.} other {# items were removed from your cart because they are no longer available.}}",
+    "freeShippingRemaining": "Add {amount} for free delivery.",
+    "freeShippingReached": "Delivery is free.",
+    "empty": {
+      "title": "Your cart is empty",
+      "body": "Browse the shop and add what you need."
+    },
+    "errors": {
+      "variantUnavailable": "That product is no longer available.",
+      "outOfStock": "That product is out of stock.",
+      "maxQuantity": "You have reached the maximum quantity for this item.",
+      "notFound": "We couldn't find your cart. Please try again.",
+      "empty": "Your cart is empty.",
+      "generic": "Something went wrong. Please try again."
+    }
+  },
+  "checkout": {
+    "title": "Checkout",
+    "total": "Total",
+    "free": "Free",
+    "method": "Delivery method",
+    "eta": "{min}–{max} days",
+    "placeOrder": "Place order",
+    "placing": "Placing your order…",
+    "acceptTerms": "I accept the terms of use and the privacy policy.",
+    "vatIncludedAmount": "Includes VAT ({rate}%): {amount}",
+    "blockedTitle": "An item is no longer in stock",
+    "blockedBody": "Please remove from your cart: {skus}",
+    "steps": {
+      "contact": "1 · Contact",
+      "delivery": "2 · Delivery",
+      "payment": "3 · Payment",
+      "review": "4 · Review"
+    },
+    "fields": {
+      "recipientName": "Recipient name",
+      "deliveryPhone": "Delivery phone",
+      "line1": "Address",
+      "line2": "Address line 2 (optional)",
+      "city": "City",
+      "postalCode": "Postal code (optional)",
+      "coupon": "Coupon code (optional)",
+      "note": "Order note (optional)"
+    },
+    "providers": {
+      "cod": { "title": "Cash on delivery", "body": "Pay the courier in cash when it arrives." },
+      "bank_pos": { "title": "Bank card", "body": "You'll continue on your bank's secure page." }
+    },
+    "errors": {
+      "cartEmpty": "Your cart is empty.",
+      "cartNotFound": "We couldn't find your cart. Please try again.",
+      "itemUnavailable": "An item is no longer available. Remove it and try again.",
+      "outOfStock": "An item is out of stock.",
+      "couponInvalid": "That coupon isn't valid.",
+      "couponMinNotMet": "That coupon needs a higher order total.",
+      "couponExhausted": "That coupon has been fully used.",
+      "couponAlreadyUsed": "You've already used that coupon.",
+      "shippingMethodInvalid": "Please choose a delivery method.",
+      "providerUnavailable": "That payment method isn't available.",
+      "checkFields": "Check the fields marked below.",
+      "tooManyAttempts": "Too many attempts. Please try again shortly.",
+      "generic": "Something went wrong. Please try again."
+    }
+  },
+  "order": {
+    "title": "Order",
+    "successTitle": "Your order is in",
+    "successBody": "Thank you! We'll prepare it and contact you before delivery.",
+    "orderNumber": "Order number",
+    "placedOn": "Placed on {date}",
+    "items": "Items",
+    "discount": "Discount",
+    "vatIncluded": "Includes VAT: {amount}",
+    "deliveryAddress": "Delivery address",
+    "delivery": "Delivery",
+    "statusLabel": "Status",
+    "codHeading": "Cash on delivery",
+    "codBody": "Please have {amount} in cash ready for the courier.",
+    "trackNote": "You can track this order any time with the order number and your email.",
+    "continueShopping": "Continue shopping",
+    "status": {
+      "pending": "Pending",
+      "confirmed": "Confirmed",
+      "processing": "Being prepared",
+      "shipped": "Shipped",
+      "delivered": "Delivered",
+      "cancelled": "Cancelled",
+      "refunded": "Refunded"
+    },
+    "lookup": {
+      "title": "Track an order",
+      "subtitle": "Enter your order number and the email you ordered with.",
+      "orderNumberLabel": "Order number",
+      "orderNumberHint": "e.g. SH-2026-000123-K7QW",
+      "emailLabel": "Email",
+      "submit": "Find my order",
+      "searching": "Searching…",
+      "notFound": "We couldn't find an order with those details.",
+      "throttled": "Too many attempts. Please try again shortly.",
+      "searchAnother": "Look up another order"
     }
   },
   "notFound": {

@@ -6,6 +6,11 @@ const baseURL = process.env.E2E_BASE_URL ?? `http://127.0.0.1:${PORT}`;
 /** docs/09 §1 — desktop Chrome + a 390×844 mobile viewport. */
 export default defineConfig({
   testDir: './e2e',
+  /*
+   * The checkout journeys place real orders, so the run has to clean up after itself —
+   * pass or fail. See e2e/global-teardown.ts.
+   */
+  globalTeardown: './e2e/global-teardown.ts',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,

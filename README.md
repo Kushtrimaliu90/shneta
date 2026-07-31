@@ -31,7 +31,7 @@ schema (requires Docker):
 
 ```bash
 supabase start
-supabase db reset                 # applies the 12 migrations + seed.sql
+supabase db reset                 # applies the 13 migrations + seed.sql
 pnpm db:types                     # regenerate src/lib/supabase/database.types.ts
 pnpm test:integration             # RLS matrix, checkout RPC, order lifecycle
 ```
@@ -39,8 +39,8 @@ pnpm test:integration             # RLS matrix, checkout RPC, order lifecycle
 ### Hosted dev project
 
 The schema is **applied and verified** on the hosted dev project
-`rszbpdgfvyofvmuishmn` (eu-west-1, Postgres 17.6): all 12 migrations, the seed, and
-**44/44 integration tests green against the live database**. See
+`rszbpdgfvyofvmuishmn` (eu-west-1, Postgres 17.6): all 13 migrations, the seed, and
+**45/45 integration tests green against the live database**. See
 [`runbooks/supabase-setup.md`](runbooks/supabase-setup.md) for the procedure and for the
 dashboard settings the CLI cannot push.
 
@@ -80,7 +80,7 @@ Run `pnpm verify` before calling a milestone done; it is the same sequence CI ru
 ## Layout
 
 ```
-docs/            the specification pack (13 documents)
+docs/            the specification pack (15 documents)
 src/
   app/[locale]/  storefront — sq unprefixed, en under /en
   app/admin/     admin panel — deliberately NOT localized
@@ -111,25 +111,36 @@ The full list is in `CLAUDE.md`. The ones that bite hardest:
 5. **Design tokens only.** Colours, radii and type come from `src/styles/globals.css`. The
    palette is contrast-tested in `tests/unit/contrast.test.ts` — `ink-400` and `line` are
    below AA and are decorative-only; use `ink-500` and `line-strong` for text and controls.
+   One exception worth memorising: on a `forest-50` tint (selected cards, filled panels)
+   `ink-500` measures 4.43:1 and misses AA, so **secondary text on a tint is `ink-600`**.
 
 ## Status
 
 | Milestone                     | State                                                                                                                                          |
 | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
 | M0 · Scaffold and foundations | ✅ **Done and verified** — tokens, i18n, lib layer, CI, bundle budget gate                                                                     |
-| M1 · Database and seed        | ✅ **Applied and verified** — 12 migrations + 24-product catalogue live on `rszbpdgfvyofvmuishmn`; 44/44 integration tests                     |
+| M1 · Database and seed        | ✅ **Applied and verified** — 13 migrations + 24-product catalogue + coupons live on `rszbpdgfvyofvmuishmn`; 45/45 integration tests           |
 | M2 · Auth and account shell   | ✅ **Done** — sign up/in/out, password reset, account overview and settings                                                                    |
 | M3 · Catalogue browse         | 🟡 **Nearly done** — PLP, categories, PDPs, brands, goals, ingredients, home, JSON-LD. Knowledge and offers remain (both need article content) |
-| M4 → M11                      | Not started — see `docs/12-build-plan.md`                                                                                                      |
+| M4 · Cart and COD checkout    | ✅ **Done** — guest cart, cart page, four-step checkout, token-gated success page, guest order lookup. Confirmation email needs a Resend key   |
+| M5 → M11                      | Not started — see `docs/12-build-plan.md`                                                                                                      |
 | Deployment pipeline           | ✅ **Ready** — health check, sitemap, cron, ISR purge, Sentry, `vercel.json`, budget gate. See `runbooks/deploy.md`                            |
 
-Current test totals: **87 unit · 44 integration against the live database · 84 E2E** across
-desktop and mobile, with axe clean on every page built so far.
+Current test totals: **89 unit · 45 integration against the live database · 116 E2E** across
+desktop and a 390 px viewport, with axe clean on every page built so far.
 
-**The storefront is browsable but nothing can be bought yet** — the cart and checkout are M4,
-and the admin panel is M5–M6. The checkout RPC itself exists and is fully tested; no UI
-reaches it. [`docs/14-launch-readiness.md`](docs/14-launch-readiness.md) is the honest ledger
-of what is done, what is outstanding, and which items are owner tasks rather than code.
+**A guest can now buy something end to end and pay cash on delivery** — add to cart, four-step
+checkout, order written by the `checkout_create_order` transaction, success page gated on an
+access token rather than the order number, and order lookup by number plus email.
+
+**What it still cannot do is fulfil that order.** There is no admin panel, so a placed order
+cannot be confirmed, packed or shipped without a SQL client — that is M5, and it is the next
+thing to build. The order-confirmation email is written and wired but records
+`skipped_no_provider` until a Resend key and a verified sending domain exist, so customers
+currently get no receipt. [`docs/14-launch-readiness.md`](docs/14-launch-readiness.md) is the
+honest ledger of what is done, what is outstanding, and which items are owner tasks rather
+than code; [`docs/13 §I`](docs/13-spec-corrections.md) records the eight defects that driving
+the checkout in a real browser found after the code had already passed every offline gate.
 
 Still outstanding in M1: `scripts/seed-users.ts`, and therefore review fixtures — ratings
 read 0 until users exist. Product images are absent by choice, so the branded fallback tile

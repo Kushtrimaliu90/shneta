@@ -233,6 +233,43 @@ describe('coupons', () => {
     expect(order?.total_cents).toBe(1550);
   });
 
+  /**
+   * `coupons.code` is `extensions.citext`, so case must not matter — a code printed as
+   * WELCOME10 and typed `welcome10`, which is what a phone keyboard produces, has to work.
+   *
+   * It did not, and the reason is worth pinning: the RPC was declared
+   * `set search_path = public`. The `::extensions.citext` casts resolved because they are
+   * schema-qualified, but the `=` OPERATOR for citext also lives in `extensions` and cannot
+   * be qualified inside an expression. With that schema off the search_path Postgres could
+   * not see `=(citext, citext)`, and since citext is binary-coercible to text it silently
+   * resolved `=(text, text)` instead — no error, just a case-sensitive comparison.
+   * Fixed by migration 20260731001300; this test is what stops it coming back.
+   */
+  it('matches a coupon code case-insensitively (citext)', async () => {
+    const user = await newUser();
+    const product = await createProduct({ priceCents: 1000, stock: 10 });
+    const cart = await createCart(user.id, [{ variantId: product.variantId, quantity: 1 }]);
+    const shipping = await defaultShippingMethodId();
+    const code = await makeCoupon({ type: 'percentage', value: 10 });
+
+    const { data, error } = await user.client.rpc(
+      'checkout_create_order',
+      // Lower-cased on purpose — `makeCoupon` always generates upper case.
+      checkoutParams({ cartId: cart, shippingMethodId: shipping, couponCode: code.toLowerCase() }),
+    );
+    expect(error).toBeNull();
+
+    const { data: order } = await service
+      .from('orders')
+      .select('discount_cents, coupon_code')
+      .eq('id', data.order_id)
+      .single();
+
+    expect(order?.discount_cents).toBe(100);
+    // The order stores the coupon's canonical code, not the casing that was typed.
+    expect(order?.coupon_code).toBe(code);
+  });
+
   it('rejects a coupon below its minimum subtotal', async () => {
     const user = await newUser();
     const product = await createProduct({ priceCents: 500, stock: 10 });

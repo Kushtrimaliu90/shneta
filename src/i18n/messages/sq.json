@@ -236,7 +236,6 @@
     "inStockLine": "Në stok · dërgesa 1–3 ditë",
     "lowStockLine": "Sasi e kufizuar",
     "outOfStockLine": "Aktualisht jo në stok",
-    "addToCartComingSoon": "Shtimi në shportë aktivizohet me hapin e radhës të ndërtimit.",
     "description": "Përshkrimi",
     "ingredients": "Përbërësit dhe etiketa",
     "ingredient": "Përbërësi",
@@ -295,6 +294,125 @@
       "fatty_acid": "Acide yndyrore",
       "fibre": "Fibra",
       "other": "Të tjera"
+    }
+  },
+  "cart": {
+    "title": "Shporta",
+    "addToCart": "Shto në shportë",
+    "adding": "Duke shtuar…",
+    "added": "U shtua në shportë.",
+    "remove": "Hiq",
+    "increase": "Shto një",
+    "decrease": "Hiq një",
+    "quantityIs": "Sasia: {count}",
+    "linesLabel": "Produktet në shportë",
+    "summary": "Përmbledhje",
+    "subtotal": "Nëntotali",
+    "shipping": "Dërgesa",
+    "shippingAtCheckout": "Llogaritet në hapin tjetër",
+    "checkout": "Vazhdo te pagesa",
+    "codNote": "Paguan në dorëzim, në para të gatshme.",
+    "lineOutOfStock": "Jo në stok — hiqe për të vazhduar.",
+    "prunedNotice": "{count, plural, one {# produkt u hoq nga shporta sepse nuk është më i disponueshëm.} other {# produkte u hoqën nga shporta sepse nuk janë më të disponueshme.}}",
+    "freeShippingRemaining": "Shto {amount} për dërgesë falas.",
+    "freeShippingReached": "Dërgesa është falas.",
+    "empty": {
+      "title": "Shporta është bosh",
+      "body": "Shfleto produktet dhe shto atë që të duhet."
+    },
+    "errors": {
+      "variantUnavailable": "Ky produkt nuk është më i disponueshëm.",
+      "outOfStock": "Ky produkt nuk është në stok.",
+      "maxQuantity": "Ke arritur sasinë maksimale për këtë produkt.",
+      "notFound": "Shporta nuk u gjet. Provo përsëri.",
+      "empty": "Shporta është bosh.",
+      "generic": "Diçka shkoi keq. Provo përsëri."
+    }
+  },
+  "checkout": {
+    "title": "Pagesa",
+    "total": "Totali",
+    "free": "Falas",
+    "method": "Mënyra e dërgesës",
+    "eta": "{min}–{max} ditë",
+    "placeOrder": "Porosit",
+    "placing": "Duke porositur…",
+    "acceptTerms": "Pranoj kushtet e përdorimit dhe politikën e privatësisë.",
+    "vatIncludedAmount": "Përfshin TVSH ({rate}%): {amount}",
+    "blockedTitle": "Një produkt nuk është më në stok",
+    "blockedBody": "Hiq nga shporta: {skus}",
+    "steps": {
+      "contact": "1 · Kontakti",
+      "delivery": "2 · Dërgesa",
+      "payment": "3 · Pagesa",
+      "review": "4 · Konfirmimi"
+    },
+    "fields": {
+      "recipientName": "Emri i marrësit",
+      "deliveryPhone": "Telefoni për dërgesë",
+      "line1": "Adresa",
+      "line2": "Adresa 2 (opsionale)",
+      "city": "Qyteti",
+      "postalCode": "Kodi postar (opsional)",
+      "coupon": "Kodi i kuponit (opsional)",
+      "note": "Shënim për porosinë (opsional)"
+    },
+    "providers": {
+      "cod": { "title": "Pagesa në dorëzim", "body": "Paguan korrierin në para të gatshme." },
+      "bank_pos": { "title": "Kartë bankare", "body": "Do të kalosh në faqen e sigurt të bankës." }
+    },
+    "errors": {
+      "cartEmpty": "Shporta është bosh.",
+      "cartNotFound": "Shporta nuk u gjet. Provo përsëri.",
+      "itemUnavailable": "Një produkt nuk është më i disponueshëm. Hiqe dhe provo përsëri.",
+      "outOfStock": "Një produkt nuk është në stok.",
+      "couponInvalid": "Kuponi nuk është i vlefshëm.",
+      "couponMinNotMet": "Kuponi kërkon një total më të lartë.",
+      "couponExhausted": "Kuponi është shfrytëzuar plotësisht.",
+      "couponAlreadyUsed": "Këtë kupon e ke përdorur më parë.",
+      "shippingMethodInvalid": "Zgjidh një mënyrë dërgese.",
+      "providerUnavailable": "Kjo mënyrë pagese nuk është e disponueshme.",
+      "checkFields": "Kontrollo fushat e shënuara.",
+      "tooManyAttempts": "Shumë përpjekje. Provo përsëri pas pak.",
+      "generic": "Diçka shkoi keq. Provo përsëri."
+    }
+  },
+  "order": {
+    "title": "Porosia",
+    "successTitle": "Porosia u regjistrua",
+    "successBody": "Faleminderit! Do ta përgatisim dhe të kontaktojmë para dërgesës.",
+    "orderNumber": "Numri i porosisë",
+    "placedOn": "Porositur më {date}",
+    "items": "Produktet",
+    "discount": "Zbritja",
+    "vatIncluded": "Përfshin TVSH-në: {amount}",
+    "deliveryAddress": "Adresa e dërgesës",
+    "delivery": "Dërgesa",
+    "statusLabel": "Statusi",
+    "codHeading": "Pagesa në dorëzim",
+    "codBody": "Përgatit {amount} në para të gatshme për korrierin.",
+    "trackNote": "Mund ta gjurmosh porosinë kurdo me numrin e porosisë dhe email-in.",
+    "continueShopping": "Vazhdo blerjen",
+    "status": {
+      "pending": "Në pritje",
+      "confirmed": "Konfirmuar",
+      "processing": "Në përgatitje",
+      "shipped": "Dërguar",
+      "delivered": "Dorëzuar",
+      "cancelled": "Anuluar",
+      "refunded": "Rimbursuar"
+    },
+    "lookup": {
+      "title": "Gjurmo porosinë",
+      "subtitle": "Shkruaj numrin e porosisë dhe email-in me të cilin porositi.",
+      "orderNumberLabel": "Numri i porosisë",
+      "orderNumberHint": "P.sh. SH-2026-000123-K7QW",
+      "emailLabel": "Email",
+      "submit": "Kërko porosinë",
+      "searching": "Duke kërkuar…",
+      "notFound": "Nuk gjetëm porosi me këto të dhëna.",
+      "throttled": "Shumë përpjekje. Provo përsëri pas pak.",
+      "searchAnother": "Kërko një porosi tjetër"
     }
   },
   "notFound": {

@@ -14,12 +14,20 @@ import { Button, type ButtonProps } from '@/components/ui/button';
 export function SubmitButton({
   children,
   loadingLabel,
+  disabled,
   ...props
 }: ButtonProps & { loadingLabel?: string }) {
   const { pending } = useFormStatus();
 
   return (
-    <Button type="submit" disabled={pending || props.disabled} aria-busy={pending} {...props}>
+    /*
+     * `disabled` is destructured out of props and recombined here on purpose. Left in the
+     * spread it would land AFTER this attribute and win — so any caller passing
+     * `disabled={false}` (the add-to-cart button, whenever the variant is in stock) silently
+     * turned off the pending guard, and the button stayed clickable for the whole round trip.
+     * That is the half of double-submit safety this component exists to provide.
+     */
+    <Button type="submit" {...props} disabled={pending || disabled} aria-busy={pending}>
       {pending && <Loader2 className="size-4 animate-spin" aria-hidden="true" />}
       {pending && loadingLabel ? loadingLabel : children}
     </Button>
