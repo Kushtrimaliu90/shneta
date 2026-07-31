@@ -16,10 +16,19 @@
 -- -----------------------------------------------------------------------------
 -- Settings (docs/03 §13, docs/11 §1)
 -- -----------------------------------------------------------------------------
+/*
+ * The brand is SHNETA; the registered domain is **shtrejt.com** (shneta.com was taken).
+ * The contact address must sit on the domain that actually gets SPF/DKIM/DMARC records,
+ * because a From: address on a domain nobody verified goes straight to spam.
+ *
+ * Social handles are left as `shneta` deliberately — those are account names, not DNS, and
+ * they only change if the owner cannot claim them. Replace with the real handles before
+ * launch (docs/14 §3, brand assets).
+ */
 insert into settings (key, value) values
   ('store', jsonb_build_object(
       'name', 'SHNETA',
-      'email', 'info@shneta.com',
+      'email', 'info@shtrejt.com',
       'phone', '+383 40 000 000',
       'address', 'Prishtinë, Kosovë',
       'instagram', 'https://instagram.com/shneta',

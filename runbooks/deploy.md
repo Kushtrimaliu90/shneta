@@ -4,8 +4,9 @@ Trunk-based, per `docs/10 §1`: PR → checks + preview → squash-merge to `mai
 **manual** promote to production.
 
 Read [`docs/14-launch-readiness.md`](../docs/14-launch-readiness.md) first. The pipeline is
-production-ready; the product is at M1 of 11. Deploying now gives a monitored bilingual
-shell, not a store.
+production-ready and the store now takes and fulfils orders (M5). What it still lacks before
+real customers: verified transactional email, legal copy, and a real catalogue in place of the
+demo fixtures — see docs/14 §6 and §7. Deploy behind Vercel Protection until those are done.
 
 ---
 
@@ -23,23 +24,61 @@ Set these per environment (Production / Preview / Development). `lib/env.server.
 `lib/env.client.ts` validate at boot, so a missing required variable fails the deploy
 loudly instead of 500-ing later.
 
-| Variable                                              | Prod                 | Preview         | Notes                                                    |
-| ----------------------------------------------------- | -------------------- | --------------- | -------------------------------------------------------- |
-| `NEXT_PUBLIC_SITE_URL`                                | `https://shneta.com` | preview URL     | Drives canonicals, hreflang, `robots.txt`, sitemap       |
-| `NEXT_PUBLIC_SUPABASE_URL`                            | prod project         | staging project |                                                          |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY`                       | prod                 | staging         | Public by design                                         |
-| `SUPABASE_SERVICE_ROLE_KEY`                           | prod                 | staging         | **Secret.** Bypasses RLS. Never `NEXT_PUBLIC_`           |
-| `CRON_SECRET`                                         | ✔                    | ✔               | Vercel sends it as `Authorization: Bearer` automatically |
-| `REVALIDATE_SECRET`                                   | ✔                    | ✔               | 32+ random chars                                         |
-| `SENTRY_DSN`                                          | ✔                    | ✔               | Omit and Sentry is inert                                 |
-| `NEXT_PUBLIC_SENTRY_DSN`                              | ✔                    | ✔               | Browser reporting; loads lazily                          |
-| `SENTRY_ORG` / `SENTRY_PROJECT` / `SENTRY_AUTH_TOKEN` | ✔                    | —               | Source-map upload only                                   |
-| `RESEND_API_KEY` / `EMAIL_FROM`                       | M4+                  | M4+             | No email is sent before M4                               |
+| Variable                                              | Prod                  | Preview         | Notes                                                    |
+| ----------------------------------------------------- | --------------------- | --------------- | -------------------------------------------------------- |
+| `NEXT_PUBLIC_SITE_URL`                                | `https://shtrejt.com` | preview URL     | Drives canonicals, hreflang, `robots.txt`, sitemap       |
+| `NEXT_PUBLIC_SUPABASE_URL`                            | prod project          | staging project |                                                          |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY`                       | prod                  | staging         | Public by design                                         |
+| `SUPABASE_SERVICE_ROLE_KEY`                           | prod                  | staging         | **Secret.** Bypasses RLS. Never `NEXT_PUBLIC_`           |
+| `CRON_SECRET`                                         | ✔                     | ✔               | Vercel sends it as `Authorization: Bearer` automatically |
+| `REVALIDATE_SECRET`                                   | ✔                     | ✔               | 32+ random chars                                         |
+| `SENTRY_DSN`                                          | ✔                     | ✔               | Omit and Sentry is inert                                 |
+| `NEXT_PUBLIC_SENTRY_DSN`                              | ✔                     | ✔               | Browser reporting; loads lazily                          |
+| `SENTRY_ORG` / `SENTRY_PROJECT` / `SENTRY_AUTH_TOKEN` | ✔                     | —               | Source-map upload only                                   |
+| `RESEND_API_KEY` / `EMAIL_FROM`                       | M4+                   | M4+             | No email is sent before M4                               |
 
 Generate secrets with `openssl rand -base64 32`.
 
 > **Preview deployments must not point at production Supabase.** Every PR preview would
 > then write to real data, and `pnpm test:integration` writes to whatever it is aimed at.
+
+### Domain: `shtrejt.com`, registered at Cloudflare, hosted on Vercel
+
+A normal split — Cloudflare is the registrar and authoritative DNS, Vercel serves the app.
+Nothing in the codebase cares, because the domain reaches the app only through
+`NEXT_PUBLIC_SITE_URL`.
+
+1. **Vercel → Project → Settings → Domains → Add** `shtrejt.com` and `www.shtrejt.com`.
+   Vercel prints the records it wants.
+2. **Cloudflare → DNS → Records.** Add what Vercel asked for — normally an `A` record on the
+   apex to Vercel's anycast address and a `CNAME` on `www` to `cname.vercel-dns.com`.
+3. **Set both records to "DNS only" (grey cloud), not "Proxied" (orange).**
+
+   This is the one step that goes wrong, and it fails in a way that looks like something
+   else. With Cloudflare's proxy on:
+   - Cloudflare terminates TLS, so Vercel cannot complete its own certificate challenge and
+     the domain sits on "Invalid Configuration" indefinitely;
+   - two CDNs cache in series, so an ISR purge clears Vercel and Cloudflare keeps serving the
+     old page — a price change appears not to have worked;
+   - the client IP arrives as Cloudflare's, so `limitByIp` rate-limits the whole country as
+     one visitor. Checkout is 10/hour (docs/02 §9). That is a checkout outage.
+
+   Vercel is already a CDN. Proxying adds nothing here and breaks three things.
+
+4. **SSL/TLS mode: Full (strict)** if you ever do turn the proxy on. Never "Flexible" —
+   it serves the site over HTTP to the origin and breaks `Secure` cookies, which is every
+   auth and cart cookie this app sets.
+5. Wait for Vercel to show **Valid Configuration**, then set
+   `NEXT_PUBLIC_SITE_URL=https://shtrejt.com` in Production and redeploy. It is read at build
+   time, so the redeploy is required — without it `robots.txt`, the sitemap and every
+   canonical still point at the old host.
+
+### Email lives on the same domain
+
+Resend must verify **shtrejt.com**, and its SPF/DKIM/DMARC records go in the same Cloudflare
+DNS zone. Those are TXT records and are safe to leave proxy-off (TXT cannot be proxied).
+`EMAIL_FROM` then has to be an address on that domain — a `From:` on an unverified domain is
+delivered to spam, which for an order confirmation is the same as not sending it.
 
 ---
 
@@ -78,7 +117,7 @@ the production Supabase project first (`supabase link --project-ref <prod>` then
 ## 3 · Post-deploy smoke test
 
 ```bash
-BASE=https://shneta.com
+BASE=https://shtrejt.com
 
 curl -s $BASE/api/health                     # {"status":"ok","database":"ok",...}
 curl -s -o /dev/null -w "%{http_code}\n" $BASE/            # 200, lang="sq"
@@ -95,7 +134,7 @@ Also confirm in the Vercel dashboard: the cron is registered, and the function r
 E2E against the deployed target:
 
 ```bash
-E2E_BASE_URL=https://shneta.com pnpm test:e2e
+E2E_BASE_URL=https://shtrejt.com pnpm test:e2e
 ```
 
 ---
