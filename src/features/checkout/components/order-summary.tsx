@@ -2,10 +2,10 @@ import { getLocale, getTranslations } from 'next-intl/server';
 import { formatPrice } from '@/lib/money';
 import { pickLocale } from '@/lib/i18n';
 import type { Locale } from '@/lib/constants';
-import type { OrderView } from '@/features/checkout/order-access';
+import type { OrderSummaryData } from '@/features/orders/types';
 
 /** Read-only order view, shared by the success page and order lookup. */
-export async function OrderSummary({ order }: { order: OrderView }) {
+export async function OrderSummary({ order }: { order: OrderSummaryData }) {
   const t = await getTranslations();
   const locale = (await getLocale()) as Locale;
 
@@ -30,7 +30,15 @@ export async function OrderSummary({ order }: { order: OrderView }) {
               <span className="min-w-0 text-ink-900">
                 {item.name}
                 <span className="text-ink-500"> × {item.quantity}</span>
-                <span className="block text-xs text-ink-400">{item.sku}</span>
+                {/*
+                  ink-500, not ink-400. `tests/unit/contrast.test.ts` documents ink-400 as
+                  below AA and decorative-only, and this is a SKU a customer reads out on the
+                  phone to support — 2.96:1 at 12px. It survived M4 because axe never reached
+                  this component: it runs on the cart and checkout, but the success page needs
+                  an access cookie, so nothing exercised the summary until the account order
+                  page gave it a reachable home.
+                */}
+                <span className="block text-xs text-ink-500">{item.sku}</span>
               </span>
               <span className="font-medium whitespace-nowrap" data-numeric>
                 {formatPrice(item.totalCents, locale)}

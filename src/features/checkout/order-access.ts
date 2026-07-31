@@ -2,6 +2,7 @@ import 'server-only';
 import { cookies } from 'next/headers';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { asLocalizedField } from '@/lib/i18n';
+import { toOrderStatus, type OrderAddress, type OrderStatus } from '@/features/orders/types';
 import { logger } from '@/lib/logger';
 import { ORDER_ACCESS_COOKIE_NAME } from '@/lib/constants';
 
@@ -21,25 +22,13 @@ import { ORDER_ACCESS_COOKIE_NAME } from '@/lib/constants';
  */
 
 /**
- * The `order_status` enum from docs/03 §1. Narrowed on read so `t('order.status.' + status)`
- * typechecks and an unexpected value renders as `pending` rather than a raw message key.
+ * `ORDER_STATUSES`, `OrderStatus` and `toOrderStatus` used to be declared here as well.
+ *
+ * They are now imported from `features/orders/types.ts`, which M5 made the home for order
+ * vocabulary shared by the storefront, the account and the admin panel. Two copies of the same
+ * seven-value enum is exactly the drift that would eventually let one of them accept a status
+ * the other rejected — and both are ultimately mirroring one Postgres type.
  */
-export const ORDER_STATUSES = [
-  'pending',
-  'confirmed',
-  'processing',
-  'shipped',
-  'delivered',
-  'cancelled',
-  'refunded',
-] as const;
-
-export type OrderStatus = (typeof ORDER_STATUSES)[number];
-
-function toOrderStatus(value: string): OrderStatus {
-  return (ORDER_STATUSES as readonly string[]).includes(value) ? (value as OrderStatus) : 'pending';
-}
-
 export interface OrderView {
   orderNumber: string;
   status: OrderStatus;
@@ -53,7 +42,7 @@ export interface OrderView {
   taxCents: number;
   totalCents: number;
   couponCode: string | null;
-  shippingAddress: Record<string, string | null>;
+  shippingAddress: OrderAddress;
   shippingMethodName: ReturnType<typeof asLocalizedField>;
   minDays: number | null;
   maxDays: number | null;

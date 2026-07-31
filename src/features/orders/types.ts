@@ -153,6 +153,35 @@ export interface Payment {
   providerRef: string | null;
 }
 
+/**
+ * Exactly what `OrderSummary` needs, and nothing more.
+ *
+ * That component renders an order for the checkout success page, guest lookup **and** the
+ * customer's account — three callers, two of which used to hold their own idea of an order
+ * shape. `OrderView` in `features/checkout/order-access.ts` came first and typed its address as
+ * `Record<string, string | null>`, which `OrderDetail` cannot satisfy because `OrderAddress` has
+ * optional fields rather than an index signature. So the shared component would not take the
+ * shared type — the classic symptom of two types describing one thing.
+ *
+ * Declaring what the *component* requires, rather than making one order type the other's
+ * subset, means both can keep the fields their own callers need and neither has to widen.
+ */
+export interface OrderSummaryData {
+  status: OrderStatus;
+  subtotalCents: number;
+  discountCents: number;
+  shippingCents: number;
+  taxCents: number;
+  totalCents: number;
+  couponCode: string | null;
+  shippingAddress: OrderAddress;
+  shippingMethodName: LocalizedField;
+  minDays: number | null;
+  maxDays: number | null;
+  /** Structural, so both the admin's richer item and the lookup's lean one fit. */
+  items: { sku: string; name: string; quantity: number; totalCents: number }[];
+}
+
 /** The full order, as the admin detail page and the customer detail page render it. */
 export interface OrderDetail {
   id: string;

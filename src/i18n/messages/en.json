@@ -438,7 +438,8 @@
       "cancelConfirm": "Cancel this order? This cannot be undone.",
       "cancelTooLateTitle": "Cannot be cancelled online",
       "cancelTooLateBody": "This order has moved into preparation. Contact support and we will sort it out.",
-      "contactSupport": "Contact support"
+      "contactSupport": "Contact support",
+      "keepIt": "Keep my order"
     },
     "cancel": {
       "errors": {
@@ -446,6 +447,11 @@
         "tooLate": "This order can no longer be cancelled. Please contact support.",
         "generic": "Something went wrong. Please try again."
       }
+    },
+    "timeline": {
+      "title": "History",
+      "statusBecame": "Status: {status}",
+      "updated": "Order updated"
     }
   },
   "notFound": {

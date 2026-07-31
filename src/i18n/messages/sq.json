@@ -438,7 +438,8 @@
       "cancelConfirm": "Anulo porosinë? Kjo nuk kthehet.",
       "cancelTooLateTitle": "Nuk mund të anulohet online",
       "cancelTooLateBody": "Porosia ka kaluar në përgatitje. Kontakto suportin dhe do ta rregullojmë.",
-      "contactSupport": "Kontakto suportin"
+      "contactSupport": "Kontakto suportin",
+      "keepIt": "Mbaje porosinë"
     },
     "cancel": {
       "errors": {
@@ -446,6 +447,11 @@
         "tooLate": "Kjo porosi nuk mund të anulohet më. Kontakto suportin.",
         "generic": "Diçka shkoi keq. Provo përsëri."
       }
+    },
+    "timeline": {
+      "title": "Historiku",
+      "statusBecame": "Statusi: {status}",
+      "updated": "Porosia u përditësua"
     }
   },
   "notFound": {
