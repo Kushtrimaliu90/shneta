@@ -327,14 +327,62 @@ gate for M1 and `pnpm check:sql` is not.
 
 ## E. Stack decisions taken at M0
 
-| Item          | Spec                  | Built as            | Why                                                                                                                                                                                                                              |
-| ------------- | --------------------- | ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Next.js       | 15                    | **15.5.x**          | Held to spec. Next 16 is current and the migration is cheap _now_ and expensive at M11 — but it changes caching semantics the whole pack is written against. Flagged as an explicit decision point before M3; not taken silently |
-| TypeScript    | "strict"              | **5.9.x**           | TS 7 (native port) is current but the ESLint type-aware and `next` plugin ecosystem still lags it                                                                                                                                |
-| ESLint        | —                     | **9.x flat config** | `eslint-config-next` 15 targets 8/9; ESLint 10 is not yet supported by it                                                                                                                                                        |
-| Zod           | unpinned              | **4.x**             | Stable, and `@hookform/resolvers` 5 targets it. Schemas are single-sourced per `02 §7` regardless                                                                                                                                |
-| Framer Motion | `framer-motion`       | **`motion` 12.x**   | Same library, current package name. `framer-motion` is the legacy alias                                                                                                                                                          |
-| Rate limiter  | Postgres _or_ Upstash | **Postgres**        | `02 §9` says choose Postgres unless Upstash keys are provided. None are                                                                                                                                                          |
+| Item          | Spec                  | Built as            | Why                                                                                               |
+| ------------- | --------------------- | ------------------- | ------------------------------------------------------------------------------------------------- |
+| Next.js       | 15                    | **15.5.x**          | Held to spec — now **settled by measurement**, not deferred. See §E2 below                        |
+| TypeScript    | "strict"              | **5.9.x**           | TS 7 (native port) is current but the ESLint type-aware and `next` plugin ecosystem still lags it |
+| ESLint        | —                     | **9.x flat config** | `eslint-config-next` 15 targets 8/9; ESLint 10 is not yet supported by it                         |
+| Zod           | unpinned              | **4.x**             | Stable, and `@hookform/resolvers` 5 targets it. Schemas are single-sourced per `02 §7` regardless |
+| Framer Motion | `framer-motion`       | **`motion` 12.x**   | Same library, current package name. `framer-motion` is the legacy alias                           |
+| Rate limiter  | Postgres _or_ Upstash | **Postgres**        | `02 §9` says choose Postgres unless Upstash keys are provided. None are                           |
+
+### E2 · Next 16 — evaluated on a branch, rejected for now
+
+The earlier note deferred this "to a decision point before M3". It was instead settled the
+only way worth settling it: by doing the upgrade on `chore/next-16`, running the full gate,
+and measuring. The branch reached green — this is not a "it didn't work" outcome.
+
+**What the upgrade required** (both small, both genuine improvements):
+
+1. `revalidateTag(tag)` → `revalidateTag(tag, profile)`. The cache profile is now a required
+   second argument; `'max'` is the correct value for an admin purge, because a profile
+   shorter than an entry's real lifetime can leave it serving stale content.
+2. `eslint-config-next` 16 ships native flat configs on subpath exports. The `FlatCompat`
+   eslintrc bridge cannot load them (it throws `Converting circular structure to JSON` on
+   the react plugin); import `eslint-config-next/core-web-vitals` and `/typescript` directly
+   and drop `@eslint/eslintrc`.
+
+**What decided it — client JS.** Measured identically on both (scripts referenced by the
+prerendered `/` document, gzipped from disk — `pnpm measure:bundle`):
+
+| Setup                             | First-load JS | vs Next 15 |
+| --------------------------------- | ------------- | ---------- |
+| **Next 15 + webpack**             | **167 kB**    | —          |
+| Next 16 + webpack                 | 190 kB        | +13%       |
+| Next 16 + Turbopack (the default) | 214 kB        | **+28%**   |
+
+`09 §3` sets a 170 kB budget and `01 §4` makes LCP < 2.0 s p75 on mobile a hard NFR, for a
+market where mid-range Android on mobile data is the norm. Spending 28% more JS _before the
+storefront exists_ — no product cards, no filters, no cart drawer, no checkout form — takes
+headroom that M3 and M4 need.
+
+Turbopack also stops emitting a per-route bundle manifest and Next 16 drops the size columns
+from build output entirely, so we would lose per-route visibility exactly at the milestones
+where bundles grow fastest.
+
+**Decision: stay on Next 15.5.x.** Nothing in M2–M8 needs a Next 16 feature, and 15.5 is
+supported.
+
+**Revisit after M4**, when the real bundle picture is known — or sooner if Next 16 narrows
+the gap or Next 15 nears end of support. The migration is now de-risked rather than unknown:
+the two required changes are written down above, so it is a short job whenever it is taken.
+
+**Kept from the branch** (improvements independent of the version): the
+`useSyncExternalStore` rewrite of `NewsletterStatus` — Next 16's `react-hooks` v7 flagged
+`set-state-in-effect`, a real cascading-render bug our current ruleset misses; the
+dual-mode `check:bundle`, which already understands Turbopack builds; and
+`scripts/measure-bundle.ts`, the bundler-agnostic measurement that made this comparison
+possible.
 
 ### E1 · Framer Motion is not mounted globally
 

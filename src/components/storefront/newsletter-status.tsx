@@ -1,30 +1,39 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useSyncExternalStore } from 'react';
 import { useTranslations } from 'next-intl';
 
 type Status = 'ok' | 'invalid' | 'throttled';
 
-const STATUSES = new Set<Status>(['ok', 'invalid', 'throttled']);
+const STATUSES = new Set<string>(['ok', 'invalid', 'throttled']);
+
+/** The query string is only read once, after hydration — nothing to subscribe to. */
+const subscribe = () => () => {};
+const readStatus = (): string | null =>
+  new URLSearchParams(window.location.search).get('newsletter');
+const serverSnapshot = (): string | null => null;
 
 /**
  * Feedback for the no-JavaScript newsletter form, which posts to `/api/newsletter` and is
  * redirected back with `?newsletter=<status>`.
  *
- * Reads `window.location.search` after mount rather than calling `useSearchParams`, which
- * would opt every page containing the footer out of static rendering and break the ISR
- * strategy in docs/02 §5 — the same trap as the locale switcher.
+ * Two constraints shape this:
+ *
+ *  1. It cannot use `useSearchParams` — that would opt every page containing the footer
+ *     out of static rendering and break the ISR strategy in docs/02 §5, the same trap as
+ *     the locale switcher.
+ *  2. It should not `setState` inside an effect either. That is the obvious workaround and
+ *     it causes a cascading render (`react-hooks/set-state-in-effect`).
+ *
+ * `useSyncExternalStore` is the construct for exactly this: read a browser-only value with
+ * a defined server snapshot, no effect, no second render pass.
  */
 export function NewsletterStatus() {
-  const [status, setStatus] = useState<Status | null>(null);
+  const raw = useSyncExternalStore(subscribe, readStatus, serverSnapshot);
   const t = useTranslations('footer.newsletter');
 
-  useEffect(() => {
-    const value = new URLSearchParams(window.location.search).get('newsletter');
-    if (value && STATUSES.has(value as Status)) setStatus(value as Status);
-  }, []);
-
-  if (!status) return null;
+  if (!raw || !STATUSES.has(raw)) return null;
+  const status = raw as Status;
 
   return (
     <p
