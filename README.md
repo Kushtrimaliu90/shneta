@@ -60,20 +60,22 @@ disposable database, never production.
 
 ## Commands
 
-| Command                     | What it does                                                     |
-| --------------------------- | ---------------------------------------------------------------- |
-| `pnpm dev`                  | Local dev server                                                 |
-| `pnpm verify`               | **The gate.** i18n → sql → types → lint → unit → build → bundle  |
-| `pnpm typecheck`            | `tsc --noEmit`                                                   |
-| `pnpm lint` / `pnpm format` | ESLint (flat config) / Prettier                                  |
-| `pnpm test`                 | Vitest unit suite                                                |
-| `pnpm test:integration`     | Vitest against a live local Supabase (RLS, RPCs, lifecycle)      |
-| `pnpm test:e2e`             | Playwright (needs a build; boots `next start` itself)            |
-| `pnpm check:i18n`           | Fails if sq and en key sets, shapes or ICU placeholders diverge  |
-| `pnpm check:sql`            | Offline structural check on the migrations                       |
-| `pnpm check:bundle`         | Enforces the 170 kB gz First Load JS budget (docs/09 §3)         |
-| `pnpm purge:test-data`      | Removes integration fixtures (the suite does this automatically) |
-| `pnpm db:types`             | Regenerate DB types from the local stack                         |
+| Command                     | What it does                                                               |
+| --------------------------- | -------------------------------------------------------------------------- |
+| `pnpm dev`                  | Local dev server                                                           |
+| `pnpm verify`               | **The gate.** i18n → sql → types → lint → unit → build → bundle            |
+| `pnpm typecheck`            | `tsc --noEmit`                                                             |
+| `pnpm lint` / `pnpm format` | ESLint (flat config) / Prettier                                            |
+| `pnpm test`                 | Vitest unit suite                                                          |
+| `pnpm test:integration`     | Vitest against a live local Supabase (RLS, RPCs, lifecycle)                |
+| `pnpm test:e2e`             | Playwright (needs a build; boots `next start` itself)                      |
+| `pnpm check:i18n`           | Fails if sq and en key sets, shapes or ICU placeholders diverge            |
+| `pnpm check:sql`            | Offline structural check on the migrations                                 |
+| `pnpm check:bundle`         | Enforces the 170 kB gz First Load JS budget (docs/09 §3)                   |
+| `pnpm purge:test-data`      | Removes integration fixtures (the suite does this automatically)           |
+| `pnpm purge:demo`           | Removes the 24 demo products and test coupons — pre-launch, see docs/14 §7 |
+| `pnpm seed:users`           | Creates the seven fixture staff/customer accounts (docs/11 §2)             |
+| `pnpm db:types`             | Regenerate DB types from the local stack                                   |
 
 Run `pnpm verify` before calling a milestone done; it is the same sequence CI runs.
 
@@ -116,28 +118,31 @@ The full list is in `CLAUDE.md`. The ones that bite hardest:
 
 ## Status
 
-| Milestone                     | State                                                                                                                                          |
-| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| M0 · Scaffold and foundations | ✅ **Done and verified** — tokens, i18n, lib layer, CI, bundle budget gate                                                                     |
-| M1 · Database and seed        | ✅ **Applied and verified** — 13 migrations + 24-product catalogue + coupons live on `rszbpdgfvyofvmuishmn`; 45/45 integration tests           |
-| M2 · Auth and account shell   | ✅ **Done** — sign up/in/out, password reset, account overview and settings                                                                    |
-| M3 · Catalogue browse         | 🟡 **Nearly done** — PLP, categories, PDPs, brands, goals, ingredients, home, JSON-LD. Knowledge and offers remain (both need article content) |
-| M4 · Cart and COD checkout    | ✅ **Done** — guest cart, cart page, four-step checkout, token-gated success page, guest order lookup. Confirmation email needs a Resend key   |
-| M5 → M11                      | Not started — see `docs/12-build-plan.md`                                                                                                      |
-| Deployment pipeline           | ✅ **Ready** — health check, sitemap, cron, ISR purge, Sentry, `vercel.json`, budget gate. See `runbooks/deploy.md`                            |
+| Milestone                     | State                                                                                                                                             |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| M0 · Scaffold and foundations | ✅ **Done and verified** — tokens, i18n, lib layer, CI, bundle budget gate                                                                        |
+| M1 · Database and seed        | ✅ **Applied and verified** — 13 migrations + 24-product catalogue + coupons live on `rszbpdgfvyofvmuishmn`; 45/45 integration tests              |
+| M2 · Auth and account shell   | ✅ **Done** — sign up/in/out, password reset, account overview and settings                                                                       |
+| M3 · Catalogue browse         | 🟡 **Nearly done** — PLP, categories, PDPs, brands, goals, ingredients, home, JSON-LD. Knowledge and offers remain (both need article content)    |
+| M4 · Cart and COD checkout    | ✅ **Done** — guest cart, cart page, four-step checkout, token-gated success page, guest order lookup. Confirmation email needs a Resend key      |
+| M5 · Orders ops and admin     | ✅ **Done** — admin shell, order queue and detail, state machine, shipment, refund, lifecycle emails, dashboard, print docs, customer order pages |
+| M6 → M11                      | Not started — see `docs/12-build-plan.md`                                                                                                         |
+| Deployment pipeline           | ✅ **Ready** — health check, sitemap, cron, ISR purge, Sentry, `vercel.json`, budget gate. See `runbooks/deploy.md`                               |
 
-Current test totals: **89 unit · 45 integration against the live database · 116 E2E** across
+Current test totals: **97 unit · 45 integration against the live database · 156 E2E** across
 desktop and a 390 px viewport, with axe clean on every page built so far.
 
 **A guest can now buy something end to end and pay cash on delivery** — add to cart, four-step
 checkout, order written by the `checkout_create_order` transaction, success page gated on an
 access token rather than the order number, and order lookup by number plus email.
 
-**What it still cannot do is fulfil that order.** There is no admin panel, so a placed order
-cannot be confirmed, packed or shipped without a SQL client — that is M5, and it is the next
-thing to build. The order-confirmation email is written and wired but records
-`skipped_no_provider` until a Resend key and a verified sending domain exist, so customers
-currently get no receipt. [`docs/14-launch-readiness.md`](docs/14-launch-readiness.md) is the
+**And staff can now fulfil it.** Sign in at `/admin` and work the queue: confirm, ship with
+tracking, deliver, cancel with a reason, refund. Every mutation writes an audit row, and every
+transition is enforced by the database rather than by the UI.
+
+**What is left before real customers: the catalogue and the email.** Products can only be created
+by SQL until M6, so the shop still sells 24 demo fixtures; and the transactional emails record
+`skipped_no_provider` until a Resend key and a verified sending domain exist. [`docs/14-launch-readiness.md`](docs/14-launch-readiness.md) is the
 honest ledger of what is done, what is outstanding, and which items are owner tasks rather
 than code; [`docs/13 §I`](docs/13-spec-corrections.md) records the eight defects that driving
 the checkout in a real browser found after the code had already passed every offline gate.

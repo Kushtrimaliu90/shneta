@@ -468,6 +468,69 @@ test.describe('dashboard (docs/06 §1)', () => {
   });
 });
 
+test.describe('print documents (docs/06 §2)', () => {
+  test('an invoice shows money; a packing slip shows a tick box instead', async ({
+    page,
+    browser,
+  }) => {
+    const shopper = await browser.newContext();
+    const shopperPage = await shopper.newPage();
+    await shopperPage.setExtraHTTPHeaders({ 'x-forwarded-for': '233.252.0.243' });
+    const orderNumber = await placeGuestOrder(
+      shopperPage,
+      `e2e-print-w${process.env.TEST_PARALLEL_INDEX ?? '0'}@shneta.test`,
+    );
+    await shopper.close();
+
+    const support = await staffUser('support');
+    await signIn(page, support.email, support.password);
+
+    const { data: order } = await db()
+      .from('orders')
+      .select('id')
+      .eq('order_number', orderNumber)
+      .single();
+    const id = (order as { id: string }).id;
+
+    // ── Invoice ───────────────────────────────────────────────────────────────
+    await page.goto(`/admin/orders/print?ids=${id}&doc=invoice`);
+    await expect(page.getByText('Invoice').first()).toBeVisible();
+    await expect(page.getByText(orderNumber).first()).toBeVisible();
+    await expect(page.getByText(CHEAP_SKU)).toBeVisible();
+    await expect(page.getByRole('columnheader', { name: 'Total' })).toBeVisible();
+    /*
+     * docs/07 §5 — pricing is VAT-inclusive, so the invoice must present VAT as contained in the
+     * total, never as a line to be added. An accountant reads this document; "of which VAT" and
+     * "VAT" differ by the VAT amount.
+     */
+    await expect(page.getByText('of which VAT')).toBeVisible();
+    await expect(page.getByText(`COLLECT ${CHEAP_ORDER_TOTAL}`)).toBeVisible();
+
+    // ── Packing slip ──────────────────────────────────────────────────────────
+    await page.goto(`/admin/orders/print?ids=${id}&doc=packing`);
+    await expect(page.getByText('Packing slip').first()).toBeVisible();
+    await expect(page.getByRole('columnheader', { name: 'Picked' })).toBeVisible();
+
+    /*
+     * No item prices. A packing slip travels in the box, and someone who bought a gift should not
+     * find its price inside — but the COD amount stays, because the courier reads this at the
+     * door and has to know what to collect.
+     */
+    await expect(page.getByRole('columnheader', { name: 'Unit' })).toHaveCount(0);
+    await expect(page.getByText('of which VAT')).toHaveCount(0);
+    await expect(page.getByText(`COLLECT ${CHEAP_ORDER_TOTAL}`)).toBeVisible();
+  });
+
+  test('a role without orders access cannot print one', async ({ page }) => {
+    const pm = await staffUser('product_manager');
+    await signIn(page, pm.email, pm.password);
+
+    // A real order id is not needed: the capability check runs before anything is read.
+    await page.goto('/admin/orders/print?ids=00000000-0000-4000-8000-000000000000&doc=invoice');
+    await expect(page).toHaveURL(/\/admin$/);
+  });
+});
+
 test.describe('admin accessibility', () => {
   test('axe finds no serious or critical violations on the dashboard', async ({ page }) => {
     const user = await staffUser('admin');

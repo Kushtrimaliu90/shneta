@@ -434,6 +434,104 @@ Four consecutive full runs now come out at 116/116.
 
 ---
 
+## J. What building the admin panel taught us
+
+§I was found by driving the checkout. These were found by building the thing that operates on
+what the checkout produces.
+
+### J1 · Server Components cannot hand a client component a React component
+
+Passing Lucide icons as props from the admin layout to the sidebar took the **entire `/admin`
+tree** down to the global error page. A component serializes to
+`{$$typeof, render, displayName}` and React refuses it: _"Functions cannot be passed directly to
+Client Components."_
+
+Icons are now resolved client-side from a string name (`features/admin/components/nav-icon.tsx`),
+which also turned `roles.ts` into pure data. The rule generalises: **anything crossing that
+boundary must survive `JSON.stringify`** — no components, no functions, no class instances.
+
+### J2 · A second root layout needs its own `<html>`/`<body>`
+
+There is no `src/app/layout.tsx`. The storefront's root is `app/[locale]/layout.tsx`, because
+every storefront route is localized, which makes `app/admin/layout.tsx` an **independent root**.
+It shipped without `<html>`/`<body>` and every admin page rendered as the error page.
+
+### J3 · `SubmitButton` disabled its own double-submit guard
+
+```tsx
+<Button disabled={pending || props.disabled} {...props}>   // ← the spread wins
+```
+
+Any caller passing `disabled={false}` — the add-to-cart button, whenever the variant is in
+stock — overwrote the pending state. Checkout's Place-order button was safe only by accident, by
+passing no `disabled` prop at all. `disabled` is now destructured out and recombined after the
+spread. **Prop-spread order is a correctness concern, not a style one.**
+
+### J4 · Seven distinguishable status colours, from an existing palette
+
+The status badges first reached for `bg-[#dbeafe]`-style hex to get enough hues — exactly the
+arbitrary-palette drift CLAUDE.md §9 forbids. Solid semantic fills (`warning`, `success`, `error`,
+`info`, `forest-800`, `ink-600`) with white text give the same separation, and all six are now
+asserted in `tests/unit/contrast.test.ts`. Adding a failing tone is a test failure rather than
+something axe finds later on a page that happened to be sampled.
+
+The related rule, learned twice: **a `/15` tint of a semantic colour is not a safe background for
+that colour as text.** It put the environment badge at 4.08:1 (§I5) and it will do it again.
+
+### J5 · `ink-400` was being used for real text
+
+The SKU line under every order item — 2.96:1 at 12px. `ink-400` has been documented as
+below-AA and decorative-only since M0, and this is a SKU a customer reads out to support.
+
+It survived M4 because **axe never reached the component**. The a11y smoke covers the cart and
+checkout; the success page needs an access cookie, so nothing exercised `OrderSummary` until the
+account order page gave it a reachable home. The durable fix is that coverage, not a lint rule:
+a token can be documented as unsafe and still be used if nothing looks.
+
+### J6 · Two types describing one order
+
+`OrderSummary` is shared by the checkout success page, guest lookup and the account — but it
+would not accept `OrderDetail`, because `OrderView` had typed its address as
+`Record<string, string | null>` while `OrderAddress` uses optional fields. `ORDER_STATUSES` and
+`toOrderStatus` were also declared twice, both mirroring one Postgres enum.
+
+Fixed by declaring what the **component** needs (`OrderSummaryData`) rather than making one order
+type a subset of the other, so both keep their own fields and neither has to widen.
+
+### J7 · Two test assertions that were about the wrong thing
+
+Both passed alone and failed in the full suite, and neither was flakiness to retry away:
+
+1. **"Cancelling returns stock"** compared `inventory_levels.on_hand` before and after. The
+   checkout journeys buy the same SKU concurrently, so a global counter moves under the test. It
+   now asserts the `cancel_restock` **movement referencing that order id** — order-scoped, and
+   the stronger claim anyway, since docs/07 §11 makes the ledger the authority and `on_hand` its
+   derivative.
+2. **"A new order appears in the confirmation queue"** — the queue holds the ten _oldest_ pending
+   orders, and other specs create pending orders concurrently. It now asserts the queue is
+   populated and can be worked from, and follows the link.
+
+The generalisation: **an assertion about globally-shared, concurrently-mutated state is a bug in
+the test, not an unlucky ordering.** Scope the claim to the entity under test.
+
+### J8 · A per-assertion timeout equal to the per-test timeout can never fire
+
+`ACTION_TIMEOUT` was 30 s and Playwright's default per-test timeout is also 30 s, so a slow
+assertion died with the test before spending its budget — and reported "element(s) not found",
+which reads like a selector bug. Per-test is now 90 s. **A per-assertion deadline must sit well
+inside the per-test one, or its failures lie about the cause.**
+
+### J9 · Departure from spec: no chart library
+
+docs/06 §1 specifies recharts for the dashboard charts. It is ~90 kB gzipped and must be a client
+component, on a page whose job is to be glanced at, against a 170 kB route budget (docs/09 §3).
+
+The 30-day series is a flex row of `div`s with computed heights, with the same figures in a
+collapsible `<table>` beneath — so the page ships **no JavaScript**, `/admin` builds at 829 B, and
+screen readers get the data rather than a canvas. Revisit if a chart ever needs interaction.
+
+---
+
 ## E. Stack decisions taken at M0
 
 | Item          | Spec                  | Built as            | Why                                                                                               |

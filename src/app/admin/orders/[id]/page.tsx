@@ -1,8 +1,9 @@
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import type { Metadata } from 'next';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Printer } from 'lucide-react';
 import { formatPrice } from '@/lib/money';
+import { buttonVariants } from '@/components/ui/button';
 import { pickLocale } from '@/lib/i18n';
 import { getProfile } from '@/features/auth/queries';
 import { can } from '@/features/admin/roles';
@@ -90,6 +91,28 @@ export default async function AdminOrderDetailPage({ params }: Props) {
           <OrderTransitions orderId={order.id} status={order.status} />
         )}
         {shippable && can(profile?.role, 'orders.ship') && <ShipmentForm orderId={order.id} />}
+
+        {/*
+          docs/06 §2 — print documents. Plain links opening in a new tab rather than a client
+          component calling window.print(): the operator presses Ctrl-P, which works with no
+          JavaScript, and the original page stays where it was.
+        */}
+        <Link
+          href={`/admin/orders/print?ids=&doc=packing`}
+          target="_blank"
+          className={buttonVariants({ variant: 'secondary', size: 'sm' })}
+        >
+          <Printer className="size-4" aria-hidden="true" />
+          Packing slip
+        </Link>
+        <Link
+          href={`/admin/orders/print?ids=&doc=invoice`}
+          target="_blank"
+          className={buttonVariants({ variant: 'secondary', size: 'sm' })}
+        >
+          <Printer className="size-4" aria-hidden="true" />
+          Invoice
+        </Link>
       </div>
 
       <div className="mt-8 grid gap-8 xl:grid-cols-[1.5fr_1fr]">

@@ -7,10 +7,13 @@ delivery.** Add to cart → four-step checkout → order placed by the `checkout
 transaction → gated success page → track it later with the order number and email. Verified
 against the live database by 116 Playwright tests across desktop and a 390 px viewport.
 
-**What it still is not: a business that can fulfil what it sells.** There is no admin panel,
-so a placed order cannot be confirmed, packed or marked shipped by anyone who is not writing
-SQL — that is M5. And the order-confirmation email is written and wired but silently records
-`skipped_no_provider` until `RESEND_API_KEY` and a verified sending domain exist (§6).
+**It can also now fulfil what it sells.** Support signs in, works a queue, confirms, ships with
+tracking, delivers, cancels with a reason and refunds — every mutation audited, every transition
+enforced by the database. Journey 7 walks the whole path in a browser on each run.
+
+**What is left before a real customer: the catalogue and the email.** Products can only be
+created by SQL until M6, so the shop still sells 24 demo fixtures; and the transactional emails
+record `skipped_no_provider` until a Resend key and a verified sending domain exist (§6).
 `docs/12` still puts the earliest genuinely shippable point after **M8**.
 
 Legend: ✅ done and verified · 🟡 partial · ⬜ not started · ➖ not applicable yet
@@ -19,48 +22,48 @@ Legend: ✅ done and verified · 🟡 partial · ⬜ not started · ➖ not appl
 
 ## 1 · Infrastructure and pipeline
 
-| Item                                                  | State | Evidence                                                                               |
-| ----------------------------------------------------- | ----- | -------------------------------------------------------------------------------------- |
-| Next.js app builds for production                     | ✅    | `pnpm build`, 17 routes, no warnings                                                   |
-| First Load JS within the 170 kB budget (`docs/09 §3`) | ✅    | 120–138 kB per route, enforced by `check:bundle`                                       |
-| Database schema applied                               | ✅    | 13 migrations on `rszbpdgfvyofvmuishmn`, Postgres 17.6                                 |
-| RLS enabled on every public table (`docs/10 §4`)      | ✅    | `tables_without_rls()` → `[]`                                                          |
-| Integration suite against a real database             | ✅    | **45/45**, ~85 s                                                                       |
-| Unit suite                                            | ✅    | **89/89**                                                                              |
-| E2E + axe on both locales                             | ✅    | **116/116**, four consecutive clean runs; zero serious/critical violations             |
-| Generated DB types match the live schema              | ✅    | `db:types:linked` → 2902 lines, `pnpm verify` green                                    |
-| CI pipeline (quality · integration+E2E · audit)       | ✅    | `.github/workflows/ci.yml`                                                             |
-| Security headers (`docs/10 §5`)                       | ✅    | asserted by an E2E test                                                                |
-| `/api/health` for uptime monitoring (`docs/10 §6`)    | ✅    | returns `{status:"ok",database:"ok"}`                                                  |
-| Sitemap + robots with hreflang (`docs/08 §4`)         | ✅    | 176 URLs, 352 hreflang links                                                           |
-| Housekeeping cron, `CRON_SECRET`-guarded              | ✅    | 401 unauthenticated, 200 with token                                                    |
-| On-demand ISR purge, secret-guarded                   | ✅    | rejects unknown tags, 401 unauthenticated                                              |
-| Sentry server + edge                                  | ✅    | inert without a DSN; client SDK lazy-loaded                                            |
-| `vercel.json` — region `fra1`, crons                  | ✅    |                                                                                        |
-| Vercel project + domain + DNS                         | ⬜    | **owner task** (`docs/00`)                                                             |
-| Resend domain verified (SPF/DKIM/DMARC)               | ⬜    | **owner task** — until then customers get no order receipt                             |
-| Supabase staging + production projects                | ➖    | **owner decision (§7)** — one project serves all three roles                           |
-| PITR / backups on production                          | ⬜    | **owner task**, `docs/10 §4`. More urgent under §7: no second database to fall back on |
-| Destructive suites gated on `SUPABASE_TEST_PROJECT`   | ✅    | integration, E2E and the purge all refuse an undeclared target (§7)                    |
-| Uptime monitor pointed at `/api/health`               | ⬜    | **owner task**                                                                         |
-| Restore drill                                         | ⬜    | `docs/10 §7`                                                                           |
+| Item                                                  | State | Evidence                                                                                       |
+| ----------------------------------------------------- | ----- | ---------------------------------------------------------------------------------------------- |
+| Next.js app builds for production                     | ✅    | `pnpm build`, 22 routes, no warnings                                                           |
+| First Load JS within the 170 kB budget (`docs/09 §3`) | ✅    | 120–138 kB per route, enforced by `check:bundle`                                               |
+| Database schema applied                               | ✅    | 13 migrations on `rszbpdgfvyofvmuishmn`, Postgres 17.6                                         |
+| RLS enabled on every public table (`docs/10 §4`)      | ✅    | `tables_without_rls()` → `[]`                                                                  |
+| Integration suite against a real database             | ✅    | **45/45**, ~85 s                                                                               |
+| Unit suite                                            | ✅    | **97/97**                                                                                      |
+| E2E + axe on both locales                             | ✅    | **156/156**, repeatable; zero serious/critical violations on cart, checkout, account and admin |
+| Generated DB types match the live schema              | ✅    | `db:types:linked` → 2902 lines, `pnpm verify` green                                            |
+| CI pipeline (quality · integration+E2E · audit)       | ✅    | `.github/workflows/ci.yml`                                                                     |
+| Security headers (`docs/10 §5`)                       | ✅    | asserted by an E2E test                                                                        |
+| `/api/health` for uptime monitoring (`docs/10 §6`)    | ✅    | returns `{status:"ok",database:"ok"}`                                                          |
+| Sitemap + robots with hreflang (`docs/08 §4`)         | ✅    | 176 URLs, 352 hreflang links                                                                   |
+| Housekeeping cron, `CRON_SECRET`-guarded              | ✅    | 401 unauthenticated, 200 with token                                                            |
+| On-demand ISR purge, secret-guarded                   | ✅    | rejects unknown tags, 401 unauthenticated                                                      |
+| Sentry server + edge                                  | ✅    | inert without a DSN; client SDK lazy-loaded                                                    |
+| `vercel.json` — region `fra1`, crons                  | ✅    |                                                                                                |
+| Vercel project + domain + DNS                         | ⬜    | **owner task** (`docs/00`)                                                                     |
+| Resend domain verified (SPF/DKIM/DMARC)               | ⬜    | **owner task** — until then customers get no order receipt                                     |
+| Supabase staging + production projects                | ➖    | **owner decision (§7)** — one project serves all three roles                                   |
+| PITR / backups on production                          | ⬜    | **owner task**, `docs/10 §4`. More urgent under §7: no second database to fall back on         |
+| Destructive suites gated on `SUPABASE_TEST_PROJECT`   | ✅    | integration, E2E and the purge all refuse an undeclared target (§7)                            |
+| Uptime monitor pointed at `/api/health`               | ⬜    | **owner task**                                                                                 |
+| Restore drill                                         | ⬜    | `docs/10 §7`                                                                                   |
 
 ## 2 · Product — selling works, fulfilment does not
 
-| Milestone                                    | State | What it means is missing                                                                                       |
-| -------------------------------------------- | ----- | -------------------------------------------------------------------------------------------------------------- |
-| M0 · Scaffold                                | ✅    | —                                                                                                              |
-| M1 · Database and seed                       | ✅    | Schema + 24-product catalogue live. `scripts/seed-users.ts` and review fixtures outstanding                    |
-| M2 · Auth and account shell                  | ✅    | Sign up / in / out, password reset, account overview and settings                                              |
-| M3 · Catalog browse                          | 🟡    | PLP, category, PDP, home, brands, goals, ingredients and SEO done. `/knowledge` and `/offers` outstanding      |
-| M4 · Cart and COD checkout                   | ✅    | Guest cart, cart page, 4-step checkout, gated success page, order lookup. Confirmation email needs Resend (§6) |
-| M5 · Orders ops and admin core               | ⬜    | **The blocking gap now.** Orders can be placed but not confirmed, packed or shipped without SQL                |
-| M6 · Admin catalog management                | ⬜    | Products can only be created by SQL                                                                            |
-| M7 · Reviews, wishlist, search, compare      | ⬜    |                                                                                                                |
-| M8 · Knowledge, offers, contact, newsletter  | 🟡    | Newsletter opt-in works; double opt-in email needs Resend (M8)                                                 |
-| M9 · Subscriptions and loyalty               | ⬜    | RPCs and triggers exist and are tested; no UI                                                                  |
-| M10 · Inventory ops, finder, remaining admin | ⬜    |                                                                                                                |
-| M11 · Hardening and launch                   | 🟡    | The ops half is done (this table §1). Performance, security and soak passes need the real product first        |
+| Milestone                                    | State | What it means is missing                                                                                                               |
+| -------------------------------------------- | ----- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| M0 · Scaffold                                | ✅    | —                                                                                                                                      |
+| M1 · Database and seed                       | ✅    | Schema + 24-product catalogue live. `scripts/seed-users.ts` and review fixtures outstanding                                            |
+| M2 · Auth and account shell                  | ✅    | Sign up / in / out, password reset, account overview and settings                                                                      |
+| M3 · Catalog browse                          | 🟡    | PLP, category, PDP, home, brands, goals, ingredients and SEO done. `/knowledge` and `/offers` outstanding                              |
+| M4 · Cart and COD checkout                   | ✅    | Guest cart, cart page, 4-step checkout, gated success page, order lookup. Confirmation email needs Resend (§6)                         |
+| M5 · Orders ops and admin core               | ✅    | Admin shell, order queue + detail, full state machine, shipment, refund, lifecycle emails, dashboard, print docs, customer order pages |
+| M6 · Admin catalog management                | ⬜    | **The blocking gap now.** Products can only be created by SQL, so the real catalogue cannot be entered                                 |
+| M7 · Reviews, wishlist, search, compare      | ⬜    |                                                                                                                                        |
+| M8 · Knowledge, offers, contact, newsletter  | 🟡    | Newsletter opt-in works; double opt-in email needs Resend (M8)                                                                         |
+| M9 · Subscriptions and loyalty               | ⬜    | RPCs and triggers exist and are tested; no UI                                                                                          |
+| M10 · Inventory ops, finder, remaining admin | ⬜    |                                                                                                                                        |
+| M11 · Hardening and launch                   | 🟡    | The ops half is done (this table §1). Performance, security and soak passes need the real product first                                |
 
 ## 3 · Compliance and legal — must clear before any real customer
 
@@ -89,10 +92,10 @@ Two things to set deliberately:
 
 ## 5 · The next decision
 
-M5, and it is not really a decision. Orders can now be placed and cannot be fulfilled, which
-is the one state a store must never sit in for long: the gap between "a customer paid" and
-"someone can act on it" is currently a SQL client. Until the admin order list, detail view and
-status transitions exist, every order placed is a manual liability.
+M6, and like M5 it is not really a decision. Orders can now be taken and fulfilled, but the
+only things in the shop are fixtures — and `pnpm purge:demo` cannot run until real products
+exist to replace them (§7, step 2). The product editor is therefore the last thing standing
+between this and a shop that sells something real.
 
 `docs/13 §E2` settled the Next 15 → 16 question by measurement — it stays on 15 for now.
 
