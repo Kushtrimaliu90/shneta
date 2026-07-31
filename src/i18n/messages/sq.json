@@ -1,0 +1,102 @@
+{
+  "common": {
+    "brand": "SHNETA",
+    "tagline": "Shëndeti yt, i thjeshtuar.",
+    "skipToContent": "Kalo te përmbajtja",
+    "loading": "Duke u ngarkuar…",
+    "retry": "Provo përsëri",
+    "close": "Mbyll",
+    "openMenu": "Hap menynë",
+    "closeMenu": "Mbyll menynë",
+    "search": "Kërko",
+    "account": "Llogaria",
+    "cart": "Shporta",
+    "cartItems": "{count, plural, =0 {Shporta është bosh} one {# produkt në shportë} other {# produkte në shportë}}",
+    "backHome": "Kthehu në ballinë",
+    "learnMore": "Mëso më shumë"
+  },
+  "nav": {
+    "primary": "Navigimi kryesor",
+    "shop": "Dyqani",
+    "goals": "Qëllimet",
+    "ingredients": "Përbërësit",
+    "brands": "Markat",
+    "knowledge": "Njohuri",
+    "offers": "Oferta"
+  },
+  "locale": {
+    "label": "Gjuha",
+    "sq": "Shqip",
+    "en": "Anglisht",
+    "switchTo": "Kalo në {language}"
+  },
+  "home": {
+    "hero": {
+      "eyebrow": "Suplemente të besueshme në Kosovë",
+      "title": "Shëndeti yt, i thjeshtuar.",
+      "subtitle": "Suplemente origjinale nga marka të njohura, me përbërës të deklaruar plotësisht dhe udhëzime të qarta — që të zgjedhësh me siguri.",
+      "ctaPrimary": "Shfleto dyqanin",
+      "ctaSecondary": "Gjej rutinën tënde"
+    },
+    "trust": {
+      "shipping": {
+        "title": "Dërgesa falas mbi 30 €",
+        "body": "Në gjithë Kosovën, brenda 1–3 ditësh."
+      },
+      "cod": { "title": "Pagesa në dorëzim", "body": "Paguaj kur ta marrësh porosinë." },
+      "authentic": {
+        "title": "Marka autentike",
+        "body": "Vetëm produkte origjinale, të importuara ligjërisht."
+      },
+      "returns": { "title": "Kthim i lehtë", "body": "14 ditë për të ndryshuar mendje." }
+    },
+    "sections": {
+      "goals": "Bli sipas qëllimit",
+      "bestsellers": "Më të shiturat",
+      "categories": "Kategoritë",
+      "subscribe": "Abonohu dhe kurse",
+      "knowledge": "Nga Qendra e Njohurive",
+      "brands": "Markat që mbajmë"
+    },
+    "placeholder": {
+      "title": "Katalogu vjen së shpejti",
+      "body": "Skeleti i faqes është gati. Produktet, kategoritë dhe artikujt shfaqen sapo të lidhet baza e të dhënave."
+    }
+  },
+  "footer": {
+    "tagline": "Suplemente dhe njohuri për shëndetin, për tregun shqipfolës.",
+    "shop": "Dyqani",
+    "goalsColumn": "Qëllimet shëndetësore",
+    "knowledgeColumn": "Njohuri",
+    "company": "Kompania",
+    "help": "Ndihmë",
+    "about": "Rreth nesh",
+    "contact": "Kontakti",
+    "faq": "Pyetje të shpeshta",
+    "orderLookup": "Gjurmo porosinë",
+    "terms": "Kushtet e përdorimit",
+    "privacy": "Politika e privatësisë",
+    "shippingReturns": "Dërgesa dhe kthimet",
+    "newsletter": {
+      "title": "Merr këshilla të dobishme",
+      "body": "Një email në muaj, pa spam. Mund të çregjistrohesh kurdo.",
+      "emailLabel": "Adresa e email-it",
+      "emailPlaceholder": "ju@shembull.com",
+      "submit": "Abonohu"
+    },
+    "payments": "Mënyrat e pagesës",
+    "codBadge": "Pagesa në dorëzim",
+    "rights": "Të gjitha të drejtat e rezervuara.",
+    "disclaimer": "Suplementet ushqimore nuk zëvendësojnë një dietë të balancuar dhe një mënyrë jetese të shëndetshme."
+  },
+  "notFound": {
+    "title": "Nuk e gjetëm këtë faqe",
+    "body": "Lidhja mund të jetë e vjetër ose e shkruar gabim. Provo të kërkosh ose nis nga ballina.",
+    "cta": "Kthehu në ballinë"
+  },
+  "error": {
+    "title": "Diçka shkoi keq",
+    "body": "Nuk arritëm ta ngarkojmë këtë faqe. Provo përsëri — nëse vazhdon, na shkruaj.",
+    "cta": "Provo përsëri"
+  }
+}

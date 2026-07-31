@@ -1,0 +1,102 @@
+{
+  "common": {
+    "brand": "SHNETA",
+    "tagline": "Your health, simplified.",
+    "skipToContent": "Skip to content",
+    "loading": "Loading…",
+    "retry": "Try again",
+    "close": "Close",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu",
+    "search": "Search",
+    "account": "Account",
+    "cart": "Cart",
+    "cartItems": "{count, plural, =0 {Your cart is empty} one {# item in cart} other {# items in cart}}",
+    "backHome": "Back to home",
+    "learnMore": "Learn more"
+  },
+  "nav": {
+    "primary": "Main navigation",
+    "shop": "Shop",
+    "goals": "Health goals",
+    "ingredients": "Ingredients",
+    "brands": "Brands",
+    "knowledge": "Knowledge",
+    "offers": "Offers"
+  },
+  "locale": {
+    "label": "Language",
+    "sq": "Albanian",
+    "en": "English",
+    "switchTo": "Switch to {language}"
+  },
+  "home": {
+    "hero": {
+      "eyebrow": "Trusted supplements in Kosovo",
+      "title": "Your health, simplified.",
+      "subtitle": "Genuine supplements from brands you know, with every ingredient disclosed and plain guidance on how to use them — so you can choose with confidence.",
+      "ctaPrimary": "Browse the shop",
+      "ctaSecondary": "Find your routine"
+    },
+    "trust": {
+      "shipping": {
+        "title": "Free delivery over €30",
+        "body": "Anywhere in Kosovo, within 1–3 days."
+      },
+      "cod": { "title": "Cash on delivery", "body": "Pay the courier when your order arrives." },
+      "authentic": {
+        "title": "Authentic brands",
+        "body": "Genuine products only, legally imported."
+      },
+      "returns": { "title": "Easy returns", "body": "14 days to change your mind." }
+    },
+    "sections": {
+      "goals": "Shop by goal",
+      "bestsellers": "Bestsellers",
+      "categories": "Categories",
+      "subscribe": "Subscribe and save",
+      "knowledge": "From the Knowledge Center",
+      "brands": "Brands we carry"
+    },
+    "placeholder": {
+      "title": "Catalogue coming next",
+      "body": "The shell is in place. Products, categories and articles appear as soon as the database is connected."
+    }
+  },
+  "footer": {
+    "tagline": "Supplements and health knowledge for the Albanian-speaking market.",
+    "shop": "Shop",
+    "goalsColumn": "Health goals",
+    "knowledgeColumn": "Knowledge",
+    "company": "Company",
+    "help": "Help",
+    "about": "About us",
+    "contact": "Contact",
+    "faq": "FAQ",
+    "orderLookup": "Track an order",
+    "terms": "Terms of use",
+    "privacy": "Privacy policy",
+    "shippingReturns": "Shipping and returns",
+    "newsletter": {
+      "title": "Get useful guidance",
+      "body": "One email a month, no spam. Unsubscribe whenever you like.",
+      "emailLabel": "Email address",
+      "emailPlaceholder": "you@example.com",
+      "submit": "Subscribe"
+    },
+    "payments": "Payment methods",
+    "codBadge": "Cash on delivery",
+    "rights": "All rights reserved.",
+    "disclaimer": "Food supplements are not a substitute for a balanced diet and a healthy lifestyle."
+  },
+  "notFound": {
+    "title": "We couldn't find that page",
+    "body": "The link may be out of date or mistyped. Try a search, or start from the home page.",
+    "cta": "Back to home"
+  },
+  "error": {
+    "title": "Something went wrong",
+    "body": "We couldn't load this page. Try again — if it keeps happening, get in touch.",
+    "cta": "Try again"
+  }
+}
