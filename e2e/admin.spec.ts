@@ -531,6 +531,33 @@ test.describe('print documents (docs/06 §2)', () => {
   });
 });
 
+test.describe('products list (docs/06 §3)', () => {
+  test('a product manager sees the catalogue and its readiness', async ({ page }) => {
+    const pm = await staffUser('product_manager');
+    await signIn(page, pm.email, pm.password);
+    await page.goto('/admin/products');
+
+    // docs/11 §7 seeds 24 products, all published.
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Products');
+    await expect(page.getByRole('link', { name: /Published/ })).toBeVisible();
+
+    // A published row links to the storefront, which is the destination an operator wants
+    // from a catalogue list — "show me what the customer sees".
+    const rows = page.locator('tbody tr');
+    expect(await rows.count()).toBeGreaterThan(5);
+    await expect(page.locator('a[href*="/en/product/"]').first()).toBeVisible();
+  });
+
+  test('support cannot reach the catalogue', async ({ page }) => {
+    const support = await staffUser('support');
+    await signIn(page, support.email, support.password);
+
+    // docs/01 §3 — products belong to the product manager. Support handles orders.
+    await page.goto('/admin/products');
+    await expect(page).toHaveURL(/\/admin$/);
+  });
+});
+
 test.describe('admin accessibility', () => {
   test('axe finds no serious or critical violations on the dashboard', async ({ page }) => {
     const user = await staffUser('admin');

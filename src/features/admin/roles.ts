@@ -230,7 +230,7 @@ const NAV: NavSection[] = [
  * (the sidebar) and cannot read the filesystem. Extend it in the same commit that adds
  * the page.
  */
-const IMPLEMENTED = new Set(['/admin', '/admin/orders']);
+const IMPLEMENTED = new Set(['/admin', '/admin/orders', '/admin/products']);
 
 /** The sections and items this role may see, with empty sections dropped. */
 export function visibleNav(role: string | null | undefined): NavSection[] {
