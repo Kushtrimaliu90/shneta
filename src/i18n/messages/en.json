@@ -189,6 +189,73 @@
       "passwordChanged": "Your password was updated."
     }
   },
+  "shop": {
+    "title": "Shop",
+    "metaDescription": "Genuine supplements from brands you know, with every ingredient disclosed.",
+    "filters": "Filters",
+    "categories": "Categories",
+    "brands": "Brands",
+    "goals": "Goals",
+    "dietary": "Dietary preferences",
+    "availability": "Availability",
+    "inStockOnly": "In stock only",
+    "onSaleOnly": "On sale only",
+    "clearFilters": "Clear filters",
+    "sortBy": "Sort by",
+    "breadcrumbs": "Breadcrumb",
+    "pagination": "Pages",
+    "previous": "Previous",
+    "next": "Next",
+    "pageOf": "Page {page} of {total}",
+    "productCount": "{count, plural, =0 {No products} one {# product} other {# products}}",
+    "sort": {
+      "relevance": "Most relevant",
+      "newest": "Newest",
+      "price_asc": "Price ↑",
+      "price_desc": "Price ↓",
+      "rating": "Rating"
+    },
+    "tags": {
+      "vegan": "Vegan",
+      "vegetarian": "Vegetarian",
+      "gluten_free": "Gluten free",
+      "sugar_free": "Sugar free",
+      "lactose_free": "Lactose free",
+      "halal": "Halal",
+      "non_gmo": "Non-GMO"
+    },
+    "empty": {
+      "title": "No products found",
+      "withFilters": "Try removing a filter or widening your search.",
+      "noProducts": "This category is empty for now."
+    }
+  },
+  "product": {
+    "vatIncluded": "Price includes VAT.",
+    "options": "Options",
+    "inStockLine": "In stock · delivery 1–3 days",
+    "lowStockLine": "Only a few left",
+    "outOfStockLine": "Currently out of stock",
+    "addToCartComingSoon": "Add to cart becomes active with the next build step.",
+    "description": "Description",
+    "ingredients": "Ingredients and label",
+    "ingredient": "Ingredient",
+    "amount": "Per serving",
+    "nrv": "%NRV",
+    "nrvFootnote": "NRV = Nutrient Reference Value for adults.",
+    "perServing": "Per serving: {serving}",
+    "ingredientsTableCaption": "Ingredients with amount per serving and percentage of NRV",
+    "howToUse": "How to use",
+    "warnings": "Warnings",
+    "reviews": "Reviews",
+    "certifications": "Certifications",
+    "goals": "Goals",
+    "onSale": "Sale",
+    "outOfStock": "Out of stock",
+    "wasPrice": "Previous price",
+    "noReviewsYet": "No reviews yet",
+    "ratingSummary": "{rating} ({count})"
+  },
   "notFound": {
     "title": "We couldn't find that page",
     "body": "The link may be out of date or mistyped. Try a search, or start from the home page.",

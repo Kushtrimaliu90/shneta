@@ -51,6 +51,19 @@ test.afterAll(async () => {
  */
 let addressCounter = 0;
 
+/**
+ * The limiter is stateful over a 15-minute window, and the addresses below are reused on
+ * every run — so without clearing them the suite passes once and then fails on any re-run
+ * inside the window, asserting on the previous run's leftovers. The E2E suite owns both
+ * TEST-NET ranges outright, so wiping their budgets is safe and makes runs repeatable.
+ */
+test.beforeAll(async () => {
+  if (!service) return;
+  for (const range of ['203.0.113.', '198.51.100.']) {
+    await service.from('rate_limits').delete().like('key', `%:${range}%`);
+  }
+});
+
 test.beforeEach(async ({ page }, testInfo) => {
   addressCounter += 1;
   const octet = ((testInfo.workerIndex * 50 + addressCounter) % 250) + 1;
@@ -119,7 +132,16 @@ test.describe('auth pages', () => {
      * range the per-test addresses use.
      */
     const projectOctet = testInfo.project.name === 'mobile' ? 2 : 1;
-    await page.setExtraHTTPHeaders({ 'x-forwarded-for': `198.51.100.${projectOctet}` });
+    const address = `198.51.100.${projectOctet}`;
+    await page.setExtraHTTPHeaders({ 'x-forwarded-for': address });
+
+    /*
+     * Clear this address's budget first. The limiter is genuinely stateful over a 15-minute
+     * window, so without this the test passes once and then fails on every re-run inside
+     * that window — it would be asserting on leftover state from the previous run rather
+     * than on the limiter's behaviour.
+     */
+    await service?.from('rate_limits').delete().eq('key', `signIn:${address}`);
 
     const messages: string[] = [];
     for (let attempt = 0; attempt < 6; attempt += 1) {

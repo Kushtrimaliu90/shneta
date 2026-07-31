@@ -189,6 +189,73 @@
       "passwordChanged": "Fjalëkalimi u përditësua."
     }
   },
+  "shop": {
+    "title": "Dyqani",
+    "metaDescription": "Suplemente origjinale nga marka të njohura, me përbërës të deklaruar plotësisht.",
+    "filters": "Filtrat",
+    "categories": "Kategoritë",
+    "brands": "Markat",
+    "goals": "Qëllimet",
+    "dietary": "Preferencat dietike",
+    "availability": "Disponueshmëria",
+    "inStockOnly": "Vetëm në stok",
+    "onSaleOnly": "Vetëm në ofertë",
+    "clearFilters": "Hiq filtrat",
+    "sortBy": "Rendit sipas",
+    "breadcrumbs": "Shtegu i faqes",
+    "pagination": "Faqet",
+    "previous": "Para",
+    "next": "Pas",
+    "pageOf": "Faqja {page} nga {total}",
+    "productCount": "{count, plural, =0 {Asnjë produkt} one {# produkt} other {# produkte}}",
+    "sort": {
+      "relevance": "Më të përshtatshmet",
+      "newest": "Më të rejat",
+      "price_asc": "Çmimi ↑",
+      "price_desc": "Çmimi ↓",
+      "rating": "Vlerësimi"
+    },
+    "tags": {
+      "vegan": "Vegan",
+      "vegetarian": "Vegjetarian",
+      "gluten_free": "Pa gluten",
+      "sugar_free": "Pa sheqer",
+      "lactose_free": "Pa laktozë",
+      "halal": "Halall",
+      "non_gmo": "Pa OMGJ"
+    },
+    "empty": {
+      "title": "Nuk gjetëm produkte",
+      "withFilters": "Provo të heqësh një filtër ose zgjeroje kërkimin.",
+      "noProducts": "Kjo kategori është bosh për momentin."
+    }
+  },
+  "product": {
+    "vatIncluded": "Çmimi përfshin TVSH-në.",
+    "options": "Zgjedhjet",
+    "inStockLine": "Në stok · dërgesa 1–3 ditë",
+    "lowStockLine": "Sasi e kufizuar",
+    "outOfStockLine": "Aktualisht jo në stok",
+    "addToCartComingSoon": "Shtimi në shportë aktivizohet me hapin e radhës të ndërtimit.",
+    "description": "Përshkrimi",
+    "ingredients": "Përbërësit dhe etiketa",
+    "ingredient": "Përbërësi",
+    "amount": "Për dozë",
+    "nrv": "%NRV",
+    "nrvFootnote": "NRV = Vlera referuese e ushqyerjes për të rritur.",
+    "perServing": "Për dozë: {serving}",
+    "ingredientsTableCaption": "Përbërësit me sasinë për dozë dhe përqindjen e NRV",
+    "howToUse": "Si përdoret",
+    "warnings": "Kujdes",
+    "reviews": "Vlerësimet",
+    "certifications": "Certifikimet",
+    "goals": "Qëllimet",
+    "onSale": "Ofertë",
+    "outOfStock": "Jo në stok",
+    "wasPrice": "Çmimi i vjetër",
+    "noReviewsYet": "Ende pa vlerësime",
+    "ratingSummary": "{rating} ({count})"
+  },
   "notFound": {
     "title": "Nuk e gjetëm këtë faqe",
     "body": "Lidhja mund të jetë e vjetër ose e shkruar gabim. Provo të kërkosh ose nis nga ballina.",

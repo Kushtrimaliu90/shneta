@@ -16,7 +16,8 @@ test.describe('app shell', () => {
     await expect(page).toHaveURL(/\/$/);
     await expect(page.locator('html')).toHaveAttribute('lang', 'sq');
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('Shëndeti yt, i thjeshtuar.');
-    await expect(page.getByRole('link', { name: 'Shfleto dyqanin' })).toBeVisible();
+    // Scoped to the hero: the bestsellers section carries the same CTA (docs/05 §1.5).
+    await expect(page.getByRole('link', { name: 'Shfleto dyqanin' }).first()).toBeVisible();
   });
 
   test('renders the English home page under /en', async ({ page }) => {
