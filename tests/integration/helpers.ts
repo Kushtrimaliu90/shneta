@@ -1,12 +1,12 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { randomUUID } from 'node:crypto';
+import { assertPurgeable } from './purge';
 
 /**
  * Shared plumbing for the integration suite (docs/09 §1).
  *
- * Everything here talks to a real local Supabase. Fixtures are created through the
- * service client and torn down per test file, so each suite is independent of the seed
- * and of the others.
+ * Everything here talks to a real Supabase. Fixtures are created through the service client
+ * and torn down per test file, so each suite is independent of the seed and of the others.
  */
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'http://127.0.0.1:54321';
@@ -19,6 +19,19 @@ if (!ANON_KEY || !SERVICE_KEY) {
       'Run `cp .env.example .env.local` and `supabase start` first.',
   );
 }
+
+/*
+ * Refuse to run at all against a database that has not declared itself a test target.
+ *
+ * This suite creates brands, products, stock, carts, orders, refunds and auth users. Every
+ * one of those is indistinguishable, to anyone reading a dashboard, from the real thing.
+ * Cleaning up afterwards does not undo an operator having seen twenty fake orders, or a
+ * fake product having been served in `sitemap.xml` for the seconds it existed.
+ *
+ * At module scope on purpose: it throws while the file is being imported, so it stops the
+ * run before the first `beforeAll` gets a chance to insert anything.
+ */
+assertPurgeable(SUPABASE_URL);
 
 const noPersist = {
   auth: { autoRefreshToken: false, persistSession: false, detectSessionInUrl: false },

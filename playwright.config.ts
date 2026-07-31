@@ -7,9 +7,11 @@ const baseURL = process.env.E2E_BASE_URL ?? `http://127.0.0.1:${PORT}`;
 export default defineConfig({
   testDir: './e2e',
   /*
-   * The checkout journeys place real orders, so the run has to clean up after itself —
-   * pass or fail. See e2e/global-teardown.ts.
+   * The checkout journeys place real orders, so the run refuses to start against a database
+   * that has not declared itself a test target (global-setup), and cleans up after itself
+   * pass or fail (global-teardown).
    */
+  globalSetup: './e2e/global-setup.ts',
   globalTeardown: './e2e/global-teardown.ts',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,

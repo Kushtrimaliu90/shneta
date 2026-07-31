@@ -31,7 +31,8 @@
     "db:diff": "supabase db push --linked --dry-run",
     "db:push": "supabase db push --linked",
     "db:seed:linked": "supabase db push --linked --include-seed",
-    "verify": "pnpm check:i18n && pnpm check:sql && pnpm typecheck && pnpm lint && pnpm test && pnpm build && pnpm check:bundle"
+    "verify": "pnpm check:i18n && pnpm check:sql && pnpm typecheck && pnpm lint && pnpm test && pnpm build && pnpm check:bundle",
+    "purge:demo": "tsx scripts/purge-demo-catalogue.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "5.5.7",

@@ -54,14 +54,19 @@ let addressCounter = 0;
 /**
  * The limiter is stateful over a 15-minute window, and the addresses below are reused on
  * every run — so without clearing them the suite passes once and then fails on any re-run
- * inside the window, asserting on the previous run's leftovers. The E2E suite owns both
- * TEST-NET ranges outright, so wiping their budgets is safe and makes runs repeatable.
+ * inside the window, asserting on the previous run's leftovers.
+ *
+ * **Only the per-test range.** This used to wipe `198.51.100.` as well, which was a race:
+ * `beforeAll` runs once *per worker*, so with desktop and mobile in flight together the
+ * desktop worker could clear the budget of `198.51.100.2` — the mobile rate-limiter test's
+ * fixed address — while that test was mid-loop, resetting the counter it was busy filling so
+ * it never tripped. It failed roughly one run in three.
+ *
+ * That range needs no clearing here anyway: the rate-limiter test clears its own single key,
+ * which is precise and cannot reach another worker's.
  */
 test.beforeAll(async () => {
-  if (!service) return;
-  for (const range of ['203.0.113.', '198.51.100.']) {
-    await service.from('rate_limits').delete().like('key', `%:${range}%`);
-  }
+  await service?.from('rate_limits').delete().like('key', '%:203.0.113.%');
 });
 
 test.beforeEach(async ({ page }, testInfo) => {

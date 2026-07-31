@@ -13,15 +13,68 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js';
  *   · brands   `slug LIKE 'brand-%'`
  *   · products `slug LIKE 'product-%'`
  *   · emails   `LIKE '%@shneta.test'`
- * Real catalogue data cannot match those, so this cannot destroy production content even
- * if aimed at it. It also refuses the production hostname outright.
+ * Real catalogue data cannot match those.
  *
  * Deletion order matters: `stock_movements.variant_id` and `loyalty_transactions.order_id`
  * have no ON DELETE clause — those ledgers are deliberately durable — so their rows must
  * go before what they reference.
  */
 
-const PRODUCTION_HOSTS = ['shneta.com', 'www.shneta.com'];
+/**
+ * The database this is allowed to delete from must say so out loud.
+ *
+ * The previous guard refused a list of `shneta.com` hostnames, which was security theatre:
+ * a Supabase database is never *at* the site's hostname, it is at
+ * `<ref>.supabase.co`. The check could not have fired for any real target. It was written
+ * when dev and prod were assumed to be different projects; the moment one project became
+ * both, it protected nothing.
+ *
+ * So it is inverted and fails **closed**. `SUPABASE_TEST_PROJECT` must be set and must match
+ * the project ref in the URL being purged. A fresh clone, a CI job with the wrong secret, or
+ * a laptop whose `.env.local` points at production all refuse to delete anything, because
+ * absence of the variable is treated as "not a test database" rather than "probably fine".
+ *
+ * Declaring the ref rather than a boolean is deliberate: `ALLOW_CLEANUP=1` left in a shell
+ * profile would follow you to whatever you pointed at next, whereas a ref stops matching the
+ * moment the target changes.
+ *
+ * Exported because the same question gates three things, and cleanup is the least important
+ * of them: the integration suite and the E2E suite call this **before writing anything**.
+ * A suite that creates fake orders in a live database and then tidies up perfectly has still
+ * put fake orders in front of whoever was watching the admin order list.
+ */
+export function assertPurgeable(url: string): void {
+  /*
+   * Read through `envFromLocalFile` and not `process.env` alone. Vitest and Playwright both
+   * load `.env.local` for the *app*, not into this process's environment, so a declaration
+   * sitting in that file was invisible here — the guard refused a database that had in fact
+   * declared itself. A safety check that cannot be satisfied gets switched off by whoever
+   * hits it next, which is worse than not having one.
+   */
+  const env = { ...envFromLocalFile(), ...process.env };
+  const declared = (env.SUPABASE_TEST_PROJECT ?? '').trim();
+  const ref = /^https?:\/\/([a-z0-9-]+)\.supabase\.(co|red)/i.exec(url)?.[1] ?? '';
+  const isLocal = /^https?:\/\/(127\.0\.0\.1|localhost)(:|\/|$)/.test(url);
+
+  // The local Supabase stack is disposable by definition — `supabase db reset` recreates it.
+  if (isLocal) return;
+
+  if (!declared) {
+    throw new Error(
+      `Refusing to write to or delete from ${url}: SUPABASE_TEST_PROJECT is not set.\n` +
+        'This database is not declared as a test target. If it really is one, set\n' +
+        `SUPABASE_TEST_PROJECT=${ref || '<project-ref>'} in .env.local.\n` +
+        'If it holds real orders, point the test suites somewhere else — see docs/14 §7.',
+    );
+  }
+
+  if (declared !== ref) {
+    throw new Error(
+      `Refusing to write to or delete from ${url}: SUPABASE_TEST_PROJECT is "${declared}" but the\n` +
+        `target project is "${ref}". One of the two is wrong, and guessing which is not safe.`,
+    );
+  }
+}
 
 export function envFromLocalFile(path = '.env.local'): Record<string, string> {
   const env: Record<string, string> = {};
@@ -97,9 +150,7 @@ export async function purgeFixtures(
   url: string,
   serviceKey: string,
 ): Promise<Record<string, number>> {
-  if (PRODUCTION_HOSTS.some((host) => url.includes(host))) {
-    throw new Error(`Refusing to purge what looks like production: ${url}`);
-  }
+  assertPurgeable(url);
 
   const db: SupabaseClient = createClient(url, serviceKey, {
     auth: { persistSession: false, autoRefreshToken: false },
@@ -202,8 +253,40 @@ export async function purgeFixtures(
   }
   if (deletedUsers > 0) counts['auth users'] = deletedUsers;
 
-  // Guest carts from aborted runs have no owner to cascade from.
-  record('carts (guest)', (await db.from('carts').delete().is('user_id', null).select('id')).data);
+  /*
+   * Guest carts from aborted runs have no owner to cascade from, so they need collecting
+   * explicitly — but `delete().is('user_id', null)` was the one deletion in this file with no
+   * fixture scope at all. On a database that also serves real shoppers it would empty every
+   * anonymous basket on the site, every time anyone ran the suite. Nobody would report it:
+   * the customer just finds their cart empty and assumes they imagined adding things.
+   *
+   * Now scoped to **empty** guest carts, which is both sufficient and free of consequence.
+   * Sufficient because the integration fixtures' cart items are deleted with their variants
+   * just above, leaving the shells behind. Free of consequence because an empty cart holds
+   * nothing to lose: `findActiveCart()` returns null when the token no longer resolves and
+   * `ensureCart()` simply mints a new one, so even a real shopper whose cart happened to be
+   * empty notices nothing.
+   *
+   * Guest carts that still hold items are deliberately left alone — a stray one is inert
+   * (carting reserves no stock, and it appears nowhere) and the housekeeping cron expires it
+   * on the normal `cart_expiry_days` schedule. Reaching further than this is not worth the
+   * risk of being wrong about whose basket it is.
+   */
+  const { data: guestCarts } = await db
+    .from('carts')
+    .select('id, cart_items(id)')
+    .is('user_id', null);
+
+  const emptyIds = (guestCarts ?? [])
+    .filter((cart) => (cart.cart_items as { id: string }[]).length === 0)
+    .map((cart) => cart.id);
+
+  if (emptyIds.length > 0) {
+    record(
+      'carts (guest, empty)',
+      (await db.from('carts').delete().in('id', emptyIds).select('id')).data,
+    );
+  }
 
   record('coupons', (await db.from('coupons').delete().like('code', 'TEST%').select('id')).data);
   record('coupons', (await db.from('coupons').delete().like('code', 'SECRET%').select('id')).data);

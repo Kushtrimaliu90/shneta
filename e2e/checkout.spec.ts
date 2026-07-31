@@ -67,6 +67,21 @@ test.beforeEach(async ({ page }, testInfo) => {
   await page.setExtraHTTPHeaders({ 'x-forwarded-for': `192.0.2.${octet}` });
 });
 
+/**
+ * Every assertion that waits on a Server Action gets this, not Playwright's 5 s default.
+ *
+ * These actions are not fast and are not supposed to be measured here: add-to-cart mints a
+ * cookie then writes a cart and a cart item, and `placeOrder` runs the whole checkout
+ * transaction — each a round trip to a Supabase project in eu-west-1. A 5 s budget failed
+ * intermittently on add-to-cart with the button still reading "Adding…", which is the
+ * pending guard working correctly, not a defect.
+ *
+ * Deliberately generous. An E2E suite that flakes on latency gets its failures ignored, and
+ * then it is not a gate at all. Response-time budgets belong in the M11 performance pass,
+ * measured properly, against something other than a dev database on another continent.
+ */
+const ACTION_TIMEOUT = 30_000;
+
 /** €9.90, in stock, and its default variant is purchasable — the simplest honest basket. */
 const CHEAP_PRODUCT = '/en/product/now-vitamin-d3-4000';
 const CHEAP_PRICE = 9.9;
@@ -84,7 +99,7 @@ function uniqueEmail(label: string): string {
 async function addCheapItemToCart(page: Page) {
   await page.goto(CHEAP_PRODUCT);
   await page.getByRole('button', { name: 'Add to cart' }).click();
-  await expect(page.getByText('Added to your cart.')).toBeVisible();
+  await expect(page.getByText('Added to your cart.')).toBeVisible({ timeout: ACTION_TIMEOUT });
 }
 
 /**
@@ -136,7 +151,7 @@ test.describe('journey 1 — guest buys with cash on delivery', () => {
     await page.getByRole('button', { name: 'Place order' }).click();
 
     await expect(page.getByRole('heading', { name: 'Your order is in' })).toBeVisible({
-      timeout: 30_000,
+      timeout: ACTION_TIMEOUT,
     });
     await expect(page).toHaveURL(/\/en\/checkout\/success\/SH-/);
 
@@ -167,7 +182,7 @@ test.describe('journey 1 — guest buys with cash on delivery', () => {
     await fillCheckout(page, email);
     await page.getByRole('button', { name: 'Place order' }).click();
     await expect(page.getByRole('heading', { name: 'Your order is in' })).toBeVisible({
-      timeout: 30_000,
+      timeout: ACTION_TIMEOUT,
     });
 
     const successUrl = page.url();
@@ -201,7 +216,7 @@ test.describe('journey 3 — a coupon changes the total', () => {
 
     await page.goto(MID_PRODUCT);
     await page.getByRole('button', { name: 'Add to cart' }).click();
-    await expect(page.getByText('Added to your cart.')).toBeVisible();
+    await expect(page.getByText('Added to your cart.')).toBeVisible({ timeout: ACTION_TIMEOUT });
 
     await page.goto('/en/checkout');
     // €24.90 + €2.00 standard delivery, before any coupon.
@@ -212,7 +227,7 @@ test.describe('journey 3 — a coupon changes the total', () => {
     await page.getByRole('button', { name: 'Place order' }).click();
 
     await expect(page.getByRole('heading', { name: 'Your order is in' })).toBeVisible({
-      timeout: 30_000,
+      timeout: ACTION_TIMEOUT,
     });
 
     /*
@@ -237,7 +252,9 @@ test.describe('journey 3 — a coupon changes the total', () => {
     await page.locator('input[name="couponCode"]').fill('EXPIRED5');
     await page.getByRole('button', { name: 'Place order' }).click();
 
-    await expect(page.getByText("That coupon isn't valid.")).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByText("That coupon isn't valid.")).toBeVisible({
+      timeout: ACTION_TIMEOUT,
+    });
     // Still on checkout, cart intact, nothing charged.
     await expect(page).toHaveURL(/\/en\/checkout$/);
     await expect(page.getByText('€11.90').first()).toBeVisible();
@@ -255,7 +272,7 @@ test.describe('journey 3 — a coupon changes the total', () => {
 
     // Lower-case on purpose: `coupons.code` is citext, so case must not matter.
     await expect(page.getByText('That coupon needs a higher order total.')).toBeVisible({
-      timeout: 30_000,
+      timeout: ACTION_TIMEOUT,
     });
   });
 });
@@ -268,7 +285,7 @@ test.describe('journey 4 — guest order lookup', () => {
     await fillCheckout(page, email);
     await page.getByRole('button', { name: 'Place order' }).click();
     await expect(page.getByRole('heading', { name: 'Your order is in' })).toBeVisible({
-      timeout: 30_000,
+      timeout: ACTION_TIMEOUT,
     });
     return (await page.getByText(ORDER_NUMBER).first().textContent())?.trim() ?? '';
   }
@@ -368,14 +385,14 @@ test.describe('variant selection', () => {
     await expect(page.getByText('€15.90').first()).toBeVisible();
 
     await page.getByRole('button', { name: 'Add to cart' }).click();
-    await expect(page.getByText('Added to your cart.')).toBeVisible();
+    await expect(page.getByText('Added to your cart.')).toBeVisible({ timeout: ACTION_TIMEOUT });
 
     await page.goto('/en/checkout');
     await fillCheckout(page, email);
     await page.getByRole('button', { name: 'Place order' }).click();
 
     await expect(page.getByRole('heading', { name: 'Your order is in' })).toBeVisible({
-      timeout: 30_000,
+      timeout: ACTION_TIMEOUT,
     });
     // €15.90 + €2.00 delivery — and the SKU proves it was the right variant.
     await expect(page.getByText('NOW-D3-240')).toBeVisible();
@@ -397,7 +414,7 @@ test.describe('variant selection', () => {
       // Expected once the guard works: the button is disabled and the click is refused.
     });
 
-    await expect(page.getByText('Added to your cart.')).toBeVisible();
+    await expect(page.getByText('Added to your cart.')).toBeVisible({ timeout: ACTION_TIMEOUT });
 
     await page.goto('/en/cart');
     // The stepper's <output> is labelled "Quantity: N", so this asserts the accessible name

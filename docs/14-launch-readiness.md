@@ -19,30 +19,31 @@ Legend: ✅ done and verified · 🟡 partial · ⬜ not started · ➖ not appl
 
 ## 1 · Infrastructure and pipeline
 
-| Item                                                  | State | Evidence                                                                   |
-| ----------------------------------------------------- | ----- | -------------------------------------------------------------------------- |
-| Next.js app builds for production                     | ✅    | `pnpm build`, 17 routes, no warnings                                       |
-| First Load JS within the 170 kB budget (`docs/09 §3`) | ✅    | 120–138 kB per route, enforced by `check:bundle`                           |
-| Database schema applied                               | ✅    | 13 migrations on `rszbpdgfvyofvmuishmn`, Postgres 17.6                     |
-| RLS enabled on every public table (`docs/10 §4`)      | ✅    | `tables_without_rls()` → `[]`                                              |
-| Integration suite against a real database             | ✅    | **45/45**, ~85 s                                                           |
-| Unit suite                                            | ✅    | **89/89**                                                                  |
-| E2E + axe on both locales                             | ✅    | **116/116**, four consecutive clean runs; zero serious/critical violations |
-| Generated DB types match the live schema              | ✅    | `db:types:linked` → 2902 lines, `pnpm verify` green                        |
-| CI pipeline (quality · integration+E2E · audit)       | ✅    | `.github/workflows/ci.yml`                                                 |
-| Security headers (`docs/10 §5`)                       | ✅    | asserted by an E2E test                                                    |
-| `/api/health` for uptime monitoring (`docs/10 §6`)    | ✅    | returns `{status:"ok",database:"ok"}`                                      |
-| Sitemap + robots with hreflang (`docs/08 §4`)         | ✅    | 176 URLs, 352 hreflang links                                               |
-| Housekeeping cron, `CRON_SECRET`-guarded              | ✅    | 401 unauthenticated, 200 with token                                        |
-| On-demand ISR purge, secret-guarded                   | ✅    | rejects unknown tags, 401 unauthenticated                                  |
-| Sentry server + edge                                  | ✅    | inert without a DSN; client SDK lazy-loaded                                |
-| `vercel.json` — region `fra1`, crons                  | ✅    |                                                                            |
-| Vercel project + domain + DNS                         | ⬜    | **owner task** (`docs/00`)                                                 |
-| Resend domain verified (SPF/DKIM/DMARC)               | ⬜    | **owner task** — until then customers get no order receipt                 |
-| Supabase staging + production projects                | 🟡    | one dev project exists; staging/prod not created                           |
-| PITR / backups on production                          | ⬜    | **owner task**, `docs/10 §4`                                               |
-| Uptime monitor pointed at `/api/health`               | ⬜    | **owner task**                                                             |
-| Restore drill                                         | ⬜    | `docs/10 §7`                                                               |
+| Item                                                  | State | Evidence                                                                               |
+| ----------------------------------------------------- | ----- | -------------------------------------------------------------------------------------- |
+| Next.js app builds for production                     | ✅    | `pnpm build`, 17 routes, no warnings                                                   |
+| First Load JS within the 170 kB budget (`docs/09 §3`) | ✅    | 120–138 kB per route, enforced by `check:bundle`                                       |
+| Database schema applied                               | ✅    | 13 migrations on `rszbpdgfvyofvmuishmn`, Postgres 17.6                                 |
+| RLS enabled on every public table (`docs/10 §4`)      | ✅    | `tables_without_rls()` → `[]`                                                          |
+| Integration suite against a real database             | ✅    | **45/45**, ~85 s                                                                       |
+| Unit suite                                            | ✅    | **89/89**                                                                              |
+| E2E + axe on both locales                             | ✅    | **116/116**, four consecutive clean runs; zero serious/critical violations             |
+| Generated DB types match the live schema              | ✅    | `db:types:linked` → 2902 lines, `pnpm verify` green                                    |
+| CI pipeline (quality · integration+E2E · audit)       | ✅    | `.github/workflows/ci.yml`                                                             |
+| Security headers (`docs/10 §5`)                       | ✅    | asserted by an E2E test                                                                |
+| `/api/health` for uptime monitoring (`docs/10 §6`)    | ✅    | returns `{status:"ok",database:"ok"}`                                                  |
+| Sitemap + robots with hreflang (`docs/08 §4`)         | ✅    | 176 URLs, 352 hreflang links                                                           |
+| Housekeeping cron, `CRON_SECRET`-guarded              | ✅    | 401 unauthenticated, 200 with token                                                    |
+| On-demand ISR purge, secret-guarded                   | ✅    | rejects unknown tags, 401 unauthenticated                                              |
+| Sentry server + edge                                  | ✅    | inert without a DSN; client SDK lazy-loaded                                            |
+| `vercel.json` — region `fra1`, crons                  | ✅    |                                                                                        |
+| Vercel project + domain + DNS                         | ⬜    | **owner task** (`docs/00`)                                                             |
+| Resend domain verified (SPF/DKIM/DMARC)               | ⬜    | **owner task** — until then customers get no order receipt                             |
+| Supabase staging + production projects                | ➖    | **owner decision (§7)** — one project serves all three roles                           |
+| PITR / backups on production                          | ⬜    | **owner task**, `docs/10 §4`. More urgent under §7: no second database to fall back on |
+| Destructive suites gated on `SUPABASE_TEST_PROJECT`   | ✅    | integration, E2E and the purge all refuse an undeclared target (§7)                    |
+| Uptime monitor pointed at `/api/health`               | ⬜    | **owner task**                                                                         |
+| Restore drill                                         | ⬜    | `docs/10 §7`                                                                           |
 
 ## 2 · Product — selling works, fulfilment does not
 
@@ -99,9 +100,61 @@ status transitions exist, every order placed is a manual liability.
 
 These are the ones that need an account or a domain, not code:
 
-| Task                                   | Why it blocks                                                                                                                                                                                                                                                  |
-| -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `RESEND_API_KEY` + verified domain     | The order-confirmation email is written, templated in both locales and wired into `placeOrder`. Without the key `lib/email/send.ts` records `skipped_no_provider` and no-ops, so **customers get no receipt.** Needs SPF, DKIM and DMARC on the sending domain |
-| A separate production Supabase project | `rszbpdgfvyofvmuishmn` is disposable and the test suites write to whatever `.env.local` targets                                                                                                                                                                |
-| Vercel project + domain + DNS          | `runbooks/deploy.md`                                                                                                                                                                                                                                           |
-| Legal copy for terms and privacy       | Checkout requires customers to accept them; they are currently `[LEGAL: review]` placeholders                                                                                                                                                                  |
+| Task                               | Why it blocks                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `RESEND_API_KEY` + verified domain | **Deferred by the owner (2026-07-31).** The order-confirmation email is written, templated in both locales and wired into `placeOrder`; without the key `lib/email/send.ts` records `skipped_no_provider` and no-ops. Nothing breaks — but **customers get no receipt**, which for a cash-on-delivery shop in a new market is the main trust signal at the moment of purchase. Reversible at any time by adding the key; needs SPF, DKIM and DMARC on the sending domain |
+| Vercel project + domain + DNS      | `runbooks/deploy.md`                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| Legal copy for terms and privacy   | Checkout requires customers to accept them; they are currently `[LEGAL: review]` placeholders                                                                                                                                                                                                                                                                                                                                                                            |
+
+---
+
+## 7 · One Supabase project for dev, test and production
+
+The owner decided on **2026-07-31** that `rszbpdgfvyofvmuishmn` serves all three roles rather
+than creating a separate production project. This section exists because that choice moves
+three risks from "impossible by construction" to "prevented by a guard", and a guard is only
+as good as the checklist that keeps it in place.
+
+### What was changed to make it survivable
+
+**A fail-closed declaration.** `SUPABASE_TEST_PROJECT` must be set and must equal the project
+ref in `NEXT_PUBLIC_SUPABASE_URL`, or the integration suite, the E2E suite and the fixture
+purge all refuse to start. Not a boolean — a ref, so it stops matching the moment the target
+changes, whereas `ALLOW=1` in a shell profile would follow you anywhere. `127.0.0.1` is exempt,
+being disposable by definition.
+
+The guard it replaced refused a list of `shneta.com` hostnames, which could never have fired:
+a Supabase database is at `<ref>.supabase.co`, never at the site's hostname. It was written
+assuming dev and prod were different projects and protected nothing once they were not.
+
+**The one unscoped deletion, scoped.** `purgeFixtures` deleted every guest cart
+(`user_id is null`) with no fixture filter — on a live shop, every anonymous basket, every
+test run, silently. It is now limited to _empty_ guest carts, which costs nobody anything:
+`ensureCart()` mints a new one when a token stops resolving. Carts holding items are left to
+the housekeeping cron's normal expiry.
+
+**A reviewable pre-launch cleanup.** `pnpm purge:demo --dry-run` / `--yes` removes the 24
+fixture products, 20 fixture ingredients and 4 test coupons. It refuses to delete a fixture
+product that has been ordered, because `order_items.variant_id` is `on delete set null` and
+deleting it would destroy the link from the order to what was sold.
+
+### Launch checklist — every line is blocking
+
+| #   | Do this                                              | Why                                                                                                                                                                                 |
+| --- | ---------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Enter the real catalogue (needs M6's product editor) | The storefront currently sells fixtures                                                                                                                                             |
+| 2   | `pnpm purge:demo --dry-run`, read it, then `--yes`   | 24 fake products with real brand names and unlicensed logos, and 3 **active** coupons. A customer can otherwise buy something that does not exist, or take 10% off with `WELCOME10` |
+| 3   | **Delete `SUPABASE_TEST_PROJECT` from `.env.local`** | This single line is what stands between `pnpm test:e2e` and customer data. After removing it, both suites refuse to run against this project — which is the point                   |
+| 4   | Never set `SUPABASE_TEST_PROJECT` in Vercel          | It has no purpose in a deployed environment and every purpose in a destructive one                                                                                                  |
+| 5   | Enable Point-in-Time Recovery (paid add-on)          | There is no second database to fall back on. Orders, addresses and phone numbers with no restore point is not a recoverable position                                                |
+| 6   | Confirm `tables_without_rls()` returns `[]`          | Cheap, and the whole security model rests on it                                                                                                                                     |
+
+### What is permanently given up
+
+**There is nowhere to run the destructive suites after step 3.** Docker is not installed on
+the build machine, so the local stack is unavailable; the integration and E2E suites are the
+acceptance gate for every remaining milestone (M5–M11). From step 3 onward, verifying a
+milestone means either a second Supabase project (the free tier allows two, so a test-only
+project costs nothing) or installing Docker for `supabase start`. Deferring this is fine.
+Discovering it on launch day is not — which is why it is written here rather than left to be
+found.
