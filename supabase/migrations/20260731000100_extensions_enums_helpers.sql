@@ -43,37 +43,14 @@ language plpgsql set search_path = public as
 $$ begin new.updated_at := now(); return new; end $$;
 
 /*
- * Role check. `security definer` so it can read `profiles` from inside a policy on
- * `profiles` itself without recursing — the function runs as the table owner, for whom
- * RLS is bypassed.
+ * NOTE ON ORDERING — `has_any_role`, `is_staff` and `is_admin` live in migration 02, not
+ * here, even though they read as generic helpers.
  *
- * Every caller in a policy wraps this as `(select has_any_role(...))` so the planner
- * hoists it into an InitPlan and evaluates it once per statement rather than once per
- * row (docs/13 §D7). On `orders` and `order_items` that is the difference between a
- * sub-millisecond scan and a per-row function call.
+ * They are `language sql`, and Postgres parses and validates a SQL function's body at
+ * CREATE time (unlike plpgsql, which defers to first call). Since they query `profiles`,
+ * defining them before that table exists fails outright with `relation "profiles" does not
+ * exist`. They are therefore declared immediately after the table they depend on.
  */
-create or replace function public.has_any_role(roles user_role[]) returns boolean
-language sql stable security definer set search_path = public as $$
-  select exists (
-    select 1 from profiles p
-    where p.id = auth.uid()
-      and p.deleted_at is null
-      and (p.role = any(roles) or p.role = 'admin')
-  );
-$$;
-
-create or replace function public.is_staff() returns boolean
-language sql stable security definer set search_path = public as $$
-  select has_any_role(array[
-    'support','product_manager','content_manager',
-    'warehouse_manager','compliance_manager'
-  ]::user_role[]);
-$$;
-
-create or replace function public.is_admin() returns boolean
-language sql stable security definer set search_path = public as $$
-  select has_any_role(array['admin']::user_role[]);
-$$;
 
 /** True when the current statement runs under the service role (cron, webhooks, seeds). */
 create or replace function public.is_service_role() returns boolean

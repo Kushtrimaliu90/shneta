@@ -2,14 +2,26 @@
 
 Target project: **`rszbpdgfvyofvmuishmn`** — `https://rszbpdgfvyofvmuishmn.supabase.co`
 
-> **Read this first.** The M1 migrations have never been applied to any database. This
-> project will be the first place they run. `supabase db push` applies each migration file
-> in its own transaction: a file that fails rolls itself back, but files applied _before_
-> it stay applied, leaving the schema half-built. That is recoverable on an empty project
-> (`supabase db reset --linked` drops and replays everything) and **not** recoverable on a
-> project holding data you care about.
->
-> Confirm the project is empty before pushing. Step 2 checks this.
+**Status: applied.** All 12 migrations and the seed are live on this project, and the
+integration suite passes 44/44 against it. What follows is the procedure — for re-running,
+for standing up staging and production, and for recovery.
+
+> **Before pushing to any project that holds data.** `supabase db push` applies each
+> migration file in its own transaction: a file that fails rolls itself back, but files
+> applied _before_ it stay applied, leaving the schema half-built. Recoverable on an empty
+> project (`supabase db reset --linked` drops and replays) and **not** recoverable on one
+> holding data you care about. Step 2 checks emptiness first.
+
+### What the first run taught us
+
+`has_any_role()` was originally defined in migration 01 but queries `profiles`, which
+migration 02 creates. Postgres validates a **`language sql`** function body at `CREATE`
+time — unlike plpgsql, which defers to first call — so the push aborted on file 1 with
+`relation "profiles" does not exist`. The role helpers now live in migration 02, directly
+after the table.
+
+`pnpm check:sql` gained a check for exactly this (a SQL function reading a table created in
+a later migration), so it fails locally instead of halfway through a push.
 
 ---
 

@@ -20,7 +20,7 @@ enabled = true
 port = 54323
 
 # Local inbox for auth and transactional email (docs/09 §2).
-[inbucket]
+[local_smtp]
 enabled = true
 port = 54324
 

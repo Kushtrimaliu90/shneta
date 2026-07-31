@@ -13,6 +13,13 @@
  *   5. unique, ordered migration timestamps
  *   6. no `auth.uid()` called bare inside a policy predicate (docs/13 §D7 — must be
  *      wrapped as `(select auth.uid())` so the planner hoists it to an InitPlan)
+ *   7. `language sql` functions that reference a table created in a LATER migration
+ *
+ * Check 7 exists because that bug actually reached the database. Postgres parses and
+ * validates a SQL function's body at CREATE time — unlike plpgsql, which defers to first
+ * call — so `has_any_role`, defined in migration 01 and querying `profiles` from
+ * migration 02, failed with `relation "profiles" does not exist`. Nothing offline caught
+ * it, and the whole push aborted on the first file.
  */
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
@@ -154,6 +161,47 @@ function checkFile(file: string, sql: string): void {
   }
 }
 
+/**
+ * Bodies of `language sql` functions, paired with the function name.
+ *
+ * Located by scanning for `$$ … $$` blocks and looking back at the preceding text for a
+ * `create function … language sql`. Cruder than parsing, but it does not need a SQL
+ * grammar and it does not false-positive on plpgsql, whose bodies are validated lazily.
+ */
+function sqlFunctionBodies(sql: string): { name: string; body: string }[] {
+  const found: { name: string; body: string }[] = [];
+  const blocks = /\$\$([\s\S]*?)\$\$/g;
+
+  for (const match of sql.matchAll(blocks)) {
+    const start = match.index ?? 0;
+    const prefix = sql.slice(Math.max(0, start - 400), start);
+    if (!/\blanguage\s+sql\b/i.test(prefix)) continue;
+
+    const name = /create\s+(?:or\s+replace\s+)?function\s+([\w.]+)/i.exec(prefix);
+    if (!name?.[1]) continue;
+    found.push({ name: name[1], body: match[1] ?? '' });
+  }
+  return found;
+}
+
+/** Table names a function body reads from, minus CTEs and non-application schemas. */
+function referencedTables(body: string): string[] {
+  const ctes = new Set(
+    [...body.matchAll(/\b(?:with|,)\s+([a-z_]\w*)\s+as\s*\(/gi)].map((m) =>
+      (m[1] ?? '').toLowerCase(),
+    ),
+  );
+
+  const tables = new Set<string>();
+  for (const match of body.matchAll(/\b(?:from|join)\s+(?!\()([a-z_][\w.]*)/gi)) {
+    const raw = (match[1] ?? '').toLowerCase();
+    // Catalogs and other schemas are outside the migration sequence.
+    if (raw.startsWith('pg_') || raw.includes('.') || ctes.has(raw)) continue;
+    tables.add(raw);
+  }
+  return [...tables];
+}
+
 const files = readdirSync(MIGRATIONS_DIR)
   .filter((name) => name.endsWith('.sql'))
   .sort();
@@ -174,10 +222,45 @@ for (const name of files) {
   timestamps.add(stamp);
 }
 
-for (const name of files) {
-  checkFile(name, readFileSync(join(MIGRATIONS_DIR, name), 'utf8'));
+const sources = files.map((name) => ({
+  name,
+  sql: readFileSync(join(MIGRATIONS_DIR, name), 'utf8'),
+}));
+
+for (const { name, sql } of sources) {
+  checkFile(name, sql);
 }
 checkFile('seed.sql', readFileSync(SEED, 'utf8'));
+
+// --- Check 7: forward references from `language sql` function bodies ---------
+// Build "which migration first creates this table", then confirm every table a SQL
+// function reads is already in existence by the time that function is created.
+const createdIn = new Map<string, number>();
+sources.forEach(({ sql }, index) => {
+  for (const match of sql.matchAll(
+    /create\s+(?:or\s+replace\s+)?(?:table|view|materialized\s+view)\s+(?:if\s+not\s+exists\s+)?(?:public\.)?([a-z_]\w*)/gi,
+  )) {
+    const table = (match[1] ?? '').toLowerCase();
+    if (!createdIn.has(table)) createdIn.set(table, index);
+  }
+});
+
+sources.forEach(({ name, sql }, index) => {
+  for (const fn of sqlFunctionBodies(sql)) {
+    for (const table of referencedTables(fn.body)) {
+      const definedAt = createdIn.get(table);
+      if (definedAt === undefined || definedAt > index) {
+        note(
+          name,
+          `SQL function ${fn.name}() reads "${table}", which is created ` +
+            `${definedAt === undefined ? 'nowhere in the migrations' : `later in ${files[definedAt]}`}. ` +
+            'A `language sql` body is validated at CREATE time, so this fails on apply — ' +
+            'move the function after the table (or use plpgsql, which defers).',
+        );
+      }
+    }
+  }
+});
 
 if (problems.length > 0) {
   console.error(`check:sql failed with ${problems.length} problem(s):`);

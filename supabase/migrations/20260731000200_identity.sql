@@ -18,6 +18,47 @@ create table profiles (
   deleted_at timestamptz
 );
 
+-- -----------------------------------------------------------------------------
+-- Role helpers (docs/03 §2)
+--
+-- Declared here rather than in migration 01 because they are `language sql`, whose
+-- body Postgres validates at CREATE time — they cannot be defined before `profiles`
+-- exists. See the note in 20260731000100.
+-- -----------------------------------------------------------------------------
+
+/*
+ * `security definer` so it can read `profiles` from inside a policy on `profiles`
+ * itself without recursing — the function runs as the table owner, for whom RLS is
+ * bypassed.
+ *
+ * Every caller in a policy wraps this as `(select has_any_role(...))` so the planner
+ * hoists it into an InitPlan and evaluates it once per statement rather than once per
+ * row (docs/13 §D7). On `orders` and `order_items` that is the difference between a
+ * sub-millisecond scan and a per-row function call.
+ */
+create or replace function public.has_any_role(roles user_role[]) returns boolean
+language sql stable security definer set search_path = public as $$
+  select exists (
+    select 1 from profiles p
+    where p.id = auth.uid()
+      and p.deleted_at is null
+      and (p.role = any(roles) or p.role = 'admin')
+  );
+$$;
+
+create or replace function public.is_staff() returns boolean
+language sql stable security definer set search_path = public as $$
+  select has_any_role(array[
+    'support','product_manager','content_manager',
+    'warehouse_manager','compliance_manager'
+  ]::user_role[]);
+$$;
+
+create or replace function public.is_admin() returns boolean
+language sql stable security definer set search_path = public as $$
+  select has_any_role(array['admin']::user_role[]);
+$$;
+
 /** docs/03 §8 — a profile row is created for every auth user, by trigger, on signup. */
 create or replace function public.handle_new_user() returns trigger
 language plpgsql security definer set search_path = public as $$

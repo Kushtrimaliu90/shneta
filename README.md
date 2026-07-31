@@ -36,11 +36,27 @@ pnpm db:types                     # regenerate src/lib/supabase/database.types.t
 pnpm test:integration             # RLS matrix, checkout RPC, order lifecycle
 ```
 
-**The M1 migrations have not been applied yet** — they were written on a machine without
-Docker. `pnpm check:sql` validates their structure offline (dollar-quote and paren
-balance, duplicate policy names, unwrapped `auth.uid()`), but only `supabase db reset`
-proves they apply. Run the four commands above first; `pnpm test:integration` is the
-acceptance gate for M1 and every case in it maps to a rule in the specification.
+### Hosted dev project
+
+The schema is **applied and verified** on the hosted dev project
+`rszbpdgfvyofvmuishmn` (eu-west-1, Postgres 17.6): all 12 migrations, the seed, and
+**44/44 integration tests green against the live database**. See
+[`runbooks/supabase-setup.md`](runbooks/supabase-setup.md) for the procedure and for the
+dashboard settings the CLI cannot push.
+
+To work against it, put the project URL plus the `anon` and `service_role` keys in
+`.env.local` (never committed), then:
+
+```bash
+pnpm db:link                      # already linked if supabase/.temp exists
+pnpm db:diff                      # dry-run: what would be pushed
+pnpm db:push                      # apply pending migrations
+pnpm db:types:linked              # regenerate types from the live schema
+pnpm test:integration             # ~55s — creates and deletes real rows
+```
+
+`pnpm test:integration` **writes to whatever `.env.local` points at**. Point it at a
+disposable database, never production.
 
 ## Commands
 
@@ -96,12 +112,15 @@ The full list is in `CLAUDE.md`. The ones that bite hardest:
 
 ## Status
 
-| Milestone                     | State                                                                                                                      |
-| ----------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| M0 · Scaffold and foundations | ✅ **Done and verified** — 71 unit tests, 8 E2E incl. axe on both locales, 120 kB First Load JS against a 170 kB budget    |
-| M1 · Database and seed        | 🔨 **Written, not applied** — 12 migrations, config seed, 3 integration suites. Needs `supabase db reset` on a Docker host |
-| M2 → M11                      | Not started — see `docs/12-build-plan.md`                                                                                  |
+| Milestone                     | State                                                                                                                       |
+| ----------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| M0 · Scaffold and foundations | ✅ **Done and verified** — 71 unit tests, 8 E2E incl. axe on both locales, 120 kB First Load JS against a 170 kB budget     |
+| M1 · Database and seed        | ✅ **Applied and verified** — 12 migrations + seed live on `rszbpdgfvyofvmuishmn`; 44/44 integration tests green against it |
+| M2 → M11                      | Not started — see `docs/12-build-plan.md`                                                                                   |
 
-M1's remaining work once the migrations apply cleanly: the demo catalogue fixture
-(docs/11 §6–§9 — ingredients, products, articles, order fixtures) and
-`scripts/seed-users.ts`. `supabase/seed.sql` ends with the exact outstanding list.
+M1 is functionally complete. What remains is fixture data, not schema: the demo catalogue
+(docs/11 §6–§9 — 30 ingredients, 24 products, 6 articles, order fixtures) and
+`scripts/seed-users.ts`. `supabase/seed.sql` ends with the exact outstanding list. The
+config and taxonomy it does seed — settings, warehouse, shipping methods, certifications,
+13 categories, 16 health goals, 8 brands, legal page skeletons — are
+production-appropriate and idempotent.
