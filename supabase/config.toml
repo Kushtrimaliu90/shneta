@@ -15,6 +15,12 @@ major_version = 17
 [db.pooler]
 enabled = false
 
+# seed.sql holds configuration and taxonomy (production-appropriate); seeds/ holds the demo
+# catalogue, which is local and staging only. Split so one file does not become unreviewable.
+[db.seed]
+enabled = true
+sql_paths = ['./seed.sql', './seeds/*.sql']
+
 [studio]
 enabled = true
 port = 54323

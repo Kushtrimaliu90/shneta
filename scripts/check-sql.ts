@@ -21,11 +21,13 @@
  * migration 02, failed with `relation "profiles" does not exist`. Nothing offline caught
  * it, and the whole push aborted on the first file.
  */
-import { readFileSync, readdirSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 
 const MIGRATIONS_DIR = join(process.cwd(), 'supabase', 'migrations');
 const SEED = join(process.cwd(), 'supabase', 'seed.sql');
+/** The demo catalogue, split out of seed.sql per `[db.seed] sql_paths` in config.toml. */
+const SEEDS_DIR = join(process.cwd(), 'supabase', 'seeds');
 
 const problems: string[] = [];
 const note = (file: string, message: string) => problems.push(`${file}: ${message}`);
@@ -232,6 +234,15 @@ for (const { name, sql } of sources) {
 }
 checkFile('seed.sql', readFileSync(SEED, 'utf8'));
 
+const seedFiles = existsSync(SEEDS_DIR)
+  ? readdirSync(SEEDS_DIR)
+      .filter((name) => name.endsWith('.sql'))
+      .sort()
+  : [];
+for (const name of seedFiles) {
+  checkFile(`seeds/${name}`, readFileSync(join(SEEDS_DIR, name), 'utf8'));
+}
+
 // --- Check 7: forward references from `language sql` function bodies ---------
 // Build "which migration first creates this table", then confirm every table a SQL
 // function reads is already in existence by the time that function is created.
@@ -268,5 +279,8 @@ if (problems.length > 0) {
   process.exit(1);
 }
 
-console.log(`check:sql ok — ${files.length} migrations + seed.sql are structurally sound.`);
+console.log(
+  `check:sql ok — ${files.length} migrations + seed.sql + ${seedFiles.length} seed file(s) ` +
+    'are structurally sound.',
+);
 console.log('Note: only `supabase db reset` proves they actually apply.');
