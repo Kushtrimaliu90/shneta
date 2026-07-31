@@ -106,6 +106,19 @@ describe('text on filled surfaces', () => {
   it('ink-600 passes comfortably on the forest-50 tint', () => {
     expect(ratio(token('ink-600'), token('forest-50'))).toBeGreaterThanOrEqual(AA_TEXT);
   });
+
+  /**
+   * The admin environment badge — the only thing distinguishing a preview panel from the
+   * production one, so it must be legible before it is pretty.
+   *
+   * It shipped as `bg-warning/15` + `text-warning`, which axe measured at 4.08:1: a 15% tint
+   * over cream resolves to #f4e5da, and the amber on that misses AA. The lesson generalises
+   * past this one badge — **a `/15` tint of a semantic colour is not a safe background for
+   * that same colour as text.** Solid fill with white is the pattern to reach for.
+   */
+  it('white on a solid warning fill passes AA, which the tinted version did not', () => {
+    expect(ratio('#ffffff', token('warning'))).toBeGreaterThanOrEqual(AA_TEXT);
+  });
 });
 
 describe('non-text contrast — WCAG SC 1.4.11', () => {

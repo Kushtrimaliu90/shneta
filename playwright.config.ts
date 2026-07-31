@@ -13,6 +13,24 @@ export default defineConfig({
    */
   globalSetup: './e2e/global-setup.ts',
   globalTeardown: './e2e/global-teardown.ts',
+  /*
+   * 90 s per test, up from Playwright's default 30 s.
+   *
+   * The checkout journeys are a dozen sequential round trips to a Supabase project in
+   * eu-west-1: add to cart, read the cart, read checkout, place the order, read the success
+   * page, look it up again. Individually none is slow; together they routinely pass 30 s when
+   * four spec files run in parallel against one database.
+   *
+   * The specific failure this fixes is worth recording, because the symptom pointed the wrong
+   * way: `ACTION_TIMEOUT` in checkout.spec.ts was *also* 30 s, so an assertion could never
+   * spend its budget — the test died first and reported "element(s) not found", which reads
+   * like a selector bug rather than a deadline. A per-assertion timeout must always sit well
+   * inside the per-test one.
+   *
+   * This is not a performance budget. Those are in docs/09 §3, enforced in the M11 pass
+   * against something better than a dev database on another continent.
+   */
+  timeout: 90_000,
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,

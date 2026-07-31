@@ -32,7 +32,8 @@
     "db:push": "supabase db push --linked",
     "db:seed:linked": "supabase db push --linked --include-seed",
     "verify": "pnpm check:i18n && pnpm check:sql && pnpm typecheck && pnpm lint && pnpm test && pnpm build && pnpm check:bundle",
-    "purge:demo": "tsx scripts/purge-demo-catalogue.ts"
+    "purge:demo": "tsx scripts/purge-demo-catalogue.ts",
+    "seed:users": "tsx scripts/seed-users.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "5.5.7",
