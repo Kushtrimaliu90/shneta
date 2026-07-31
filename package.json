@@ -22,7 +22,12 @@
     "check:i18n": "tsx scripts/check-i18n.ts",
     "check:sql": "tsx scripts/check-sql.ts",
     "db:types": "supabase gen types typescript --local > src/lib/supabase/database.types.ts",
+    "db:types:linked": "supabase gen types typescript --linked > src/lib/supabase/database.types.ts",
     "db:reset": "supabase db reset",
+    "db:link": "supabase link --project-ref rszbpdgfvyofvmuishmn",
+    "db:diff": "supabase db push --linked --dry-run",
+    "db:push": "supabase db push --linked",
+    "db:seed:linked": "supabase db push --linked --include-seed",
     "verify": "pnpm check:i18n && pnpm check:sql && pnpm typecheck && pnpm lint && pnpm test && pnpm build"
   },
   "dependencies": {
@@ -63,6 +68,7 @@
     "jsdom": "30.0.1",
     "prettier": "3.9.6",
     "prettier-plugin-tailwindcss": "0.8.1",
+    "supabase": "2.110.0",
     "tailwindcss": "4.3.3",
     "tsx": "4.20.6",
     "typescript": "5.9.3",
