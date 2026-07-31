@@ -75,9 +75,18 @@ type StaffRole =
   | 'admin'
   | 'customer';
 
+/**
+ * The service client, narrowed once — non-null assertions are banned (CLAUDE.md §1), and a
+ * named throw reports the real problem when the credentials are genuinely absent.
+ */
+function db(): SupabaseClient {
+  if (!service) throw new Error('Service credentials missing; cannot run admin E2E.');
+  return service;
+}
+
 /** Creates a confirmed user and sets its role through the service client. */
 async function staffUser(role: StaffRole): Promise<{ email: string; password: string }> {
-  if (!service) throw new Error('Service credentials missing; cannot run admin E2E.');
+  const service = db();
 
   const email = `e2e-${role}-${randomUUID()}@shneta.test`;
   const password = `Pw-${randomUUID()}`;
@@ -298,6 +307,62 @@ test.describe('journey 7 — support walks an order from placed to delivered', (
     ]) {
       await expect(timeline.getByText(step)).toBeVisible();
     }
+
+    /*
+     * docs/06 preamble — **every** admin mutation writes `audit_logs`.
+     *
+     * This is the one M5 acceptance criterion the integration suite cannot reach: it exercises
+     * the database directly, and whether an *action* remembers to call `log_audit` is a property
+     * of the application. So it is checked here, after a real operator has clicked through four
+     * mutations in a browser.
+     *
+     * `actor_id` and `actor_role` are stamped by the RPC from `auth.uid()`, never from anything
+     * the caller passes — asserting the role proves the audit trail records who acted rather
+     * than who claimed to.
+     */
+    const { data: order } = await db()
+      .from('orders')
+      .select('id')
+      .eq('order_number', orderNumber)
+      .single();
+
+    const { data: auditRows } = await db()
+      .from('audit_logs')
+      .select('action, actor_role, before, after')
+      .eq('entity_type', 'order')
+      .eq('entity_id', (order as { id: string }).id);
+
+    const audits = (auditRows ?? []) as {
+      action: string;
+      actor_role: string;
+      before: unknown;
+      after: unknown;
+    }[];
+
+    // Three status changes plus the shipment — the shipped transition is audited as
+    // `order.shipped` by createShipment, not as a bare status change.
+    expect(
+      audits.filter((row) => row.action === 'order.status_changed'),
+      'confirm, process and deliver each write an audit row',
+    ).toHaveLength(3);
+    expect(
+      audits.filter((row) => row.action === 'order.shipped'),
+      'shipping writes its own audit row with the tracking details',
+    ).toHaveLength(1);
+
+    for (const row of audits) {
+      expect(row.actor_role, 'the acting role is recorded, not assumed').toBe('support');
+    }
+
+    // And the before/after pair is real, not an empty shell: a status change records what it
+    // moved from, which is the whole reason an audit row is worth writing.
+    const confirmRow = audits.find(
+      (row) =>
+        row.action === 'order.status_changed' &&
+        (row.before as { status?: string })?.status === 'pending',
+    );
+    expect(confirmRow, 'the confirm audit row records the previous status').toBeTruthy();
+    expect((confirmRow?.after as { status?: string })?.status).toBe('confirmed');
   });
 
   test('an internal note is marked internal and never shown to the customer', async ({
@@ -334,6 +399,72 @@ test.describe('journey 7 — support walks an order from placed to delivered', (
     await shopperPage.goto(`/en/order-lookup/${orderNumber}`);
     await expect(shopperPage.getByText(secret)).toHaveCount(0);
     await shopper.close();
+  });
+});
+
+test.describe('dashboard (docs/06 §1)', () => {
+  test('the confirmation queue is real and can be worked from', async ({ page, browser }) => {
+    /*
+     * An order is placed first so the queue is guaranteed non-empty, but the assertion is
+     * deliberately **not** that this specific order appears in it.
+     *
+     * The queue holds the ten *oldest* pending orders — that ordering is the point, since the
+     * oldest is the customer who has waited longest — and the other specs place pending orders
+     * concurrently. Looking for the newest one in a ten-oldest window fails for a reason that
+     * has nothing to do with the dashboard, which is what the first version of this test did.
+     *
+     * What matters here is that the queue is populated and actionable. That a *named* order is
+     * findable is asserted in journey 7, through search, where it belongs.
+     */
+    const shopper = await browser.newContext();
+    const shopperPage = await shopper.newPage();
+    await shopperPage.setExtraHTTPHeaders({ 'x-forwarded-for': '233.252.0.242' });
+    await placeGuestOrder(
+      shopperPage,
+      `e2e-dash-w${process.env.TEST_PARALLEL_INDEX ?? '0'}@shneta.test`,
+    );
+    await shopper.close();
+
+    const admin = await staffUser('admin');
+    await signIn(page, admin.email, admin.password);
+    await page.goto('/admin');
+
+    const queue = page.getByRole('region', { name: 'Awaiting confirmation' });
+    const firstInQueue = queue.getByRole('link', { name: /SH-\d{4}-\d{6}-[A-Z0-9]{4}/ }).first();
+    await expect(firstInQueue).toBeVisible({ timeout: ACTION_TIMEOUT });
+
+    // docs/06 §1 acceptance — the numbers must reconcile with the orders table, so the status
+    // list links into the filtered list rather than being a decorative count.
+    const statuses = page.getByRole('region', { name: 'Orders by status' });
+    await expect(statuses.getByRole('link', { name: 'Pending' })).toBeVisible();
+
+    /*
+     * A KPI nobody can click through to is a number an operator has to take on trust; a queue is
+     * something they can work. So the test follows the link.
+     */
+    const queued = (await firstInQueue.textContent())?.trim() ?? '';
+    await firstInQueue.click();
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText(queued);
+    await expect(page.getByText('Pending').first()).toBeVisible();
+  });
+
+  test('a warehouse manager sees the queue but no revenue', async ({ page }) => {
+    const depo = await staffUser('warehouse_manager');
+    await signIn(page, depo.email, depo.password);
+    await page.goto('/admin');
+
+    /*
+     * docs/01 §3 gives warehouse "orders/ship only". The KPI cards therefore show order counts
+     * and the revenue chart is absent entirely — not blanked out, absent, so there is nothing to
+     * infer from its shape. Low stock is theirs and must be there.
+     */
+    await expect(page.getByRole('region', { name: 'Revenue by day' })).toHaveCount(0);
+    await expect(page.getByRole('region', { name: 'Awaiting confirmation' })).toBeVisible();
+    await expect(page.getByRole('region', { name: 'Low stock' })).toBeVisible();
+    // docs/11 §7 seeds exactly two low-stock fixtures, so the queue is never empty here.
+    await expect(
+      page.getByRole('region', { name: 'Low stock' }).getByRole('listitem').first(),
+    ).toBeVisible();
   });
 });
 
