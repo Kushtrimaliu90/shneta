@@ -2,11 +2,11 @@
 
 Honest status against the launch checklist in `docs/10 §9` and the milestones in `docs/12`.
 
-**Bottom line: the deployment pipeline is production-ready. The product is not.**
-A customer cannot browse a catalogue, add to a cart, or place an order, because M2–M8 are
-not built. `docs/12` puts the earliest shippable point after **M8**. Deploying today gives
-you a working, monitored, bilingual shell on real infrastructure — valuable for proving the
-pipeline and for stakeholder review, and not a store.
+**Bottom line: the pipeline is production-ready and the storefront is now browsable. It is
+still not a store — nothing can be bought.**
+A customer can register, sign in, browse 24 products, filter and sort them, open a product
+and read its full label. They cannot add anything to a cart or place an order, because that
+is M4. `docs/12` puts the earliest shippable point after **M8**.
 
 Legend: ✅ done and verified · 🟡 partial · ⬜ not started · ➖ not applicable yet
 
@@ -14,39 +14,39 @@ Legend: ✅ done and verified · 🟡 partial · ⬜ not started · ➖ not appl
 
 ## 1 · Infrastructure and pipeline
 
-| Item                                                  | State | Evidence                                               |
-| ----------------------------------------------------- | ----- | ------------------------------------------------------ |
-| Next.js app builds for production                     | ✅    | `pnpm build`, 11 routes, no warnings                   |
-| First Load JS within the 170 kB budget (`docs/09 §3`) | ✅    | **122 kB** on `/[locale]`                              |
-| Database schema applied                               | ✅    | 12 migrations on `rszbpdgfvyofvmuishmn`, Postgres 17.6 |
-| RLS enabled on every public table (`docs/10 §4`)      | ✅    | `tables_without_rls()` → `[]`                          |
-| Integration suite against a real database             | ✅    | **44/44**, ~57 s                                       |
-| Unit suite                                            | ✅    | **71/71**                                              |
-| E2E + axe on both locales                             | ✅    | **8/8**, zero serious/critical violations              |
-| Generated DB types match the live schema              | ✅    | `db:types:linked` → 2902 lines, `pnpm verify` green    |
-| CI pipeline (quality · integration+E2E · audit)       | ✅    | `.github/workflows/ci.yml`                             |
-| Security headers (`docs/10 §5`)                       | ✅    | asserted by an E2E test                                |
-| `/api/health` for uptime monitoring (`docs/10 §6`)    | ✅    | returns `{status:"ok",database:"ok"}`                  |
-| Sitemap + robots with hreflang (`docs/08 §4`)         | ✅    | 176 URLs, 352 hreflang links                           |
-| Housekeeping cron, `CRON_SECRET`-guarded              | ✅    | 401 unauthenticated, 200 with token                    |
-| On-demand ISR purge, secret-guarded                   | ✅    | rejects unknown tags, 401 unauthenticated              |
-| Sentry server + edge                                  | ✅    | inert without a DSN; client SDK lazy-loaded            |
-| `vercel.json` — region `fra1`, crons                  | ✅    |                                                        |
-| Vercel project + domain + DNS                         | ⬜    | **owner task** (`docs/00`)                             |
-| Resend domain verified (SPF/DKIM/DMARC)               | ⬜    | **owner task**; no email is sent yet                   |
-| Supabase staging + production projects                | 🟡    | one dev project exists; staging/prod not created       |
-| PITR / backups on production                          | ⬜    | **owner task**, `docs/10 §4`                           |
-| Uptime monitor pointed at `/api/health`               | ⬜    | **owner task**                                         |
-| Restore drill                                         | ⬜    | `docs/10 §7`                                           |
+| Item                                                  | State | Evidence                                                |
+| ----------------------------------------------------- | ----- | ------------------------------------------------------- |
+| Next.js app builds for production                     | ✅    | `pnpm build`, 11 routes, no warnings                    |
+| First Load JS within the 170 kB budget (`docs/09 §3`) | ✅    | 119–134 kB per route, enforced by `check:bundle`        |
+| Database schema applied                               | ✅    | 12 migrations on `rszbpdgfvyofvmuishmn`, Postgres 17.6  |
+| RLS enabled on every public table (`docs/10 §4`)      | ✅    | `tables_without_rls()` → `[]`                           |
+| Integration suite against a real database             | ✅    | **44/44**, ~57 s                                        |
+| Unit suite                                            | ✅    | **87/87**                                               |
+| E2E + axe on both locales                             | ✅    | **74/74**, repeatable; zero serious/critical violations |
+| Generated DB types match the live schema              | ✅    | `db:types:linked` → 2902 lines, `pnpm verify` green     |
+| CI pipeline (quality · integration+E2E · audit)       | ✅    | `.github/workflows/ci.yml`                              |
+| Security headers (`docs/10 §5`)                       | ✅    | asserted by an E2E test                                 |
+| `/api/health` for uptime monitoring (`docs/10 §6`)    | ✅    | returns `{status:"ok",database:"ok"}`                   |
+| Sitemap + robots with hreflang (`docs/08 §4`)         | ✅    | 176 URLs, 352 hreflang links                            |
+| Housekeeping cron, `CRON_SECRET`-guarded              | ✅    | 401 unauthenticated, 200 with token                     |
+| On-demand ISR purge, secret-guarded                   | ✅    | rejects unknown tags, 401 unauthenticated               |
+| Sentry server + edge                                  | ✅    | inert without a DSN; client SDK lazy-loaded             |
+| `vercel.json` — region `fra1`, crons                  | ✅    |                                                         |
+| Vercel project + domain + DNS                         | ⬜    | **owner task** (`docs/00`)                              |
+| Resend domain verified (SPF/DKIM/DMARC)               | ⬜    | **owner task**; no email is sent yet                    |
+| Supabase staging + production projects                | 🟡    | one dev project exists; staging/prod not created        |
+| PITR / backups on production                          | ⬜    | **owner task**, `docs/10 §4`                            |
+| Uptime monitor pointed at `/api/health`               | ⬜    | **owner task**                                          |
+| Restore drill                                         | ⬜    | `docs/10 §7`                                            |
 
 ## 2 · Product — the blocking gap
 
 | Milestone                                    | State | What it means is missing                                                                                |
 | -------------------------------------------- | ----- | ------------------------------------------------------------------------------------------------------- |
 | M0 · Scaffold                                | ✅    | —                                                                                                       |
-| M1 · Database and seed                       | 🟡    | Schema done. Demo catalogue fixture (`docs/11 §6–§9`) and `scripts/seed-users.ts` outstanding           |
-| M2 · Auth and account shell                  | ⬜    | Nobody can register or sign in                                                                          |
-| M3 · Catalog browse                          | ⬜    | **No product pages, no PLP, no PDP, no search**                                                         |
+| M1 · Database and seed                       | ✅    | Schema + 24-product catalogue live. `scripts/seed-users.ts` and review fixtures outstanding             |
+| M2 · Auth and account shell                  | ✅    | Sign up / in / out, password reset, account overview and settings                                       |
+| M3 · Catalog browse                          | 🟡    | PLP, category pages, PDP, home and SEO done. Brands/goals/ingredients/knowledge pages outstanding       |
 | M4 · Cart and COD checkout                   | ⬜    | **Nothing can be bought.** The RPC exists and is tested; no UI reaches it                               |
 | M5 · Orders ops and admin core               | ⬜    | No admin panel; orders cannot be fulfilled                                                              |
 | M6 · Admin catalog management                | ⬜    | Products can only be created by SQL                                                                     |

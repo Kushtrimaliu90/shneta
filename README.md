@@ -114,21 +114,23 @@ The full list is in `CLAUDE.md`. The ones that bite hardest:
 
 ## Status
 
-| Milestone                     | State                                                                                                                       |
-| ----------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| M0 · Scaffold and foundations | ✅ **Done and verified** — 71 unit tests, 8 E2E incl. axe on both locales, 120 kB First Load JS against a 170 kB budget     |
-| M1 · Database and seed        | ✅ **Applied and verified** — 12 migrations + seed live on `rszbpdgfvyofvmuishmn`; 44/44 integration tests green against it |
-| M2 → M11                      | Not started — see `docs/12-build-plan.md`                                                                                   |
-| Deployment pipeline           | ✅ **Ready** — health check, sitemap, cron, ISR purge, Sentry, `vercel.json`, budget gate. See `runbooks/deploy.md`         |
+| Milestone                     | State                                                                                                                                                |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| M0 · Scaffold and foundations | ✅ **Done and verified** — tokens, i18n, lib layer, CI, bundle budget gate                                                                           |
+| M1 · Database and seed        | ✅ **Applied and verified** — 12 migrations + 24-product catalogue live on `rszbpdgfvyofvmuishmn`; 44/44 integration tests                           |
+| M2 · Auth and account shell   | ✅ **Done** — sign up/in/out, password reset, account overview and settings                                                                          |
+| M3 · Catalogue browse         | 🟡 **Core done** — PLP with filters, category pages, 48 prerendered PDPs, data-driven home, JSON-LD. Brands/goals/ingredients/knowledge pages remain |
+| M4 → M11                      | Not started — see `docs/12-build-plan.md`                                                                                                            |
+| Deployment pipeline           | ✅ **Ready** — health check, sitemap, cron, ISR purge, Sentry, `vercel.json`, budget gate. See `runbooks/deploy.md`                                  |
 
-**The pipeline is deployable; the product is not a store yet.** There is no catalogue, cart,
-checkout or admin panel — that is M2–M8, and the pack's own cut line is "ship after M8".
-[`docs/14-launch-readiness.md`](docs/14-launch-readiness.md) is the honest ledger of what is
-done, what is outstanding, and which items are owner tasks rather than code.
+Current test totals: **87 unit · 44 integration against the live database · 74 E2E** across
+desktop and mobile, with axe clean on every page built so far.
 
-M1 is functionally complete. What remains is fixture data, not schema: the demo catalogue
-(docs/11 §6–§9 — 30 ingredients, 24 products, 6 articles, order fixtures) and
-`scripts/seed-users.ts`. `supabase/seed.sql` ends with the exact outstanding list. The
-config and taxonomy it does seed — settings, warehouse, shipping methods, certifications,
-13 categories, 16 health goals, 8 brands, legal page skeletons — are
-production-appropriate and idempotent.
+**The storefront is browsable but nothing can be bought yet** — the cart and checkout are M4,
+and the admin panel is M5–M6. The checkout RPC itself exists and is fully tested; no UI
+reaches it. [`docs/14-launch-readiness.md`](docs/14-launch-readiness.md) is the honest ledger
+of what is done, what is outstanding, and which items are owner tasks rather than code.
+
+Still outstanding in M1: `scripts/seed-users.ts`, and therefore review fixtures — ratings
+read 0 until users exist. Product images are absent by choice, so the branded fallback tile
+is what renders.
