@@ -82,7 +82,10 @@
       "body": "One email a month, no spam. Unsubscribe whenever you like.",
       "emailLabel": "Email address",
       "emailPlaceholder": "you@example.com",
-      "submit": "Subscribe"
+      "submit": "Subscribe",
+      "success": "Thanks. Check your email to confirm your subscription.",
+      "invalid": "Check the email address and try again.",
+      "throttled": "Too many requests. Please try again in an hour."
     },
     "payments": "Payment methods",
     "codBadge": "Cash on delivery",

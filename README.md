@@ -63,7 +63,7 @@ disposable database, never production.
 | Command                     | What it does                                                     |
 | --------------------------- | ---------------------------------------------------------------- |
 | `pnpm dev`                  | Local dev server                                                 |
-| `pnpm verify`               | **The gate.** i18n → sql → typecheck → lint → unit tests → build |
+| `pnpm verify`               | **The gate.** i18n → sql → types → lint → unit → build → bundle  |
 | `pnpm typecheck`            | `tsc --noEmit`                                                   |
 | `pnpm lint` / `pnpm format` | ESLint (flat config) / Prettier                                  |
 | `pnpm test`                 | Vitest unit suite                                                |
@@ -71,6 +71,8 @@ disposable database, never production.
 | `pnpm test:e2e`             | Playwright (needs a build; boots `next start` itself)            |
 | `pnpm check:i18n`           | Fails if sq and en key sets, shapes or ICU placeholders diverge  |
 | `pnpm check:sql`            | Offline structural check on the migrations                       |
+| `pnpm check:bundle`         | Enforces the 170 kB gz First Load JS budget (docs/09 §3)         |
+| `pnpm purge:test-data`      | Removes integration fixtures (the suite does this automatically) |
 | `pnpm db:types`             | Regenerate DB types from the local stack                         |
 
 Run `pnpm verify` before calling a milestone done; it is the same sequence CI runs.
@@ -117,6 +119,12 @@ The full list is in `CLAUDE.md`. The ones that bite hardest:
 | M0 · Scaffold and foundations | ✅ **Done and verified** — 71 unit tests, 8 E2E incl. axe on both locales, 120 kB First Load JS against a 170 kB budget     |
 | M1 · Database and seed        | ✅ **Applied and verified** — 12 migrations + seed live on `rszbpdgfvyofvmuishmn`; 44/44 integration tests green against it |
 | M2 → M11                      | Not started — see `docs/12-build-plan.md`                                                                                   |
+| Deployment pipeline           | ✅ **Ready** — health check, sitemap, cron, ISR purge, Sentry, `vercel.json`, budget gate. See `runbooks/deploy.md`         |
+
+**The pipeline is deployable; the product is not a store yet.** There is no catalogue, cart,
+checkout or admin panel — that is M2–M8, and the pack's own cut line is "ship after M8".
+[`docs/14-launch-readiness.md`](docs/14-launch-readiness.md) is the honest ledger of what is
+done, what is outstanding, and which items are owner tasks rather than code.
 
 M1 is functionally complete. What remains is fixture data, not schema: the demo catalogue
 (docs/11 §6–§9 — 30 ingredients, 24 products, 6 articles, order fixtures) and

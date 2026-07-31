@@ -41,6 +41,8 @@ export default defineConfig({
     globals: true,
     env: loadEnvLocal(),
     include: ['tests/integration/**/*.test.ts'],
+    // Purges the fixtures the suite creates. Runs pass or fail — see global-setup.ts.
+    globalSetup: ['./tests/integration/global-setup.ts'],
     /*
      * Generous, because a single test can be a dozen round trips and the target may be a
      * hosted project several thousand kilometres away rather than localhost. Against

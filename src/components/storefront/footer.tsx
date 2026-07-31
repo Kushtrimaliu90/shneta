@@ -1,7 +1,8 @@
-import { getTranslations } from 'next-intl/server';
+import { getLocale, getTranslations } from 'next-intl/server';
 import { BadgeCheck, Truck } from 'lucide-react';
 import { Link } from '@/i18n/routing';
 import { PRIMARY_NAV } from '@/components/storefront/nav-links';
+import { NewsletterStatus } from '@/components/storefront/newsletter-status';
 
 /**
  * docs/04 §6 — forest-950 ground, cream text; five columns, newsletter, payment badges,
@@ -12,6 +13,7 @@ import { PRIMARY_NAV } from '@/components/storefront/nav-links';
  */
 export async function Footer() {
   const t = await getTranslations();
+  const locale = await getLocale();
   const year = new Date().getFullYear();
 
   const columns = [
@@ -82,6 +84,7 @@ export async function Footer() {
                   aria-hidden="true"
                   className="hidden"
                 />
+                <input type="hidden" name="locale" value={locale} />
                 <button
                   type="submit"
                   className="h-11 shrink-0 rounded-md bg-lime-500 px-4 text-sm font-semibold text-lime-950 transition-colors hover:bg-lime-400"
@@ -89,6 +92,7 @@ export async function Footer() {
                   {t('footer.newsletter.submit')}
                 </button>
               </div>
+              <NewsletterStatus />
             </form>
           </div>
 

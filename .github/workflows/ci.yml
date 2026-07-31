@@ -85,13 +85,19 @@ jobs:
         run: supabase db reset --no-seed=false
 
       # docs/09 §1 — RLS matrix, checkout RPC, order state machine, ledger invariant.
-      # `tables_without_rls()` asserts the docs/10 §4 guarantee inside the suite.
+      # `tables_without_rls()` asserts the docs/10 §4 guarantee inside the suite, and the
+      # global teardown purges the fixtures the suite creates (docs/13 §G2).
       - name: Integration tests
         if: ${{ hashFiles('supabase/config.toml') != '' }}
         run: pnpm test:integration
 
       - name: Build
         run: pnpm build
+
+      # A regression here is invisible in review but real for users on mobile, so the
+      # budget from docs/09 §3 is enforced rather than trusted.
+      - name: Enforce First Load JS budget
+        run: pnpm check:bundle
 
       - name: Install Playwright browsers
         run: pnpm exec playwright install --with-deps chromium

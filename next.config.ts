@@ -1,4 +1,5 @@
 import createNextIntlPlugin from 'next-intl/plugin';
+import { withSentryConfig } from '@sentry/nextjs';
 import type { NextConfig } from 'next';
 
 const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
@@ -75,4 +76,30 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default withNextIntl(nextConfig);
+/**
+ * docs/02 §10 — Sentry wraps the config last so it can instrument the built output.
+ *
+ * Source maps are uploaded only when both a DSN and an auth token are present, so a build
+ * without Sentry credentials succeeds unchanged. `silent` keeps CI logs clean;
+ * `disableLogger` strips Sentry's own debug statements from the client bundle, which
+ * matters against the 170 kB budget in docs/09 §3.
+ */
+const sentryEnabled = Boolean(process.env.SENTRY_DSN || process.env.NEXT_PUBLIC_SENTRY_DSN);
+
+export default withSentryConfig(withNextIntl(nextConfig), {
+  org: process.env.SENTRY_ORG,
+  project: process.env.SENTRY_PROJECT,
+  authToken: process.env.SENTRY_AUTH_TOKEN,
+  silent: true,
+  // Strips Sentry's own debug logging from the client bundle — it matters against the
+  // 170 kB budget in docs/09 §3.
+  webpack: { treeshake: { removeDebugLogging: true } },
+  sourcemaps: {
+    disable: !sentryEnabled || !process.env.SENTRY_AUTH_TOKEN,
+    deleteSourcemapsAfterUpload: true,
+  },
+  // Proxies Sentry's ingest through our own origin so it survives ad blockers and needs no
+  // third-party entry in the CSP (docs/10 §5).
+  tunnelRoute: '/monitoring',
+  telemetry: false,
+});

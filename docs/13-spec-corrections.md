@@ -255,7 +255,73 @@ illustrations, which is correct; it must not migrate to labels.
 | D5  | `cart_items.quantity` hard-codes `between 1 and 20` while `settings.checkout.max_item_qty` claims to own it | `03 §6`, `11 §1`     | Constraint kept as an absolute ceiling; the setting may only tighten it, enforced in the cart action. Documented as intentional                                                   |
 | D6  | `subscriptions.discount_pct` is customer-writable through `p_own for all`                                   | `03 §9`              | Column made non-user-writable by trigger; the discount comes from the system coupon (A3)                                                                                          |
 | D7  | RLS policies call `auth.uid()` / `has_any_role()` per row                                                   | `03 §9`              | All policy predicates wrapped as `(select auth.uid())` / `(select has_any_role(…))` so the planner hoists them to an InitPlan — a large win on `orders`, `order_items`, `reviews` |
-| D8  | Three Vercel crons are specified; the Hobby plan allows two, daily-only                                     | `10 §5`              | Ops note: Vercel **Pro** is a launch prerequisite. Recorded in the launch checklist                                                                                               |
+| D8  | Three Vercel crons are specified; the Hobby plan allows two, daily-only                                     | `10 §5`              | Vercel **Pro** is required by M9. Recorded in `runbooks/deploy.md §6`                                                                                                             |
+| D9  | `robots.txt` advertises `/sitemap.xml`, which `08 §4` specifies but nothing created                         | `08 §4`              | `app/sitemap.ts` added — 176 URLs with hreflang pairs, degrading to static routes if the catalog read fails                                                                       |
+| D10 | The footer newsletter form posts to `/api/newsletter`, which did not exist                                  | `05 §17`, `08 §5`    | Route added, rate-limited and honeypotted. The double-opt-in _email_ is still M8; the row and token are written now so nobody is silently dropped                                 |
+| D11 | `/api/health` is required by the uptime monitor but was never specified as a route                          | `10 §6`              | Added. Reads through the **anon** client, so a healthy response proves the path customers use — not merely that Postgres is up                                                    |
+
+---
+
+## G. Additions made during implementation
+
+New, not corrections. Each earns its place.
+
+### G1 · A fourth Supabase client: `lib/supabase/public.ts`
+
+`02 §6` defines three clients. A fourth is needed because `server.ts` reads `cookies()`, and
+touching `cookies()` opts the caller into **dynamic rendering** — fatal for exactly the
+places that must be static: `app/sitemap.ts`, `generateStaticParams` for PDP/PLP/article
+routes, and any build-time prerender of catalog content (`02 §5`).
+
+It is anon-key and session-less, so it is strictly _less_ privileged than the server client —
+it can only read what an anonymous visitor can read, and is therefore not an escalation
+seam. Never for writes, never where the current user matters.
+
+### G2 · Integration fixtures are purged automatically
+
+The suite created brands, products, variants, stock, carts and orders but cleaned up only
+auth users. Run against the hosted dev project it left **63 published fake products** behind,
+which appeared in `sitemap.xml` and would have appeared on the storefront.
+
+`tests/integration/purge.ts` plus a Vitest `globalSetup` teardown now remove them **pass or
+fail** — chaining cleanup with `&&` would skip it precisely when a run failed and leaked
+most. Matching is restricted to the fixture naming conventions (`slug LIKE 'product-%'`,
+`'brand-%'`, emails `LIKE '%@shneta.test'`, orphaned `LOY-` coupons), so it cannot touch real
+content, and it refuses the production hostname outright. `pnpm purge:test-data` is the
+manual escape hatch.
+
+### G3 · Sentry's browser SDK is lazy-loaded
+
+A static `import * as Sentry from '@sentry/nextjs'` in `instrumentation-client.ts` puts the
+whole browser SDK into the shared First Load JS chunk of every route — measured at **+84 kB,
+taking the shell from 120 kB to 204 kB** against the 170 kB budget in `09 §3`. A dynamic
+import moves it to an async chunk: nothing ships without a DSN, and with one the cost lands
+after first paint. Server and edge Sentry cost the client nothing and catch the errors that
+threaten order integrity.
+
+Session Replay stays off: it records form fields, so it would capture addresses and payment
+intent at checkout, against the data minimisation in `01 §4`.
+
+---
+
+## H. What the first real database push taught us
+
+Everything in §A–§D was found by reading. This was found by Postgres, and it records a class
+of bug that no amount of reading catches.
+
+**`has_any_role()` was defined before the table it queries.** It sat in migration 01 and
+reads `profiles`, created in migration 02. Postgres parses and validates a **`language sql`**
+function body at `CREATE` time — unlike `plpgsql`, which defers to first call — so the push
+aborted on the very first file with `relation "profiles" does not exist`.
+
+Fix: the three role helpers moved into migration 02, immediately after `profiles`.
+
+`check:sql` gained **check 7** for exactly this shape — a `language sql` function reading a
+table created in a later migration — verified against a deliberately reintroduced canary.
+
+The lesson generalises: **offline structural checks catch shape, not semantics.** Only a real
+database proves a migration applies, which is why `pnpm test:integration` is the acceptance
+gate for M1 and `pnpm check:sql` is not.
 
 ---
 

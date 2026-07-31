@@ -21,6 +21,8 @@
     "test:e2e": "playwright test",
     "check:i18n": "tsx scripts/check-i18n.ts",
     "check:sql": "tsx scripts/check-sql.ts",
+    "check:bundle": "tsx scripts/check-bundle.ts",
+    "purge:test-data": "tsx scripts/purge-test-data.ts",
     "db:types": "supabase gen types typescript --local > src/lib/supabase/database.types.ts",
     "db:types:linked": "supabase gen types typescript --linked > src/lib/supabase/database.types.ts",
     "db:reset": "supabase db reset",
@@ -28,10 +30,11 @@
     "db:diff": "supabase db push --linked --dry-run",
     "db:push": "supabase db push --linked",
     "db:seed:linked": "supabase db push --linked --include-seed",
-    "verify": "pnpm check:i18n && pnpm check:sql && pnpm typecheck && pnpm lint && pnpm test && pnpm build"
+    "verify": "pnpm check:i18n && pnpm check:sql && pnpm typecheck && pnpm lint && pnpm test && pnpm build && pnpm check:bundle"
   },
   "dependencies": {
     "@hookform/resolvers": "5.5.7",
+    "@sentry/nextjs": "10.69.0",
     "@supabase/ssr": "0.12.4",
     "@supabase/supabase-js": "2.111.0",
     "@tanstack/react-query": "5.101.4",

@@ -82,7 +82,10 @@
       "body": "Një email në muaj, pa spam. Mund të çregjistrohesh kurdo.",
       "emailLabel": "Adresa e email-it",
       "emailPlaceholder": "ju@shembull.com",
-      "submit": "Abonohu"
+      "submit": "Abonohu",
+      "success": "Faleminderit. Kontrollo email-in për të konfirmuar abonimin.",
+      "invalid": "Kontrollo adresën e email-it dhe provo përsëri.",
+      "throttled": "Shumë kërkesa. Provo përsëri pas një ore."
     },
     "payments": "Mënyrat e pagesës",
     "codBadge": "Pagesa në dorëzim",

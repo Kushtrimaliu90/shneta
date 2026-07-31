@@ -28,12 +28,20 @@ test.describe('app shell', () => {
 
   test('the locale switcher preserves the current path', async ({ page }) => {
     await page.goto('/en');
+
+    // docs/04 §6 — below 1024px the navbar collapses and the switcher moves into the
+    // full-screen sheet. Follow whichever path this viewport actually offers, so the test
+    // covers the real journey on desktop and mobile rather than only the wide one.
+    const openMenu = page.getByRole('button', { name: 'Open menu' });
+    if (await openMenu.isVisible()) await openMenu.click();
+
     // WCAG 2.5.3 — the accessible name must start with the visible label ("sq"), so this
     // locator doubles as the regression test for that requirement.
     await page
-      .getByRole('group', { name: 'Language' })
       .getByRole('link', { name: 'sq — Switch to Albanian' })
+      .filter({ visible: true })
       .click();
+
     await expect(page).toHaveURL(/\/$/);
     await expect(page.locator('html')).toHaveAttribute('lang', 'sq');
   });
