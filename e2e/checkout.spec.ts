@@ -2,6 +2,13 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import { createClient } from '@supabase/supabase-js';
 import { readFileSync } from 'node:fs';
+import {
+  ACTION_TIMEOUT,
+  CHEAP_PRODUCT,
+  ORDER_NUMBER,
+  addCheapItemToCart,
+  fillCheckout,
+} from './helpers/storefront';
 
 /**
  * docs/09 §1 journeys 1, 3 and 4 — the money paths.
@@ -68,22 +75,16 @@ test.beforeEach(async ({ page }, testInfo) => {
 });
 
 /**
- * Every assertion that waits on a Server Action gets this, not Playwright's 5 s default.
+ * `ACTION_TIMEOUT`, the product constants and the checkout walk now live in
+ * `e2e/helpers/storefront.ts`, shared with `admin.spec.ts` — journey 7 needs a real order to
+ * operate on, and two definitions of "place an order" would drift.
  *
- * These actions are not fast and are not supposed to be measured here: add-to-cart mints a
- * cookie then writes a cart and a cart item, and `placeOrder` runs the whole checkout
- * transaction — each a round trip to a Supabase project in eu-west-1. A 5 s budget failed
- * intermittently on add-to-cart with the button still reading "Adding…", which is the
- * pending guard working correctly, not a defect.
- *
- * Deliberately generous. An E2E suite that flakes on latency gets its failures ignored, and
- * then it is not a gate at all. Response-time budgets belong in the M11 performance pass,
- * measured properly, against something other than a dev database on another continent.
+ * On the timeout specifically: every assertion that waits on a Server Action uses it rather
+ * than Playwright's 5 s default, because add-to-cart mints a cookie and writes two rows, and
+ * `placeOrder` runs the whole checkout transaction — each a round trip to eu-west-1. The
+ * per-test timeout in `playwright.config.ts` is deliberately well above it; when the two were
+ * both 30 s an assertion could never spend its budget and the failure read as a selector bug.
  */
-const ACTION_TIMEOUT = 30_000;
-
-/** €9.90, in stock, and its default variant is purchasable — the simplest honest basket. */
-const CHEAP_PRODUCT = '/en/product/now-vitamin-d3-4000';
 const CHEAP_PRICE = 9.9;
 
 /** €24.90 default variant, above WELCOME10's €20 floor but below FALAS's €30. */
@@ -95,37 +96,6 @@ function uniqueEmail(label: string): string {
   // within a run, and the teardown clears the previous run's rows.
   return `e2e-${label}-w${process.env.TEST_PARALLEL_INDEX ?? '0'}@shneta.test`;
 }
-
-async function addCheapItemToCart(page: Page) {
-  await page.goto(CHEAP_PRODUCT);
-  await page.getByRole('button', { name: 'Add to cart' }).click();
-  await expect(page.getByText('Added to your cart.')).toBeVisible({ timeout: ACTION_TIMEOUT });
-}
-
-/**
- * Fills every required checkout field but does not submit.
- *
- * By `name`, not by label: `Field` appends a decorative `*` inside the `<label>` for required
- * controls, so the label text is "Email*" and both exact and substring matching get awkward
- * ("Address" would also match "Address line 2 (optional)"). Encoding that quirk into eight
- * brittle regexes would test the asterisk rather than the checkout. Label wiring is verified
- * where it belongs — the axe run at the bottom of this file asserts the `label` rule.
- */
-async function fillCheckout(page: Page, email: string) {
-  // Scoped to #main: the footer newsletter field is also `name="email"`, and an unscoped
-  // locator matches both.
-  const form = page.locator('#main');
-
-  await form.locator('input[name="email"]').fill(email);
-  await form.locator('input[name="phone"]').fill('044123456');
-  await form.locator('input[name="shipping.recipientName"]').fill('Test Blerësi');
-  await form.locator('input[name="shipping.phone"]').fill('044123456');
-  await form.locator('input[name="shipping.line1"]').fill('Rruga B, nr. 12');
-  await form.locator('input[name="shipping.city"]').fill('Prishtinë');
-  await form.locator('input[name="terms"]').check();
-}
-
-const ORDER_NUMBER = /SH-\d{4}-\d{6}-[A-Z0-9]{4}/;
 
 test.describe('journey 1 — guest buys with cash on delivery', () => {
   test('add to cart, check out, and land on a gated success page', async ({ page }) => {

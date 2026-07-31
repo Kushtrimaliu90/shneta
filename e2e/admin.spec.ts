@@ -3,6 +3,12 @@ import { expect, test, type Page } from '@playwright/test';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { randomUUID } from 'node:crypto';
 import { readFileSync } from 'node:fs';
+import {
+  ACTION_TIMEOUT,
+  CHEAP_ORDER_TOTAL,
+  CHEAP_SKU,
+  placeGuestOrder,
+} from './helpers/storefront';
 
 /**
  * docs/09 §1 journey 7 — admin order operations — plus the shell's role filtering.
@@ -202,6 +208,132 @@ test.describe('sidebar shows only what the role may do (docs/01 §3)', () => {
     // Not the Albanian one: the admin tree has no locale, so this must not go through
     // next-intl's locale resolution (which is why adminSignOut exists).
     await expect(page).toHaveURL(/\/en\/auth\/sign-in$/, { timeout: 30_000 });
+  });
+});
+
+test.describe('journey 7 — support walks an order from placed to delivered', () => {
+  test('confirm → ship with tracking → deliver, with the timeline recording each step', async ({
+    page,
+    browser,
+  }) => {
+    const customerEmail = `e2e-j7-w${process.env.TEST_PARALLEL_INDEX ?? '0'}@shneta.test`;
+
+    /*
+     * The order is placed in its own context, as a guest. Not because the customer and the
+     * operator could not share a browser, but because they must not share a *session*: signing
+     * in as support in the same context would merge the guest cart into the staff account and
+     * the rest of the test would be operating on something no customer ever bought.
+     */
+    const shopper = await browser.newContext();
+    const shopperPage = await shopper.newPage();
+    // TEST-NET block for this file, so the checkout rate limit stays per-test (see above).
+    await shopperPage.setExtraHTTPHeaders({ 'x-forwarded-for': '233.252.0.240' });
+    const orderNumber = await placeGuestOrder(shopperPage, customerEmail);
+    await shopper.close();
+
+    const support = await staffUser('support');
+    await signIn(page, support.email, support.password);
+
+    // Find it the way an operator would: search, not a URL someone pasted.
+    await page.goto('/admin/orders');
+    await page.locator('#main input[name="q"]').fill(orderNumber);
+    await page.getByRole('button', { name: 'Search' }).click();
+
+    await expect(page.getByRole('link', { name: orderNumber })).toBeVisible({
+      timeout: ACTION_TIMEOUT,
+    });
+    await page.getByRole('link', { name: orderNumber }).click();
+
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText(orderNumber);
+    // A fresh COD order is pending and unpaid, and the items are the ones bought.
+    await expect(page.getByText('Pending').first()).toBeVisible();
+    await expect(page.getByText('Unpaid')).toBeVisible();
+    await expect(page.getByText(CHEAP_SKU)).toBeVisible();
+    await expect(page.getByText('Guest order')).toBeVisible();
+    // docs/06 §2 — COD tells the operator what the courier must collect.
+    await expect(page.getByText(`Collect ${CHEAP_ORDER_TOTAL}`)).toBeVisible();
+
+    // ── Confirm ───────────────────────────────────────────────────────────────
+    await page.getByRole('button', { name: 'Confirm order' }).click();
+    await expect(page.getByText('Confirmed').first()).toBeVisible({ timeout: ACTION_TIMEOUT });
+
+    /*
+     * docs/07 §7.1 — confirmed cannot jump to shipped. The button for the illegal step must be
+     * absent rather than present-and-failing, which is the whole point of rendering from
+     * `allowedTransitions`.
+     */
+    await expect(page.getByRole('button', { name: 'Mark shipped…' })).toHaveCount(0);
+    await page.getByRole('button', { name: 'Start preparing' }).click();
+    await expect(page.getByText('Being prepared').first()).toBeVisible({
+      timeout: ACTION_TIMEOUT,
+    });
+
+    // ── Ship, with tracking ───────────────────────────────────────────────────
+    await page.getByRole('button', { name: 'Mark shipped…' }).click();
+    await page.locator('#carrier').fill('Posta e Kosovës');
+    await page.locator('#trackingNumber').fill('XK123456789');
+    await page.getByRole('button', { name: 'Save and mark shipped' }).click();
+
+    await expect(page.getByText('Shipped').first()).toBeVisible({ timeout: ACTION_TIMEOUT });
+    await expect(page.getByText('Posta e Kosovës')).toBeVisible();
+    await expect(page.getByText('XK123456789')).toBeVisible();
+
+    // ── Deliver ───────────────────────────────────────────────────────────────
+    await page.getByRole('button', { name: 'Mark delivered' }).click();
+    await expect(page.getByText('Delivered').first()).toBeVisible({ timeout: ACTION_TIMEOUT });
+
+    /*
+     * docs/07 §7.2 — delivery settles a COD payment. This is the assertion that proves the
+     * trigger ran, not just that a status column changed.
+     */
+    await expect(page.getByText('Paid')).toBeVisible();
+
+    // The timeline recorded every step (docs/06 §2).
+    const timeline = page.getByRole('region', { name: 'Timeline' });
+    for (const step of [
+      'pending → confirmed',
+      'confirmed → processing',
+      'processing → shipped',
+      'shipped → delivered',
+    ]) {
+      await expect(timeline.getByText(step)).toBeVisible();
+    }
+  });
+
+  test('an internal note is marked internal and never shown to the customer', async ({
+    page,
+    browser,
+  }) => {
+    const customerEmail = `e2e-j7note-w${process.env.TEST_PARALLEL_INDEX ?? '0'}@shneta.test`;
+
+    const shopper = await browser.newContext();
+    const shopperPage = await shopper.newPage();
+    await shopperPage.setExtraHTTPHeaders({ 'x-forwarded-for': '233.252.0.241' });
+    const orderNumber = await placeGuestOrder(shopperPage, customerEmail);
+
+    const support = await staffUser('support');
+    await signIn(page, support.email, support.password);
+    await page.goto('/admin/orders');
+    await page.locator('#main input[name="q"]').fill(orderNumber);
+    await page.getByRole('button', { name: 'Search' }).click();
+    await page.getByRole('link', { name: orderNumber }).click();
+
+    const secret = 'Customer called — do not show this to them.';
+    await page.locator('#note-message').fill(secret);
+    await page.getByRole('button', { name: 'Add note' }).click();
+
+    const timeline = page.getByRole('region', { name: 'Timeline' });
+    await expect(timeline.getByText(secret)).toBeVisible({ timeout: ACTION_TIMEOUT });
+    await expect(timeline.getByText('Internal').first()).toBeVisible();
+
+    /*
+     * And the customer cannot read it. The shopper still holds the access cookie for this
+     * order, so their own view of it is reachable — and `p_read on order_events` filters
+     * non-visible rows in the database, not in a query somebody has to remember to write.
+     */
+    await shopperPage.goto(`/en/order-lookup/${orderNumber}`);
+    await expect(shopperPage.getByText(secret)).toHaveCount(0);
+    await shopper.close();
   });
 });
 

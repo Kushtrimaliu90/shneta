@@ -43,12 +43,18 @@
         "title": "Dërgesa falas mbi 30 €",
         "body": "Në gjithë Kosovën, brenda 1–3 ditësh."
       },
-      "cod": { "title": "Pagesa në dorëzim", "body": "Paguaj kur ta marrësh porosinë." },
+      "cod": {
+        "title": "Pagesa në dorëzim",
+        "body": "Paguaj kur ta marrësh porosinë."
+      },
       "authentic": {
         "title": "Marka autentike",
         "body": "Vetëm produkte origjinale, të importuara ligjërisht."
       },
-      "returns": { "title": "Kthim i lehtë", "body": "14 ditë për të ndryshuar mendje." }
+      "returns": {
+        "title": "Kthim i lehtë",
+        "body": "14 ditë për të ndryshuar mendje."
+      }
     },
     "sections": {
       "goals": "Bli sipas qëllimit",
@@ -358,8 +364,14 @@
       "note": "Shënim për porosinë (opsional)"
     },
     "providers": {
-      "cod": { "title": "Pagesa në dorëzim", "body": "Paguan korrierin në para të gatshme." },
-      "bank_pos": { "title": "Kartë bankare", "body": "Do të kalosh në faqen e sigurt të bankës." }
+      "cod": {
+        "title": "Pagesa në dorëzim",
+        "body": "Paguan korrierin në para të gatshme."
+      },
+      "bank_pos": {
+        "title": "Kartë bankare",
+        "body": "Do të kalosh në faqen e sigurt të bankës."
+      }
     },
     "errors": {
       "cartEmpty": "Shporta është bosh.",
@@ -413,6 +425,27 @@
       "notFound": "Nuk gjetëm porosi me këto të dhëna.",
       "throttled": "Shumë përpjekje. Provo përsëri pas pak.",
       "searchAnother": "Kërko një porosi tjetër"
+    },
+    "myOrders": {
+      "title": "Porositë e mia",
+      "empty": "Nuk ke porosi ende.",
+      "emptyBody": "Kur bën një porosi, do të shfaqet këtu.",
+      "viewOrder": "Shiko porosinë",
+      "placedOn": "Bërë më {date}",
+      "itemCount": "{count, plural, one {# produkt} other {# produkte}}",
+      "cancel": "Anulo porosinë",
+      "cancelling": "Po anulohet…",
+      "cancelConfirm": "Anulo porosinë? Kjo nuk kthehet.",
+      "cancelTooLateTitle": "Nuk mund të anulohet online",
+      "cancelTooLateBody": "Porosia ka kaluar në përgatitje. Kontakto suportin dhe do ta rregullojmë.",
+      "contactSupport": "Kontakto suportin"
+    },
+    "cancel": {
+      "errors": {
+        "notFound": "Nuk e gjetëm këtë porosi.",
+        "tooLate": "Kjo porosi nuk mund të anulohet më. Kontakto suportin.",
+        "generic": "Diçka shkoi keq. Provo përsëri."
+      }
     }
   },
   "notFound": {

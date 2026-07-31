@@ -43,12 +43,18 @@
         "title": "Free delivery over €30",
         "body": "Anywhere in Kosovo, within 1–3 days."
       },
-      "cod": { "title": "Cash on delivery", "body": "Pay the courier when your order arrives." },
+      "cod": {
+        "title": "Cash on delivery",
+        "body": "Pay the courier when your order arrives."
+      },
       "authentic": {
         "title": "Authentic brands",
         "body": "Genuine products only, legally imported."
       },
-      "returns": { "title": "Easy returns", "body": "14 days to change your mind." }
+      "returns": {
+        "title": "Easy returns",
+        "body": "14 days to change your mind."
+      }
     },
     "sections": {
       "goals": "Shop by goal",
@@ -358,8 +364,14 @@
       "note": "Order note (optional)"
     },
     "providers": {
-      "cod": { "title": "Cash on delivery", "body": "Pay the courier in cash when it arrives." },
-      "bank_pos": { "title": "Bank card", "body": "You'll continue on your bank's secure page." }
+      "cod": {
+        "title": "Cash on delivery",
+        "body": "Pay the courier in cash when it arrives."
+      },
+      "bank_pos": {
+        "title": "Bank card",
+        "body": "You'll continue on your bank's secure page."
+      }
     },
     "errors": {
       "cartEmpty": "Your cart is empty.",
@@ -413,6 +425,27 @@
       "notFound": "We couldn't find an order with those details.",
       "throttled": "Too many attempts. Please try again shortly.",
       "searchAnother": "Look up another order"
+    },
+    "myOrders": {
+      "title": "My orders",
+      "empty": "No orders yet.",
+      "emptyBody": "When you place an order, it will show up here.",
+      "viewOrder": "View order",
+      "placedOn": "Placed on {date}",
+      "itemCount": "{count, plural, one {# item} other {# items}}",
+      "cancel": "Cancel order",
+      "cancelling": "Cancelling…",
+      "cancelConfirm": "Cancel this order? This cannot be undone.",
+      "cancelTooLateTitle": "Cannot be cancelled online",
+      "cancelTooLateBody": "This order has moved into preparation. Contact support and we will sort it out.",
+      "contactSupport": "Contact support"
+    },
+    "cancel": {
+      "errors": {
+        "notFound": "We could not find that order.",
+        "tooLate": "This order can no longer be cancelled. Please contact support.",
+        "generic": "Something went wrong. Please try again."
+      }
     }
   },
   "notFound": {

@@ -119,6 +119,26 @@ describe('text on filled surfaces', () => {
   it('white on a solid warning fill passes AA, which the tinted version did not', () => {
     expect(ratio('#ffffff', token('warning'))).toBeGreaterThanOrEqual(AA_TEXT);
   });
+
+  /**
+   * The admin status badges (`features/admin/components/status-badge.tsx`).
+   *
+   * Seven order states and five payment states need to be distinguishable at a glance in a long
+   * table. The first attempt reached for arbitrary hex to get enough hues, which CLAUDE.md §9
+   * forbids; solid semantic fills with white text give the same separation from the existing
+   * palette. This asserts the whole set at once, so adding a badge tone that fails is a test
+   * failure rather than something axe finds later on one page that happened to be sampled.
+   */
+  it.each(['warning', 'success', 'error', 'info', 'forest-800', 'ink-600'])(
+    'white text on a solid %s fill passes AA',
+    (name) => {
+      expect(ratio('#ffffff', token(name))).toBeGreaterThanOrEqual(AA_TEXT);
+    },
+  );
+
+  it('the pale forest badge uses forest-900 text and passes', () => {
+    expect(ratio(token('forest-900'), token('forest-100'))).toBeGreaterThanOrEqual(AA_TEXT);
+  });
 });
 
 describe('non-text contrast — WCAG SC 1.4.11', () => {
