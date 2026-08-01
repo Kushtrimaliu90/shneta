@@ -41,7 +41,7 @@ const ITEMS: readonly AccountNavItem[] = [
   { key: 'overview', href: '/account', icon: LayoutDashboard },
   { key: 'orders', href: '/account/orders', icon: Package },
   { key: 'subscriptions', href: '/account/subscriptions', icon: Repeat },
-  { key: 'addresses', href: '/account/addresses', icon: MapPin, milestone: 'M5' },
+  { key: 'addresses', href: '/account/addresses', icon: MapPin },
   { key: 'wishlist', href: '/account/wishlist', icon: Heart },
   { key: 'reviews', href: '/account/reviews', icon: Star },
   { key: 'loyalty', href: '/account/loyalty', icon: Ticket },

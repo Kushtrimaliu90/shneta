@@ -66,6 +66,36 @@ export const listProducts = cache(
   },
 );
 
+/**
+ * One `search_products` row → a product card.
+ *
+ * Exported because the finder (docs/05 §10) needs the same shape from the same RPC with a
+ * different limit. Two copies of this mapping would be two places to forget `in_stock`, and the
+ * card renders an "out of stock" badge from it.
+ */
+export function mapProductRow(row: Record<string, unknown>): ProductListItem {
+  return {
+    id: String(row.product_id),
+    slug: String(row.slug),
+    name: asLocalizedField(row.name),
+    subtitle: asLocalizedField(row.subtitle),
+    brandName: String(row.brand_name ?? ''),
+    brandSlug: String(row.brand_slug ?? ''),
+    form: row.form == null ? null : String(row.form),
+    dietaryTags: Array.isArray(row.dietary_tags) ? (row.dietary_tags as string[]) : [],
+    ratingAvg: Number(row.rating_avg ?? 0),
+    ratingCount: Number(row.rating_count ?? 0),
+    isFeatured: Boolean(row.is_featured),
+    variantId: String(row.variant_id),
+    sku: String(row.sku),
+    priceCents: Number(row.price_cents ?? 0),
+    compareAtPriceCents:
+      row.compare_at_price_cents == null ? null : Number(row.compare_at_price_cents),
+    imagePath: row.image_path == null ? null : String(row.image_path),
+    inStock: Boolean(row.in_stock),
+  };
+}
+
 const fetchProducts = cache(async (filters: ProductFilters = {}): Promise<ProductListResult> => {
   const page = Math.max(1, filters.page ?? 1);
   const supabase = createPublicClient();
@@ -97,26 +127,7 @@ const fetchProducts = cache(async (filters: ProductFilters = {}): Promise<Produc
   // `total_count` rides along as a window function, so the count costs no second query.
   const total = Number(rows[0]?.total_count ?? 0);
 
-  const items: ProductListItem[] = rows.map((row) => ({
-    id: String(row.product_id),
-    slug: String(row.slug),
-    name: asLocalizedField(row.name),
-    subtitle: asLocalizedField(row.subtitle),
-    brandName: String(row.brand_name ?? ''),
-    brandSlug: String(row.brand_slug ?? ''),
-    form: row.form == null ? null : String(row.form),
-    dietaryTags: Array.isArray(row.dietary_tags) ? (row.dietary_tags as string[]) : [],
-    ratingAvg: Number(row.rating_avg ?? 0),
-    ratingCount: Number(row.rating_count ?? 0),
-    isFeatured: Boolean(row.is_featured),
-    variantId: String(row.variant_id),
-    sku: String(row.sku),
-    priceCents: Number(row.price_cents ?? 0),
-    compareAtPriceCents:
-      row.compare_at_price_cents == null ? null : Number(row.compare_at_price_cents),
-    imagePath: row.image_path == null ? null : String(row.image_path),
-    inStock: Boolean(row.in_stock),
-  }));
+  const items: ProductListItem[] = rows.map(mapProductRow);
 
   return {
     items,

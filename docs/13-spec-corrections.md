@@ -1194,6 +1194,167 @@ docs/12 M11's performance pass owns the cause.
 
 ---
 
+## P. What building the operations milestone taught us
+
+### P1 · BLOCKER — the named stock error had never once been raised
+
+`apply_stock_movement` (migration 04) applies the movement, then checks:
+
+```sql
+update inventory_levels set on_hand = on_hand + p_quantity …;
+if v_on_hand < 0 then raise exception 'INSUFFICIENT_STOCK'; end if;
+```
+
+with a comment saying "the CHECK constraint would also catch this, but a named error is
+actionable in the UI". It was wrong about which one fires. `on_hand >= 0` is a **column CHECK**,
+evaluated by the UPDATE itself, so control never reached the `if`. Every warehouse manager who
+tried to adjust stock below zero got:
+
+```
+new row for relation "inventory_levels" violates check constraint "inventory_levels_on_hand_check"
+```
+
+which the action mapped to "Something went wrong", because it is not `INSUFFICIENT_STOCK`. The
+named error was unreachable code, and the message the operator needed had never been shown.
+
+Migration 20 checks before writing, under `select … for update` so two concurrent movements
+cannot both decide there is room. The CHECK constraint stays as the backstop it should always
+have been.
+
+**What found it:** an integration test asserting the _message_, not just the failure. A test for
+"it errors" would have passed on this for the life of the project — and that is the general
+lesson, because "it errors" is what most negative tests assert.
+
+### P2 · A test that edits seed data can break every other suite
+
+The first version of the M10 E2E changed the seeded Standard shipping method's price to €7.77 and
+restored it at the end. An earlier assertion in that test failed, the restore never ran, and the
+row stayed at €7.77.
+
+The next integration run then failed on **an unrelated coupon test** asserting a €2 delivery fee.
+Nothing was wrong with that test. Twenty minutes went into the coupon path before the diff
+between "expected 200" and "received 777" resolved into "that is the number I typed into a
+Playwright test".
+
+Two rules, and the second is the general one:
+
+1. **Create, do not edit.** The test now creates its own shipping method, which the fixture purge
+   owns and which cannot corrupt anything if the test dies halfway.
+2. **In-line cleanup is not cleanup.** A restore on the last line of a test runs only when every
+   line above it passed — which is exactly the case where cleanup is not needed. It belongs in
+   `afterAll`, which runs either way.
+
+### P3 · The auth quota is a budget, and tests spend it
+
+docs/13 §N10 recorded that two destructive suites cannot share one database. M10 found the
+smaller version of the same problem: **one suite can exhaust the quota on its own.**
+
+`admin-ops.test.ts` originally created a fresh actor per test — three warehouse managers, three
+support agents, three admins, eight customers, twenty sign-ins — and running it alongside the
+rest of the integration suite produced a dozen failures reading
+`sign-in failed: Request rate limit reached`, spread across files that had not changed.
+
+The actors are now created once per file and shared, because **a role is not state**: three tests
+using the same warehouse manager cannot interfere when each acts on its own product. Customers
+are still created per test wherever the test mutates them — points, erasure — since there the
+identity _is_ the fixture.
+
+Nine sign-ins instead of twenty. The rule worth carrying: create a user when the test needs a
+_different_ one, not when it needs _another_ one.
+
+### P4 · Erasure keeps the money and loses the person
+
+docs/06 §9 says "keeps order rows, scrubs PII", and both halves matter. Deleting the orders would
+corrupt every revenue figure already reported and destroy records Kosovo tax law requires be
+retained; leaving the name and phone on them would make the erasure cosmetic.
+
+`admin_anonymize_customer` therefore keeps totals, dates and status, and keeps **the city and
+country** of the delivery address — a judgement call, on the grounds that a city is not
+identifying at any plausible order volume and shipping-region reporting would otherwise have to
+be run before every erasure.
+
+Three things it deliberately does not do:
+
+- **It does not touch `auth.users`.** That is outside the function's schema, and a security
+  definer function reaching into GoTrue's tables is how a Supabase upgrade breaks erasure
+  silently. The action scrubs the auth identity through the admin API instead — service-role
+  caller #7 in docs/02 §6.
+- **It does not delete the auth user.** Eleven tables reference `profiles(id)` without
+  `on delete` behaviour (§M9); deletion fails at the foreign key and leaves the scrub half-done.
+  The email is replaced and the password randomised instead.
+- **It refuses staff.** Anonymising a colleague would orphan every `audit_logs` row they wrote —
+  the trail would still name an actor id nobody could resolve to a person, which is not an audit
+  log.
+
+### P5 · Deactivating a colleague has to happen in two places
+
+The team screen's "Deactivate" first only stamped `profiles.deleted_at`, and the comment claimed
+that stopped them signing in. It did not: `getProfile` had never filtered on `deleted_at`, so a
+deactivated staff member kept working normally.
+
+Writing the comment is what caught it — the claim was checkable, and it was false.
+
+The fix is both layers, because either alone is wrong:
+
+- `getProfile` now treats a soft-deleted profile as absent, which revokes the session they are
+  holding **right now**. Every guard in the app already asks that function, so one line closes
+  all of them.
+- A **GoTrue ban** stops them getting a new session. Without it, `deleted_at` alone would leave
+  someone able to sign in successfully and then bounce off every page — which reads as a broken
+  app rather than a revoked account.
+
+The same filter is what makes GDPR erasure take effect immediately, since erasure stamps the same
+column.
+
+### P6 · A jsonb column typed as `string` is a runtime crash, not a wrong label
+
+`v_admin_inventory.variant_name` is `product_variants.name`, which is jsonb. The row interface
+declared it `string`, TypeScript was satisfied, and React 19 threw:
+
+```
+Objects are not valid as a React child (found: object with keys {en, sq})
+```
+
+taking `/admin/inventory` down to the global error page. In production the message is redacted to
+`DYNAMIC_SERVER_USAGE`-style opacity, so the diagnosis took a dev server.
+
+Two things worth keeping:
+
+1. **A hand-written row interface is an assertion, not a check.** `.select()` returns `any`-ish
+   shapes that the generated DB types do not narrow for views, so every localized column has to
+   go through `pickLocaleFrom`. The neighbouring `product_name` did; this one did not, and
+   nothing in the type system noticed.
+2. **Run the failing page against `pnpm dev` before theorising.** The production error told us
+   nothing; the dev server named the component and the keys in one line.
+
+### P7 · The budget was a preference until a test made it a constraint
+
+`buildRoutine` trimmed the routine to fit the customer's monthly budget, then topped it back up
+to the three-product minimum from the same pool — undoing the trim. A €45 budget produced a €60
+routine.
+
+The unit test caught it on the first run, which is the argument for the finder's scoring being a
+pure function: this is a ranking bug, and asserting a ranking through a browser means asserting
+the order of five cards on a page.
+
+The rule the fix encodes: **the budget is a constraint, like the diet, not a preference like the
+rating.** Padding past it hands back a routine the customer has already said they cannot afford,
+and it makes the budget field look like it did nothing. Two products under budget is the honest
+answer.
+
+### P8 · Departures from spec in the operations screens
+
+Four, each for a stated reason:
+
+| docs/06 asks for                       | Shipped instead                                                                                                                                                                                                                            |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| §8 "Receive stock dialog (variant, …)" | Per-row receive and adjust panels. The picker version reads better in a spec and is worse in a warehouse: the operator has already found the row, and a dropdown of four hundred SKUs is how stock gets received against the wrong variant |
+| §13 "side-by-side preview" on articles | Plain markdown fields. A live preview needs the sanitising pipeline (§N3) running in the browser — shipping rehype to the client for a screen only content managers open                                                                   |
+| §15 "Payments … credentials status"    | Presence only, computed on the server, never an input. A key pasted into a database row is a key in a backup, in an export, and in the audit log                                                                                           |
+| §15 "Tax … prices include VAT"         | Stated, not offered. `computeTotals` derives tax _out of_ a VAT-inclusive price (docs/07 §2); flipping it would not change a calculation, it would change what every price in the shop means                                               |
+
+---
+
 ## E. Stack decisions taken at M0
 
 | Item          | Spec                  | Built as            | Why                                                                                               |

@@ -30,6 +30,18 @@ export const getCurrentUser = cache(async () => {
   return data.user;
 });
 
+/**
+ * The signed-in profile, or null.
+ *
+ * **A soft-deleted profile counts as absent.** `deleted_at` is set by two things: a staff member
+ * being deactivated from Settings → Team, and a customer's data being erased under GDPR
+ * (docs/06 §9). In both cases the account must stop working *now*, and every guard in the app
+ * already asks this function whether there is a profile — so filtering here revokes access
+ * everywhere at once, rather than in the eleven places that would each have to remember.
+ *
+ * The GoTrue ban that `setStaffActive` applies stops them signing in again; this is what closes
+ * the window on the session they already have.
+ */
 export const getProfile = cache(async (): Promise<Profile | null> => {
   const user = await getCurrentUser();
   if (!user) return null;
@@ -39,7 +51,8 @@ export const getProfile = cache(async (): Promise<Profile | null> => {
     .from('profiles')
     .select('id, email, full_name, phone, preferred_locale, marketing_opt_in, loyalty_points, role')
     .eq('id', user.id)
-    .single();
+    .is('deleted_at', null)
+    .maybeSingle();
 
   if (!data) return null;
 

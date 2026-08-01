@@ -5,7 +5,7 @@ Honest status against the launch checklist in `docs/10 §9` and the milestones i
 **Bottom line: it is a store. A guest can buy something, end to end, and pay cash on
 delivery.** Add to cart → four-step checkout → order placed by the `checkout_create_order`
 transaction → gated success page → track it later with the order number and email. Verified
-against the live database by 272 Playwright tests across desktop and a 390 px viewport.
+against the live database by 286 Playwright tests across desktop and a 390 px viewport.
 
 **It can also now fulfil what it sells.** Support signs in, works a queue, confirms, ships with
 tracking, delivers, cancels with a reason and refunds — every mutation audited, every transition
@@ -26,6 +26,12 @@ prices a manual purchase. Skip, pause, resume, re-cadence and cancel are all one
 account or from a link in the notice email that needs no sign-in. Points accrue on delivery and
 exchange for a coupon.
 
+**And it can now be run.** Stock is received and adjusted against a ledger that cannot drift,
+customers are searchable with their lifetime value, coupons are minted from the panel, articles
+and FAQs and banners are edited without a migration, and an admin can invite a colleague, change
+the VAT rate or add a courier and see it on the shop the next time a page renders. A visitor who
+does not know what to buy can answer five questions and get a routine.
+
 **What is left before a real customer: the email, and the products themselves.** Every
 transactional and marketing email records `skipped_no_provider` until a Resend key and a
 verified sending domain exist (§6) — the newsletter now depends on that to complete a
@@ -40,14 +46,14 @@ Legend: ✅ done and verified · 🟡 partial · ⬜ not started · ➖ not appl
 
 | Item                                                  | State | Evidence                                                                                                          |
 | ----------------------------------------------------- | ----- | ----------------------------------------------------------------------------------------------------------------- |
-| Next.js app builds for production                     | ✅    | `pnpm build`, 68 routes, no warnings                                                                              |
+| Next.js app builds for production                     | ✅    | `pnpm build`, 86 routes, no warnings                                                                              |
 | First Load JS within the 170 kB budget (`docs/09 §3`) | ✅    | 120–138 kB per route, enforced by `check:bundle`                                                                  |
-| Database schema applied                               | ✅    | 18 migrations on `rszbpdgfvyofvmuishmn`, Postgres 17.6                                                            |
+| Database schema applied                               | ✅    | 20 migrations on `rszbpdgfvyofvmuishmn`, Postgres 17.6                                                            |
 | RLS enabled on every public table (`docs/10 §4`)      | ✅    | `tables_without_rls()` → `[]`                                                                                     |
-| Integration suite against a real database             | ✅    | **57/57**, ~81 s                                                                                                  |
-| Unit suite                                            | ✅    | **117/117**                                                                                                       |
-| E2E + axe on both locales                             | ✅    | **272/272**, repeatable; zero serious/critical violations on cart, checkout, account, admin and the content pages |
-| Generated DB types match the live schema              | ✅    | `db:types:linked` → 3043 lines, `pnpm verify` green                                                               |
+| Integration suite against a real database             | ✅    | **70/70**, ~88 s                                                                                                  |
+| Unit suite                                            | ✅    | **138/138**                                                                                                       |
+| E2E + axe on both locales                             | ✅    | **286/286**, repeatable; zero serious/critical violations on cart, checkout, account, admin and the content pages |
+| Generated DB types match the live schema              | ✅    | `db:types:linked` → 3372 lines, `pnpm verify` green                                                               |
 | CI pipeline (quality · integration+E2E · audit)       | ✅    | `.github/workflows/ci.yml`                                                                                        |
 | Security headers (`docs/10 §5`)                       | ✅    | asserted by an E2E test                                                                                           |
 | `/api/health` for uptime monitoring (`docs/10 §6`)    | ✅    | returns `{status:"ok",database:"ok"}`                                                                             |
@@ -66,20 +72,20 @@ Legend: ✅ done and verified · 🟡 partial · ⬜ not started · ➖ not appl
 
 ## 2 · Product — selling, fulfilling and stocking all work; the shop floor is still fixtures
 
-| Milestone                                    | State | What it means is missing                                                                                                                                                                                                                                                                                                                   |
-| -------------------------------------------- | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| M0 · Scaffold                                | ✅    | —                                                                                                                                                                                                                                                                                                                                          |
-| M1 · Database and seed                       | ✅    | Schema + 24-product catalogue live. `scripts/seed-users.ts` and review fixtures outstanding                                                                                                                                                                                                                                                |
-| M2 · Auth and account shell                  | ✅    | Sign up / in / out, password reset, account overview and settings                                                                                                                                                                                                                                                                          |
-| M3 · Catalog browse                          | ✅    | PLP, category, PDP, home, brands, goals, ingredients and SEO. The two outstanding pages, `/knowledge` and `/offers`, landed with M8                                                                                                                                                                                                        |
-| M4 · Cart and COD checkout                   | ✅    | Guest cart, cart page, 4-step checkout, gated success page, order lookup. Confirmation email needs Resend (§6)                                                                                                                                                                                                                             |
-| M5 · Orders ops and admin core               | ✅    | Admin shell, order queue + detail, full state machine, shipment, refund, lifecycle emails, dashboard, print docs, customer order pages                                                                                                                                                                                                     |
-| M6 · Admin catalog management                | ✅    | Create → edit → variants → label → media → SEO → submit → approve → live (journey 8). All six editor tabs, brands/categories/goals/ingredients admin, brand-logo upload, the compliance queue. Cache tags on every catalogue read (docs/13 §K1). Deferred and listed below: drag-reorder, lab reports, taxonomy SEO, unsaved-changes guard |
-| M7 · Reviews, wishlist, search, compare      | ✅    | Verified-purchase reviews with moderation, helpful votes and a delivered+7d request email; wishlist end to end; instant search overlay + `/search`; compare up to four. Deferred: an Articles tab (needs M8) and the review-request email needs Resend (§6)                                                                                |     |
-| M8 · Knowledge, offers, contact, newsletter  | ✅    | Knowledge Center on a sanitised markdown pipeline, offers with claimable codes, contact form + admin inbox, newsletter double opt-in with a token unsubscribe, FAQ with JSON-LD, `/about` and the legal pages, cookie consent gating analytics. Six articles and ten FAQs seeded. Every email still needs Resend (§6)                      |
-| M9 · Subscriptions and loyalty               | ✅    | Subscribe-and-save on the PDP; a renewal engine whose idempotency is one SQL statement (docs/13 §O1); skip, pause, resume, re-cadence and cancel from the account or from a token link needing no session; points on delivery and a redeem-for-coupon exchange; a read-only admin schedule with a cron health widget. Deferred below       |
-| M10 · Inventory ops, finder, remaining admin | ⬜    |                                                                                                                                                                                                                                                                                                                                            |
-| M11 · Hardening and launch                   | 🟡    | The ops half is done (this table §1). Performance, security and soak passes need the real product first                                                                                                                                                                                                                                    |
+| Milestone                                    | State | What it means is missing                                                                                                                                                                                                                                                                                                                                                      |
+| -------------------------------------------- | ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| M0 · Scaffold                                | ✅    | —                                                                                                                                                                                                                                                                                                                                                                             |
+| M1 · Database and seed                       | ✅    | Schema + 24-product catalogue live. `scripts/seed-users.ts` and review fixtures outstanding                                                                                                                                                                                                                                                                                   |
+| M2 · Auth and account shell                  | ✅    | Sign up / in / out, password reset, account overview and settings                                                                                                                                                                                                                                                                                                             |
+| M3 · Catalog browse                          | ✅    | PLP, category, PDP, home, brands, goals, ingredients and SEO. The two outstanding pages, `/knowledge` and `/offers`, landed with M8                                                                                                                                                                                                                                           |
+| M4 · Cart and COD checkout                   | ✅    | Guest cart, cart page, 4-step checkout, gated success page, order lookup. Confirmation email needs Resend (§6)                                                                                                                                                                                                                                                                |
+| M5 · Orders ops and admin core               | ✅    | Admin shell, order queue + detail, full state machine, shipment, refund, lifecycle emails, dashboard, print docs, customer order pages                                                                                                                                                                                                                                        |
+| M6 · Admin catalog management                | ✅    | Create → edit → variants → label → media → SEO → submit → approve → live (journey 8). All six editor tabs, brands/categories/goals/ingredients admin, brand-logo upload, the compliance queue. Cache tags on every catalogue read (docs/13 §K1). Deferred and listed below: drag-reorder, lab reports, taxonomy SEO, unsaved-changes guard                                    |
+| M7 · Reviews, wishlist, search, compare      | ✅    | Verified-purchase reviews with moderation, helpful votes and a delivered+7d request email; wishlist end to end; instant search overlay + `/search`; compare up to four. Deferred: an Articles tab (needs M8) and the review-request email needs Resend (§6)                                                                                                                   |     |
+| M8 · Knowledge, offers, contact, newsletter  | ✅    | Knowledge Center on a sanitised markdown pipeline, offers with claimable codes, contact form + admin inbox, newsletter double opt-in with a token unsubscribe, FAQ with JSON-LD, `/about` and the legal pages, cookie consent gating analytics. Six articles and ten FAQs seeded. Every email still needs Resend (§6)                                                         |
+| M9 · Subscriptions and loyalty               | ✅    | Subscribe-and-save on the PDP; a renewal engine whose idempotency is one SQL statement (docs/13 §O1); skip, pause, resume, re-cadence and cancel from the account or from a token link needing no session; points on delivery and a redeem-for-coupon exchange; a read-only admin schedule with a cron health widget. Deferred below                                          |
+| M10 · Inventory ops, finder, remaining admin | ✅    | Inventory with receive/adjust/thresholds and the movements ledger; customers with lifetime value, manual points and GDPR export/erasure; coupons; content (articles, pages, FAQs, banners); the settings suite including team invites and the audit log; the supplement finder. Plus three carried deferrals: `/account/addresses`, the certifications registry and `/finder` |
+| M11 · Hardening and launch                   | 🟡    | The ops half is done (this table §1). Performance, security and soak passes need the real product first                                                                                                                                                                                                                                                                       |
 
 ## 3 · Compliance and legal — must clear before any real customer
 
@@ -108,18 +114,18 @@ Two things to set deliberately:
 
 ## 5 · The next decision
 
-M10 — inventory ops, the routine finder and the remaining admin screens. It is the last
-milestone that adds features; M11 is hardening.
+**M11 — hardening and launch.** Every feature milestone is done; what is left is the performance
+pass, the security pass, the soak and the launch checklist in docs/10 §9.
 
-It is also where three earlier deferrals come due at once, which is the argument for taking it
-next rather than jumping to the hardening pass: `/account/addresses` (§10), the certifications
-registry (§9) and `/finder` (§11) have each been promised to M10 by a previous ledger entry, and
-`/finder` has been linked from the footer since M0.
+The highest-value item in it is already known and already measured: **the storefront has not been
+statically rendered since M4** (§10, docs/13 §M1). One component reads the cart cookie in the
+layout, and every catalogue page beneath it pays for it on every request. Nothing else in the
+performance pass is worth doing first.
 
 Two things remain outside any milestone and outside our control: **Resend** (§6), without which
 fourteen email templates are inert and a newsletter subscription cannot complete; and the **real
 catalogue** — `pnpm purge:demo` cannot run until there are real products to replace the 24
-fixtures with (§7, step 2).
+fixtures with (§7, step 2). Neither is an engineering task, and both block launch.
 
 `docs/13 §E2` settled the Next 15 → 16 question by measurement — it stays on 15 for now.
 
@@ -329,3 +335,41 @@ builds real orders against real stock. Three consequences for whoever operates t
   free: each invocation ships whatever is genuinely due.
 - `vercel.json` schedules it 90 minutes after housekeeping so the two never overlap on one
   database.
+
+---
+
+## 13 · What M10 deliberately left out
+
+| Item                                              | Why it is not here                                                                                                                                                                                                                        | When                          |
+| ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------- |
+| Side-by-side markdown preview on articles         | docs/06 §13 asks for it. It needs the sanitising pipeline (docs/13 §N3) running in the browser — shipping rehype to the client for a screen only content managers open, when the same content manager can open the article in another tab | M11, if measured cheap        |
+| Article cover upload                              | The `content` bucket and the upload pattern both exist. `pnpm seed:images` (§8) is still outstanding, so every article renders the type placeholder either way — an uploader would be the only thing on the page that worked              | With `seed:images`            |
+| Admin subscription edits (pause/cancel on behalf) | Carried from §12 unchanged: it is support acting **as** a customer, and needs an impersonation story the audit log can express                                                                                                            | With docs/06 §15 audit work   |
+| Lab-report upload and the expiring-soon filter    | docs/06 §14 lists it beside the certifications registry, which M10 did ship. No storefront component renders a certificate of analysis yet, so the uploader would still have no reader (§9's original reasoning, still true)              | With docs/05 §3's PDP section |
+| Bulk actions anywhere                             | No bulk approve, bulk price change or CSV import. Each is a different confirmation problem and none has a user yet — the catalogue is 24 products                                                                                         | When volume asks              |
+| `seo` jsonb editors on taxonomy                   | Carried from §9. Still nothing reads it                                                                                                                                                                                                   | With docs/08 §4               |
+| Warehouse transfers, multi-warehouse picking      | The schema is multi-warehouse (docs/07 §11) and the business is one shelf. `v_admin_inventory` shows the warehouse column so the day it stops being one shelf is visible                                                                  | When there are two            |
+| An invitation email                               | docs/06 §15 says "invite by email". The account is created; no email is sent, because there is no email (§6). The new colleague uses "forgot password", and the screen says so rather than implying a mail is on its way                  | Owner task (§6)               |
+
+### What M10 changed about the database
+
+Two migrations. **19** adds three `security_invoker` views (customers with lifetime value,
+inventory with a status bucket, coupons with redemption counts) and two RPCs — `admin_adjust_loyalty`,
+because `loyalty_transactions` has no insert policy and the balance is trigger-derived, and
+`admin_anonymize_customer`, which is GDPR erasure in one transaction.
+
+**20** fixes a defect that had been live since M1: `apply_stock_movement` promised a named
+`INSUFFICIENT_STOCK` error and could never raise it, because the column CHECK fired first
+(docs/13 §P1). Warehouse managers had been getting "Something went wrong" for the one mistake the
+screen most needed to explain.
+
+### What M10 changed about access
+
+`getProfile` now returns null for a soft-deleted profile. That single line is what makes both
+"deactivate a colleague" and "erase a customer" take effect immediately rather than at the next
+session expiry — every guard in the app already asks that function (docs/13 §P5).
+
+The service-role caller list in docs/02 §6 gains two entries, both unavoidable and both narrow:
+scrubbing a GoTrue identity during erasure, and creating or banning a staff account from
+Settings → Team. Neither grants anything else: the _role_ is still written through the SSR client,
+so `p_admin_update on profiles` and `prevent_role_escalation` both still apply.

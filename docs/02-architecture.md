@@ -116,13 +116,19 @@ Cache tags (use exactly these): `products`, `product:{slug}`, `categories`, `bra
 
 ## 6. Supabase clients — exact usage rules
 
-| Client               | File                                                       | Key     | Where used                                                                                                                                                                 |
-| -------------------- | ---------------------------------------------------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Server (user ctx)    | `lib/supabase/server.ts` (`createServerClient` w/ cookies) | anon    | RSC reads, server actions — **default choice**                                                                                                                             |
-| Browser              | `lib/supabase/client.ts`                                   | anon    | client components needing realtime/auth state (rare)                                                                                                                       |
-| Admin (service role) | `lib/supabase/admin.ts` (imports `server-only`)            | service | ONLY: payment webhooks; cron jobs; guest-cart ops keyed by `anon_token`; guest order lookup (number+email); email dispatch logging; auth-user provisioning in seed scripts |
+| Client               | File                                                       | Key     | Where used                                                                                                                                                                                                                                                                                                                                          |
+| -------------------- | ---------------------------------------------------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Server (user ctx)    | `lib/supabase/server.ts` (`createServerClient` w/ cookies) | anon    | RSC reads, server actions — **default choice**                                                                                                                                                                                                                                                                                                      |
+| Browser              | `lib/supabase/client.ts`                                   | anon    | client components needing realtime/auth state (rare)                                                                                                                                                                                                                                                                                                |
+| Admin (service role) | `lib/supabase/admin.ts` (imports `server-only`)            | service | ONLY: payment webhooks; cron jobs; guest-cart ops keyed by `anon_token`; guest order lookup (number+email); email dispatch logging; auth-user provisioning in seed scripts; **GDPR erasure — scrubbing the GoTrue identity** (`customers/actions.ts`, M10); **team management — creating and banning a staff account** (`settings/actions.ts`, M10) |
 
 Middleware refreshes the session per `@supabase/ssr` docs. Any new service-role usage must be added to this table via PR.
+
+The two M10 entries are both GoTrue operations with no user-context equivalent — an anon-key
+client cannot create, ban or re-address an auth user. Both are deliberately narrow: the service
+client mints or scrubs the _identity_ only, and the **role** is written through the SSR client, so
+`p_admin_update on profiles` and `prevent_role_escalation` still apply. Neither path can grant a
+permission (docs/13 §P4, §P5).
 
 ## 7. Server Action contract
 

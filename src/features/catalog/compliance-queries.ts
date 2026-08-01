@@ -98,3 +98,50 @@ export async function countComplianceQueue(): Promise<number> {
   }
   return count ?? 0;
 }
+
+export interface CertificationListItem {
+  id: string;
+  slug: string;
+  nameSq: string;
+  nameEn: string;
+  productCount: number;
+}
+
+/**
+ * docs/06 §14 — the certifications registry, with how many products carry each.
+ *
+ * The count is what makes the delete button honest: a certification nothing uses can go, one
+ * that products claim cannot, and showing the number means the operator knows which before they
+ * click rather than after.
+ */
+export async function listCertifications(): Promise<CertificationListItem[]> {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from('certifications')
+    .select('id, slug, name, product_certifications ( product_id )')
+    .order('slug');
+
+  if (error) {
+    logger.error('listCertifications failed', { cause: error.message });
+    return [];
+  }
+
+  type Raw = {
+    id: string;
+    slug: string;
+    name: unknown;
+    product_certifications: { product_id: string }[];
+  };
+
+  return ((data ?? []) as unknown as Raw[]).map((row) => {
+    const name = (row.name ?? {}) as Record<string, unknown>;
+    return {
+      id: row.id,
+      slug: row.slug,
+      nameSq: typeof name.sq === 'string' ? name.sq : '',
+      nameEn: typeof name.en === 'string' ? name.en : '',
+      productCount: (row.product_certifications ?? []).length,
+    };
+  });
+}

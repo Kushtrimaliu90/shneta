@@ -1,8 +1,24 @@
 import type { LocalizedField } from '@/lib/i18n';
 
-/** docs/03 §1 — the `article_type` and `article_status` enums. */
+/**
+ * docs/03 §1 — the `article_type` and `article_status` enums.
+ *
+ * Here rather than in `admin-queries.ts` because the article editor is a client component and
+ * needs them as *values* to render its selects. `admin-queries.ts` is `server-only`, and
+ * importing a value from it into a client component fails the build — the same class of mistake
+ * as docs/13 §M3's `'use server'` export, caught the same way: at build time, loudly.
+ */
 export const ARTICLE_TYPES = ['guide', 'article', 'recipe', 'research', 'news'] as const;
 export type ArticleType = (typeof ARTICLE_TYPES)[number];
+
+export const ARTICLE_STATUSES = ['draft', 'in_review', 'published', 'archived'] as const;
+export type ArticleStatus = (typeof ARTICLE_STATUSES)[number];
+
+export function toArticleStatus(value: string | null | undefined): ArticleStatus | undefined {
+  return (ARTICLE_STATUSES as readonly string[]).includes(value ?? '')
+    ? (value as ArticleStatus)
+    : undefined;
+}
 
 export function toArticleType(value: string | null | undefined): ArticleType | undefined {
   return (ARTICLE_TYPES as readonly string[]).includes(value ?? '')

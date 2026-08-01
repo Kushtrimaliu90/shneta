@@ -9,6 +9,8 @@ import { formatAdminDateTime } from '@/features/admin/copy';
 import { listComplianceQueue } from '@/features/catalog/compliance-queries';
 import { ComplianceReview } from '@/features/catalog/components/compliance-review';
 import { CLAIMS_REMINDER } from '@/features/catalog/taxonomy-config';
+import { listCertifications } from '@/features/catalog/compliance-queries';
+import { CertificationsAdmin } from '@/features/catalog/components/certifications-admin';
 
 export const metadata: Metadata = { title: 'Compliance' };
 
@@ -30,7 +32,7 @@ export default async function AdminCompliancePage() {
   const profile = await getProfile();
   if (!can(profile?.role, 'compliance.approve')) redirect('/admin');
 
-  const queue = await listComplianceQueue();
+  const [queue, certifications] = await Promise.all([listComplianceQueue(), listCertifications()]);
 
   return (
     <div className="max-w-3xl">
@@ -140,6 +142,20 @@ export default async function AdminCompliancePage() {
           })}
         </ul>
       )}
+
+      {/*
+        docs/06 §14 — the certifications registry, deferred from M6 (docs/14 §9).
+        Below the queue, not beside it: the queue is the job, the registry is the reference data
+        the job occasionally needs.
+      */}
+      <section className="mt-12 border-t border-line pt-8">
+        <h2 className="font-display text-lg font-semibold text-forest-900">Certifications</h2>
+        <p className="mt-0.5 mb-4 max-w-2xl text-sm text-ink-600">
+          The badges a product can claim. Compliance owns this list because a certification on a
+          product page is a claim about the product.
+        </p>
+        <CertificationsAdmin items={certifications} />
+      </section>
     </div>
   );
 }
