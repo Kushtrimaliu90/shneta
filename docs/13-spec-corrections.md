@@ -532,6 +532,59 @@ screen readers get the data rather than a canvas. Revisit if a chart ever needs 
 
 ---
 
+## K. What journey 8 found
+
+The catalogue milestone's acceptance test is "create a product, approve it, see it on the
+storefront". Everything up to and including approval passed on the first run. The last step did
+not, and the reason had been sitting in the codebase since M0.
+
+### K1 · BLOCKER — tag-based revalidation was never wired up
+
+`lib/cache.ts`, the `CACHE_TAGS` vocabulary and every admin action's `revalidatePublic` call
+were all built as specified. They purged tags that **nothing had ever been tagged with**.
+
+The catalogue reads used React's `cache()`, which dedupes within a single render and has no
+relationship to the Next Data Cache, and the pages used a bare `export const revalidate = 300`.
+`unstable_cache` appeared nowhere in `src/`. So the entire on-demand purge mechanism was
+decorative: publishing a product left the storefront serving its previous state for up to five
+minutes, and docs/02 §5's "instantly via tag purge" was not true of any page.
+
+**Fix:** `getProduct` now wraps its fetch in `unstable_cache` keyed `['product', slug]` and
+tagged `products` + `product:{slug}`, created per call so purging one product does not purge
+all of them. React's `cache()` still wraps that — the two solve different problems, one
+deduping within a render and one persisting across requests.
+
+**Still outstanding:** `listProducts`, `getCategoryTree`, `listBrands`, `listGoals` and the
+ingredient reads are untagged, so the PLP and taxonomy pages remain time-based only. Tracked in
+docs/14 §2 under M6.
+
+**Why nothing caught it earlier:** no unit or integration test could. The defect exists only
+across the boundary between an admin write and a cached public read, which is precisely the
+seam an end-to-end journey covers and nothing else does.
+
+### K2 · A test that asserted something that could not fail
+
+`getByText('Published')` matched **"Before this can be published"** — Playwright's string
+matching is case-insensitive substring by default. The assertion passed while the approval had
+silently done nothing, and the test then failed three steps later with a symptom that pointed at
+caching.
+
+That cost the most time of anything in M6, and the lesson is narrow enough to state: **for
+status text, use `{ exact: true }`.** Substring matching against a page that also contains
+explanatory prose will eventually match the prose.
+
+### K3 · Publishing a product does not make it purchasable
+
+Journey 8's final assertion is that the new product renders **and is out of stock**. That is not
+a defect: receiving stock is `/admin/inventory`, which is M10. A product manager can today take
+a product all the way to live and still not make it buyable.
+
+Everything downstream behaves correctly — `v_product_stock` reports `out_of_stock` for a variant
+with no inventory row, the BuyBox disables and labels the button, checkout would refuse it. The
+assertion documents the boundary; the day inventory lands, it is what should change.
+
+---
+
 ## E. Stack decisions taken at M0
 
 | Item          | Spec                  | Built as            | Why                                                                                               |

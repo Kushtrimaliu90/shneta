@@ -1,5 +1,7 @@
 import 'server-only';
 import { cache } from 'react';
+import { unstable_cache } from 'next/cache';
+import { CACHE_TAGS, ISR_REVALIDATE_SECONDS } from '@/lib/constants';
 import { createPublicClient } from '@/lib/supabase/public';
 import { asLocalizedField } from '@/lib/i18n';
 import { logger } from '@/lib/logger';
@@ -105,7 +107,35 @@ export const listProducts = cache(
 );
 
 /** docs/05 §3 — everything the PDP renders, in one round trip. */
+/**
+ * docs/02 §5 — tag-based revalidation, which until now did not exist.
+ *
+ * `lib/cache.ts`, `CACHE_TAGS` and every admin action's `revalidatePublic` call were all built
+ * in M0 and M6 — and they purged tags **nothing had ever been tagged with**. The catalogue
+ * reads used React's `cache()`, which dedupes within a single render and has nothing to do with
+ * the Next Data Cache, and the pages used a bare `revalidate = 300`. So publishing a product
+ * left the storefront serving its cached 404 for up to five minutes.
+ *
+ * Journey 8 is what found it: everything up to and including approval passed, and the storefront
+ * still returned 404. No unit or integration test could have — the defect only exists across the
+ * boundary between an admin write and a cached public read.
+ *
+ * `unstable_cache` is created per call rather than once at module scope because the tag has to
+ * carry the slug: purging one product must not purge all of them. The key array identifies the
+ * entry, so building the wrapper per invocation is correct rather than wasteful.
+ *
+ * `cache()` still wraps it — the two solve different problems. React's dedupes the layout, the
+ * page and `generateMetadata` asking for the same product within one render; Next's persists it
+ * across requests until a tag is purged.
+ */
 export const getProduct = cache(async (slug: string): Promise<ProductDetail | null> => {
+  return unstable_cache(() => fetchProduct(slug), ['product', slug], {
+    tags: [CACHE_TAGS.products, CACHE_TAGS.product(slug)],
+    revalidate: ISR_REVALIDATE_SECONDS,
+  })();
+});
+
+async function fetchProduct(slug: string): Promise<ProductDetail | null> {
   const supabase = createPublicClient();
 
   const { data, error } = await supabase
@@ -259,7 +289,7 @@ export const getProduct = cache(async (slug: string): Promise<ProductDetail | nu
       .sort((a, b) => a.position - b.position)
       .map((image) => ({ path: image.storage_path, alt: asLocalizedField(image.alt) })),
   };
-});
+}
 
 /** The category tree for the mega menu, PLP sidebar and breadcrumbs. */
 export const getCategoryTree = cache(async (): Promise<CategoryNode[]> => {

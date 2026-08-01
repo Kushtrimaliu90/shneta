@@ -164,21 +164,34 @@ export default async function AdminProductEditorPage({ params }: Props) {
                 ['How to use', product.howToUse],
                 ['Warnings', product.warnings],
               ] as const
-            ).map(([label, field]) => (
-              <div key={label}>
-                <dt className="text-xs font-semibold tracking-wide text-ink-600 uppercase">
-                  {label}
-                </dt>
-                <dd className="mt-1 whitespace-pre-wrap text-ink-900">
-                  {pickLocale(field, 'sq') || <span className="text-ink-500">—</span>}
-                </dd>
-                {pickLocale(field, 'en') && (
-                  <dd className="mt-1 whitespace-pre-wrap text-ink-600">
-                    {pickLocale(field, 'en')}
+            ).map(([label, field]) => {
+              /*
+               * The raw `en` key, not `pickLocale(field, 'en')`.
+               *
+               * `pickLocale` falls back to Albanian when English is absent — correct for the
+               * storefront, wrong here: it rendered the same paragraph twice and gave compliance
+               * the impression a translation existed. What this view is for is reading the
+               * claims in each language that will actually be published, so an absent
+               * translation has to look absent.
+               */
+              const english = (field as Record<string, string | undefined>).en?.trim();
+
+              return (
+                <div key={label}>
+                  <dt className="text-xs font-semibold tracking-wide text-ink-600 uppercase">
+                    {label}
+                  </dt>
+                  <dd className="mt-1 whitespace-pre-wrap text-ink-900">
+                    <span className="mr-1 text-xs text-ink-500">sq</span>
+                    {pickLocale(field, 'sq') || <span className="text-ink-500">—</span>}
                   </dd>
-                )}
-              </div>
-            ))}
+                  <dd className="mt-1 whitespace-pre-wrap text-ink-600">
+                    <span className="mr-1 text-xs text-ink-500">en</span>
+                    {english ?? <span className="text-ink-500">not translated</span>}
+                  </dd>
+                </div>
+              );
+            })}
           </dl>
         </div>
       )}

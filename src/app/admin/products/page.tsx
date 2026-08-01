@@ -9,10 +9,12 @@ import { can } from '@/features/admin/roles';
 import { formatAdminDateTime } from '@/features/admin/copy';
 import {
   countAdminProductsByStatus,
+  getEditorOptions,
   listAdminProducts,
   PRODUCT_STATUSES,
   toProductStatus,
 } from '@/features/catalog/admin-queries';
+import { NewProductForm } from '@/features/catalog/components/new-product-form';
 import { cn } from '@/lib/utils';
 
 export const metadata: Metadata = { title: 'Products' };
@@ -58,9 +60,10 @@ export default async function AdminProductsPage({ searchParams }: Props) {
   const status = toProductStatus(statusParam);
   const search = first(params.q);
 
-  const [rows, counts] = await Promise.all([
+  const [rows, counts, options] = await Promise.all([
     listAdminProducts({ status, search }),
     countAdminProductsByStatus(),
+    getEditorOptions(),
   ]);
 
   function href(next: { status?: string }): string {
@@ -114,6 +117,14 @@ export default async function AdminProductsPage({ searchParams }: Props) {
             Search
           </button>
         </form>
+      </div>
+
+      {/*
+        Below the header rather than beside it: when the form opens it needs the full width for
+        three fields, and a control that reflows the header when clicked is disorienting.
+      */}
+      <div className="mt-4">
+        <NewProductForm brands={options.brands} />
       </div>
 
       <nav aria-label="Filter by status" className="mt-6 flex flex-wrap gap-1.5">

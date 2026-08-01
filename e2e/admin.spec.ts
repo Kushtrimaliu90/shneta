@@ -765,6 +765,162 @@ test.describe('product editor (docs/06 §3, docs/07 §10)', () => {
   });
 });
 
+test.describe('journey 8 — a product goes from nothing to the storefront', () => {
+  test('create → fill → approve → live, and the storefront reflects it', async ({
+    page,
+    browser,
+  }) => {
+    const slug = `product-j8-${randomUUID().slice(0, 8)}`;
+    const pm = await staffUser('product_manager');
+    await signIn(page, pm.email, pm.password);
+
+    /*
+     * docs/09 §1 journey 8. This is the one test that exercises the whole catalogue loop
+     * end to end, and specifically the part nothing else touches: that publishing purges the
+     * cache tags, so the storefront serves the new product rather than a cached listing that
+     * predates it. Every other M6 test stops at the database.
+     */
+
+    // ── 1 · Create ────────────────────────────────────────────────────────────
+    await page.goto('/admin/products');
+    await page.getByRole('button', { name: 'New product' }).click();
+    await page.locator('#new-slug').fill(slug);
+    await page.locator('#new-brand').selectOption({ index: 1 });
+    await page.locator('#new-name').fill('Produkt i Ri');
+    await page.getByRole('button', { name: 'Create draft' }).click();
+
+    // The action redirects into the editor, which is where the work continues.
+    await expect(page).toHaveURL(/\/admin\/products\/[0-9a-f-]{36}$/, { timeout: ACTION_TIMEOUT });
+    const productId = page.url().split('/').pop() ?? '';
+
+    // ── 2 · General: name, description, primary category ──────────────────────
+    await page.locator('#name\\.en').fill('New Product');
+    await page.locator('#description\\.sq').fill('Kontribuon në funksionimin normal të trupit.');
+    await page.locator('input[name="categoryIds"]').first().check();
+    await page.locator('input[name="primaryCategoryId"]').first().check();
+    await page.getByRole('button', { name: 'Save general' }).click();
+    await expect(page.getByText('Saved.')).toBeVisible({ timeout: ACTION_TIMEOUT });
+
+    // ── 3 · A variant ─────────────────────────────────────────────────────────
+    await page.getByRole('tab', { name: /Variants/ }).click();
+    await page.getByRole('button', { name: 'Add a variant' }).click();
+    const sku = `J8-${randomUUID().slice(0, 6).toUpperCase()}`;
+    await page.locator('#sku-new').fill(sku);
+    await page.locator('#price-new').fill('19.90');
+    await page.locator('#name\\.sq').fill('30 kapsula');
+    await page.getByRole('button', { name: 'Create variant' }).click();
+    await expect(page.getByText('Saved.')).toBeVisible({ timeout: ACTION_TIMEOUT });
+
+    // ── 4 · An image ──────────────────────────────────────────────────────────
+    await page.getByRole('tab', { name: /Media/ }).click();
+    await page.setInputFiles('#image-upload', {
+      name: 'shot.png',
+      mimeType: 'image/png',
+      buffer: Buffer.from(
+        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+        'base64',
+      ),
+    });
+    await expect(page.getByRole('tab', { name: /Media \(1\)/ })).toBeVisible({
+      timeout: ACTION_TIMEOUT,
+    });
+
+    // Everything except approval is now in place — the checklist should say exactly that.
+    await expect(page.getByText('Needs compliance approval')).toBeVisible();
+    await expect(page.getByText('Add at least one variant')).toHaveCount(0);
+    await expect(page.getByText('Add at least one image')).toHaveCount(0);
+    await expect(page.getByText('Choose a primary category')).toHaveCount(0);
+
+    await page.getByRole('button', { name: 'Submit for review' }).click();
+    await expect(page.getByText('In review').first()).toBeVisible({ timeout: ACTION_TIMEOUT });
+
+    /*
+     * It must NOT be on the storefront yet — proved through the **listing**, not by requesting
+     * the product URL.
+     *
+     * Requesting it would fill Next's full-route cache with a 404 for that exact path, and that
+     * negative entry survives the tag purge on publish (see docs/13 §K2). The test would then be
+     * measuring a caching artefact it created itself rather than the publish flow. Asserting the
+     * product is absent from the shop is the same claim without the side effect.
+     */
+    const shopper = await browser.newContext();
+    const shopperPage = await shopper.newPage();
+    await shopperPage.goto('/en/shop?q=Produkt+i+Ri');
+    await expect(
+      shopperPage.getByText('New Product'),
+      'an unapproved product must not be listed',
+    ).toHaveCount(0);
+
+    // ── 5 · Compliance approves ───────────────────────────────────────────────
+    const compliancePage = await (await browser.newContext()).newPage();
+    await compliancePage.setExtraHTTPHeaders({ 'x-forwarded-for': '233.252.0.244' });
+    const compliance = await staffUser('compliance_manager');
+    await signIn(compliancePage, compliance.email, compliance.password);
+    await compliancePage.goto(`/admin/products/${productId}`);
+
+    await expect(
+      compliancePage.getByRole('heading', { name: 'Claim-bearing fields' }),
+    ).toBeVisible();
+    // The Albanian claim is shown; English is marked untranslated rather than echoing the sq
+    // text back, which would tell compliance a translation exists when it does not.
+    await expect(compliancePage.getByText('Kontribuon në funksionimin normal')).toBeVisible();
+    await expect(compliancePage.getByText('not translated').first()).toBeVisible();
+
+    const approve = compliancePage.getByRole('button', { name: 'Approve and publish' });
+    await expect(approve, 'everything is in place, so approval is not blocked').toBeEnabled();
+    await approve.click();
+    await expect(compliancePage.getByText('Published', { exact: true })).toBeVisible({
+      timeout: ACTION_TIMEOUT,
+    });
+
+    // ── 6 · It is live ────────────────────────────────────────────────────────
+    /*
+     * docs/06 §3 acceptance — "storefront reflects edits instantly via tag purge". The PDP is
+     * ISR, so without `revalidatePublic` on the approve action this request would be served
+     * from a cache generated before the product existed. That is the assertion.
+     */
+    /*
+     * The database first, then the page. If these ever disagree the difference tells you which
+     * half is wrong in one run instead of two — and this test has already cost one round of
+     * "is it the data or the cache?" that a direct assertion would have answered immediately.
+     */
+    const { data: saved } = await db()
+      .from('products')
+      .select('slug, status, approved_by')
+      .eq('id', productId)
+      .single();
+
+    const row = saved as { slug: string; status: string; approved_by: string | null };
+    expect(row.status, 'approval must have published it').toBe('published');
+    expect(row.approved_by, 'and stamped the approver').not.toBeNull();
+    expect(row.slug, 'and it is the slug the storefront will be asked for').toBe(slug);
+
+    const afterApproval = await shopperPage.goto(`/en/product/${slug}`);
+    expect(afterApproval?.status(), 'approval must purge the tags and make it reachable').toBe(200);
+    await expect(shopperPage.getByRole('heading', { level: 1 })).toHaveText('New Product');
+    await expect(shopperPage.getByText('€19.90').first()).toBeVisible();
+
+    /*
+     * Live, and correctly **not purchasable** — because nothing has stocked it.
+     *
+     * This is not a gap in the publish flow; it is where M6 ends. Receiving stock is
+     * `/admin/inventory`, which is M10, so a product manager can today take a product all the
+     * way to live and still cannot make it buyable. Everything downstream behaves properly:
+     * `v_product_stock` reports out_of_stock for a variant with no inventory row, the BuyBox
+     * disables the button and labels it, and checkout would refuse it.
+     *
+     * Asserting the out-of-stock state rather than skipping it keeps the boundary visible — the
+     * day inventory lands, this assertion is what should change.
+     */
+    await expect(
+      shopperPage.getByRole('button', { name: 'Currently out of stock' }),
+    ).toBeDisabled();
+
+    await shopper.close();
+    await compliancePage.context().close();
+  });
+});
+
 test.describe('admin accessibility', () => {
   test('axe finds no serious or critical violations on the dashboard', async ({ page }) => {
     const user = await staffUser('admin');
