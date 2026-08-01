@@ -1,4 +1,5 @@
 import type { CatalogErrorKey } from '@/features/catalog/admin-actions';
+import type { MediaErrorKey } from '@/features/catalog/media-actions';
 
 /**
  * English strings for the catalogue admin — the same arrangement as `features/admin/copy.ts`.
@@ -6,8 +7,11 @@ import type { CatalogErrorKey } from '@/features/catalog/admin-actions';
  * The admin UI has no next-intl provider (docs/01 §3), so actions return dotted identifiers and
  * this turns them into sentences. A `Record` keyed on the union means adding an error key
  * without a message is a compile error.
+ *
+ * Keyed on both unions because the Media tab renders errors from `media-actions.ts` through the
+ * same map — one place an operator's error messages live, rather than one per action file.
  */
-export const CATALOG_ERRORS: Record<CatalogErrorKey, string> = {
+export const CATALOG_ERRORS: Record<CatalogErrorKey | MediaErrorKey, string> = {
   'admin.errors.forbidden': 'Your role does not allow that action.',
   'admin.errors.generic': 'Something went wrong. Please try again.',
   'admin.catalog.errors.checkFields': 'Check the fields marked below.',
@@ -21,6 +25,10 @@ export const CATALOG_ERRORS: Record<CatalogErrorKey, string> = {
     'This product does not meet the publishing requirements yet — see the checklist above.',
   'admin.catalog.errors.lastVariant':
     'A published product needs at least one active variant. Add another before deactivating this one.',
+  'admin.catalog.errors.uploadFailed':
+    'The upload did not complete. Check your connection and try again.',
+  'admin.catalog.errors.fileTooLarge': 'That image is over 2 MB. Compress it and try again.',
+  'admin.catalog.errors.fileType': 'Images must be WebP, JPEG, PNG or AVIF.',
 };
 
 /** The `product_form` enum from docs/03 §1. */

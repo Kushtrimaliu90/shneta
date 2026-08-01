@@ -3,6 +3,7 @@ import { notFound, redirect } from 'next/navigation';
 import type { Metadata } from 'next';
 import { ArrowLeft, ExternalLink } from 'lucide-react';
 import { pickLocale } from '@/lib/i18n';
+import { clientEnv } from '@/lib/env.client';
 import { getProfile } from '@/features/auth/queries';
 import { can } from '@/features/admin/roles';
 import { formatAdminDateTime } from '@/features/admin/copy';
@@ -139,6 +140,12 @@ export default async function AdminProductEditorPage({ params }: Props) {
             brands={options.brands}
             categories={options.categories}
             goals={options.goals}
+            /*
+             * The bucket is public (migration 12), so admin thumbnails are a plain URL rather
+             * than a signed one — signing 20 thumbnails per page render would be work for no
+             * privacy gain when the storefront serves the same files unsigned.
+             */
+            imageBaseUrl={`${clientEnv.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/product-images`}
           />
         </div>
       ) : (

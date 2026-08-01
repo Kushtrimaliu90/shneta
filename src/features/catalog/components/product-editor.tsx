@@ -14,6 +14,7 @@ import {
   saveVariant,
   type CatalogState,
 } from '@/features/catalog/admin-actions';
+import { MediaTab } from '@/features/catalog/components/media-tab';
 import type { AdminProduct, AdminVariant } from '@/features/catalog/admin-queries';
 import { cn } from '@/lib/utils';
 
@@ -35,18 +36,20 @@ import { cn } from '@/lib/utils';
  * of a bilingual shop — the thing an editor most needs to see at a glance.
  */
 
-type Tab = 'general' | 'variants';
+type Tab = 'general' | 'variants' | 'media';
 
 export function ProductEditor({
   product,
   brands,
   categories,
   goals,
+  imageBaseUrl,
 }: {
   product: AdminProduct;
   brands: { id: string; name: string }[];
   categories: { id: string; name: LocalizedField }[];
   goals: { id: string; name: LocalizedField }[];
+  imageBaseUrl: string;
 }) {
   const [tab, setTab] = useState<Tab>('general');
 
@@ -57,6 +60,7 @@ export function ProductEditor({
           [
             ['general', 'General'],
             ['variants', `Variants (${product.variants.length})`],
+            ['media', `Media (${product.images.length})`],
           ] as const
         ).map(([key, label]) => (
           <button
@@ -78,10 +82,12 @@ export function ProductEditor({
       </div>
 
       <div className="mt-6">
-        {tab === 'general' ? (
+        {tab === 'general' && (
           <GeneralTab product={product} brands={brands} categories={categories} goals={goals} />
-        ) : (
-          <VariantsTab product={product} />
+        )}
+        {tab === 'variants' && <VariantsTab product={product} />}
+        {tab === 'media' && (
+          <MediaTab productId={product.id} images={product.images} publicBaseUrl={imageBaseUrl} />
         )}
       </div>
     </div>

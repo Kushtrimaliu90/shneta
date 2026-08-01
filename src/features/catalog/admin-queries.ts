@@ -128,6 +128,13 @@ export async function countAdminProductsByStatus(): Promise<Record<string, numbe
   return counts;
 }
 
+export interface ProductImage {
+  id: string;
+  storagePath: string;
+  alt: { sq?: string; en?: string };
+  position: number;
+}
+
 export interface AdminVariant {
   id: string;
   sku: string;
@@ -157,6 +164,7 @@ export interface AdminProduct {
   approvedBy: string | null;
   approvedAt: string | null;
   variants: AdminVariant[];
+  images: ProductImage[];
   imageCount: number;
   primaryCategoryId: string | null;
   categoryIds: string[];
@@ -192,7 +200,12 @@ interface RawProduct {
     is_default: boolean;
     position: number;
   }[];
-  product_images: { id: string }[];
+  product_images: {
+    id: string;
+    storage_path: string;
+    alt: { sq?: string; en?: string };
+    position: number;
+  }[];
   product_categories: { category_id: string; is_primary: boolean }[];
   product_health_goals: { goal_id: string }[];
 }
@@ -206,7 +219,7 @@ export const getAdminProduct = cache(async (id: string): Promise<AdminProduct | 
       `id, slug, brand_id, name, subtitle, description, how_to_use, warnings, form,
        serving_size, dietary_tags, status, is_featured, published_at, approved_by, approved_at,
        product_variants ( id, sku, name, price_cents, compare_at_price_cents, is_active, is_default, position ),
-       product_images ( id ),
+       product_images ( id, storage_path, alt, position ),
        product_categories ( category_id, is_primary ),
        product_health_goals ( goal_id )`,
     )
@@ -267,6 +280,14 @@ export const getAdminProduct = cache(async (id: string): Promise<AdminProduct | 
         isActive: variant.is_active,
         isDefault: variant.is_default,
         position: variant.position,
+      })),
+    images: [...raw.product_images]
+      .sort((a, b) => a.position - b.position)
+      .map((image) => ({
+        id: image.id,
+        storagePath: image.storage_path,
+        alt: image.alt ?? {},
+        position: image.position,
       })),
     imageCount: raw.product_images.length,
     primaryCategoryId: primary?.category_id ?? null,

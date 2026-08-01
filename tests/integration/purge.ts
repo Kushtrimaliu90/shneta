@@ -167,6 +167,28 @@ export async function purgeFixtures(
   const productIds = (products ?? []).map((row) => row.id);
 
   if (productIds.length > 0) {
+    /*
+     * Storage objects go before the rows that reference them.
+     *
+     * `product_images` cascades from `products`, so deleting a fixture product removes its rows
+     * — but nothing removes the bytes, and the E2E upload test puts a real PNG in the bucket on
+     * every run. Left alone that is a slow leak of objects nothing points at, invisible until
+     * somebody opens the storage browser and finds a thousand of them.
+     *
+     * `createImageUploadUrl` paths every upload under `{productId}/`, so the product id is the
+     * folder and one `list` per fixture product finds everything it owns.
+     */
+    const orphanedObjects: string[] = [];
+    for (const productId of productIds) {
+      const { data: objects } = await db.storage.from('product-images').list(productId);
+      for (const object of objects ?? []) orphanedObjects.push(`${productId}/${object.name}`);
+    }
+
+    if (orphanedObjects.length > 0) {
+      const { data: removed } = await db.storage.from('product-images').remove(orphanedObjects);
+      record('storage objects', removed);
+    }
+
     const { data: variants } = await db
       .from('product_variants')
       .select('id')

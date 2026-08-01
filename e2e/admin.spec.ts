@@ -697,6 +697,58 @@ test.describe('product editor (docs/06 §3, docs/07 §10)', () => {
     await expect(page.getByText('locked after publish')).toBeVisible();
   });
 
+  test('an image can be uploaded, and it clears the last publish blocker', async ({ page }) => {
+    const draft = await draftProduct();
+    const pm = await staffUser('product_manager');
+    await signIn(page, pm.email, pm.password);
+    await page.goto(`/admin/products/${draft.id}`);
+
+    await expect(page.getByText('Add at least one image')).toBeVisible();
+
+    await page.getByRole('tab', { name: /Media/ }).click();
+
+    /*
+     * A real 1×1 PNG, not a stub. The bucket enforces its own MIME allowlist server-side, so a
+     * fake `image/png` with text bytes would be rejected by storage and the test would prove
+     * nothing about the path that matters.
+     */
+    const png = Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+      'base64',
+    );
+
+    await page.setInputFiles('#image-upload', {
+      name: 'shot.png',
+      mimeType: 'image/png',
+      buffer: png,
+    });
+
+    // The upload is three hops — sign, PUT to storage, record the row — then a reload.
+    await expect(page.getByRole('tab', { name: /Media \(1\)/ })).toBeVisible({
+      timeout: ACTION_TIMEOUT,
+    });
+
+    // And the blocker is gone from the checklist, which is the point of the whole tab.
+    await expect(page.getByText('Add at least one image')).toHaveCount(0);
+
+    /*
+     * The object really is in the bucket under this product's prefix — `attachProductImage`
+     * refuses any path outside it, and a row pointing at nothing would render a broken image
+     * on a live product page.
+     */
+    const { data: rows } = await db()
+      .from('product_images')
+      .select('storage_path')
+      .eq('product_id', draft.id);
+
+    const paths = (rows ?? []) as { storage_path: string }[];
+    expect(paths).toHaveLength(1);
+    expect(paths[0]?.storage_path.startsWith(`${draft.id}/`)).toBe(true);
+
+    const { data: listed } = await db().storage.from('product-images').list(draft.id);
+    expect(listed ?? [], 'the bytes are in the bucket, not just the row').toHaveLength(1);
+  });
+
   test('compliance sees the claims and the approve control, not the editor', async ({ page }) => {
     const draft = await draftProduct();
     const compliance = await staffUser('compliance_manager');
