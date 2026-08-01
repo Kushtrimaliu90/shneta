@@ -749,6 +749,41 @@ test.describe('product editor (docs/06 §3, docs/07 §10)', () => {
     expect(listed ?? [], 'the bytes are in the bucket, not just the row').toHaveLength(1);
   });
 
+  test('a rejected create marks the bad field and keeps what was typed', async ({ page }) => {
+    const pm = await staffUser('product_manager');
+    await signIn(page, pm.email, pm.password);
+    await page.goto('/admin/products');
+
+    await page.getByRole('button', { name: 'New product' }).click();
+
+    /*
+     * An uppercase slug with spaces — the shape a person actually types when they treat the
+     * field as a title. It passes the browser's `required` check and fails `slugSchema`, which
+     * is exactly the path that produced "Check the fields marked below" with nothing marked and
+     * an emptied form.
+     */
+    await page.locator('#new-slug').fill('Vitamin D3 Forte');
+    await page.locator('#new-brand').selectOption({ index: 1 });
+    await page.locator('#new-name').fill('Vitaminë D3 Forte');
+    await page.getByRole('button', { name: 'Create draft' }).click();
+
+    // The offending field says what is wrong, in words an operator can act on.
+    await expect(page.locator('#new-slug-error')).toContainText('Lowercase letters', {
+      timeout: ACTION_TIMEOUT,
+    });
+    await expect(page.locator('#new-slug')).toHaveAttribute('aria-invalid', 'true');
+
+    // And nothing was thrown away — including the two fields that were perfectly fine.
+    await expect(page.locator('#new-slug')).toHaveValue('Vitamin D3 Forte');
+    await expect(page.locator('#new-name')).toHaveValue('Vitaminë D3 Forte');
+    await expect(page.locator('#new-brand')).not.toHaveValue('');
+
+    // Correcting only the slug is enough to get through.
+    await page.locator('#new-slug').fill(`product-fix-${randomUUID().slice(0, 8)}`);
+    await page.getByRole('button', { name: 'Create draft' }).click();
+    await expect(page).toHaveURL(/\/admin\/products\/[0-9a-f-]{36}$/, { timeout: ACTION_TIMEOUT });
+  });
+
   test('compliance sees the claims and the approve control, not the editor', async ({ page }) => {
     const draft = await draftProduct();
     const compliance = await staffUser('compliance_manager');

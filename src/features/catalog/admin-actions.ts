@@ -7,7 +7,7 @@ import { toCents } from '@/lib/money';
 import { revalidatePublic } from '@/lib/cache';
 import { CACHE_TAGS } from '@/lib/constants';
 import { logger, describeError } from '@/lib/logger';
-import { fail, ok, type ActionResult } from '@/lib/result';
+import { fail, fromFieldErrors, ok } from '@/lib/result';
 import { audit, requireCapability } from '@/features/admin/audit';
 import {
   approveProductSchema,
@@ -45,10 +45,44 @@ export type CatalogErrorKey =
   | 'admin.catalog.errors.publishBlocked'
   | 'admin.catalog.errors.lastVariant';
 
-export type CatalogState = ActionResult<{ id?: string }, CatalogErrorKey> | null;
+/**
+ * The failure branch carries `values` as well as `fieldErrors`.
+ *
+ * `ActionResult` deliberately has no slot for the submitted payload — most forms in this
+ * codebase are rendered from data that is already on the server, so re-reading gives the right
+ * defaults. A **create** form has nothing on the server yet: everything the operator typed
+ * exists only in the request that just failed, and dropping it means retyping from scratch.
+ */
+export type CatalogState =
+  | { ok: true; data: { id?: string } }
+  | {
+      ok: false;
+      error: CatalogErrorKey;
+      fieldErrors?: Record<string, string[]>;
+      values?: Record<string, string>;
+    }
+  | null;
 
 function catalogFail(error: CatalogErrorKey): CatalogState {
   return fail<CatalogErrorKey, { id?: string }>(error);
+}
+
+/**
+ * Attaches what was submitted to a failure, so the form can repopulate.
+ *
+ * Non-string entries (a `File`, say) are dropped rather than coerced — `String(file)` would put
+ * "[object File]" in a text input, which looks like corruption rather than a preserved value.
+ * Values are also clamped, because on a validation failure they are arbitrary submitted strings.
+ */
+function withValues(state: CatalogState, submitted: Record<string, FormDataEntryValue>) {
+  if (!state || state.ok) return state;
+
+  const values: Record<string, string> = {};
+  for (const [key, value] of Object.entries(submitted)) {
+    if (typeof value === 'string') values[key] = value.slice(0, 500);
+  }
+
+  return { ...state, values };
 }
 
 /**
@@ -506,8 +540,27 @@ export async function createProduct(
   const gate = await requireCapability('products.manage');
   if (!gate.ok) return catalogFail(gate.error);
 
-  const parsed = createProductSchema.safeParse(Object.fromEntries(formData));
-  if (!parsed.success) return catalogFail('admin.catalog.errors.checkFields');
+  const submitted = Object.fromEntries(formData);
+  const parsed = createProductSchema.safeParse(submitted);
+
+  /*
+   * Field errors, not just "check the fields marked below".
+   *
+   * The first version returned the bare key, so the form said "marked below" and marked
+   * nothing — and because the inputs had no `defaultValue`, the operator also lost everything
+   * they had typed. Two failures compounding: no idea what was wrong, and no way back to what
+   * they wrote. Exactly the defect fixed in the order-lookup form in M4 (docs/13 §I6), repeated
+   * here because the lesson lived in that file rather than in a shared habit.
+   */
+  if (!parsed.success) {
+    return withValues(
+      fromFieldErrors<CatalogErrorKey, { id?: string }>(
+        'admin.catalog.errors.checkFields',
+        parsed.error.flatten(),
+      ),
+      submitted,
+    );
+  }
 
   let newId: string;
 
@@ -527,7 +580,9 @@ export async function createProduct(
 
     if (error) {
       logger.info('Product create rejected', { cause: error.message });
-      return catalogFail(mapCatalogError(error.message));
+      // A taken slug is the likeliest failure here, and the one where losing the brand and
+      // name the operator already chose is most annoying.
+      return withValues(catalogFail(mapCatalogError(error.message)), submitted);
     }
 
     newId = (data as { id: string }).id;
