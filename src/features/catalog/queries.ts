@@ -44,67 +44,87 @@ function emptyList(page: number): ProductListResult {
  * docs/05 §2 — one query serves PLP, category, brand, goal, ingredient and search, so the
  * filter, sort and pagination semantics cannot diverge between those surfaces.
  */
+/**
+ * Tagged `products`, so any catalogue edit purges every listing.
+ *
+ * The cache key has to include the whole filter set — the PLP, the category pages, the brand
+ * pages and the home page all come through here with different arguments, and one shared entry
+ * would serve the wrong result set. `JSON.stringify` of the filters is stable enough for that:
+ * the object is built from URL params in a fixed order by `parseFilters`, so equal filters
+ * produce equal keys. A hash would be tidier and buys nothing.
+ *
+ * Only the coarse `products` tag, deliberately. A listing's contents depend on the whole
+ * catalogue, so there is no per-slug tag that would correctly invalidate it — and a product
+ * edit purges `products` anyway (see `revalidateProduct` in admin-actions.ts).
+ */
 export const listProducts = cache(
   async (filters: ProductFilters = {}): Promise<ProductListResult> => {
-    const page = Math.max(1, filters.page ?? 1);
-    const supabase = createPublicClient();
-
-    const { data, error } = await supabase.rpc('search_products', {
-      p_query: filters.q ?? undefined,
-      p_category_slugs: filters.category?.length ? filters.category : undefined,
-      p_brand_slugs: filters.brand?.length ? filters.brand : undefined,
-      p_goal_slugs: filters.goal?.length ? filters.goal : undefined,
-      p_ingredient_slugs: filters.ingredient?.length ? filters.ingredient : undefined,
-      p_dietary_tags: filters.tag?.length ? filters.tag : undefined,
-      p_forms: undefined,
-      p_min_price_cents: filters.minPrice ?? undefined,
-      p_max_price_cents: filters.maxPrice ?? undefined,
-      p_min_rating: filters.minRating ?? undefined,
-      p_in_stock_only: filters.inStock ?? false,
-      p_on_sale_only: filters.onSale ?? false,
-      p_sort: filters.sort ?? 'relevance',
-      p_limit: PRODUCTS_PER_PAGE,
-      p_offset: (page - 1) * PRODUCTS_PER_PAGE,
-    });
-
-    if (error) {
-      logger.error('search_products failed', { cause: error.message });
-      return emptyList(page);
-    }
-
-    const rows = (data ?? []) as unknown as Record<string, unknown>[];
-    // `total_count` rides along as a window function, so the count costs no second query.
-    const total = Number(rows[0]?.total_count ?? 0);
-
-    const items: ProductListItem[] = rows.map((row) => ({
-      id: String(row.product_id),
-      slug: String(row.slug),
-      name: asLocalizedField(row.name),
-      subtitle: asLocalizedField(row.subtitle),
-      brandName: String(row.brand_name ?? ''),
-      brandSlug: String(row.brand_slug ?? ''),
-      form: row.form == null ? null : String(row.form),
-      dietaryTags: Array.isArray(row.dietary_tags) ? (row.dietary_tags as string[]) : [],
-      ratingAvg: Number(row.rating_avg ?? 0),
-      ratingCount: Number(row.rating_count ?? 0),
-      isFeatured: Boolean(row.is_featured),
-      variantId: String(row.variant_id),
-      sku: String(row.sku),
-      priceCents: Number(row.price_cents ?? 0),
-      compareAtPriceCents:
-        row.compare_at_price_cents == null ? null : Number(row.compare_at_price_cents),
-      imagePath: row.image_path == null ? null : String(row.image_path),
-      inStock: Boolean(row.in_stock),
-    }));
-
-    return {
-      items,
-      total,
-      page,
-      pageCount: Math.max(1, Math.ceil(total / PRODUCTS_PER_PAGE)),
-    };
+    return unstable_cache(() => fetchProducts(filters), ['products', JSON.stringify(filters)], {
+      tags: [CACHE_TAGS.products],
+      revalidate: ISR_REVALIDATE_SECONDS,
+    })();
   },
 );
+
+const fetchProducts = cache(async (filters: ProductFilters = {}): Promise<ProductListResult> => {
+  const page = Math.max(1, filters.page ?? 1);
+  const supabase = createPublicClient();
+
+  const { data, error } = await supabase.rpc('search_products', {
+    p_query: filters.q ?? undefined,
+    p_category_slugs: filters.category?.length ? filters.category : undefined,
+    p_brand_slugs: filters.brand?.length ? filters.brand : undefined,
+    p_goal_slugs: filters.goal?.length ? filters.goal : undefined,
+    p_ingredient_slugs: filters.ingredient?.length ? filters.ingredient : undefined,
+    p_dietary_tags: filters.tag?.length ? filters.tag : undefined,
+    p_forms: undefined,
+    p_min_price_cents: filters.minPrice ?? undefined,
+    p_max_price_cents: filters.maxPrice ?? undefined,
+    p_min_rating: filters.minRating ?? undefined,
+    p_in_stock_only: filters.inStock ?? false,
+    p_on_sale_only: filters.onSale ?? false,
+    p_sort: filters.sort ?? 'relevance',
+    p_limit: PRODUCTS_PER_PAGE,
+    p_offset: (page - 1) * PRODUCTS_PER_PAGE,
+  });
+
+  if (error) {
+    logger.error('search_products failed', { cause: error.message });
+    return emptyList(page);
+  }
+
+  const rows = (data ?? []) as unknown as Record<string, unknown>[];
+  // `total_count` rides along as a window function, so the count costs no second query.
+  const total = Number(rows[0]?.total_count ?? 0);
+
+  const items: ProductListItem[] = rows.map((row) => ({
+    id: String(row.product_id),
+    slug: String(row.slug),
+    name: asLocalizedField(row.name),
+    subtitle: asLocalizedField(row.subtitle),
+    brandName: String(row.brand_name ?? ''),
+    brandSlug: String(row.brand_slug ?? ''),
+    form: row.form == null ? null : String(row.form),
+    dietaryTags: Array.isArray(row.dietary_tags) ? (row.dietary_tags as string[]) : [],
+    ratingAvg: Number(row.rating_avg ?? 0),
+    ratingCount: Number(row.rating_count ?? 0),
+    isFeatured: Boolean(row.is_featured),
+    variantId: String(row.variant_id),
+    sku: String(row.sku),
+    priceCents: Number(row.price_cents ?? 0),
+    compareAtPriceCents:
+      row.compare_at_price_cents == null ? null : Number(row.compare_at_price_cents),
+    imagePath: row.image_path == null ? null : String(row.image_path),
+    inStock: Boolean(row.in_stock),
+  }));
+
+  return {
+    items,
+    total,
+    page,
+    pageCount: Math.max(1, Math.ceil(total / PRODUCTS_PER_PAGE)),
+  };
+});
 
 /** docs/05 §3 — everything the PDP renders, in one round trip. */
 /**
@@ -292,7 +312,54 @@ async function fetchProduct(slug: string): Promise<ProductDetail | null> {
 }
 
 /** The category tree for the mega menu, PLP sidebar and breadcrumbs. */
-export const getCategoryTree = cache(async (): Promise<CategoryNode[]> => {
+/**
+ * Wraps a taxonomy read in the Data Cache under one tag.
+ *
+ * The five taxonomy queries below are identical in shape — no arguments or one slug, a stable
+ * tag, the same revalidate window — so the wrapping is factored out rather than pasted five
+ * times. Products keep their own bespoke wrappers because their keys and tags are not uniform.
+ *
+ * Every one of these was previously `cache()` only, meaning `revalidatePublic([CACHE_TAGS.brands])`
+ * from the admin purged nothing (docs/13 §K1). Renaming a brand left its page stale for the
+ * full revalidate window.
+ */
+function taxonomyCache<A extends unknown[], R>(
+  keyPrefix: string,
+  tag: string,
+  read: (...args: A) => Promise<R>,
+): (...args: A) => Promise<R> {
+  // `cache()` on the outside dedupes within a render; `unstable_cache` inside persists across
+  // requests until the tag is purged. Both, for the same reason as `getProduct`.
+  return cache((...args: A) =>
+    unstable_cache(() => read(...args), [keyPrefix, ...args.map(String)], {
+      tags: [tag],
+      revalidate: ISR_REVALIDATE_SECONDS,
+    })(),
+  );
+}
+
+/* The public taxonomy reads. Each is its private reader, wrapped and tagged. */
+export const getCategoryTree = taxonomyCache('category-tree', CACHE_TAGS.categories, () =>
+  readCategoryTree(),
+);
+export const getCategoryBySlug = taxonomyCache('category', CACHE_TAGS.categories, (slug: string) =>
+  readCategoryBySlug(slug),
+);
+export const listBrands = taxonomyCache('brands', CACHE_TAGS.brands, () => readBrands());
+export const getBrandBySlug = taxonomyCache('brand', CACHE_TAGS.brands, (slug: string) =>
+  readBrandBySlug(slug),
+);
+export const listGoals = taxonomyCache('goals', CACHE_TAGS.goals, () => readGoals());
+export const listIngredients = taxonomyCache('ingredients', CACHE_TAGS.ingredients, () =>
+  readIngredients(),
+);
+export const getIngredientBySlug = taxonomyCache(
+  'ingredient',
+  CACHE_TAGS.ingredients,
+  (slug: string) => readIngredientBySlug(slug),
+);
+
+const readCategoryTree = async (): Promise<CategoryNode[]> => {
   const supabase = createPublicClient();
   const { data, error } = await supabase
     .from('categories')
@@ -333,9 +400,9 @@ export const getCategoryTree = cache(async (): Promise<CategoryNode[]> => {
     else roots.push(node);
   }
   return roots;
-});
+};
 
-export const getCategoryBySlug = cache(async (slug: string): Promise<CategoryNode | null> => {
+const readCategoryBySlug = async (slug: string): Promise<CategoryNode | null> => {
   const tree = await getCategoryTree();
   const walk = (nodes: CategoryNode[]): CategoryNode | null => {
     for (const node of nodes) {
@@ -346,9 +413,9 @@ export const getCategoryBySlug = cache(async (slug: string): Promise<CategoryNod
     return null;
   };
   return walk(tree);
-});
+};
 
-export const listBrands = cache(async () => {
+const readBrands = async () => {
   const supabase = createPublicClient();
   const { data } = await supabase
     .from('brands')
@@ -360,9 +427,9 @@ export const listBrands = cache(async () => {
     country_code: string | null;
     logo_path: string | null;
   }[];
-});
+};
 
-export const listGoals = cache(async () => {
+const readGoals = async () => {
   const supabase = createPublicClient();
   const { data } = await supabase
     .from('health_goals')
@@ -377,9 +444,9 @@ export const listGoals = cache(async () => {
       icon: goal.icon,
     };
   });
-});
+};
 
-export const getBrandBySlug = cache(async (slug: string) => {
+const readBrandBySlug = async (slug: string) => {
   const supabase = createPublicClient();
   const { data } = await supabase
     .from('brands')
@@ -407,7 +474,7 @@ export const getBrandBySlug = cache(async (slug: string) => {
     logoPath: brand.logo_path,
     bannerPath: brand.banner_path,
   };
-});
+};
 
 export const getGoalBySlug = cache(async (slug: string) => {
   const supabase = createPublicClient();
@@ -436,7 +503,7 @@ export const getGoalBySlug = cache(async (slug: string) => {
 });
 
 /** docs/05 §6 — searchable A–Z list with a category filter (vitamin, mineral, herb…). */
-export const listIngredients = cache(async () => {
+const readIngredients = async () => {
   const supabase = createPublicClient();
   const { data } = await supabase
     .from('ingredients')
@@ -459,9 +526,9 @@ export const listIngredients = cache(async () => {
       category: ingredient.category,
     };
   });
-});
+};
 
-export const getIngredientBySlug = cache(async (slug: string) => {
+const readIngredientBySlug = async (slug: string) => {
   const supabase = createPublicClient();
   const { data } = await supabase
     .from('ingredients')
@@ -495,7 +562,7 @@ export const getIngredientBySlug = cache(async (slug: string) => {
     evidence: ingredient.evidence,
     category: ingredient.category,
   };
-});
+};
 
 /** Bestsellers for the home page. docs/05 §1 falls back to `is_featured` before sales exist. */
 export const listFeaturedProducts = cache(async (limit = 8): Promise<ProductListItem[]> => {

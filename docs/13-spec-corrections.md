@@ -554,9 +554,16 @@ tagged `products` + `product:{slug}`, created per call so purging one product do
 all of them. React's `cache()` still wraps that — the two solve different problems, one
 deduping within a render and one persisting across requests.
 
-**Still outstanding:** `listProducts`, `getCategoryTree`, `listBrands`, `listGoals` and the
-ingredient reads are untagged, so the PLP and taxonomy pages remain time-based only. Tracked in
-docs/14 §2 under M6.
+`listProducts` is tagged `products` with the filter set in its cache key — the PLP, category,
+brand and goal pages all come through it with different arguments and must not share an entry.
+Only the coarse tag, because a listing's contents depend on the whole catalogue and no per-slug
+tag would correctly invalidate it.
+
+The five taxonomy reads (`getCategoryTree`, `getCategoryBySlug`, `listBrands`,
+`getBrandBySlug`, `listGoals`, and the two ingredient reads) share a `taxonomyCache` helper —
+identical in shape, so the wrapping is factored out rather than pasted seven times. Before this,
+`revalidatePublic([CACHE_TAGS.brands])` purged nothing and renaming a brand left its page stale
+for the full window.
 
 **Why nothing caught it earlier:** no unit or integration test could. The defect exists only
 across the boundary between an admin write and a cached public read, which is precisely the
