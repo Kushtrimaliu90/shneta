@@ -2,7 +2,10 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nextjs",
   "regions": ["fra1"],
-  "crons": [{ "path": "/api/cron/housekeeping", "schedule": "30 3 * * *" }],
+  "crons": [
+    { "path": "/api/cron/housekeeping", "schedule": "30 3 * * *" },
+    { "path": "/api/cron/subscriptions", "schedule": "0 5 * * *" }
+  ],
   "redirects": [
     {
       "source": "/sitemap",

@@ -16,6 +16,7 @@ import {
   ORDER_ACCESS_COOKIE_MAX_AGE_SECONDS,
 } from '@/lib/constants';
 import { getCurrentUser } from '@/features/auth/queries';
+import { createSubscriptionsFromCart } from '@/features/subscriptions/create';
 import { findActiveCart } from '@/features/cart/queries';
 import { placeOrderSchema } from '@/features/cart/schemas';
 import { mapCheckoutError, type CheckoutErrorKey } from '@/features/cart/types';
@@ -151,6 +152,21 @@ export async function placeOrder(
 
     // The RPC marked the cart converted, so the guest token is spent.
     store.delete(CART_COOKIE_NAME);
+
+    /*
+     * docs/07 §8.1 — subscribe-marked lines become a subscription, after the order commits.
+     *
+     * Deliberately not inside the checkout transaction: a failure here must not roll back a
+     * sale that succeeded. It never throws; see the note at the top of `create.ts`.
+     */
+    await createSubscriptionsFromCart({
+      cartId: found.row.id,
+      userId: user?.id ?? null,
+      shippingAddress: toJsonAddress(input.shipping),
+      shippingMethodId: input.shippingMethodId,
+      paymentProvider: input.paymentProvider,
+      orderNumber,
+    });
 
     // docs/07 §12 — a failed email must never fail the order. Fire and forget, logged.
     await sendOrderConfirmation(result.order_id).catch((cause: unknown) => {

@@ -40,11 +40,11 @@ interface AccountNavItem {
 const ITEMS: readonly AccountNavItem[] = [
   { key: 'overview', href: '/account', icon: LayoutDashboard },
   { key: 'orders', href: '/account/orders', icon: Package },
-  { key: 'subscriptions', href: '/account/subscriptions', icon: Repeat, milestone: 'M9' },
+  { key: 'subscriptions', href: '/account/subscriptions', icon: Repeat },
   { key: 'addresses', href: '/account/addresses', icon: MapPin, milestone: 'M5' },
   { key: 'wishlist', href: '/account/wishlist', icon: Heart },
   { key: 'reviews', href: '/account/reviews', icon: Star },
-  { key: 'loyalty', href: '/account/loyalty', icon: Ticket, milestone: 'M9' },
+  { key: 'loyalty', href: '/account/loyalty', icon: Ticket },
   { key: 'settings', href: '/account/settings', icon: Settings },
 ];
 

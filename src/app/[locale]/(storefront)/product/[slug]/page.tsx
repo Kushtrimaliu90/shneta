@@ -15,6 +15,7 @@ import { getProduct, listProducts } from '@/features/catalog/queries';
 import { knownDietaryTags } from '@/features/catalog/filters';
 import { BuyBox } from '@/features/cart/components/buy-box';
 import { listProductReviews } from '@/features/reviews/queries';
+import { getSubscriptionDiscountPct } from '@/features/subscriptions/settings';
 import { ReviewsSection } from '@/features/reviews/components/reviews-section';
 import { WishlistButton } from '@/features/wishlist/components/wishlist-button';
 import { CompareButton } from '@/features/compare/components/compare-button';
@@ -88,7 +89,11 @@ export default async function ProductPage({ params }: Props) {
   const product = await getProduct(slug);
   if (!product) notFound();
 
-  const [t, reviews] = await Promise.all([getTranslations(), listProductReviews(product.id)]);
+  const [t, reviews, subscriptionDiscount] = await Promise.all([
+    getTranslations(),
+    listProductReviews(product.id),
+    getSubscriptionDiscountPct(),
+  ]);
   const origin = clientEnv.NEXT_PUBLIC_SITE_URL;
   const name = pickLocale(product.name, locale);
   const variant = primaryVariant(product.variants);
@@ -192,7 +197,7 @@ export default async function ProductPage({ params }: Props) {
               component because they are one decision; see the note in buy-box.tsx.
             */}
             <div className="mt-6">
-              <BuyBox variants={product.variants} />
+              <BuyBox variants={product.variants} subscriptionDiscountPct={subscriptionDiscount} />
             </div>
 
             {/* docs/05 §3 — wishlist and compare sit under the buy action, not beside it. */}

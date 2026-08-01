@@ -180,7 +180,33 @@
       "title": "Pikët e besnikërisë",
       "points": "{count, plural, =0 {0 pikë} one {# pikë} other {# pikë}}",
       "toNextReward": "Edhe {count} pikë deri te shpërblimi tjetër.",
-      "readyToRedeem": "Mund t'i shkëmbesh pikët për një kupon."
+      "readyToRedeem": "Mund t'i shkëmbesh pikët për një kupon.",
+      "ledgerTitle": "Pikët e tua",
+      "balance": "{count, plural, =0 {0 pikë} one {# pikë} other {# pikë}}",
+      "redeemTitle": "Shkëmbe pikët",
+      "redeemBody": "Ktheji {points} pikë në një kupon prej {value}.",
+      "redeem": "Shkëmbe {points} pikë",
+      "redeeming": "Po shkëmbehet…",
+      "redeemedTitle": "Ky është kodi yt",
+      "redeemedBody": "Përdore në arkë. Vlen {value}, një herë, brenda 90 ditësh.",
+      "copyCode": "Kopjo kodin",
+      "copied": "U kopjua",
+      "terms": "Fiton një pikë për çdo euro te porositë e dorëzuara. Pikët zbriten nëse një porosi rimbursohet. Nuk skadojnë.",
+      "emptyLedger": "Ende pa pikë. Vijnë kur të dorëzohet porosia jote e parë.",
+      "reason": {
+        "earn_order": "Porosi e dorëzuar",
+        "redeem": "Shkëmbyer për kupon",
+        "adjustment": "Rregullim",
+        "expiry": "Skaduar",
+        "clawback": "Porosi e rimbursuar"
+      },
+      "errors": {
+        "signedOut": "Të lutemi kyçu më parë.",
+        "insufficient": "Ende nuk ke pikë të mjaftueshme.",
+        "generic": "Diçka shkoi keq. Provo përsëri."
+      },
+      "ledgerActivity": "Veprimi",
+      "ledgerPoints": "Pikët"
     },
     "settings": {
       "title": "Cilësimet",
@@ -193,6 +219,59 @@
       "saved": "Ndryshimet u ruajtën.",
       "changePassword": "Ndrysho fjalëkalimin",
       "passwordChanged": "Fjalëkalimi u përditësua."
+    },
+    "subscriptions": {
+      "title": "Abonimet",
+      "empty": "Nuk ke asnjë abonim.",
+      "emptyHint": "Zgjidh „Abonohu dhe kurse” te çdo produkt për të nisur një.",
+      "nextDelivery": "Dërgesa e radhës më {date}",
+      "everyDays": "Çdo {count} ditë",
+      "statusActive": "Aktiv",
+      "statusPaused": "I ndalur",
+      "statusCancelled": "I anuluar",
+      "pausedUntil": "I ndalur deri më {date}",
+      "pausedIndefinitely": "I ndalur. Rifillo kur të duash.",
+      "cancelledOn": "Anuluar më {date}",
+      "codNote": "Paguan te korrieri në dorëzim, si te çdo porosi.",
+      "subtotal": "Produktet",
+      "discount": "Zbritja e abonimit",
+      "unavailable": "Jo i disponueshëm tani — kjo rresht do të lihet jashtë dërgesës së radhës.",
+      "failuresWarning": "Nuk arritëm të krijojmë {count} dërgesat e fundit. Kontrollo nëse produktet më poshtë janë ende të disponueshme.",
+      "itemsHeading": "Çfarë vjen",
+      "ordersHeading": "Dërgesat deri tani",
+      "noOrders": "Ende asgjë e dorëzuar.",
+      "quantity": "Sasia",
+      "remove": "Hiq",
+      "skip": "Kalo dërgesën e radhës",
+      "skipping": "Po kalohet…",
+      "pause": "Ndalo",
+      "pausing": "Po ndalohet…",
+      "resume": "Rifillo",
+      "resuming": "Po rifillon…",
+      "changeFrequency": "Ndrysho shpeshtësinë",
+      "save": "Ruaj",
+      "saving": "Po ruhet…",
+      "cancel": "Anulo abonimin",
+      "cancelling": "Po anulohet…",
+      "cancelConfirm": "Ta anulojmë këtë abonim?",
+      "cancelReason": "Pse po e anulon? (opsionale)",
+      "keepIt": "Mbaje",
+      "resumeOn": "Rifillo më (opsionale)",
+      "errors": {
+        "signedOut": "Të lutemi kyçu më parë.",
+        "notFound": "Ky abonim nuk u gjet.",
+        "generic": "Diçka shkoi keq. Provo përsëri."
+      },
+      "oneClick": {
+        "skippedTitle": "Dërgesa u kalua",
+        "skippedBody": "Këtë nuk do ta dërgojmë. Dërgesa e radhës shtyhet me një cikël.",
+        "pausedTitle": "Abonimi u ndal",
+        "pausedBody": "Nuk ka më dërgesa derisa ta rifillosh. Nuk u ngarkua asgjë.",
+        "failedTitle": "Kjo lidhje ka skaduar",
+        "failedBody": "Lidhja nuk vlen më — mund të jetë përdorur tashmë, ose dërgesa mund të ketë nisur. Mund të menaxhosh gjithçka nga llogaria jote.",
+        "manage": "Menaxho abonimet"
+      },
+      "browseShop": "Shfleto dyqanin"
     }
   },
   "shop": {
@@ -684,5 +763,14 @@
   },
   "legal": {
     "lastUpdated": "Përditësuar më {date}"
-  }
+  },
+  "subscribe": {
+    "oneTime": "Blerje një herë",
+    "subscribe": "Abonohu dhe kurse {pct}%",
+    "frequency": "Dërgo çdo",
+    "days": "{count} ditë",
+    "note": "Paguan në dorëzim çdo herë. Kalo, ndalo ose anulo kur të duash — pa pagesa, pa afat njoftimi.",
+    "added": "U shtua si abonim"
+  },
+  "admin": {}
 }

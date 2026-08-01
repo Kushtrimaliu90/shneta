@@ -38,7 +38,15 @@ insert into settings (key, value) values
   ('loyalty', '{"earn_rate_points_per_eur": 1, "redeem_points": 100, "redeem_value_cents": 500}'::jsonb),
   ('checkout', '{"max_item_qty": 20, "cod_enabled": true, "bank_pos_enabled": false}'::jsonb),
   ('inventory', '{"default_low_stock_threshold": 5}'::jsonb),
-  ('subscriptions', '{"notice_days": 3, "default_discount_pct": 10}'::jsonb)
+  /*
+   * docs/07 §8.1. `discount_pct` is the key the code reads; `default_discount_pct` was the
+   * original name and is kept so an existing row is not silently reinterpreted.
+   *
+   * It must match a `SUB-<pct>` coupon. The renewal engine applies the discount *as* that
+   * coupon and refuses to ship without it — changing this number without minting the matching
+   * code stops every subscription in the shop, loudly (docs/13 §O3).
+   */
+  ('subscriptions', '{"discount_pct": 10, "default_discount_pct": 10, "notice_days": 3}'::jsonb)
 on conflict (key) do update set value = excluded.value, updated_at = now();
 
 -- -----------------------------------------------------------------------------

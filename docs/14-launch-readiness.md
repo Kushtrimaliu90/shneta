@@ -5,7 +5,7 @@ Honest status against the launch checklist in `docs/10 §9` and the milestones i
 **Bottom line: it is a store. A guest can buy something, end to end, and pay cash on
 delivery.** Add to cart → four-step checkout → order placed by the `checkout_create_order`
 transaction → gated success page → track it later with the order number and email. Verified
-against the live database by 260 Playwright tests across desktop and a 390 px viewport.
+against the live database by 272 Playwright tests across desktop and a 390 px viewport.
 
 **It can also now fulfil what it sells.** Support signs in, works a queue, confirms, ships with
 tracking, delivers, cancels with a reason and refunds — every mutation audited, every transition
@@ -18,6 +18,13 @@ are all editable in the panel. Nothing needs SQL any more.
 
 **And it now has something to read.** Six articles, ten FAQs, an offers page, a contact form
 that reaches an inbox, and a newsletter that actually double-opts-in.
+
+**And it can now sell the same thing twice.** A customer chooses "subscribe and save" on the
+product page, and a renewal engine builds the next order on schedule — through the same
+`checkout_create_order` transaction as any other order, so a renewal is priced by the code that
+prices a manual purchase. Skip, pause, resume, re-cadence and cancel are all one click, from the
+account or from a link in the notice email that needs no sign-in. Points accrue on delivery and
+exchange for a coupon.
 
 **What is left before a real customer: the email, and the products themselves.** Every
 transactional and marketing email records `skipped_no_provider` until a Resend key and a
@@ -33,19 +40,19 @@ Legend: ✅ done and verified · 🟡 partial · ⬜ not started · ➖ not appl
 
 | Item                                                  | State | Evidence                                                                                                          |
 | ----------------------------------------------------- | ----- | ----------------------------------------------------------------------------------------------------------------- |
-| Next.js app builds for production                     | ✅    | `pnpm build`, 63 routes, no warnings                                                                              |
+| Next.js app builds for production                     | ✅    | `pnpm build`, 68 routes, no warnings                                                                              |
 | First Load JS within the 170 kB budget (`docs/09 §3`) | ✅    | 120–138 kB per route, enforced by `check:bundle`                                                                  |
-| Database schema applied                               | ✅    | 16 migrations on `rszbpdgfvyofvmuishmn`, Postgres 17.6                                                            |
+| Database schema applied                               | ✅    | 18 migrations on `rszbpdgfvyofvmuishmn`, Postgres 17.6                                                            |
 | RLS enabled on every public table (`docs/10 §4`)      | ✅    | `tables_without_rls()` → `[]`                                                                                     |
-| Integration suite against a real database             | ✅    | **45/45**, ~85 s                                                                                                  |
+| Integration suite against a real database             | ✅    | **57/57**, ~81 s                                                                                                  |
 | Unit suite                                            | ✅    | **117/117**                                                                                                       |
-| E2E + axe on both locales                             | ✅    | **260/260**, repeatable; zero serious/critical violations on cart, checkout, account, admin and the content pages |
-| Generated DB types match the live schema              | ✅    | `db:types:linked` → 2902 lines, `pnpm verify` green                                                               |
+| E2E + axe on both locales                             | ✅    | **272/272**, repeatable; zero serious/critical violations on cart, checkout, account, admin and the content pages |
+| Generated DB types match the live schema              | ✅    | `db:types:linked` → 3043 lines, `pnpm verify` green                                                               |
 | CI pipeline (quality · integration+E2E · audit)       | ✅    | `.github/workflows/ci.yml`                                                                                        |
 | Security headers (`docs/10 §5`)                       | ✅    | asserted by an E2E test                                                                                           |
 | `/api/health` for uptime monitoring (`docs/10 §6`)    | ✅    | returns `{status:"ok",database:"ok"}`                                                                             |
 | Sitemap + robots with hreflang (`docs/08 §4`)         | ✅    | 176 URLs, 352 hreflang links                                                                                      |
-| Housekeeping cron, `CRON_SECRET`-guarded              | ✅    | 401 unauthenticated, 200 with token                                                                               |
+| Two crons, `CRON_SECRET`-guarded                      | ✅    | housekeeping 03:30, subscription renewals 05:00; both 401 unauthenticated, 200 with token                         |
 | On-demand ISR purge, secret-guarded                   | ✅    | rejects unknown tags, 401 unauthenticated                                                                         |
 | Sentry server + edge                                  | ✅    | inert without a DSN; client SDK lazy-loaded                                                                       |
 | `vercel.json` — region `fra1`, crons                  | ✅    |                                                                                                                   |
@@ -70,7 +77,7 @@ Legend: ✅ done and verified · 🟡 partial · ⬜ not started · ➖ not appl
 | M6 · Admin catalog management                | ✅    | Create → edit → variants → label → media → SEO → submit → approve → live (journey 8). All six editor tabs, brands/categories/goals/ingredients admin, brand-logo upload, the compliance queue. Cache tags on every catalogue read (docs/13 §K1). Deferred and listed below: drag-reorder, lab reports, taxonomy SEO, unsaved-changes guard |
 | M7 · Reviews, wishlist, search, compare      | ✅    | Verified-purchase reviews with moderation, helpful votes and a delivered+7d request email; wishlist end to end; instant search overlay + `/search`; compare up to four. Deferred: an Articles tab (needs M8) and the review-request email needs Resend (§6)                                                                                |     |
 | M8 · Knowledge, offers, contact, newsletter  | ✅    | Knowledge Center on a sanitised markdown pipeline, offers with claimable codes, contact form + admin inbox, newsletter double opt-in with a token unsubscribe, FAQ with JSON-LD, `/about` and the legal pages, cookie consent gating analytics. Six articles and ten FAQs seeded. Every email still needs Resend (§6)                      |
-| M9 · Subscriptions and loyalty               | ⬜    | RPCs and triggers exist and are tested; no UI                                                                                                                                                                                                                                                                                              |
+| M9 · Subscriptions and loyalty               | ✅    | Subscribe-and-save on the PDP; a renewal engine whose idempotency is one SQL statement (docs/13 §O1); skip, pause, resume, re-cadence and cancel from the account or from a token link needing no session; points on delivery and a redeem-for-coupon exchange; a read-only admin schedule with a cron health widget. Deferred below       |
 | M10 · Inventory ops, finder, remaining admin | ⬜    |                                                                                                                                                                                                                                                                                                                                            |
 | M11 · Hardening and launch                   | 🟡    | The ops half is done (this table §1). Performance, security and soak passes need the real product first                                                                                                                                                                                                                                    |
 
@@ -80,7 +87,7 @@ Legend: ✅ done and verified · 🟡 partial · ⬜ not started · ➖ not appl
 | ----------------------------------------------------------- | ----- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Supplement disclaimer on required surfaces (`docs/08 §7.3`) | ✅    | Footer, PDP, ingredient and goal pages, asserted in E2E                                                                                                        |
 | Terms, privacy, shipping/returns                            | 🟡    | Seeded as `[LEGAL: review]` placeholders — **must be written and legally reviewed**. Checkout now makes customers accept them, so this is on the critical path |
-| Cookie/analytics consent banner (`docs/01 §4`)              | ⬜    | M8. No analytics script ships yet, so nothing is currently collected without consent                                                                           |
+| Cookie/analytics consent banner (`docs/01 §4`)              | ✅    | Shipped with M8 and gates `lib/analytics.ts`, which is still a no-op — so nothing is collected with or without consent until a provider is chosen (§11)        |
 | Claim-language review (`docs/08 §7`)                        | 🟡    | 24 seeded products and 20 ingredients written inside the permissible-function wording of `docs/08 §7.2`; needs a human pass before launch                      |
 | Health-goal intros                                          | 🟡    | 16 goals seeded with `[CONTENT: replace]`; `docs/05 §5` requires 150+ unique words each                                                                        |
 | Brand assets                                                | 🟡    | Real brand names used as fixtures with **placeholder logos** — replace with authorised assets before prod (`docs/11 §5`)                                       |
@@ -101,10 +108,18 @@ Two things to set deliberately:
 
 ## 5 · The next decision
 
-M6, and like M5 it is not really a decision. Orders can now be taken and fulfilled, but the
-only things in the shop are fixtures — and `pnpm purge:demo` cannot run until real products
-exist to replace them (§7, step 2). The product editor is therefore the last thing standing
-between this and a shop that sells something real.
+M10 — inventory ops, the routine finder and the remaining admin screens. It is the last
+milestone that adds features; M11 is hardening.
+
+It is also where three earlier deferrals come due at once, which is the argument for taking it
+next rather than jumping to the hardening pass: `/account/addresses` (§10), the certifications
+registry (§9) and `/finder` (§11) have each been promised to M10 by a previous ledger entry, and
+`/finder` has been linked from the footer since M0.
+
+Two things remain outside any milestone and outside our control: **Resend** (§6), without which
+fourteen email templates are inert and a newsletter subscription cannot complete; and the **real
+catalogue** — `pnpm purge:demo` cannot run until there are real products to replace the 24
+fixtures with (§7, step 2).
 
 `docs/13 §E2` settled the Next 15 → 16 question by measurement — it stays on 15 for now.
 
@@ -274,3 +289,43 @@ and will start sending the moment a key and a verified domain exist.
 without the confirmation email arriving. Until Resend is configured, `newsletter_subscribers`
 collects rows that can never confirm themselves. They are not lost — the token is stored, and the
 first thing to do after wiring Resend is to mail everyone whose `confirmed_at` is still null.
+
+---
+
+## 12 · What M9 deliberately left out
+
+| Item                                             | Why it is not here                                                                                                                                                                                                                                                                                 | When                               |
+| ------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
+| Pause / cancel / reschedule from the admin panel | docs/06 §12 asks for them. Each already exists as a customer action, so doing it from the panel is support acting **as** a customer — which needs an impersonation story the audit log can express. Improvising one makes staff and customer actions indistinguishable in the record (docs/13 §O6) | M10, with docs/06 §15's audit work |
+| Changing a subscription's items from the panel   | Same reason, plus a worse failure mode: an operator adding an item silently changes what the customer is billed on delivery                                                                                                                                                                        | With the above                     |
+| Card-on-file / recurring payment                 | docs/07 §6 has one provider and it is cash on delivery. A subscription here is a scheduled COD order, and the account page says so in as many words rather than letting the customer assume a card is being charged                                                                                | With a real PSP                    |
+| Loyalty tiers (docs/07 §9.4)                     | Points earn and redeem; tiers change the earn **rate**, and a rate that varies by tier needs the tier boundaries to be a decision somebody has made. Ours would be invented numbers on a launch with no customers                                                                                  | Post-launch                        |
+| Points for reviews, referrals and birthdays      | docs/07 §9.2 lists four earn events; only "order delivered" is wired. The other three each need an anti-abuse rule (a review written to farm points is worse than no review) and none of them is worth writing before there is traffic to abuse it                                                 | Post-launch                        |
+| A cron run table behind the admin health widget  | The widget reads `email_log`, which is a proxy for "the engine ran and had something to do". A table whose only reader is one dashboard is a schema for a dashboard, and the copy is honest about the proxy rather than crying wolf on a quiet week                                                | If it misleads once                |
+| Prorating a mid-cycle cadence change             | Changing frequency leaves `next_run_at` alone: the customer asked for "and every N days **after that**". Recomputing would pull a delivery forward or push it back, neither of which they asked for                                                                                                | Not planned                        |
+
+### The emails M9 added, all waiting on Resend
+
+`subscription_notice`, `subscription_order`, `subscription_skipped` and
+`subscription_paused` — bringing the total waiting on §6 to **fourteen templates**:
+`order-confirmation`, the five order-lifecycle mails, `review_request`, `contact_ack`,
+`newsletter_confirm`, `newsletter_welcome` and these four.
+
+One is load-bearing in a way worth stating: `subscription_notice` is what carries the
+one-click skip link three days before a delivery. Until Resend is configured, a customer's only
+way to skip is to sign in and use the account page. The renewal engine itself does not depend on
+it — orders will still be built and still be delivered — so **the first subscription created on a
+production without Resend is a repeat order the customer cannot conveniently stop.** Configure
+Resend before enabling subscribe-and-save for real customers, or accept support calls instead.
+
+### What M9 changed about the schedule
+
+Two crons now run, and the second one **spends money**: `/api/cron/subscriptions` at 05:00 CET
+builds real orders against real stock. Three consequences for whoever operates this:
+
+- `CRON_SECRET` is no longer only an anti-noise measure. An unauthenticated caller who could
+  reach it would place orders. It is asserted 401 by an E2E test on every run.
+- Invoking it by hand is safe and idempotent — that is the point of docs/13 §O1 — but it is not
+  free: each invocation ships whatever is genuinely due.
+- `vercel.json` schedules it 90 minutes after housekeeping so the two never overlap on one
+  database.

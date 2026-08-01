@@ -1072,6 +1072,128 @@ project docs/14 §7 already recommends would fix it as a side effect.
 
 ---
 
+## O. What building subscriptions and loyalty taught us
+
+### O1 · The renewal engine's idempotency is one SQL statement, not a guard in the route
+
+docs/12 M9 asks for "double invoke → one order". The obvious shape — read the due
+subscriptions, build an order for each, then write the new `next_run_at` — is wrong in a way
+that only shows up in production: a cron that is retried, invoked twice, or simply slow enough
+to overlap itself ships the customer two boxes and charges them for both. Vercel retries a
+failed cron, and the endpoint is deliberately hand-invocable for support.
+
+So the claim and the advance are the same statement:
+
+```sql
+update subscriptions s
+   set next_run_at = s.next_run_at + (s.frequency_days || ' days')::interval, …
+ where s.id = p_subscription_id
+   and s.next_run_at <= now()
+   and (s.status = 'active' or (s.status = 'paused' and s.paused_until <= now()))
+returning …
+```
+
+The second caller's `where` no longer matches, so it gets `null` and builds nothing — under
+Postgres's row lock, not under a hope about timing. The order is built **after** the claim: the
+failure mode that leaves is a claimed cycle whose order failed to build, which
+`record_subscription_failure` catches and retries next run. The other ordering loses money.
+
+`tests/integration/subscriptions.test.ts` proves it against SQL directly — two calls, one
+result — because the property belongs to the statement, not the browser.
+
+### O2 · `next_run_at` is a `date`, and three tests failed by exactly 16.2 hours
+
+Three integration assertions failed by 58,320,000 ms. A number that consistent is never a race:
+`subscriptions.next_run_at` is a **`date`** column, so a value written as
+`now() + interval '30 days'` comes back as midnight, and any millisecond comparison is off by
+however far through the day the suite happens to run.
+
+Fixed with a `datePlusDays()` helper that compares `YYYY-MM-DD`. The general rule: **assert at
+the column's resolution, not your language's.** A `date` compared as a timestamp produces a test
+that passes only if it is run just after midnight.
+
+A `date` is right here — a delivery schedule has no business carrying a time zone, and "the 15th"
+means the same thing to the customer in Prishtinë and the operator wherever they are.
+
+### O3 · Resuming a paused subscription must not ship immediately
+
+A subscription paused for two months has a `next_run_at` two months in the past. Flipping
+`status` back to `active` makes the engine treat it as due **now**, so the customer's first act
+of unpausing is an unrequested delivery.
+
+`resume_subscription` rolls the date forward by whole cycles until it is in the future, which
+preserves the cadence the customer chose rather than restarting the clock. Same reasoning as
+first delivery being one full cycle after checkout, not the same day: they have the product in
+their hands already.
+
+The equivalent trap is in `pause` — a paused subscription still has to be _claimable_ later,
+which is why the engine's `where` clause treats `paused with paused_until <= now()` as due and
+flips it back to active in the same statement rather than needing a second job to un-pause it.
+
+### O4 · The subscription discount is a real coupon, not a branch in the pricing code
+
+Subscription orders could have priced themselves — read the items, apply `discount_pct`, write
+an order. That creates a second pricing path that will drift from checkout's the first time VAT,
+shipping thresholds or stock rules change, and drift in a pricing path is a refund.
+
+The engine instead builds a **real cart** and calls `checkout_create_order` with the `SUB-<pct>`
+system coupon, so a renewal is priced by exactly the code that prices a manual order. The cost is
+a dependency on a seeded row, so the engine verifies the coupon exists before it starts and
+throws a named error if it does not — a missing coupon must stop the run, not silently ship
+undiscounted orders to every subscriber.
+
+`SUB-10` is `is_system`, which is what keeps it off `/offers` (§N4).
+
+### O5 · One-click email links, with no session, without a bearer token in a URL
+
+docs/07 §8.2 wants the notice email to let a customer skip the upcoming delivery. They are
+reading it on a phone, possibly signed out, and a link that lands on a sign-in page will not be
+used.
+
+`subscription_action_tokens` follows §B5: **RLS enabled and no policy at all**, so the table is
+unreachable by any client, and the only door is `subscription_apply_token(p_token)` — security
+definer, single-use, expiring, and bound to one action on one subscription. A leaked link skips
+one delivery once. It cannot cancel, cannot read, and cannot be replayed.
+
+The alternative, a signed URL carrying the subscription id, is a bearer token that lives forever
+in an inbox and in every mail proxy between here and the customer.
+
+### O6 · Departure from spec: `/admin/subscriptions` is read-only
+
+docs/06 §12 asks for pause, cancel and an editable `next_run_at` from the panel. Every one of
+those already exists as a customer action, and doing them from the panel is support acting **as**
+a customer — which needs an impersonation story the audit log can express. Improvising one is how
+a panel ends up with staff actions indistinguishable from customer actions in the record.
+
+Shipped: the schedule, ordered by next run rather than newest-first (an operator wants to know
+what is about to happen), the status filters, and the cron health widget §12 asks for. Logged in
+docs/14 §12.
+
+The widget reads `email_log`, since there is no cron run table and adding one for a single
+dashboard is a schema for a dashboard. It is a proxy — "the engine ran and had something to do" —
+so the copy says "expected if nothing was due" rather than "the cron is down". A health widget
+that cries wolf on a quiet week gets ignored by the second week.
+
+### O7 · One unreproducible flake, recorded rather than papered over
+
+The first full run of `e2e/subscriptions.spec.ts` failed on the pause control: the button sat at
+`Pausing…` for the full 30 s assertion budget. Nothing in the server log, no error, and the
+subscription was still `active`.
+
+It has not recurred in **33 further executions** — alone, under `--repeat-each=4` against two
+workers, and against a freshly started server to test a cold-start theory. So it is recorded here
+instead of being fixed by guesswork:
+
+- The click reached the server (`useFormStatus` only reports pending during a real submission).
+- The action itself is two round trips, `getUser()` and one `update`.
+- What it waits on is not the write but the **full-page RSC re-render** the action returns, and
+  on this app that is a dynamic render of the entire storefront shell — §M1, still unfixed.
+
+The budget was **not** raised to make it green. A 30 s server action is a real signal, and
+docs/12 M11's performance pass owns the cause.
+
+---
+
 ## E. Stack decisions taken at M0
 
 | Item          | Spec                  | Built as            | Why                                                                                               |

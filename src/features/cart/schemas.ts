@@ -9,6 +9,16 @@ const uuid = z.string().uuid();
 export const addToCartSchema = z.object({
   variantId: uuid,
   quantity: z.coerce.number().int().min(1).max(MAX_CART_ITEM_QTY).default(1),
+  /**
+   * docs/07 §8.1 — the subscribe intent, absent for a one-off purchase.
+   *
+   * Constrained to the four cadences the schema's CHECK also enforces, so a hand-edited form
+   * value is rejected here with a sensible message rather than by a constraint violation.
+   */
+  subscribeFrequencyDays: z.coerce
+    .number()
+    .refine((value) => [30, 45, 60, 90].includes(value))
+    .optional(),
 });
 
 export const updateQuantitySchema = z.object({

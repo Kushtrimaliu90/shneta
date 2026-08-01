@@ -248,6 +248,7 @@ const IMPLEMENTED = new Set([
   '/admin/compliance',
   '/admin/reviews',
   '/admin/messages',
+  '/admin/subscriptions',
 ]);
 
 /** The sections and items this role may see, with empty sections dropped. */

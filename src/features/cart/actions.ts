@@ -83,7 +83,7 @@ export async function addToCart(formData: FormData): Promise<CartResult> {
   if (!parsed.success) return cartFail('cart.errors.generic');
 
   try {
-    const { variantId, quantity } = parsed.data;
+    const { variantId, quantity, subscribeFrequencyDays } = parsed.data;
     const { id: cartId, client } = await ensureCart();
 
     // Validate against the live catalog before touching the cart, so an unpurchasable
@@ -131,14 +131,30 @@ export async function addToCart(formData: FormData): Promise<CartResult> {
 
     if (current >= MAX_CART_ITEM_QTY) return cartFail('cart.errors.maxQuantity');
 
+    /*
+     * docs/07 §8.1 — the subscribe intent travels with the line.
+     *
+     * On an increment it is only *set*, never cleared: adding a one-off of something already in
+     * the basket as a subscription must not silently downgrade the subscription. The customer
+     * can still change their mind, but not by accident.
+     */
+    const intent = subscribeFrequencyDays ?? null;
+
     const { error } = existing
       ? await client
           .from('cart_items')
-          .update({ quantity: next })
+          .update(
+            intent === null
+              ? { quantity: next }
+              : { quantity: next, subscribe_frequency_days: intent },
+          )
           .eq('id', (existing as { id: string }).id)
-      : await client
-          .from('cart_items')
-          .insert({ cart_id: cartId, variant_id: variantId, quantity: next });
+      : await client.from('cart_items').insert({
+          cart_id: cartId,
+          variant_id: variantId,
+          quantity: next,
+          subscribe_frequency_days: intent,
+        });
 
     if (error) {
       logger.error('addToCart failed', { cause: error.message });

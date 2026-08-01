@@ -9,6 +9,7 @@ import { Alert } from '@/components/ui/alert';
 import { PriceTag } from '@/components/storefront/price-tag';
 import { SubmitButton } from '@/components/ui/submit-button';
 import { addToCart, type CartResult } from '@/features/cart/actions';
+import { SubscribeToggle } from '@/features/subscriptions/components/subscribe-toggle';
 import type { ProductVariantDetail } from '@/features/catalog/types';
 
 /**
@@ -32,7 +33,14 @@ import type { ProductVariantDetail } from '@/features/catalog/types';
  * (docs/07 §3), so a forged `variantId` buys that variant at its real price, never at one
  * chosen by the client.
  */
-export function BuyBox({ variants }: { variants: ProductVariantDetail[] }) {
+export function BuyBox({
+  variants,
+  subscriptionDiscountPct = 0,
+}: {
+  variants: ProductVariantDetail[];
+  /** docs/07 §8.1 — 0 hides the subscribe option entirely, which is the off switch. */
+  subscriptionDiscountPct?: number;
+}) {
   const [state, formAction] = useActionState<CartResult | null, FormData>(
     async (_previous, formData) => addToCart(formData),
     null,
@@ -125,6 +133,11 @@ export function BuyBox({ variants }: { variants: ProductVariantDetail[] }) {
       )}
 
       <input type="hidden" name="quantity" value={1} />
+
+      {/* docs/07 §8.1 — the subscribe intent rides along on the same add-to-cart submission. */}
+      {subscriptionDiscountPct > 0 && !soldOut && (
+        <SubscribeToggle discountPct={subscriptionDiscountPct} />
+      )}
 
       {/* Stock line (docs/05 §3) — follows the selection. */}
       <p className="text-sm" role="status">

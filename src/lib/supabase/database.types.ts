@@ -412,6 +412,7 @@ export type Database = {
           created_at: string
           id: string
           quantity: number
+          subscribe_frequency_days: number | null
           updated_at: string
           variant_id: string
         }
@@ -420,6 +421,7 @@ export type Database = {
           created_at?: string
           id?: string
           quantity: number
+          subscribe_frequency_days?: number | null
           updated_at?: string
           variant_id: string
         }
@@ -428,6 +430,7 @@ export type Database = {
           created_at?: string
           id?: string
           quantity?: number
+          subscribe_frequency_days?: number | null
           updated_at?: string
           variant_id?: string
         }
@@ -1290,6 +1293,13 @@ export type Database = {
             columns: ["subscription_id"]
             isOneToOne: false
             referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_subscription_fk"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "v_subscription_schedule"
             referencedColumns: ["id"]
           },
           {
@@ -2294,6 +2304,48 @@ export type Database = {
           },
         ]
       }
+      subscription_action_tokens: {
+        Row: {
+          action: string
+          created_at: string
+          expires_at: string
+          subscription_id: string
+          token: string
+          used_at: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          expires_at: string
+          subscription_id: string
+          token?: string
+          used_at?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          expires_at?: string
+          subscription_id?: string
+          token?: string
+          used_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscription_action_tokens_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscription_action_tokens_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "v_subscription_schedule"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       subscription_items: {
         Row: {
           id: string
@@ -2319,6 +2371,13 @@ export type Database = {
             columns: ["subscription_id"]
             isOneToOne: false
             referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscription_items_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "v_subscription_schedule"
             referencedColumns: ["id"]
           },
           {
@@ -2547,6 +2606,53 @@ export type Database = {
           },
         ]
       }
+      v_subscription_schedule: {
+        Row: {
+          consecutive_failures: number | null
+          frequency_days: number | null
+          id: string | null
+          is_due: boolean | null
+          is_runnable: boolean | null
+          needs_notice: boolean | null
+          next_run_at: string | null
+          paused_until: string | null
+          status: Database["public"]["Enums"]["subscription_status"] | null
+          user_id: string | null
+        }
+        Insert: {
+          consecutive_failures?: number | null
+          frequency_days?: number | null
+          id?: string | null
+          is_due?: never
+          is_runnable?: never
+          needs_notice?: never
+          next_run_at?: string | null
+          paused_until?: string | null
+          status?: Database["public"]["Enums"]["subscription_status"] | null
+          user_id?: string | null
+        }
+        Update: {
+          consecutive_failures?: number | null
+          frequency_days?: number | null
+          id?: string | null
+          is_due?: never
+          is_runnable?: never
+          needs_notice?: never
+          next_run_at?: string | null
+          paused_until?: string | null
+          status?: Database["public"]["Enums"]["subscription_status"] | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       apply_stock_movement: {
@@ -2580,6 +2686,10 @@ export type Database = {
           p_shipping_address: Json
           p_shipping_method_id: string
         }
+        Returns: Json
+      }
+      claim_due_subscription: {
+        Args: { p_subscription_id: string }
         Returns: Json
       }
       contact_submit: {
@@ -2627,7 +2737,19 @@ export type Database = {
         Returns: Json
       }
       newsletter_unsubscribe: { Args: { p_token: string }; Returns: boolean }
+      record_subscription_failure: {
+        Args: { p_subscription_id: string }
+        Returns: number
+      }
+      record_subscription_success: {
+        Args: { p_subscription_id: string }
+        Returns: undefined
+      }
       redeem_loyalty_points: { Args: never; Returns: Json }
+      resume_subscription: {
+        Args: { p_subscription_id: string }
+        Returns: boolean
+      }
       search_products: {
         Args: {
           p_brand_slugs?: string[]
@@ -2669,6 +2791,11 @@ export type Database = {
           variant_id: string
         }[]
       }
+      skip_subscription_cycle: {
+        Args: { p_subscription_id: string }
+        Returns: boolean
+      }
+      subscription_apply_token: { Args: { p_token: string }; Returns: Json }
       tables_without_rls: { Args: never; Returns: string[] }
     }
     Enums: {

@@ -180,7 +180,33 @@
       "title": "Loyalty points",
       "points": "{count, plural, =0 {0 points} one {# point} other {# points}}",
       "toNextReward": "{count} more points until your next reward.",
-      "readyToRedeem": "You can exchange your points for a coupon."
+      "readyToRedeem": "You can exchange your points for a coupon.",
+      "ledgerTitle": "Your points",
+      "balance": "{count, plural, =0 {0 points} one {# point} other {# points}}",
+      "redeemTitle": "Exchange points",
+      "redeemBody": "Turn {points} points into a {value} coupon.",
+      "redeem": "Exchange {points} points",
+      "redeeming": "Exchanging…",
+      "redeemedTitle": "Here is your code",
+      "redeemedBody": "Use it at checkout. It is worth {value} and can be used once, within 90 days.",
+      "copyCode": "Copy code",
+      "copied": "Copied",
+      "terms": "You earn one point per euro on delivered orders. Points come back off if an order is refunded. They do not expire.",
+      "emptyLedger": "No points yet. They arrive when your first order is delivered.",
+      "reason": {
+        "earn_order": "Order delivered",
+        "redeem": "Exchanged for a coupon",
+        "adjustment": "Adjustment",
+        "expiry": "Expired",
+        "clawback": "Order refunded"
+      },
+      "errors": {
+        "signedOut": "Please sign in first.",
+        "insufficient": "You do not have enough points yet.",
+        "generic": "Something went wrong. Please try again."
+      },
+      "ledgerActivity": "Activity",
+      "ledgerPoints": "Points"
     },
     "settings": {
       "title": "Settings",
@@ -193,6 +219,59 @@
       "saved": "Your changes were saved.",
       "changePassword": "Change password",
       "passwordChanged": "Your password was updated."
+    },
+    "subscriptions": {
+      "title": "Subscriptions",
+      "empty": "You have no subscriptions.",
+      "emptyHint": "Choose \"Subscribe and save\" on any product to set one up.",
+      "nextDelivery": "Next delivery {date}",
+      "everyDays": "Every {count} days",
+      "statusActive": "Active",
+      "statusPaused": "Paused",
+      "statusCancelled": "Cancelled",
+      "pausedUntil": "Paused until {date}",
+      "pausedIndefinitely": "Paused. Restart it whenever you like.",
+      "cancelledOn": "Cancelled {date}",
+      "codNote": "You pay the courier on delivery, as with any order.",
+      "subtotal": "Items",
+      "discount": "Subscription discount",
+      "unavailable": "Not available right now — this line will be left out of the next delivery.",
+      "failuresWarning": "We could not create the last {count} deliveries. Check the items below are still available.",
+      "itemsHeading": "What arrives",
+      "ordersHeading": "Deliveries so far",
+      "noOrders": "Nothing has been delivered yet.",
+      "quantity": "Quantity",
+      "remove": "Remove",
+      "skip": "Skip next delivery",
+      "skipping": "Skipping…",
+      "pause": "Pause",
+      "pausing": "Pausing…",
+      "resume": "Restart",
+      "resuming": "Restarting…",
+      "changeFrequency": "Change how often",
+      "save": "Save",
+      "saving": "Saving…",
+      "cancel": "Cancel subscription",
+      "cancelling": "Cancelling…",
+      "cancelConfirm": "Cancel this subscription?",
+      "cancelReason": "Why are you cancelling? (optional)",
+      "keepIt": "Keep it",
+      "resumeOn": "Restart on (optional)",
+      "errors": {
+        "signedOut": "Please sign in first.",
+        "notFound": "That subscription could not be found.",
+        "generic": "Something went wrong. Please try again."
+      },
+      "oneClick": {
+        "skippedTitle": "Delivery skipped",
+        "skippedBody": "We will not send this one. Your next delivery moves on by one cycle.",
+        "pausedTitle": "Subscription paused",
+        "pausedBody": "No more deliveries until you restart it. Nothing has been charged.",
+        "failedTitle": "This link has expired",
+        "failedBody": "The link is no longer valid — it may already have been used, or the delivery may have gone out. You can manage everything from your account.",
+        "manage": "Manage subscriptions"
+      },
+      "browseShop": "Browse the shop"
     }
   },
   "shop": {
@@ -684,5 +763,14 @@
   },
   "legal": {
     "lastUpdated": "Last updated {date}"
-  }
+  },
+  "subscribe": {
+    "oneTime": "One-time purchase",
+    "subscribe": "Subscribe and save {pct}%",
+    "frequency": "Deliver every",
+    "days": "{count} days",
+    "note": "You pay on delivery each time. Skip, pause or cancel whenever you like — no fees, no notice period.",
+    "added": "Added as a subscription"
+  },
+  "admin": {}
 }
