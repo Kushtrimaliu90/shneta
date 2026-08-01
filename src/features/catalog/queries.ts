@@ -162,7 +162,7 @@ async function fetchProduct(slug: string): Promise<ProductDetail | null> {
     .from('products')
     .select(
       `id, slug, name, subtitle, description, how_to_use, warnings, form, serving_size,
-       dietary_tags, rating_avg, rating_count, updated_at,
+       dietary_tags, rating_avg, rating_count, updated_at, seo,
        brands!inner ( slug, name ),
        product_variants ( id, sku, name, options, price_cents, compare_at_price_cents, is_default, position, is_active ),
        product_images ( storage_path, alt, position ),
@@ -199,6 +199,7 @@ async function fetchProduct(slug: string): Promise<ProductDetail | null> {
     rating_avg: number;
     rating_count: number;
     updated_at: string;
+    seo: { title?: unknown; description?: unknown } | null;
     brands: { slug: string; name: string };
     product_variants: {
       id: string;
@@ -308,6 +309,8 @@ async function fetchProduct(slug: string): Promise<ProductDetail | null> {
     images: [...record.product_images]
       .sort((a, b) => a.position - b.position)
       .map((image) => ({ path: image.storage_path, alt: asLocalizedField(image.alt) })),
+    seoTitle: asLocalizedField(record.seo?.title),
+    seoDescription: asLocalizedField(record.seo?.description),
   };
 }
 
@@ -476,7 +479,16 @@ const readBrandBySlug = async (slug: string) => {
   };
 };
 
-export const getGoalBySlug = cache(async (slug: string) => {
+/*
+ * The eighth taxonomy read, and the one docs/13 §K1 missed.
+ *
+ * It sat here below the others, written as a plain `cache()` like the seven that were fixed, and
+ * was not caught because §K1 was found by a *product* journey — nothing edited a health goal, so
+ * nothing could observe the goal page staying stale. M6 makes goals editable in the panel, which
+ * is exactly what would have turned this into "I renamed it and the site still says the old
+ * name" five minutes at a time.
+ */
+const readGoalBySlug = async (slug: string) => {
   const supabase = createPublicClient();
   const { data } = await supabase
     .from('health_goals')
@@ -500,7 +512,11 @@ export const getGoalBySlug = cache(async (slug: string) => {
     description: asLocalizedField(goal.description),
     icon: goal.icon,
   };
-});
+};
+
+export const getGoalBySlug = taxonomyCache('goal', CACHE_TAGS.goals, (slug: string) =>
+  readGoalBySlug(slug),
+);
 
 /** docs/05 §6 — searchable A–Z list with a category filter (vitamin, mineral, herb…). */
 const readIngredients = async () => {

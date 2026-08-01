@@ -223,14 +223,24 @@ const NAV: NavSection[] = [
 ];
 
 /**
- * Routes that actually exist. M5 ships the dashboard and orders; the rest arrive with
- * M6–M10 and are hidden until then rather than linking an operator to a 404.
+ * Routes that actually exist. M5 ships the dashboard and orders, M6 the catalogue and
+ * compliance; the rest arrive with M7–M10 and are hidden until then rather than linking an
+ * operator to a 404.
  *
  * A list rather than a filesystem check because this file is imported by a client component
  * (the sidebar) and cannot read the filesystem. Extend it in the same commit that adds
  * the page.
  */
-const IMPLEMENTED = new Set(['/admin', '/admin/orders', '/admin/products']);
+const IMPLEMENTED = new Set([
+  '/admin',
+  '/admin/orders',
+  '/admin/products',
+  '/admin/categories',
+  '/admin/brands',
+  '/admin/ingredients',
+  '/admin/goals',
+  '/admin/compliance',
+]);
 
 /** The sections and items this role may see, with empty sections dropped. */
 export function visibleNav(role: string | null | undefined): NavSection[] {

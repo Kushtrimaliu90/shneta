@@ -140,6 +140,8 @@ export default async function AdminProductEditorPage({ params }: Props) {
             brands={options.brands}
             categories={options.categories}
             goals={options.goals}
+            ingredients={options.ingredients}
+            certifications={options.certifications}
             /*
              * The bucket is public (migration 12), so admin thumbnails are a plain URL rather
              * than a signed one — signing 20 thumbnails per page render would be work for no

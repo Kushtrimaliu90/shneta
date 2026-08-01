@@ -590,6 +590,150 @@ Everything downstream behaves correctly — `v_product_stock` reports `out_of_st
 with no inventory row, the BuyBox disables and labels the button, checkout would refuse it. The
 assertion documents the boundary; the day inventory lands, it is what should change.
 
+## L. What finishing the catalogue admin taught us
+
+§K covers journey 8. This covers the rest of M6 — the four taxonomy screens, the compliance
+queue and the editor's last three tabs.
+
+### L1 · Four entities, one module, and a type error worth keeping
+
+Brands, categories, health goals and ingredients are the same editing problem: a slug, a name,
+some bilingual prose, an order, an on/off switch. They are built as one `taxonomy-actions.ts`
+and one `TaxonomyAdmin` component, with the differences declared in `taxonomy-config.ts` rather
+than branched on inside. Four near-identical files would drift — one would gain a duplicate-slug
+message the others lack, one would forget to purge its tag.
+
+The first version wrote all four tables through a shared `Record<string, unknown>` payload. That
+compiles, and the generated database types refuse it. **The refusal was right**, and for the
+exact reason this milestone had already learned the hard way: ordering categories by `position`
+when the column is `sort_order` (§K, `getEditorOptions`) failed silently at runtime and cost an
+afternoon. Four short `switch` branches with concrete payloads buy compile-time proof that every
+column exists on the table being written. `as never` would have restored precisely the hole the
+types were closing.
+
+### L2 · Hiding a parent category silently rebuilds the menu
+
+`getCategoryTree` attaches each node to its parent and treats the parentless as roots. RLS hides
+an inactive category from anonymous reads. Put those together: switching off "Vitamins" does not
+hide "Vitamin D" and "Vitamin C" — it **promotes them to the top level of the navigation**.
+Nothing errors, nothing 404s, and the menu is quietly wrong.
+
+The same shape one step further: setting a category's parent to one of its own descendants makes
+every category in the loop attach to another loop member and none to a root, so the whole branch
+disappears from the menu without a single error.
+
+**Fix:** both are refused in `toggleTaxonomyActive` / `saveTaxonomy` with their own messages —
+`hasChildren` and `categoryCycle`. Checked in the action rather than the database, deliberately:
+they are workflow rules about what an operator may do next, not invariants the data must always
+satisfy. An inactive category that still has products is a perfectly valid state to arrive at, by
+unpublishing the products first.
+
+### L3 · A queue whose items do not leave when you act on them
+
+`approveProduct` supports approving without publishing, and an approved draft is a legitimate
+state. Putting an "Approve only" button in the compliance queue looked like free functionality —
+until the item stayed in the queue afterwards with no sign it had been dealt with, and the next
+reviewer read it again.
+
+Making it work needs a status the schema does not have: "approved, awaiting launch". Inventing
+one in a UI component is not the place. The queue offers approve-and-publish or reject; the
+product page, which shows the approval state directly, is where an approval without a publication
+belongs. Noted in docs/14 rather than half-built.
+
+### L4 · A writer with no reader is the same defect as a purge with no tag
+
+The SEO tab writes `products.seo`. Nothing on the storefront read that column — page metadata
+was derived from the name and subtitle — so shipping the editor alone would have produced a
+form that appears to work and changes nothing an actual visitor sees.
+
+That is §K1 wearing different clothes: `revalidatePublic` purging tags no read carried was
+exactly a writer with no reader, and it survived two milestones. So the PDP's `generateMetadata`
+now prefers the override and falls back to the derived copy, in the same change. **Ship the
+reader with the writer, or ship neither.**
+
+The same rule is why `categories.image_path`, `health_goals.image_path`, the `seo` column on the
+four taxonomy tables and lab-report uploads are _not_ in this milestone: no component renders
+them yet. Brand logos are, because `readBrands` and `getBrandBySlug` do.
+
+### L5 · Departure from spec: numbers instead of drag-and-drop
+
+docs/06 §4 asks for a category tree with drag-reorder and reparent, and §7 for reorderable goal
+tiles. Both ship as a plain `sort_order` number field and a "sits inside" select.
+
+It is less pleasant and it works without JavaScript, is unambiguous over a hierarchy, and gets
+the catalogue enterable now. The drag interaction can replace it later without changing a single
+column. What would have been unacceptable is shipping the _data_ wrong to get a nicer control.
+
+### L6 · The label posts as one JSON field
+
+`product_ingredients` rows are composite — ingredient, amount, unit, %NRV, per-serving. FormData
+can carry repeated keys, but reconstructing rows from five parallel arrays depends on those
+arrays staying index-aligned, and **a browser omits an unchecked checkbox entirely**, which
+breaks exactly that alignment: uncheck "per serving" on row two and rows three onward silently
+shift. One JSON field has no such failure mode.
+
+The write is delete-then-insert rather than upsert, because the submission is the complete label
+and an ingredient the operator removed has to disappear. The two statements are not in one
+transaction — PostgREST has none — so a failure between them leaves the label empty rather than
+half-wrong. That is the better failure: an empty ingredient table is obviously broken and gets
+re-saved, whereas a silently merged one looks correct.
+
+The same fact bit the taxonomy editor in a quieter way: `isActive: z.coerce.boolean().default(true)`
+meant an unticked "visible on the storefront" box — absent from the payload — was read as
+"unspecified" and defaulted back to `true`. Every save silently re-activated the row, and the
+only way to hide anything was the separate Hide button. **For a checkbox that is always
+rendered, absent means unchecked, and a schema default is the wrong tool.**
+
+### L7 · The eighth taxonomy read, still untagged
+
+§K1 wrapped seven catalogue reads in `unstable_cache`. `getGoalBySlug` sat immediately below
+them, written the same way, and was missed — because §K1 was found by a _product_ journey.
+Nothing in the suite edited a health goal, so nothing could observe the goal page staying stale.
+
+M6 makes goals editable in the panel, which is exactly what turns a missed tag into "I renamed
+it and the site still shows the old name" for five minutes at a time. Now wrapped like the other
+seven, and `an edit to a brand reaches the storefront immediately` is the test that would catch
+the class — a taxonomy edit observed from the storefront, which nothing did before.
+
+`listFeaturedProducts` is deliberately left as a plain `cache()`: it delegates to `listProducts`,
+which is tagged, so the persistent layer is already covered.
+
+### L8 · An assertion that the test itself satisfies
+
+`await expect(page.getByRole('cell', { name: 'After Rename' })).toBeVisible()` — meant to wait
+for a save to land — passed the instant the operator's own keystrokes did. The editor renders
+inside a `<td>`, and **the accessible name of a table cell includes the values of the inputs
+inside it**. The wait returned before the Server Action had even been dispatched.
+
+Everything after it then read a row that had not changed yet, and the failure surfaced three
+steps later as an apparently stale storefront. That sent an hour into the cache layer — building
+purge probes, comparing route-handler and Server Action invalidation, reading the Data Cache
+semantics — for a defect that was never there. The tell, in hindsight: a standalone probe of the
+same purge worked every time.
+
+**The rule:** an assertion that can be satisfied by what the test just typed is not an
+assertion. For a Server Action, the signal that it finished has to come from the database:
+
+```ts
+await expect.poll(async () => (await db().from('brands').select('name')…).data?.name)
+  .toBe('After Rename');
+```
+
+Same family as §K2 — there, a substring matched explanatory prose; here, a locator matched the
+input's own value. Both let a test pass while the write did nothing, and both cost far more to
+diagnose than the code they were guarding.
+
+### L9 · A tester's typo that accuses the code
+
+The rejection test asked for `audit_logs.changes`. The column is `before` / `after`. PostgREST
+answers an unknown column with an **error and a null body**, and `data ?? []` turns that into a
+confident empty array — so the test reported "a rejection must be audited: expected 1, received
+0" while the audit row sat in the table.
+
+Every query in a test that concludes "the row is missing" now asserts `error` is null first.
+The third instance in this codebase of a swallowed Supabase error changing the meaning of a
+result (see §K, `getEditorOptions`), and the reason `admin-queries.ts` logs each failure.
+
 ---
 
 ## E. Stack decisions taken at M0

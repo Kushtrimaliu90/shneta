@@ -33,17 +33,26 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!product) return {};
 
   const name = pickLocale(product.name, locale);
+
+  /*
+   * docs/06 §3.5 — the editor's SEO override wins, and an empty one falls through to the
+   * catalogue copy. Overriding is the exception: most products want their own name, and a field
+   * that has to be filled in every time is a field nobody keeps current.
+   */
+  const title = pickLocale(product.seoTitle, locale) || name;
   const description =
-    pickLocale(product.subtitle, locale) || truncate(pickLocale(product.description, locale), 155);
+    pickLocale(product.seoDescription, locale) ||
+    pickLocale(product.subtitle, locale) ||
+    truncate(pickLocale(product.description, locale), 155);
 
   return {
-    title: name,
+    title,
     description,
     alternates: {
       canonical: `/product/${slug}`,
       languages: { sq: `/product/${slug}`, en: `/en/product/${slug}` },
     },
-    openGraph: { title: name, description, type: 'website' },
+    openGraph: { title, description, type: 'website' },
   };
 }
 

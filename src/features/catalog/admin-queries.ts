@@ -146,6 +146,16 @@ export interface AdminVariant {
   position: number;
 }
 
+/** docs/06 §3.3 — one row of the supplement facts table. */
+export interface AdminLabelRow {
+  ingredientId: string;
+  amount: number | null;
+  unit: string | null;
+  nrvPct: number | null;
+  perServing: boolean;
+  position: number;
+}
+
 export interface AdminProduct {
   id: string;
   slug: string;
@@ -169,6 +179,10 @@ export interface AdminProduct {
   primaryCategoryId: string | null;
   categoryIds: string[];
   goalIds: string[];
+  label: AdminLabelRow[];
+  certificationIds: string[];
+  seoTitle: LocalizedField;
+  seoDescription: LocalizedField;
   /** Every reason this product cannot be published right now, in the order to fix them. */
   publishBlockers: string[];
 }
@@ -208,6 +222,16 @@ interface RawProduct {
   }[];
   product_categories: { category_id: string; is_primary: boolean }[];
   product_health_goals: { goal_id: string }[];
+  product_ingredients: {
+    ingredient_id: string;
+    amount: number | null;
+    unit: string | null;
+    nrv_pct: number | null;
+    per_serving: boolean;
+    position: number;
+  }[];
+  product_certifications: { certification_id: string }[];
+  seo: { title?: LocalizedField; description?: LocalizedField } | null;
 }
 
 export const getAdminProduct = cache(async (id: string): Promise<AdminProduct | null> => {
@@ -217,11 +241,13 @@ export const getAdminProduct = cache(async (id: string): Promise<AdminProduct | 
     .from('products')
     .select(
       `id, slug, brand_id, name, subtitle, description, how_to_use, warnings, form,
-       serving_size, dietary_tags, status, is_featured, published_at, approved_by, approved_at,
+       serving_size, dietary_tags, status, is_featured, published_at, approved_by, approved_at, seo,
        product_variants ( id, sku, name, price_cents, compare_at_price_cents, is_active, is_default, position ),
        product_images ( id, storage_path, alt, position ),
        product_categories ( category_id, is_primary ),
-       product_health_goals ( goal_id )`,
+       product_health_goals ( goal_id ),
+       product_ingredients ( ingredient_id, amount, unit, nrv_pct, per_serving, position ),
+       product_certifications ( certification_id )`,
     )
     .eq('id', id)
     .is('deleted_at', null)
@@ -293,26 +319,43 @@ export const getAdminProduct = cache(async (id: string): Promise<AdminProduct | 
     primaryCategoryId: primary?.category_id ?? null,
     categoryIds: raw.product_categories.map((link) => link.category_id),
     goalIds: raw.product_health_goals.map((link) => link.goal_id),
+    label: [...raw.product_ingredients]
+      .sort((a, b) => a.position - b.position)
+      .map((row) => ({
+        ingredientId: row.ingredient_id,
+        amount: row.amount,
+        unit: row.unit,
+        nrvPct: row.nrv_pct,
+        perServing: row.per_serving,
+        position: row.position,
+      })),
+    certificationIds: raw.product_certifications.map((link) => link.certification_id),
+    seoTitle: raw.seo?.title ?? null,
+    seoDescription: raw.seo?.description ?? null,
     publishBlockers,
   };
 });
 
-/** Options for the brand, category and goal selects. Small tables; read whole. */
+/** Options for every picker in the editor. Small tables; read whole. */
 export const getEditorOptions = cache(
   async (): Promise<{
     brands: { id: string; name: string }[];
     categories: { id: string; name: LocalizedField }[];
     goals: { id: string; name: LocalizedField }[];
+    ingredients: { id: string; name: LocalizedField; slug: string }[];
+    certifications: { id: string; name: LocalizedField }[];
   }> => {
     const supabase = await createClient();
 
-    const [brands, categories, goals] = await Promise.all([
+    const [brands, categories, goals, ingredients, certifications] = await Promise.all([
       supabase.from('brands').select('id, name').order('name'),
       // `sort_order`, not `position` — the column is named differently here than on
       // shipping_methods, and the first version of this ordered by a column that does not
       // exist. See the note below on why that was so hard to see.
       supabase.from('categories').select('id, name').order('sort_order'),
       supabase.from('health_goals').select('id, name').order('sort_order'),
+      supabase.from('ingredients').select('id, name, slug').order('slug'),
+      supabase.from('certifications').select('id, name').order('slug'),
     ]);
 
     /*
@@ -330,6 +373,8 @@ export const getEditorOptions = cache(
       ['brands', brands],
       ['categories', categories],
       ['health_goals', goals],
+      ['ingredients', ingredients],
+      ['certifications', certifications],
     ] as const) {
       if (result.error) {
         logger.error('Editor options query failed', { table, cause: result.error.message });
@@ -340,6 +385,8 @@ export const getEditorOptions = cache(
       brands: (brands.data ?? []) as { id: string; name: string }[],
       categories: (categories.data ?? []) as { id: string; name: LocalizedField }[],
       goals: (goals.data ?? []) as { id: string; name: LocalizedField }[],
+      ingredients: (ingredients.data ?? []) as { id: string; name: LocalizedField; slug: string }[],
+      certifications: (certifications.data ?? []) as { id: string; name: LocalizedField }[],
     };
   },
 );

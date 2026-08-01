@@ -126,3 +126,48 @@ export const createProductSchema = z.object({
   brandId: uuid,
   nameSq: z.string().trim().min(1, 'REQUIRED').max(160),
 });
+
+/**
+ * docs/06 §3.3 — the ingredient label, submitted as a whole.
+ *
+ * One row per ingredient, all of them at once, because a supplement label is read as a unit:
+ * the amounts have to add up against the serving size, and saving row four independently of
+ * row three invites a label that is internally inconsistent between two saves.
+ *
+ * Amount arrives as a string because it is a decimal an editor types ("2.5"), and `coerce.number`
+ * would silently accept `1e3`. It is parsed by the action with the same care as a price.
+ */
+export const productIngredientRowSchema = z.object({
+  ingredientId: uuid,
+  amount: z.string().trim().max(20).optional().or(z.literal('')),
+  unit: z.string().trim().max(16).optional().or(z.literal('')),
+  nrvPct: z.string().trim().max(8).optional().or(z.literal('')),
+  perServing: z.coerce.boolean().default(true),
+});
+
+export const productIngredientsSchema = z.object({
+  productId: uuid,
+  /** Serialised as JSON: a variable-length list of composite rows does not survive FormData flat. */
+  rows: z.string().max(20000),
+});
+
+/**
+ * docs/06 §3.5 — SEO overrides.
+ *
+ * Both locales optional in both fields. Empty means "derive it", which is what the PDP does when
+ * the override is absent — an override that has to be filled in for every product is an override
+ * nobody maintains.
+ */
+export const productSeoSchema = z.object({
+  productId: uuid,
+  titleSq: z.string().trim().max(70).optional().or(z.literal('')),
+  titleEn: z.string().trim().max(70).optional().or(z.literal('')),
+  descriptionSq: z.string().trim().max(180).optional().or(z.literal('')),
+  descriptionEn: z.string().trim().max(180).optional().or(z.literal('')),
+});
+
+/** docs/06 §3.6 — which certifications this product carries. */
+export const productCertificationsSchema = z.object({
+  productId: uuid,
+  certificationIds: z.array(uuid).default([]),
+});

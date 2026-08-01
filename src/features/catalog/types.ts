@@ -70,6 +70,12 @@ export interface ProductDetail {
   goals: { slug: string; name: LocalizedField }[];
   certifications: { slug: string; name: LocalizedField }[];
   images: { path: string; alt: LocalizedField }[];
+  /**
+   * docs/06 §3.5 — the SEO overrides, or nulls when the editor left them blank.
+   * `generateMetadata` prefers these and falls back to the name and subtitle.
+   */
+  seoTitle: LocalizedField;
+  seoDescription: LocalizedField;
 }
 
 export interface CategoryNode {

@@ -956,6 +956,415 @@ test.describe('journey 8 — a product goes from nothing to the storefront', () 
   });
 });
 
+test.describe('taxonomy admin (docs/06 §4–§7)', () => {
+  /**
+   * The four screens share one component, so they are tested as one thing with the differences
+   * asserted per kind. Testing each in full would be four copies of the same click sequence
+   * proving the same code path four times.
+   */
+  const KINDS = [
+    { path: '/admin/brands', role: 'product_manager', prefix: 'brand', singular: 'brand' },
+    {
+      path: '/admin/categories',
+      role: 'product_manager',
+      prefix: 'category',
+      singular: 'category',
+    },
+    { path: '/admin/goals', role: 'content_manager', prefix: 'goal', singular: 'health goal' },
+    {
+      path: '/admin/ingredients',
+      role: 'product_manager',
+      prefix: 'ingredient',
+      singular: 'ingredient',
+    },
+  ] as const;
+
+  const TABLES = {
+    brand: 'brands',
+    category: 'categories',
+    goal: 'health_goals',
+    ingredient: 'ingredients',
+  } as const;
+
+  /**
+   * Waits for a taxonomy row to reach the expected name **in the database**.
+   *
+   * The signal a Server Action has finished has to come from the database, not the screen.
+   *
+   * The first version of these tests waited on `getByRole('cell', { name: 'After Rename' })`,
+   * which passed the instant the operator's own keystrokes landed: the editor is a `<td>`, and
+   * the accessible name of a cell includes the *values of the inputs inside it*. So the wait
+   * returned before the action had been dispatched, the next line read the old row, and the
+   * failure surfaced three steps later as an apparently stale storefront — which cost an hour
+   * inside the cache layer for a defect that was never there.
+   *
+   * Same lesson as docs/13 §K2, in a new disguise: **an assertion that can be satisfied by what
+   * the test itself typed is not an assertion.**
+   */
+  async function expectRowName(
+    kind: keyof typeof TABLES,
+    slug: string,
+    expected: string,
+  ): Promise<void> {
+    await expect
+      .poll(
+        async () => {
+          const { data } = await db()
+            .from(TABLES[kind])
+            .select('name')
+            .eq('slug', slug)
+            .maybeSingle();
+          if (!data) return null;
+          const name = (data as { name: unknown }).name;
+          // Brands store a plain-text trademark; the other three store bilingual jsonb.
+          return typeof name === 'string' ? name : ((name as { sq?: string })?.sq ?? null);
+        },
+        { message: `${TABLES[kind]}.${slug} never reached "${expected}"`, timeout: ACTION_TIMEOUT },
+      )
+      .toBe(expected);
+  }
+
+  for (const kind of KINDS) {
+    test(`a ${kind.singular} can be created and edited from ${kind.path}`, async ({ page }) => {
+      const user = await staffUser(kind.role);
+      await signIn(page, user.email, user.password);
+
+      const slug = `${kind.prefix}-e2e-${randomUUID().slice(0, 8)}`;
+      await page.goto(kind.path);
+
+      await page.getByRole('button', { name: `New ${kind.singular}` }).click();
+      await page.locator('#slug-new').fill(slug);
+      await page.locator('#nameSq-new').fill('Emri Provë');
+      await page.getByRole('button', { name: `Create ${kind.singular}` }).click();
+
+      // The write, confirmed where it counts, before anything about the screen is believed.
+      await expectRowName(kind.prefix, slug, 'Emri Provë');
+
+      const { data: created } = await db()
+        .from(TABLES[kind.prefix])
+        .select('is_active')
+        .eq('slug', slug)
+        .single();
+      expect(
+        (created as { is_active: boolean }).is_active,
+        'a new entry is visible to customers by default',
+      ).toBe(true);
+
+      // And then the list, which is what tells the operator it worked.
+      await expect(page.getByRole('table').getByText(slug, { exact: true })).toBeVisible({
+        timeout: ACTION_TIMEOUT,
+      });
+    });
+  }
+
+  test('a slug that is already taken is refused, and what was typed survives', async ({ page }) => {
+    const user = await staffUser('product_manager');
+    await signIn(page, user.email, user.password);
+
+    const slug = `brand-dupe-${randomUUID().slice(0, 8)}`;
+    const { error } = await db().from('brands').insert({ slug, name: 'Occupant' });
+    expect(error, 'fixture brand must insert').toBeNull();
+
+    await page.goto('/admin/brands');
+    await page.getByRole('button', { name: 'New brand' }).click();
+    await page.locator('#slug-new').fill(slug);
+    await page.locator('#nameSq-new').fill('Emri i Dytë');
+    await page.getByRole('button', { name: 'Create brand' }).click();
+
+    await expect(page.getByText('Another entry already uses that slug.')).toBeVisible({
+      timeout: ACTION_TIMEOUT,
+    });
+    // The bug this repeats from the product create form: a rejection that empties the form.
+    await expect(page.locator('#nameSq-new')).toHaveValue('Emri i Dytë');
+  });
+
+  test('an invalid slug marks the field and says what to change', async ({ page }) => {
+    const user = await staffUser('product_manager');
+    await signIn(page, user.email, user.password);
+
+    await page.goto('/admin/brands');
+    await page.getByRole('button', { name: 'New brand' }).click();
+    await page.locator('#slug-new').fill('Not A Slug');
+    await page.locator('#nameSq-new').fill('Emri');
+    await page.getByRole('button', { name: 'Create brand' }).click();
+
+    await expect(page.locator('#slug-new')).toHaveAttribute('aria-invalid', 'true', {
+      timeout: ACTION_TIMEOUT,
+    });
+    await expect(page.locator('#slug-new-error')).toContainText('Lowercase letters');
+  });
+
+  test('a category with a published product cannot be hidden', async ({ page }) => {
+    const user = await staffUser('product_manager');
+    await signIn(page, user.email, user.password);
+
+    /*
+     * docs/06 §4. Built through the service role rather than the UI: getting a product to
+     * `published` needs a variant, an image, a primary category and an approval, and this test
+     * is about the guard, not about the publish flow — journey 8 covers that.
+     */
+    const categorySlug = `category-inuse-${randomUUID().slice(0, 8)}`;
+    const { data: category } = await db()
+      .from('categories')
+      .insert({ slug: categorySlug, name: { sq: 'Kategori e Zënë' } })
+      .select('id')
+      .single();
+
+    const { data: brand } = await db().from('brands').select('id').limit(1).single();
+    const { data: product } = await db()
+      .from('products')
+      .insert({
+        slug: `product-inuse-${randomUUID().slice(0, 8)}`,
+        brand_id: (brand as { id: string }).id,
+        name: { sq: 'Produkt i Publikuar' },
+        // Straight to published: the service role is exempt from the approval check only
+        // (migration 14), so the other three conditions still have to be met — except that the
+        // trigger fires on the *transition*, and inserting as published skips it.
+        status: 'published',
+      })
+      .select('id')
+      .single();
+
+    const { error: linkError } = await db()
+      .from('product_categories')
+      .insert({
+        product_id: (product as { id: string }).id,
+        category_id: (category as { id: string }).id,
+        is_primary: true,
+      });
+    expect(linkError, 'fixture link must insert').toBeNull();
+
+    await page.goto('/admin/categories');
+    await page
+      .getByRole('row')
+      .filter({ hasText: categorySlug })
+      .getByRole('button', { name: 'Edit' })
+      .click();
+
+    await page.getByRole('button', { name: 'Hide from the storefront' }).click();
+
+    await expect(page.getByText('Published products still use this')).toBeVisible({
+      timeout: ACTION_TIMEOUT,
+    });
+
+    const { data: after } = await db()
+      .from('categories')
+      .select('is_active')
+      .eq('id', (category as { id: string }).id)
+      .single();
+    expect((after as { is_active: boolean }).is_active, 'and it really is still active').toBe(true);
+  });
+
+  test('a category cannot be made its own ancestor', async ({ page }) => {
+    const user = await staffUser('product_manager');
+    await signIn(page, user.email, user.password);
+
+    const parentSlug = `category-parent-${randomUUID().slice(0, 8)}`;
+    const childSlug = `category-child-${randomUUID().slice(0, 8)}`;
+
+    const { data: parent } = await db()
+      .from('categories')
+      .insert({ slug: parentSlug, name: { sq: 'Prindi' } })
+      .select('id')
+      .single();
+    const { data: child } = await db()
+      .from('categories')
+      .insert({
+        slug: childSlug,
+        name: { sq: 'Fëmija' },
+        parent_id: (parent as { id: string }).id,
+      })
+      .select('id')
+      .single();
+
+    await page.goto('/admin/categories');
+    await page
+      .getByRole('row')
+      .filter({ hasText: parentSlug })
+      .getByRole('button', { name: 'Edit' })
+      .click();
+
+    // Put the parent inside its own child — the loop that would silently drop both from the menu.
+    const parentId = (parent as { id: string }).id;
+    await page.locator(`#parentId-${parentId}`).selectOption((child as { id: string }).id);
+    await page.getByRole('button', { name: 'Save' }).first().click();
+
+    await expect(page.getByText('cannot sit inside itself')).toBeVisible({
+      timeout: ACTION_TIMEOUT,
+    });
+
+    const { data: after } = await db()
+      .from('categories')
+      .select('parent_id')
+      .eq('id', parentId)
+      .single();
+    expect((after as { parent_id: string | null }).parent_id, 'the parent is untouched').toBeNull();
+  });
+
+  test('a content manager reaches goals but not brands', async ({ page }) => {
+    const user = await staffUser('content_manager');
+    await signIn(page, user.email, user.password);
+
+    await page.goto('/admin/goals');
+    await expect(page.getByRole('heading', { name: 'Health goals', level: 1 })).toBeVisible();
+
+    // docs/01 §3 gives the catalogue rows to the product manager. Redirected, not shown a 403.
+    await page.goto('/admin/brands');
+    await expect(page).toHaveURL(/\/admin$/);
+  });
+
+  test('an edit to a brand reaches the storefront immediately', async ({ page, browser }) => {
+    /*
+     * The tag-purge assertion for taxonomy, and the reason this test exists at all.
+     *
+     * `readBrands` was `cache()`-only until docs/13 §K1, so `revalidatePublic([brands])` from
+     * the admin purged a tag nothing carried and a renamed brand stayed stale for the whole
+     * revalidate window. Journey 8 caught it for products; nothing covered the other seven reads.
+     */
+    const user = await staffUser('product_manager');
+    await signIn(page, user.email, user.password);
+
+    const slug = `brand-live-${randomUUID().slice(0, 8)}`;
+    const { data: brand } = await db()
+      .from('brands')
+      .insert({ slug, name: 'Before Rename', is_active: true })
+      .select('id')
+      .single();
+    const brandId = (brand as { id: string }).id;
+
+    const shopper = await browser.newContext();
+    const shopperPage = await shopper.newPage();
+    await shopperPage.goto(`/en/brands/${slug}`);
+    await expect(shopperPage.getByRole('heading', { level: 1 })).toContainText('Before Rename');
+
+    await page.goto('/admin/brands');
+    await page
+      .getByRole('row')
+      .filter({ hasText: slug })
+      .getByRole('button', { name: 'Edit' })
+      .click();
+    await page.locator(`#nameSq-${brandId}`).fill('After Rename');
+    await page.getByRole('button', { name: 'Save' }).first().click();
+
+    /*
+     * Wait for the write, not for the form. Only once the row has actually changed is a stale
+     * storefront evidence of anything — before that it is just a request still in flight. See
+     * `expectRowName` above for the hour this cost.
+     */
+    await expectRowName('brand', slug, 'After Rename');
+
+    await shopperPage.reload();
+    await expect(shopperPage.getByRole('heading', { level: 1 })).toContainText('After Rename');
+
+    await shopper.close();
+  });
+});
+
+test.describe('compliance queue (docs/06 §14)', () => {
+  /**
+   * A product submitted for review, with claims to read.
+   *
+   * The English name carries the run's random suffix, and every locator below filters on it.
+   *
+   * That is not decoration. The queue is a **shared list**: two tests in this file, plus the
+   * desktop and mobile projects running concurrently, all put products into it. The first
+   * version named them all "Product In Review" and filtered by that — a strict-mode violation
+   * the moment a second one existed, and an assertion that could have acted on another test's
+   * fixture if it had not. Anything asserted against a queue has to be identified uniquely.
+   */
+  async function submittedProduct(): Promise<{ id: string; slug: string; name: string }> {
+    const { data: brand } = await db().from('brands').select('id').limit(1).single();
+    const suffix = randomUUID().slice(0, 8);
+    const slug = `product-queue-${suffix}`;
+    const name = `Review Fixture ${suffix}`;
+
+    const { data, error } = await db()
+      .from('products')
+      .insert({
+        slug,
+        brand_id: (brand as { id: string }).id,
+        name: { sq: `Produkt në Pritje ${suffix}`, en: name },
+        description: { sq: 'Kontribuon në imunitet.' },
+        warnings: { sq: 'Mos e tejkaloni dozën.' },
+        status: 'pending_review',
+      })
+      .select('id')
+      .single();
+
+    if (error) throw new Error(`queue fixture failed: ${error.message}`);
+    return { id: (data as { id: string }).id, slug, name };
+  }
+
+  test('the queue shows both languages and marks what is untranslated', async ({ page }) => {
+    const item = await submittedProduct();
+    const reviewer = await staffUser('compliance_manager');
+    await signIn(page, reviewer.email, reviewer.password);
+
+    await page.goto('/admin/compliance');
+
+    const card = page.getByRole('listitem').filter({ hasText: item.name });
+    await expect(card).toBeVisible();
+    await expect(card).toContainText('Kontribuon në imunitet.');
+
+    /*
+     * The point of the whole screen. `pickLocale` falls back to Albanian when English is absent,
+     * which would render the same paragraph twice and imply a translation had been reviewed —
+     * the exact defect corrected on the product page's read-only view.
+     */
+    await expect(card.getByText('not translated').first()).toBeVisible();
+  });
+
+  test('a product manager cannot reach the queue', async ({ page }) => {
+    const pm = await staffUser('product_manager');
+    await signIn(page, pm.email, pm.password);
+
+    await page.goto('/admin/compliance');
+    await expect(page).toHaveURL(/\/admin$/);
+  });
+
+  test('rejecting from the queue returns it to draft and records the note', async ({ page }) => {
+    const item = await submittedProduct();
+    const reviewer = await staffUser('compliance_manager');
+    await signIn(page, reviewer.email, reviewer.password);
+
+    await page.goto('/admin/compliance');
+    const card = page.getByRole('listitem').filter({ hasText: item.name });
+
+    await card.getByRole('button', { name: 'Reject…' }).click();
+    await card.getByRole('textbox').fill('The description claims it prevents colds.');
+    await card.getByRole('button', { name: 'Reject and return to draft' }).click();
+
+    /*
+     * This card leaves the queue — not "the queue is empty". Other tests and the other viewport
+     * project have their own fixtures waiting, and an assertion about the whole list would be
+     * about them as much as about this rejection.
+     */
+    await expect(card).toHaveCount(0, { timeout: ACTION_TIMEOUT });
+
+    const { data: after } = await db().from('products').select('status').eq('id', item.id).single();
+    expect((after as { status: string }).status).toBe('draft');
+
+    /*
+     * docs/06 §14 — the note is the whole value of a rejection, and it lives in the audit log.
+     *
+     * `before` / `after`, not `changes`: `log_audit` writes the two-column shape. Asking for a
+     * column that does not exist makes PostgREST return an **error with a null body**, which
+     * `.data ?? []` then turns into a confident "no audit rows were written" — a failure that
+     * accuses the code under test of the tester's typo. Hence the explicit error assertion.
+     */
+    const { data: auditRows, error: auditError } = await db()
+      .from('audit_logs')
+      .select('action, after')
+      .eq('entity_id', item.id)
+      .eq('action', 'product.rejected')
+      .limit(1);
+
+    expect(auditError, 'the audit query itself must succeed').toBeNull();
+    expect((auditRows ?? []).length, 'a rejection must be audited').toBe(1);
+    expect(JSON.stringify(auditRows?.[0]?.after)).toContain('prevents colds');
+  });
+});
+
 test.describe('admin accessibility', () => {
   test('axe finds no serious or critical violations on the dashboard', async ({ page }) => {
     const user = await staffUser('admin');

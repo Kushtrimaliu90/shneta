@@ -10,10 +10,13 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js';
  * would have shown on the storefront. Cleanup has to be automatic, not remembered.
  *
  * Safety: only the fixture naming conventions are ever matched —
- *   · brands   `slug LIKE 'brand-%'`
- *   · products `slug LIKE 'product-%'`
- *   · emails   `LIKE '%@shneta.test'`
- * Real catalogue data cannot match those.
+ *   · brands      `slug LIKE 'brand-%'`
+ *   · products    `slug LIKE 'product-%'`
+ *   · categories  `slug LIKE 'category-%'`
+ *   · goals       `slug LIKE 'goal-%'`
+ *   · ingredients `slug LIKE 'ingredient-%'`
+ *   · emails      `LIKE '%@shneta.test'`
+ * Real catalogue data cannot match those — the seeded catalogue is slugged in Albanian.
  *
  * Deletion order matters: `stock_movements.variant_id` and `loyalty_transactions.order_id`
  * have no ON DELETE clause — those ledgers are deliberately durable — so their rows must
@@ -246,7 +249,64 @@ export async function purgeFixtures(
     record('products', (await db.from('products').delete().in('id', productIds).select('id')).data);
   }
 
+  /*
+   * Brands, and the logos under them.
+   *
+   * Same leak as product images and the same fix: `brand_assets` objects are pathed
+   * `{brandId}/…` by `createBrandLogoUploadUrl`, and nothing in the database references them, so
+   * dropping the row leaves the bytes. The ids have to be read before the delete, not after.
+   */
+  const { data: brands } = await db.from('brands').select('id').like('slug', 'brand-%');
+  const brandIds = (brands ?? []).map((row) => row.id);
+
+  if (brandIds.length > 0) {
+    const brandObjects: string[] = [];
+    for (const brandId of brandIds) {
+      const { data: objects } = await db.storage.from('brand-assets').list(brandId);
+      for (const object of objects ?? []) brandObjects.push(`${brandId}/${object.name}`);
+    }
+    if (brandObjects.length > 0) {
+      const { data: removed } = await db.storage.from('brand-assets').remove(brandObjects);
+      record('brand logos', removed);
+    }
+  }
+
   record('brands', (await db.from('brands').delete().like('slug', 'brand-%').select('id')).data);
+
+  /*
+   * Taxonomy fixtures from the M6 admin tests.
+   *
+   * Deleted last of the catalogue group and by prefix only — `category-%`, `goal-%`,
+   * `ingredient-%`. The seeded catalogue uses Albanian slugs (`vitaminat`, `gjumi`), so a real
+   * row cannot match, and a category created by a test is otherwise indistinguishable from one
+   * an operator made by hand.
+   *
+   * Children before parents: a test that creates a sub-category leaves `parent_id` pointing at
+   * another fixture row, and `categories.parent_id` is `on delete restrict`.
+   */
+  record(
+    'categories (children)',
+    (
+      await db
+        .from('categories')
+        .delete()
+        .like('slug', 'category-%')
+        .not('parent_id', 'is', null)
+        .select('id')
+    ).data,
+  );
+  record(
+    'categories',
+    (await db.from('categories').delete().like('slug', 'category-%').select('id')).data,
+  );
+  record(
+    'health_goals',
+    (await db.from('health_goals').delete().like('slug', 'goal-%').select('id')).data,
+  );
+  record(
+    'ingredients',
+    (await db.from('ingredients').delete().like('slug', 'ingredient-%').select('id')).data,
+  );
 
   // --- orders ---------------------------------------------------------------
   const { data: orders } = await db.from('orders').select('id').like('email', '%@shneta.test');

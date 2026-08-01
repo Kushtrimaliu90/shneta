@@ -11,9 +11,15 @@ import { CATALOG_ERRORS, DIETARY_TAGS, PRODUCT_FORMS } from '@/features/catalog/
 import {
   deactivateVariant,
   saveProductGeneral,
+  saveProductSeo,
   saveVariant,
   type CatalogState,
 } from '@/features/catalog/admin-actions';
+import {
+  saveProductCertifications,
+  saveProductIngredients,
+} from '@/features/catalog/label-actions';
+import { formatAdminDateTime } from '@/features/admin/copy';
 import { MediaTab } from '@/features/catalog/components/media-tab';
 import type { AdminProduct, AdminVariant } from '@/features/catalog/admin-queries';
 import { cn } from '@/lib/utils';
@@ -36,31 +42,42 @@ import { cn } from '@/lib/utils';
  * of a bilingual shop — the thing an editor most needs to see at a glance.
  */
 
-type Tab = 'general' | 'variants' | 'media';
+type Tab = 'general' | 'variants' | 'label' | 'media' | 'seo' | 'compliance';
 
 export function ProductEditor({
   product,
   brands,
   categories,
   goals,
+  ingredients,
+  certifications,
   imageBaseUrl,
 }: {
   product: AdminProduct;
   brands: { id: string; name: string }[];
   categories: { id: string; name: LocalizedField }[];
   goals: { id: string; name: LocalizedField }[];
+  ingredients: { id: string; name: LocalizedField; slug: string }[];
+  certifications: { id: string; name: LocalizedField }[];
   imageBaseUrl: string;
 }) {
   const [tab, setTab] = useState<Tab>('general');
 
   return (
     <div>
-      <div role="tablist" aria-label="Product sections" className="flex gap-1 border-b border-line">
+      <div
+        role="tablist"
+        aria-label="Product sections"
+        className="flex flex-wrap gap-1 border-b border-line"
+      >
         {(
           [
             ['general', 'General'],
             ['variants', `Variants (${product.variants.length})`],
+            ['label', `Ingredients (${product.label.length})`],
             ['media', `Media (${product.images.length})`],
+            ['seo', 'SEO'],
+            ['compliance', 'Compliance'],
           ] as const
         ).map(([key, label]) => (
           <button
@@ -86,8 +103,13 @@ export function ProductEditor({
           <GeneralTab product={product} brands={brands} categories={categories} goals={goals} />
         )}
         {tab === 'variants' && <VariantsTab product={product} />}
+        {tab === 'label' && <LabelTab product={product} ingredients={ingredients} />}
         {tab === 'media' && (
           <MediaTab productId={product.id} images={product.images} publicBaseUrl={imageBaseUrl} />
+        )}
+        {tab === 'seo' && <SeoTab product={product} />}
+        {tab === 'compliance' && (
+          <ComplianceTab product={product} certifications={certifications} />
         )}
       </div>
     </div>
@@ -614,6 +636,448 @@ function VariantForm({
           <ErrorAlert state={deactivateState} />
         </form>
       )}
+    </div>
+  );
+}
+
+/**
+ * docs/06 §3.3 — the supplement facts label.
+ *
+ * The one tab that is genuinely client-stateful. Rows can be added and removed before anything
+ * is saved, and the whole list posts as one JSON field — see `label-actions.ts` for why five
+ * parallel FormData arrays would not survive an unchecked checkbox.
+ *
+ * The %NRV column is why this matters beyond data entry: it is what a customer compares between
+ * two products, and until now it was only enterable by hand-writing SQL.
+ */
+function LabelTab({
+  product,
+  ingredients,
+}: {
+  product: AdminProduct;
+  ingredients: { id: string; name: LocalizedField; slug: string }[];
+}) {
+  const [state, formAction] = useActionState<CatalogState, FormData>(saveProductIngredients, null);
+  const [rows, setRows] = useState(() =>
+    product.label.map((row) => ({
+      ingredientId: row.ingredientId,
+      amount: row.amount == null ? '' : String(row.amount),
+      unit: row.unit ?? '',
+      nrvPct: row.nrvPct == null ? '' : String(row.nrvPct),
+      perServing: row.perServing,
+    })),
+  );
+
+  const update = (index: number, patch: Partial<(typeof rows)[number]>) =>
+    setRows((current) => current.map((row, i) => (i === index ? { ...row, ...patch } : row)));
+
+  const nameOf = (id: string) => {
+    const match = ingredients.find((ingredient) => ingredient.id === id);
+    return match ? pickLocale(match.name, 'en') || match.slug : id;
+  };
+
+  // Only ingredients not already on the label: the composite primary key rejects a repeat, and
+  // offering one is inviting the error rather than preventing it.
+  const available = ingredients.filter(
+    (ingredient) => !rows.some((row) => row.ingredientId === ingredient.id),
+  );
+
+  return (
+    <form action={formAction} className="max-w-3xl">
+      <input type="hidden" name="productId" value={product.id} />
+      <input type="hidden" name="rows" value={JSON.stringify(rows)} />
+
+      <p className="text-sm text-ink-600">
+        What one serving contains. Shown on the product page as the ingredient table, in this order.
+      </p>
+
+      {ingredients.length === 0 && (
+        <Alert tone="info" className="mt-3">
+          There are no ingredients to choose from yet. Add them under Ingredients first.
+        </Alert>
+      )}
+
+      <div className="mt-4 overflow-x-auto rounded-lg border border-line bg-surface">
+        <table className="w-full min-w-[40rem] border-collapse text-sm">
+          <caption className="sr-only">Ingredients in one serving</caption>
+          <thead>
+            <tr className="border-b border-line bg-forest-50 text-left">
+              {['Ingredient', 'Amount', 'Unit', '% NRV', 'Per serving'].map((heading) => (
+                <th
+                  key={heading}
+                  scope="col"
+                  className="px-3 py-2 font-ui text-xs font-semibold text-ink-600 uppercase"
+                >
+                  {heading}
+                </th>
+              ))}
+              <th scope="col" className="px-3 py-2">
+                <span className="sr-only">Actions</span>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.length === 0 && (
+              <tr>
+                <td colSpan={6} className="px-3 py-4 text-ink-600">
+                  Nothing on the label yet.
+                </td>
+              </tr>
+            )}
+            {rows.map((row, index) => (
+              <tr key={row.ingredientId} className="border-b border-line last:border-0">
+                <td className="px-3 py-2 text-ink-900">{nameOf(row.ingredientId)}</td>
+                <td className="px-3 py-2">
+                  <label htmlFor={`amount-${row.ingredientId}`} className="sr-only">
+                    Amount of {nameOf(row.ingredientId)}
+                  </label>
+                  <input
+                    id={`amount-${row.ingredientId}`}
+                    value={row.amount}
+                    inputMode="decimal"
+                    onChange={(event) => update(index, { amount: event.target.value })}
+                    className={cn(inputClass, 'mt-0 h-9 w-24')}
+                    data-numeric
+                  />
+                </td>
+                <td className="px-3 py-2">
+                  <label htmlFor={`unit-${row.ingredientId}`} className="sr-only">
+                    Unit for {nameOf(row.ingredientId)}
+                  </label>
+                  <input
+                    id={`unit-${row.ingredientId}`}
+                    value={row.unit}
+                    placeholder="mg"
+                    onChange={(event) => update(index, { unit: event.target.value })}
+                    className={cn(inputClass, 'mt-0 h-9 w-20')}
+                  />
+                </td>
+                <td className="px-3 py-2">
+                  <label htmlFor={`nrv-${row.ingredientId}`} className="sr-only">
+                    Percent NRV for {nameOf(row.ingredientId)}
+                  </label>
+                  <input
+                    id={`nrv-${row.ingredientId}`}
+                    value={row.nrvPct}
+                    inputMode="decimal"
+                    onChange={(event) => update(index, { nrvPct: event.target.value })}
+                    className={cn(inputClass, 'mt-0 h-9 w-20')}
+                    data-numeric
+                  />
+                </td>
+                <td className="px-3 py-2">
+                  <label
+                    htmlFor={`per-${row.ingredientId}`}
+                    className="flex items-center gap-1.5 text-xs text-ink-600"
+                  >
+                    <input
+                      id={`per-${row.ingredientId}`}
+                      type="checkbox"
+                      checked={row.perServing}
+                      onChange={(event) => update(index, { perServing: event.target.checked })}
+                      className="size-4 rounded-[3px] border border-line-strong"
+                    />
+                    per serving
+                  </label>
+                </td>
+                <td className="px-3 py-2 text-right">
+                  <button
+                    type="button"
+                    onClick={() => setRows((current) => current.filter((_, i) => i !== index))}
+                    className={buttonVariants({ variant: 'link', size: 'sm' })}
+                  >
+                    Remove
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {available.length > 0 && (
+        <div className="mt-3">
+          <label htmlFor="add-ingredient" className={labelClass}>
+            Add an ingredient
+          </label>
+          <select
+            id="add-ingredient"
+            value=""
+            onChange={(event) => {
+              const ingredientId = event.target.value;
+              if (!ingredientId) return;
+              setRows((current) => [
+                ...current,
+                { ingredientId, amount: '', unit: '', nrvPct: '', perServing: true },
+              ]);
+            }}
+            className={cn(inputClass, 'w-64')}
+          >
+            <option value="">Choose…</option>
+            {available.map((ingredient) => (
+              <option key={ingredient.id} value={ingredient.id}>
+                {pickLocale(ingredient.name, 'en') || ingredient.slug}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
+      <div className="mt-5">
+        <SubmitButton loadingLabel="Saving…">Save label</SubmitButton>
+        <Saved state={state} />
+        <ErrorAlert state={state} />
+      </div>
+    </form>
+  );
+}
+
+/**
+ * docs/06 §3.5 — search engine overrides.
+ *
+ * Blank means "use the product's own name and subtitle", which is what the PDP does. The
+ * character counters are advisory: a search engine truncates rather than rejects, so a hard limit
+ * would be inventing a rule, while no feedback at all leaves an editor guessing.
+ */
+function SeoTab({ product }: { product: AdminProduct }) {
+  const [state, formAction] = useActionState<CatalogState, FormData>(saveProductSeo, null);
+
+  const [values, setValues] = useState({
+    titleSq: (product.seoTitle as Record<string, string | undefined> | null)?.sq ?? '',
+    titleEn: (product.seoTitle as Record<string, string | undefined> | null)?.en ?? '',
+    descriptionSq: (product.seoDescription as Record<string, string | undefined> | null)?.sq ?? '',
+    descriptionEn: (product.seoDescription as Record<string, string | undefined> | null)?.en ?? '',
+  });
+
+  const set = (patch: Partial<typeof values>) => setValues((current) => ({ ...current, ...patch }));
+
+  const derivedTitle = pickLocale(product.name, 'sq');
+  const derivedDescription = pickLocale(product.subtitle, 'sq');
+
+  return (
+    <form action={formAction} className="flex max-w-3xl flex-col gap-5">
+      <input type="hidden" name="productId" value={product.id} />
+
+      <p className="text-sm text-ink-600">
+        Leave a field empty and the page uses the product&rsquo;s own name and subtitle. Fill these
+        in only when the catalogue wording is not what you want in a search result.
+      </p>
+
+      <div className="grid gap-3 sm:grid-cols-2">
+        <CountedField
+          id="seo-title-sq"
+          name="titleSq"
+          label="Title (Albanian)"
+          limit={60}
+          value={values.titleSq}
+          onChange={(next) => set({ titleSq: next })}
+          placeholder={derivedTitle}
+        />
+        <CountedField
+          id="seo-title-en"
+          name="titleEn"
+          label="Title (English)"
+          limit={60}
+          value={values.titleEn}
+          onChange={(next) => set({ titleEn: next })}
+          placeholder={derivedTitle}
+        />
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-2">
+        <CountedField
+          id="seo-desc-sq"
+          name="descriptionSq"
+          label="Description (Albanian)"
+          limit={155}
+          rows={3}
+          value={values.descriptionSq}
+          onChange={(next) => set({ descriptionSq: next })}
+          placeholder={derivedDescription}
+        />
+        <CountedField
+          id="seo-desc-en"
+          name="descriptionEn"
+          label="Description (English)"
+          limit={155}
+          rows={3}
+          value={values.descriptionEn}
+          onChange={(next) => set({ descriptionEn: next })}
+          placeholder={derivedDescription}
+        />
+      </div>
+
+      {/* Roughly what a search result looks like — enough to judge truncation, not a mock-up. */}
+      <div className="rounded-lg border border-line bg-surface p-4">
+        <p className="text-xs font-semibold tracking-wide text-ink-600 uppercase">Preview</p>
+        <p className="mt-2 text-sm text-ink-500">shtrejt.com › product › {product.slug}</p>
+        <p className="truncate text-base text-forest-800 underline underline-offset-2">
+          {values.titleSq || derivedTitle || product.slug}
+        </p>
+        <p className="mt-0.5 line-clamp-2 text-sm text-ink-600">
+          {values.descriptionSq || derivedDescription || '—'}
+        </p>
+      </div>
+
+      <div>
+        <SubmitButton loadingLabel="Saving…">Save SEO</SubmitButton>
+        <Saved state={state} />
+        <ErrorAlert state={state} />
+      </div>
+    </form>
+  );
+}
+
+/** A text field with a live character count, amber once it is past the useful length. */
+function CountedField({
+  id,
+  name,
+  label,
+  limit,
+  value,
+  onChange,
+  placeholder,
+  rows,
+}: {
+  id: string;
+  name: string;
+  label: string;
+  limit: number;
+  value: string;
+  onChange: (next: string) => void;
+  placeholder?: string;
+  rows?: number;
+}) {
+  const over = value.length > limit;
+
+  return (
+    <div>
+      <label htmlFor={id} className={labelClass}>
+        {label}
+      </label>
+      {rows ? (
+        <textarea
+          id={id}
+          name={name}
+          rows={rows}
+          value={value}
+          placeholder={placeholder}
+          onChange={(event) => onChange(event.target.value)}
+          className={areaClass}
+        />
+      ) : (
+        <input
+          id={id}
+          name={name}
+          value={value}
+          placeholder={placeholder}
+          onChange={(event) => onChange(event.target.value)}
+          className={inputClass}
+        />
+      )}
+      <p className={cn('mt-1 text-xs', over ? 'text-warning' : 'text-ink-500')}>
+        <span data-numeric>{value.length}</span> / {limit}
+        {over && ' — likely to be cut short in results'}
+      </p>
+    </div>
+  );
+}
+
+/**
+ * docs/06 §3.6 — certifications and the approval record.
+ *
+ * The approve and reject controls are in the page header (`ProductStatusControl`), where they
+ * belong: approving is a status transition, not a field. What lives here is the evidence a
+ * reviewer needs and the record of what was signed off.
+ *
+ * **Lab reports are not here.** The `lab-reports` bucket and table exist, private, but nothing on
+ * the storefront renders a certificate of analysis yet — an uploader for a document no customer
+ * can reach is a feature with no observable effect. It belongs with the PDP section that displays
+ * it (docs/05 §3), and is listed in docs/14 rather than half-built here.
+ */
+function ComplianceTab({
+  product,
+  certifications,
+}: {
+  product: AdminProduct;
+  certifications: { id: string; name: LocalizedField }[];
+}) {
+  const [state, formAction] = useActionState<CatalogState, FormData>(
+    saveProductCertifications,
+    null,
+  );
+
+  return (
+    <div className="flex max-w-3xl flex-col gap-6">
+      <div className="rounded-lg border border-line bg-surface p-4">
+        <h3 className="font-display text-sm font-semibold text-forest-900">Approval</h3>
+        {product.approvedBy ? (
+          <p className="mt-1.5 text-sm text-ink-600">
+            Approved
+            {product.approvedAt && (
+              <>
+                {' '}
+                <time dateTime={product.approvedAt} data-numeric>
+                  {formatAdminDateTime(product.approvedAt).display}
+                </time>
+              </>
+            )}
+            .
+          </p>
+        ) : (
+          <p className="mt-1.5 text-sm text-ink-600">
+            Not yet approved. A product cannot be published until someone in compliance has cleared
+            its claims — the control is in the header above.
+          </p>
+        )}
+        <p className="mt-2 text-xs text-ink-500">
+          {/* The reviewer's identity lives in `audit_logs`, which only admins read. Naming the
+              limitation beats showing a UUID and calling it a name. */}
+          The full history, including who approved and any rejection note, is in the audit log.
+        </p>
+      </div>
+
+      <form action={formAction}>
+        <input type="hidden" name="productId" value={product.id} />
+        <fieldset>
+          <legend className="text-xs font-semibold tracking-wide text-ink-600 uppercase">
+            Certifications
+          </legend>
+          <p className="mt-1 text-xs text-ink-600">
+            Only what the supplier can evidence. These render as badges on the product page, and a
+            badge is a claim like any other.
+          </p>
+          {certifications.length === 0 ? (
+            <p className="mt-2 text-sm text-ink-600">No certifications are set up yet.</p>
+          ) : (
+            <div className="mt-2 grid gap-2 sm:grid-cols-2">
+              {certifications.map((certification) => (
+                <label
+                  key={certification.id}
+                  htmlFor={`cert-${certification.id}`}
+                  className="flex items-center gap-1.5 text-sm"
+                >
+                  <input
+                    id={`cert-${certification.id}`}
+                    type="checkbox"
+                    name="certificationIds"
+                    value={certification.id}
+                    defaultChecked={product.certificationIds.includes(certification.id)}
+                    className="size-4 rounded-[3px] border border-line-strong"
+                  />
+                  {pickLocale(certification.name, 'en')}
+                </label>
+              ))}
+            </div>
+          )}
+        </fieldset>
+
+        <div className="mt-4">
+          <SubmitButton loadingLabel="Saving…">Save certifications</SubmitButton>
+          <Saved state={state} />
+          <ErrorAlert state={state} />
+        </div>
+      </form>
     </div>
   );
 }

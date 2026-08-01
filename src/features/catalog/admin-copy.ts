@@ -1,5 +1,6 @@
 import type { CatalogErrorKey } from '@/features/catalog/admin-actions';
 import type { MediaErrorKey } from '@/features/catalog/media-actions';
+import type { TaxonomyErrorKey } from '@/features/catalog/taxonomy-actions';
 
 /**
  * English strings for the catalogue admin — the same arrangement as `features/admin/copy.ts`.
@@ -8,10 +9,11 @@ import type { MediaErrorKey } from '@/features/catalog/media-actions';
  * this turns them into sentences. A `Record` keyed on the union means adding an error key
  * without a message is a compile error.
  *
- * Keyed on both unions because the Media tab renders errors from `media-actions.ts` through the
- * same map — one place an operator's error messages live, rather than one per action file.
+ * Keyed on all three unions because the Media tab renders errors from `media-actions.ts` and the
+ * taxonomy screens render errors from `taxonomy-actions.ts` through the same map — one place an
+ * operator's error messages live, rather than one per action file.
  */
-export const CATALOG_ERRORS: Record<CatalogErrorKey | MediaErrorKey, string> = {
+export const CATALOG_ERRORS: Record<CatalogErrorKey | MediaErrorKey | TaxonomyErrorKey, string> = {
   'admin.errors.forbidden': 'Your role does not allow that action.',
   'admin.errors.generic': 'Something went wrong. Please try again.',
   'admin.catalog.errors.checkFields': 'Check the fields marked below.',
@@ -29,6 +31,14 @@ export const CATALOG_ERRORS: Record<CatalogErrorKey | MediaErrorKey, string> = {
     'The upload did not complete. Check your connection and try again.',
   'admin.catalog.errors.fileTooLarge': 'That image is over 2 MB. Compress it and try again.',
   'admin.catalog.errors.fileType': 'Images must be WebP, JPEG, PNG or AVIF.',
+  'admin.catalog.errors.duplicateIngredient':
+    'The same ingredient is listed twice. Combine the two rows into one.',
+  'admin.catalog.errors.inUse':
+    'Published products still use this. Unpublish or recategorise them first.',
+  'admin.catalog.errors.hasChildren':
+    'This category still has visible sub-categories. Hiding it would move them to the top level of the menu — hide them first.',
+  'admin.catalog.errors.categoryCycle':
+    'A category cannot sit inside itself or inside one of its own sub-categories.',
 };
 
 /** The `product_form` enum from docs/03 §1. */

@@ -14,6 +14,7 @@ import {
   createProductSchema,
   deleteVariantSchema,
   productGeneralSchema,
+  productSeoSchema,
   productStatusSchema,
   rejectProductSchema,
   variantSchema,
@@ -43,7 +44,8 @@ export type CatalogErrorKey =
   | 'admin.catalog.errors.skuTaken'
   | 'admin.catalog.errors.invalidPrice'
   | 'admin.catalog.errors.publishBlocked'
-  | 'admin.catalog.errors.lastVariant';
+  | 'admin.catalog.errors.lastVariant'
+  | 'admin.catalog.errors.duplicateIngredient';
 
 /**
  * The failure branch carries `values` as well as `fieldErrors`.
@@ -522,6 +524,82 @@ export async function rejectProduct(
     return ok({});
   } catch (error) {
     logger.error('rejectProduct threw', describeError(error));
+    return catalogFail('admin.errors.generic');
+  }
+}
+
+/**
+ * docs/06 §3.5 — the SEO tab.
+ *
+ * Stored as `products.seo` = `{ title: {sq, en}, description: {sq, en} }`, and read by the PDP's
+ * `generateMetadata` in preference to the derived name and subtitle. Both halves shipped in the
+ * same change deliberately: an override nothing reads is a field that silently does nothing, and
+ * this milestone already produced one of those — `revalidatePublic` purging tags no read carried
+ * (docs/13 §K1). A writer without a reader is the same defect wearing different clothes.
+ *
+ * Empty means "derive it". An override that must be filled in for every product is an override
+ * nobody maintains, and a blank one is worse than a generated one.
+ */
+export async function saveProductSeo(
+  _previous: CatalogState,
+  formData: FormData,
+): Promise<CatalogState> {
+  const gate = await requireCapability('products.manage');
+  if (!gate.ok) return catalogFail(gate.error);
+
+  const parsed = productSeoSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) {
+    return withValues(
+      fromFieldErrors<CatalogErrorKey, { id?: string }>(
+        'admin.catalog.errors.checkFields',
+        parsed.error.flatten(),
+      ),
+      Object.fromEntries(formData),
+    );
+  }
+
+  const input = parsed.data;
+
+  try {
+    const supabase = await createClient();
+
+    const { data: existing } = await supabase
+      .from('products')
+      .select('slug')
+      .eq('id', input.productId)
+      .maybeSingle();
+    if (!existing) return catalogFail('admin.catalog.errors.notFound');
+
+    // Absent keys rather than empty strings, so `pickLocale` falls back instead of returning ''.
+    const localized = (sq?: string, en?: string) => {
+      const out: Record<string, string> = {};
+      if (sq) out.sq = sq;
+      if (en) out.en = en;
+      return out;
+    };
+
+    const { error } = await supabase
+      .from('products')
+      .update({
+        seo: {
+          title: localized(input.titleSq, input.titleEn),
+          description: localized(input.descriptionSq, input.descriptionEn),
+        },
+      })
+      .eq('id', input.productId);
+
+    if (error) {
+      logger.error('Save SEO failed', { cause: error.message });
+      return catalogFail(mapCatalogError(error.message));
+    }
+
+    await audit('product.seo_updated', 'product', input.productId, null, null);
+
+    revalidateProduct((existing as { slug: string }).slug);
+    revalidatePath(`/admin/products/${input.productId}`);
+    return ok({});
+  } catch (error) {
+    logger.error('saveProductSeo threw', describeError(error));
     return catalogFail('admin.errors.generic');
   }
 }
