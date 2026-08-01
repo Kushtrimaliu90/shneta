@@ -1,0 +1,56 @@
+import type { CatalogErrorKey } from '@/features/catalog/admin-actions';
+
+/**
+ * English strings for the catalogue admin — the same arrangement as `features/admin/copy.ts`.
+ *
+ * The admin UI has no next-intl provider (docs/01 §3), so actions return dotted identifiers and
+ * this turns them into sentences. A `Record` keyed on the union means adding an error key
+ * without a message is a compile error.
+ */
+export const CATALOG_ERRORS: Record<CatalogErrorKey, string> = {
+  'admin.errors.forbidden': 'Your role does not allow that action.',
+  'admin.errors.generic': 'Something went wrong. Please try again.',
+  'admin.catalog.errors.checkFields': 'Check the fields marked below.',
+  'admin.catalog.errors.notFound': 'That product no longer exists.',
+  'admin.catalog.errors.slugTaken': 'Another product already uses that slug.',
+  'admin.catalog.errors.slugLocked':
+    'The slug is locked once a product is published — changing it would break every existing link.',
+  'admin.catalog.errors.skuTaken': 'Another variant already uses that SKU.',
+  'admin.catalog.errors.invalidPrice': 'Enter a price like 9.90.',
+  'admin.catalog.errors.publishBlocked':
+    'This product does not meet the publishing requirements yet — see the checklist above.',
+  'admin.catalog.errors.lastVariant':
+    'A published product needs at least one active variant. Add another before deactivating this one.',
+};
+
+/** The `product_form` enum from docs/03 §1. */
+export const PRODUCT_FORMS = [
+  'capsule',
+  'tablet',
+  'softgel',
+  'powder',
+  'liquid',
+  'gummy',
+  'bar',
+  'spray',
+  'sachet',
+  'other',
+] as const;
+
+/** docs/03 §1 — the dietary tag vocabulary the storefront filters on. */
+export const DIETARY_TAGS = [
+  'vegan',
+  'vegetarian',
+  'gluten_free',
+  'sugar_free',
+  'lactose_free',
+  'halal',
+  'non_gmo',
+] as const;
+
+export const PRODUCT_STATUS_LABELS: Record<string, string> = {
+  draft: 'Draft',
+  pending_review: 'In review',
+  published: 'Published',
+  archived: 'Archived',
+};

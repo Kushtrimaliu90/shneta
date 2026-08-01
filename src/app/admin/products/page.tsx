@@ -191,20 +191,18 @@ export default async function AdminProductsPage({ searchParams }: Props) {
                     className="border-b border-line last:border-0 hover:bg-forest-50/60"
                   >
                     <td className="px-4 py-3">
-                      {/*
-                        Not a link yet — the editor is the next slice of M6. Offering one now
-                        would send an operator to a 404, which is the exact thing `IMPLEMENTED`
-                        in roles.ts exists to prevent, and a broken link inside the panel is
-                        worse than a plain row that tells the truth.
-
-                        Published products link to the storefront instead, which is a real
-                        destination and the one an operator actually wants from a catalogue
-                        list: "show me what the customer sees".
-                      */}
-                      <span className="font-medium text-ink-900">
+                      <Link
+                        href={`/admin/products/${row.id}`}
+                        className="rounded-sm font-medium text-forest-800 underline underline-offset-4"
+                      >
                         {pickLocale(row.name, 'en') || row.slug}
-                      </span>
+                      </Link>
                       <span className="block text-xs text-ink-500">
+                        {/*
+                          The slug doubles as a link to the live page for published products —
+                          "show me what the customer sees" is the other thing an operator wants
+                          from a catalogue row, and it saves them assembling the URL by hand.
+                        */}
                         {row.status === 'published' ? (
                           <Link
                             href={`/en/product/${row.slug}`}

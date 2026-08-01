@@ -287,9 +287,33 @@ export const getEditorOptions = cache(
 
     const [brands, categories, goals] = await Promise.all([
       supabase.from('brands').select('id, name').order('name'),
-      supabase.from('categories').select('id, name').order('position'),
-      supabase.from('health_goals').select('id, name').order('position'),
+      // `sort_order`, not `position` — the column is named differently here than on
+      // shipping_methods, and the first version of this ordered by a column that does not
+      // exist. See the note below on why that was so hard to see.
+      supabase.from('categories').select('id, name').order('sort_order'),
+      supabase.from('health_goals').select('id, name').order('sort_order'),
     ]);
+
+    /*
+     * Failures are logged, not swallowed.
+     *
+     * These three used to be `data ?? []`, so a query that errored produced an empty select
+     * with no trace anywhere. The symptom was an editor whose category list simply was not
+     * there, and a test that hung for ninety seconds waiting for a checkbox — neither of which
+     * points at "you ordered by a column that does not exist".
+     *
+     * Returning `[]` on failure is still right: a broken options list should not take the whole
+     * editor down when the rest of it is fine. But it has to say so.
+     */
+    for (const [table, result] of [
+      ['brands', brands],
+      ['categories', categories],
+      ['health_goals', goals],
+    ] as const) {
+      if (result.error) {
+        logger.error('Editor options query failed', { table, cause: result.error.message });
+      }
+    }
 
     return {
       brands: (brands.data ?? []) as { id: string; name: string }[],

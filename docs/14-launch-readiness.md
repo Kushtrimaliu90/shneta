@@ -50,20 +50,20 @@ Legend: ✅ done and verified · 🟡 partial · ⬜ not started · ➖ not appl
 
 ## 2 · Product — selling works, fulfilment does not
 
-| Milestone                                    | State | What it means is missing                                                                                                               |
-| -------------------------------------------- | ----- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| M0 · Scaffold                                | ✅    | —                                                                                                                                      |
-| M1 · Database and seed                       | ✅    | Schema + 24-product catalogue live. `scripts/seed-users.ts` and review fixtures outstanding                                            |
-| M2 · Auth and account shell                  | ✅    | Sign up / in / out, password reset, account overview and settings                                                                      |
-| M3 · Catalog browse                          | 🟡    | PLP, category, PDP, home, brands, goals, ingredients and SEO done. `/knowledge` and `/offers` outstanding                              |
-| M4 · Cart and COD checkout                   | ✅    | Guest cart, cart page, 4-step checkout, gated success page, order lookup. Confirmation email needs Resend (§6)                         |
-| M5 · Orders ops and admin core               | ✅    | Admin shell, order queue + detail, full state machine, shipment, refund, lifecycle emails, dashboard, print docs, customer order pages |
-| M6 · Admin catalog management                | ⬜    | **The blocking gap now.** Products can only be created by SQL, so the real catalogue cannot be entered                                 |
-| M7 · Reviews, wishlist, search, compare      | ⬜    |                                                                                                                                        |
-| M8 · Knowledge, offers, contact, newsletter  | 🟡    | Newsletter opt-in works; double opt-in email needs Resend (M8)                                                                         |
-| M9 · Subscriptions and loyalty               | ⬜    | RPCs and triggers exist and are tested; no UI                                                                                          |
-| M10 · Inventory ops, finder, remaining admin | ⬜    |                                                                                                                                        |
-| M11 · Hardening and launch                   | 🟡    | The ops half is done (this table §1). Performance, security and soak passes need the real product first                                |
+| Milestone                                    | State | What it means is missing                                                                                                                                                                                                                |
+| -------------------------------------------- | ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| M0 · Scaffold                                | ✅    | —                                                                                                                                                                                                                                       |
+| M1 · Database and seed                       | ✅    | Schema + 24-product catalogue live. `scripts/seed-users.ts` and review fixtures outstanding                                                                                                                                             |
+| M2 · Auth and account shell                  | ✅    | Sign up / in / out, password reset, account overview and settings                                                                                                                                                                       |
+| M3 · Catalog browse                          | 🟡    | PLP, category, PDP, home, brands, goals, ingredients and SEO done. `/knowledge` and `/offers` outstanding                                                                                                                               |
+| M4 · Cart and COD checkout                   | ✅    | Guest cart, cart page, 4-step checkout, gated success page, order lookup. Confirmation email needs Resend (§6)                                                                                                                          |
+| M5 · Orders ops and admin core               | ✅    | Admin shell, order queue + detail, full state machine, shipment, refund, lifecycle emails, dashboard, print docs, customer order pages                                                                                                  |
+| M6 · Admin catalog management                | 🟡    | **The blocking gap now.** Product list and editor (General, Variants) with the draft→review→publish workflow are in. Media upload, ingredients/SEO tabs, categories/brands/ingredients/goals admin and the compliance queue outstanding |
+| M7 · Reviews, wishlist, search, compare      | ⬜    |                                                                                                                                                                                                                                         |
+| M8 · Knowledge, offers, contact, newsletter  | 🟡    | Newsletter opt-in works; double opt-in email needs Resend (M8)                                                                                                                                                                          |
+| M9 · Subscriptions and loyalty               | ⬜    | RPCs and triggers exist and are tested; no UI                                                                                                                                                                                           |
+| M10 · Inventory ops, finder, remaining admin | ⬜    |                                                                                                                                                                                                                                         |
+| M11 · Hardening and launch                   | 🟡    | The ops half is done (this table §1). Performance, security and soak passes need the real product first                                                                                                                                 |
 
 ## 3 · Compliance and legal — must clear before any real customer
 
@@ -161,3 +161,30 @@ milestone means either a second Supabase project (the free tier allows two, so a
 project costs nothing) or installing Docker for `supabase start`. Deferring this is fine.
 Discovering it on launch day is not — which is why it is written here rather than left to be
 found.
+
+---
+
+## 8 · The demo catalogue cannot be re-published
+
+Migration 14 made publishing conditional on an active variant, an image, a primary category and
+compliance approval (docs/06 §3). Checking the 24 seeded products against it:
+
+    published products meeting the guard: 0 / 24
+    every one is missing: image, approval
+
+This is **not a regression** — the trigger fires on the transition _into_ published, so rows
+already published stay published and the storefront is unaffected. It is the guard correctly
+reporting that the fixture catalogue was never complete:
+
+- `pnpm seed:images` (docs/11 §10) was never written, so no product has a `product_images`
+  row. The storefront renders the branded fallback tile instead, which is why nobody noticed.
+- The seed sets `status = 'published'` directly, without an approver, because it runs as the
+  service role — which the guard exempts for exactly that reason.
+
+**What it means in practice:** archive a seeded product and you cannot restore it to published
+without adding an image and having compliance approve it. That is the correct behaviour, and it
+is a preview of the real workflow.
+
+**What it means for launch:** every real product needs an image before it can go live. That is
+already implied by §7 step 1, but the guard now enforces it rather than trusting the operator to
+remember — which is the right place for it.

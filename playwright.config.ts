@@ -34,7 +34,21 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  /*
+   * Two workers locally, not Playwright's default of half the CPU cores (four on this machine).
+   *
+   * The bottleneck is not the browser, it is the single small Supabase instance every spec
+   * shares. At four workers the checkout journeys, the admin journeys and the account journeys
+   * all run transactions against it at once, and `placeOrder` starts exceeding its 30 s
+   * assertion budget — which surfaces as "element(s) not found" on the success heading, with
+   * nothing in the server log, because nothing actually failed. It was merely still running.
+   *
+   * Raising the timeout instead would hide a real signal: if checkout takes 30 s, something is
+   * wrong, and the suite should say so. Capping concurrency keeps the deadline meaningful.
+   *
+   * CI stays at 1 for the same reason, more strictly.
+   */
+  workers: process.env.CI ? 1 : 2,
   reporter: process.env.CI ? [['github'], ['html', { open: 'never' }]] : [['list']],
   use: {
     baseURL,

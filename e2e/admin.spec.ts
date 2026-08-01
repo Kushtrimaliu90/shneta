@@ -558,6 +558,161 @@ test.describe('products list (docs/06 §3)', () => {
   });
 });
 
+test.describe('product editor (docs/06 §3, docs/07 §10)', () => {
+  /** A draft created directly, so the editor test is about editing rather than about creation. */
+  async function draftProduct(): Promise<{ id: string; slug: string }> {
+    const { data: brand } = await db().from('brands').select('id').limit(1).single();
+    const slug = `product-e2e-${randomUUID().slice(0, 8)}`;
+
+    const { data, error } = await db()
+      .from('products')
+      .insert({
+        slug,
+        brand_id: (brand as { id: string }).id,
+        name: { sq: 'Produkt provë' },
+        status: 'draft',
+      })
+      .select('id')
+      .single();
+
+    if (error) throw new Error(`draft fixture failed: ${error.message}`);
+    return { id: (data as { id: string }).id, slug };
+  }
+
+  test('the checklist names every reason publishing is blocked', async ({ page }) => {
+    const draft = await draftProduct();
+    const pm = await staffUser('product_manager');
+    await signIn(page, pm.email, pm.password);
+
+    await page.goto(`/admin/products/${draft.id}`);
+
+    /*
+     * All four at once. guard_product_publish raises one exception naming one missing thing, so
+     * without this an editor discovers the requirements over four round trips.
+     */
+    for (const blocker of [
+      'Add at least one active variant',
+      'Add at least one image',
+      'Choose a primary category',
+      'Needs compliance approval',
+    ]) {
+      await expect(page.getByText(blocker)).toBeVisible();
+    }
+  });
+
+  test('a product manager can submit for review but cannot publish', async ({ page }) => {
+    const draft = await draftProduct();
+    const pm = await staffUser('product_manager');
+    await signIn(page, pm.email, pm.password);
+    await page.goto(`/admin/products/${draft.id}`);
+
+    // docs/07 §10 — the whole point is that the person writing the claims does not clear them.
+    await expect(page.getByRole('button', { name: 'Approve and publish' })).toHaveCount(0);
+
+    await page.getByRole('button', { name: 'Submit for review' }).click();
+    await expect(page.getByText('In review').first()).toBeVisible({ timeout: ACTION_TIMEOUT });
+  });
+
+  test('saving the General tab writes bilingual fields and links a primary category', async ({
+    page,
+  }) => {
+    const draft = await draftProduct();
+    const pm = await staffUser('product_manager');
+    await signIn(page, pm.email, pm.password);
+    await page.goto(`/admin/products/${draft.id}`);
+
+    await page.locator('#name\\.sq').fill('Vitamina Provë');
+    await page.locator('#name\\.en').fill('Test Vitamin');
+    await page.locator('#description\\.sq').fill('Kontribuon në funksionimin normal.');
+
+    // The first category, marked primary — one of the four publish requirements.
+    await page.locator('input[name="categoryIds"]').first().check();
+    await page.locator('input[name="primaryCategoryId"]').first().check();
+
+    await page.getByRole('button', { name: 'Save general' }).click();
+    await expect(page.getByText('Saved.')).toBeVisible({ timeout: ACTION_TIMEOUT });
+
+    await page.reload();
+    // Persisted, and the primary-category blocker is gone from the checklist.
+    await expect(page.locator('#name\\.en')).toHaveValue('Test Vitamin');
+    await expect(page.getByText('Choose a primary category')).toHaveCount(0);
+  });
+
+  test('a variant can be added, and its price round-trips through cents', async ({ page }) => {
+    const draft = await draftProduct();
+    const pm = await staffUser('product_manager');
+    await signIn(page, pm.email, pm.password);
+    await page.goto(`/admin/products/${draft.id}`);
+
+    await page.getByRole('tab', { name: /Variants/ }).click();
+    await page.getByRole('button', { name: 'Add a variant' }).click();
+
+    const sku = `E2E-${randomUUID().slice(0, 6).toUpperCase()}`;
+    await page.locator('#sku-new').fill(sku);
+    await page.locator('#price-new').fill('12.50');
+    await page.locator('#name\\.sq').fill('60 kapsula');
+    await page.getByRole('button', { name: 'Create variant' }).click();
+
+    await expect(page.getByText('Saved.')).toBeVisible({ timeout: ACTION_TIMEOUT });
+
+    await page.reload();
+    await page.getByRole('tab', { name: /Variants/ }).click();
+    /*
+     * €12.50 stored as 1250 and rendered back as 12.50 — the round trip that money bugs hide
+     * in. CLAUDE.md §2: integer cents, never floats.
+     */
+    await expect(page.getByText(sku)).toBeVisible();
+    await expect(page.getByText('€12.50')).toBeVisible();
+    await expect(page.getByText('Add at least one active variant')).toHaveCount(0);
+  });
+
+  test('the slug is editable on a draft and locked once published', async ({ page }) => {
+    const draft = await draftProduct();
+    const pm = await staffUser('product_manager');
+    await signIn(page, pm.email, pm.password);
+    await page.goto(`/admin/products/${draft.id}`);
+
+    // Draft: editable.
+    await expect(page.locator('#slug')).not.toHaveAttribute('readonly', '');
+
+    /*
+     * Only `published_at` is set, deliberately — the lock keys off "has this ever been live",
+     * not off the current status, because archiving a product must not unlock its URL.
+     *
+     * The first version set `status: 'published'` too and assumed the service role could force
+     * it. It cannot: `guard_product_publish` exempts service role from the *approval* check
+     * only, and this draft has no variant, so the write was rejected. The failure was invisible
+     * because the test ignored the returned error — the same mistake that made the category
+     * bug hard to find, one layer up. Hence the assertion below.
+     */
+    const { error } = await db()
+      .from('products')
+      .update({ published_at: new Date().toISOString() })
+      .eq('id', draft.id);
+    expect(error, 'fixture setup must not fail silently').toBeNull();
+
+    await page.reload();
+    // CLAUDE.md §10 — a slug is a URL, and changing it breaks every inbound link silently.
+    await expect(page.locator('#slug')).toHaveAttribute('readonly', '');
+    await expect(page.getByText('locked after publish')).toBeVisible();
+  });
+
+  test('compliance sees the claims and the approve control, not the editor', async ({ page }) => {
+    const draft = await draftProduct();
+    const compliance = await staffUser('compliance_manager');
+    await signIn(page, compliance.email, compliance.password);
+    await page.goto(`/admin/products/${draft.id}`);
+
+    await expect(page.getByRole('heading', { name: 'Claim-bearing fields' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Approve and publish' })).toBeVisible();
+    // Reading the claims, never rewriting them — that separation is the review.
+    await expect(page.getByRole('button', { name: 'Save general' })).toHaveCount(0);
+    // And the button is disabled while the product is incomplete, rather than hidden, so it is
+    // clear this is the product's fault and not a missing permission.
+    await expect(page.getByRole('button', { name: 'Approve and publish' })).toBeDisabled();
+  });
+});
+
 test.describe('admin accessibility', () => {
   test('axe finds no serious or critical violations on the dashboard', async ({ page }) => {
     const user = await staffUser('admin');
