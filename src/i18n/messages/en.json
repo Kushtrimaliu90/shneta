@@ -572,5 +572,117 @@
     "notAvailable": "—",
     "browseShop": "Browse the shop",
     "viewProduct": "View product"
+  },
+  "knowledge": {
+    "title": "Knowledge",
+    "intro": "Guides, recipes and plain-language science — written by us, sourced where it matters.",
+    "empty": "Nothing published yet.",
+    "emptyHint": "Come back shortly; we are writing.",
+    "readingTime": "{count} min read",
+    "all": "All",
+    "types": {
+      "guide": "Guides",
+      "article": "Articles",
+      "recipe": "Recipes",
+      "research": "Research",
+      "news": "News"
+    },
+    "typeLabel": {
+      "guide": "Guide",
+      "article": "Article",
+      "recipe": "Recipe",
+      "research": "Research",
+      "news": "News"
+    },
+    "tags": "Topics",
+    "clearFilters": "Clear filters",
+    "shopThisArticle": "Shop this article",
+    "relatedIngredients": "Ingredients mentioned",
+    "relatedArticles": "Keep reading",
+    "share": "Share",
+    "shareCopied": "Link copied",
+    "onlyAlbanian": "This piece is only available in Albanian for now.",
+    "backToKnowledge": "All articles",
+    "published": "Published {date}",
+    "filterLabel": "Filter by type",
+    "pagination": "Article pages",
+    "previous": "Previous",
+    "next": "Next",
+    "pageOf": "Page {page} of {total}"
+  },
+  "offers": {
+    "title": "Offers",
+    "intro": "What is discounted right now, and the codes you can use at checkout.",
+    "couponsTitle": "Discount codes",
+    "onSaleTitle": "On sale",
+    "copyCode": "Copy code",
+    "copied": "Copied",
+    "minSpend": "On orders over {amount}",
+    "endsOn": "Until {date}",
+    "percentOff": "{value}% off",
+    "fixedOff": "{amount} off",
+    "freeShipping": "Free delivery",
+    "noCoupons": "No codes are running at the moment.",
+    "noSale": "Nothing is discounted right now.",
+    "browseShop": "Browse the shop"
+  },
+  "contact": {
+    "title": "Contact us",
+    "intro": "A question about an order, a product or an invoice — write to us and we will reply.",
+    "name": "Your name",
+    "email": "Email",
+    "subject": "Subject",
+    "message": "Message",
+    "submit": "Send message",
+    "submitting": "Sending…",
+    "sentTitle": "Message sent",
+    "sentBody": "Thank you. We reply within one working day.",
+    "otherWays": "Other ways to reach us",
+    "emailUs": "Email",
+    "phone": "Phone",
+    "hours": "Monday to Friday, 09:00–17:00",
+    "errors": {
+      "checkFields": "Check the fields marked below.",
+      "rateLimited": "You have sent several messages. Please try again later.",
+      "generic": "The message did not send. Please try again."
+    },
+    "fieldErrors": {
+      "required": "Please fill this in.",
+      "invalidEmail": "That email does not look right.",
+      "tooShort": "Please write a little more."
+    }
+  },
+  "faq": {
+    "title": "Frequently asked questions",
+    "intro": "The questions we are asked most. If yours is not here, write to us.",
+    "empty": "No questions yet.",
+    "contactCta": "Ask us directly",
+    "categories": {
+      "porosia": "Ordering",
+      "dergesa": "Delivery",
+      "pagesa": "Payment",
+      "produktet": "Products",
+      "llogaria": "Account",
+      "general": "General"
+    }
+  },
+  "newsletter": {
+    "confirmTitle": "You are subscribed",
+    "confirmBody": "Thank you for confirming. Your first email will arrive soon.",
+    "confirmFailedTitle": "This link has expired",
+    "confirmFailedBody": "The confirmation link is no longer valid. Subscribe again and we will send a new one.",
+    "unsubscribedTitle": "You are unsubscribed",
+    "unsubscribedBody": "You will not receive any more marketing emails from us.",
+    "backHome": "Back to the shop"
+  },
+  "consent": {
+    "title": "Cookies",
+    "body": "We use only what the shop needs to work. With your permission we also measure which pages are useful.",
+    "accept": "Accept",
+    "reject": "Only what is needed",
+    "privacyLink": "Privacy policy"
+  },
+  "legal": {
+    "lastUpdated": "Last updated {date}"
   }
 }

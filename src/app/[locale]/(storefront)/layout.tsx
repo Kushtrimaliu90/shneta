@@ -5,6 +5,7 @@ import { Footer } from '@/components/storefront/footer';
 import { WishlistProvider } from '@/features/wishlist/components/wishlist-provider';
 import { CompareProvider } from '@/features/compare/components/compare-provider';
 import { CompareBar } from '@/features/compare/components/compare-bar';
+import { CookieConsent } from '@/features/content/components/cookie-consent';
 
 /**
  * Storefront chrome (docs/05 §17). `main` carries the landmark and the skip-link target
@@ -42,7 +43,24 @@ export default async function StorefrontLayout({
             {children}
           </main>
           <Footer />
-          <CompareBar />
+
+          {/*
+            One fixed stack for everything pinned to the bottom, rather than each bar fixing
+            itself.
+
+            The compare bar and the cookie banner were independently `fixed inset-x-0 bottom-0`,
+            so the banner sat on top of the bar and swallowed its clicks — for every first-time
+            visitor, which is to say everyone the compare feature is aimed at (docs/13 §N8).
+            Stacked in a column, the newest concern (consent) is closest to the edge and the
+            other rows push up above it.
+
+            `pointer-events-none` on the container with `auto` on the rows, so the empty space
+            beside a short bar is not an invisible pane over the page.
+          */}
+          <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 flex flex-col [&>*]:pointer-events-auto">
+            <CompareBar />
+            <CookieConsent />
+          </div>
         </CompareProvider>
       </WishlistProvider>
     </>

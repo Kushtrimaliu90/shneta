@@ -892,6 +892,186 @@ this codebase that discarding a Supabase error changed the meaning of a result �
 
 ---
 
+## N. What building the content layer taught us
+
+### N1 · BLOCKER — the unsubscribe link would have unsubscribed anyone
+
+docs/08 §5 asks for a **signed** unsubscribe link in every marketing email. The schema had
+nothing to sign with: `confirm_token` is cleared the moment an address is confirmed, which is
+right for a one-shot opt-in and useless for a link that must keep working for years.
+
+The first version wrote `/newsletter/unsubscribe?email=…`, and it took writing the comment above
+it to notice what that is: a URL that unsubscribes any address the sender knows. A competitor
+with a customer list could empty the mailing list one request at a time, and **nobody would
+report it**, because unsubscribing is exactly what an unsubscribe link is supposed to do.
+
+Migration 16 adds a durable per-row `unsubscribe_token`, minted at insert and never cleared, and
+`newsletter_unsubscribe(token)` to spend it.
+
+The same migration fixes a race it uncovered: `newsletter_confirm` returned a boolean, so the
+caller had to read the subscriber's address **before** spending the token in order to know where
+to send the welcome email. Two clicks on the same link and the second one finds nothing. It now
+returns the address and the unsubscribe token from the same statement that confirms.
+
+### N2 · `create or replace function` cannot change a return type
+
+Changing `newsletter_confirm` from `boolean` to `jsonb` stopped the migration mid-file with
+`cannot change return type of existing function` — after the three statements before it had
+already applied. `supabase db push` records nothing on failure, so the next run replays the
+whole file.
+
+Two things follow, and the second is the general one:
+
+1. `drop function if exists` before a `create` that changes a signature.
+2. **Write every migration so a partial application can be re-run**: `add column if not exists`,
+   `create index if not exists`, `create or replace`. This one already was, everywhere except
+   the statement that failed.
+
+### N3 · Markdown is a security boundary, so it is unit-tested
+
+Article bodies are markdown in a database several staff roles can write to. The alternative to
+sanitising is stored XSS on every page of the Knowledge Center.
+
+`MarkdownBody` starts from `rehype-sanitize`'s default schema and **narrows** it to the tags
+docs/08 §3 lists, rather than replacing it. That matters: the default also strips the
+attribute-level attacks — `javascript:` URLs, `on*` handlers, `style` — and re-deriving that list
+by hand is how a sanitiser ends up sanitising less than it appears to.
+
+Ten unit tests cover it, and the interesting ones are the cases no editor would type:
+`<script>`, `onerror=`, `[click](javascript:alert(1))`, `<iframe>`. Also `# heading` in a body,
+which is not an attack but is a real defect — the page already renders the title as its `<h1>`,
+and two is a document-outline error. `h1` is absent from the allowlist, so a stray `#` degrades
+to text.
+
+### N4 · "Public coupon" is a question, not a row-visibility rule
+
+`/offers` lists claimable codes. `coupons` is staff-read only, which is correct — the table
+carries `max_uses`, internal notes and every system coupon.
+
+An anon read policy was the obvious fix and the wrong one. "Public" here means _not system, and
+active, and inside its window, and not exhausted_ — four conditions that every caller would have
+to re-derive, and the first one to forget the window check puts an expired code on the page. That
+is the single acceptance criterion docs/05 §11 states.
+
+So it is `list_public_coupons()`, returning the four fields the page renders. The seeded
+EXPIRED5 (deliberately `is_active = true`, window closed) and SUB-10 (`is_system`) make both
+exclusions testable, and the E2E asserts neither appears.
+
+### N5 · Departure from spec: no reply-from-the-panel in the contact inbox
+
+docs/05 §16 asks for a contact form and an inbox; docs/06 lists neither page, though its
+dashboard §1 has a "new contact messages" queue that until now linked nowhere. `/admin/messages`
+is that destination.
+
+Replies are sent from the operator's own mail client, and the panel records that one happened.
+Building a send path would mean a second outbound identity to keep off the spam lists, and it
+would thread worse than the mailbox the operator already reads. A shop this size answers a
+handful of messages a day.
+
+### N6 · Analytics ships as a gate with nothing behind it
+
+docs/12 M8 asks for "cookie-consent banner + analytics events". The banner is real and gates
+correctly; `lib/analytics.ts` is a no-op.
+
+That is not laziness, and it is not a stub pretending to work. docs/10 never picks a provider,
+and the choice between Plausible, Umami and GA4 changes the snippet, the event API and the
+privacy notice. What is worth building before the choice is the **guarantee**: the module is
+dynamically imported by `CookieConsent` and by nothing else, so a visitor who declines never
+downloads it, let alone runs it. An analytics module imported at the top of a layout has already
+executed by the time a banner renders, whatever the banner then does — which is the failure mode
+this shape makes impossible.
+
+### N7 · An alpha on a text colour is a new colour
+
+The article-card cover placeholder used `text-forest-800/40` on the `forest-50` tint. It looked
+like a style choice. It resolves to `#9bb0a7` on `#f0f7f3` — **2.1:1**, less than half the AA
+floor — and axe found **233 instances** of it on one pass over the Knowledge hub.
+
+The palette is pinned by `tests/unit/contrast.test.ts` precisely so a swatch cannot be darkened
+back into a violation (docs/13 §C, §I5). That test reads _tokens_, so an opacity modifier walks
+straight past it: `forest-800` passes, `forest-800/40` is a colour the test has never seen.
+
+**Fixed** with the solid `forest-600` (5.79:1), and the rule is now asserted in both directions
+— `forest-600` passes on the tint, `forest-500` does not — so the next person reaching for a
+lighter green finds a failing test rather than a shipped violation.
+
+The general lesson, and the reason this is written down rather than just fixed: **the contrast
+suite guards tokens, and axe guards rendered pixels.** Neither is redundant. This one needed
+both — the token test could not have caught it, and axe only runs on the pages the E2E suite
+visits, which is why every new page in M8 got an axe assertion in the same commit.
+
+### N8 · Two things fixed to the bottom of the screen, and one of them wins
+
+The compare bar (M7) and the cookie banner (M8) were each `fixed inset-x-0 bottom-0`, written
+weeks apart, each perfectly reasonable on its own. Together the banner covers the bar, and
+"Compare now" cannot be clicked.
+
+The full E2E run caught it — journey 10 timed out with Playwright reporting, precisely,
+`<button>Only what is needed</button> … intercepts pointer events`. What makes it worth writing
+down is **who it affected**: only a visitor who has not yet answered the cookie question. That is
+every first-time visitor, and a first-time visitor is exactly who the compare feature is for. The
+one person who would never hit it is the developer, whose browser answered the banner once and
+never saw it again.
+
+**Fix:** the storefront layout owns one `fixed` bottom stack and the bars are rows in it. Newest
+concern closest to the edge, everything else pushed up. `pointer-events-none` on the container
+with `auto` on the rows, so the empty space beside a short bar is not an invisible pane over the
+page.
+
+The rule: **`position: fixed` is a claim on a shared resource.** The second component to claim
+the same edge does not know the first exists, so the edge needs an owner — one place that decides
+what is pinned there and in what order.
+
+### N9 · Next streams a second robots tag into the body under load
+
+One mobile test in a 260-test run failed with a strict-mode violation:
+
+```
+1) <head> <meta name="robots" content="noindex, nofollow">
+2) <body> <meta name="robots" content="index, follow">
+```
+
+Two robots tags on a guest order page, disagreeing. `curl` on the same URL returns exactly one,
+the correct `noindex` — so this is Next 15's streaming metadata: when a page's
+`generateMetadata` resolves after the head has flushed, the layout's default is emitted early
+and the page's override lands in the head later. Under a loaded machine that ordering shifts.
+
+**Not a leak.** The head carries the restrictive value, and crawlers apply the most restrictive
+of conflicting robots directives. Left as it is rather than worked around in app code — the
+alternative is to stop the root layout declaring a default, which would silently un-index the
+whole site if any page forgot its own.
+
+Scoping the four assertions to `head` was the first fix and it was also wrong: on the auth
+pages the _only_ robots tag is in the body, so the scoped locator found nothing. Which element
+ends up where depends on when the streaming boundary falls, and a test that pins the position is
+as brittle as one that assumes a single tag.
+
+They now assert the **directive**: `meta[name="robots"][content*="noindex"]` exists. That is
+what the page actually promises, and it holds in both shapes.
+
+### N10 · Two destructive suites cannot share one database, and Supabase says so first
+
+Running `pnpm test:integration` while `pnpm test:e2e` was still going produced sixteen failures
+reading `sign-in failed: Request rate limit reached` — Supabase's **own** auth limiter, not the
+Postgres one in `lib/rate-limit.ts`. Both suites mint a user per test, and between them they had
+burned the project's hourly sign-in quota.
+
+The failures then cascaded: a handful of E2E tests that sign in timed out in the next run too,
+because the quota does not reset when a process exits.
+
+This is the one-project decision from docs/14 §7 showing its edge, and it is worth stating
+plainly for whoever runs these next:
+
+- **Run the suites one at a time.** They already refuse to run against an undeclared target;
+  they cannot refuse to run against each other.
+- A cascade of `sign-in failed` or unexplained sign-in timeouts means the quota, not the code.
+  It clears on its own in minutes; re-running immediately makes it worse.
+
+Nothing here is worth engineering around while one project serves all three roles. The second
+project docs/14 §7 already recommends would fix it as a side effect.
+
+---
+
 ## E. Stack decisions taken at M0
 
 | Item          | Spec                  | Built as            | Why                                                                                               |

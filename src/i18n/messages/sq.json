@@ -572,5 +572,117 @@
     "notAvailable": "—",
     "browseShop": "Shfleto dyqanin",
     "viewProduct": "Shiko produktin"
+  },
+  "knowledge": {
+    "title": "Dituri",
+    "intro": "Udhëzues, receta dhe shkencë e thjeshtuar — të shkruara nga ne, me burime aty ku duhen.",
+    "empty": "Ende asgjë e publikuar.",
+    "emptyHint": "Kthehu së shpejti; po shkruajmë.",
+    "readingTime": "{count} min lexim",
+    "all": "Të gjitha",
+    "types": {
+      "guide": "Udhëzues",
+      "article": "Artikuj",
+      "recipe": "Receta",
+      "research": "Kërkime",
+      "news": "Lajme"
+    },
+    "typeLabel": {
+      "guide": "Udhëzues",
+      "article": "Artikull",
+      "recipe": "Recetë",
+      "research": "Kërkim",
+      "news": "Lajm"
+    },
+    "tags": "Tema",
+    "clearFilters": "Pastro filtrat",
+    "shopThisArticle": "Bli nga ky artikull",
+    "relatedIngredients": "Përbërësit e përmendur",
+    "relatedArticles": "Vazhdo të lexosh",
+    "share": "Shpërndaj",
+    "shareCopied": "Lidhja u kopjua",
+    "onlyAlbanian": "Ky shkrim është për momentin vetëm në shqip.",
+    "backToKnowledge": "Të gjithë artikujt",
+    "published": "Publikuar më {date}",
+    "filterLabel": "Filtro sipas llojit",
+    "pagination": "Faqet e artikujve",
+    "previous": "Para",
+    "next": "Vazhdo",
+    "pageOf": "Faqja {page} nga {total}"
+  },
+  "offers": {
+    "title": "Ofertat",
+    "intro": "Çfarë është me zbritje tani, dhe kodet që mund të përdorësh në arkë.",
+    "couponsTitle": "Kodet e zbritjes",
+    "onSaleTitle": "Me zbritje",
+    "copyCode": "Kopjo kodin",
+    "copied": "U kopjua",
+    "minSpend": "Për porositë mbi {amount}",
+    "endsOn": "Deri më {date}",
+    "percentOff": "{value}% zbritje",
+    "fixedOff": "{amount} zbritje",
+    "freeShipping": "Dërgesa falas",
+    "noCoupons": "Për momentin nuk ka kode aktive.",
+    "noSale": "Për momentin asgjë nuk është me zbritje.",
+    "browseShop": "Shfleto dyqanin"
+  },
+  "contact": {
+    "title": "Na kontakto",
+    "intro": "Pyetje për një porosi, një produkt ose një faturë — na shkruaj dhe të kthejmë përgjigje.",
+    "name": "Emri yt",
+    "email": "Email",
+    "subject": "Subjekti",
+    "message": "Mesazhi",
+    "submit": "Dërgo mesazhin",
+    "submitting": "Po dërgohet…",
+    "sentTitle": "Mesazhi u dërgua",
+    "sentBody": "Faleminderit. Përgjigjemi brenda një dite pune.",
+    "otherWays": "Mënyra të tjera për të na gjetur",
+    "emailUs": "Email",
+    "phone": "Telefoni",
+    "hours": "E hënë – e premte, 09:00–17:00",
+    "errors": {
+      "checkFields": "Kontrollo fushat e shënuara më poshtë.",
+      "rateLimited": "Ke dërguar disa mesazhe. Provo përsëri më vonë.",
+      "generic": "Mesazhi nuk u dërgua. Provo përsëri."
+    },
+    "fieldErrors": {
+      "required": "Të lutemi plotësoje.",
+      "invalidEmail": "Ky email nuk duket i saktë.",
+      "tooShort": "Të lutemi shkruaj pak më shumë."
+    }
+  },
+  "faq": {
+    "title": "Pyetjet e shpeshta",
+    "intro": "Pyetjet që na bëhen më shpesh. Nëse e jotja nuk është këtu, na shkruaj.",
+    "empty": "Ende pa pyetje.",
+    "contactCta": "Pyet drejtpërdrejt",
+    "categories": {
+      "porosia": "Porosia",
+      "dergesa": "Dërgesa",
+      "pagesa": "Pagesa",
+      "produktet": "Produktet",
+      "llogaria": "Llogaria",
+      "general": "Të përgjithshme"
+    }
+  },
+  "newsletter": {
+    "confirmTitle": "U regjistrove",
+    "confirmBody": "Faleminderit që konfirmove. Emaili i parë vjen së shpejti.",
+    "confirmFailedTitle": "Kjo lidhje ka skaduar",
+    "confirmFailedBody": "Lidhja e konfirmimit nuk vlen më. Regjistrohu përsëri dhe të dërgojmë një të re.",
+    "unsubscribedTitle": "U çregjistrove",
+    "unsubscribedBody": "Nuk do të marrësh më email-e marketingu prej nesh.",
+    "backHome": "Kthehu te dyqani"
+  },
+  "consent": {
+    "title": "Cookies",
+    "body": "Përdorim vetëm atë që i duhet dyqanit për të funksionuar. Me lejen tënde matim edhe cilat faqe janë të dobishme.",
+    "accept": "Prano",
+    "reject": "Vetëm të domosdoshmet",
+    "privacyLink": "Politika e privatësisë"
+  },
+  "legal": {
+    "lastUpdated": "Përditësuar më {date}"
   }
 }

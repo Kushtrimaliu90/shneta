@@ -126,7 +126,15 @@ test.describe('journey 5 — the customer reads their own order', () => {
     await expect(page.getByText(CHEAP_SKU)).toBeVisible();
     // The same OrderSummary the success page renders, so the figures match everywhere.
     await expect(page.getByText('€11.90').first()).toBeVisible();
-    await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', /noindex/);
+    /*
+     * Asserted by **content**, not by position or count.
+     *
+     * Next streams metadata: under load the layout's default lands early and the page's override
+     * arrives later, so the document can carry two robots tags — and which of them is in the
+     * head varies with where the streaming boundary fell (docs/13 §N9). What the page promises
+     * is that it declares noindex, and that is what this checks.
+     */
+    await expect(page.locator('meta[name="robots"][content*="noindex"]')).not.toHaveCount(0);
   });
 
   test('the empty state tells a new customer what to do', async ({ page }) => {

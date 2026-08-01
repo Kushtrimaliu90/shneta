@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { limitByIp } from '@/lib/rate-limit';
 import { logger } from '@/lib/logger';
 import { isLocale, DEFAULT_LOCALE } from '@/lib/constants';
+import { sendNewsletterConfirmation } from '@/features/content/email';
 
 /**
  * docs/08 §5 — newsletter opt-in.
@@ -12,9 +13,10 @@ import { isLocale, DEFAULT_LOCALE } from '@/lib/constants';
  * JavaScript (it is a plain `<form method="post">`), and the shipped shell already points
  * at this path. Until this existed the form returned a 500 on the deployed site.
  *
- * The double opt-in *email* lands with M8, when Resend is wired. The row and its confirm
- * token are written now, so nobody is silently dropped in the meantime: M8 can mail every
- * subscriber whose `confirmed_at` is still null.
+ * M8 completes the loop: the RPC returns the confirm token and this sends the opt-in email
+ * (docs/08 §5). The token never reaches the browser — the response is identical whether the
+ * address was new, already subscribed or already confirmed, because anything else would let a
+ * stranger test which addresses are on the list.
  */
 const schema = z.object({
   email: z.string().email().max(254),
@@ -58,7 +60,7 @@ export async function POST(request: NextRequest) {
     const supabase = await createClient();
     // Security-definer RPC: `newsletter_subscribers` has no insert policy by design
     // (docs/13 §B5), and widening the service-role allowlist was the wrong fix.
-    const { error } = await supabase.rpc('newsletter_subscribe', {
+    const { data, error } = await supabase.rpc('newsletter_subscribe', {
       p_email: parsed.data.email,
       p_locale: locale,
       p_source: 'footer',
@@ -67,6 +69,18 @@ export async function POST(request: NextRequest) {
     if (error) {
       logger.warn('Newsletter subscribe failed', { cause: error.message });
       return back(request, 'invalid');
+    }
+
+    /*
+     * docs/08 §5 — the double opt-in email.
+     *
+     * Only when there is a token to send. A previously confirmed subscriber keeps
+     * `confirm_token = null`, so re-submitting their address writes nothing new and sends
+     * nothing — which is also why the response cannot distinguish the two cases.
+     */
+    const token = (data as { confirm_token?: string | null } | null)?.confirm_token;
+    if (token) {
+      await sendNewsletterConfirmation({ to: parsed.data.email, token, locale });
     }
   } catch (error) {
     logger.error('Newsletter subscribe threw', {

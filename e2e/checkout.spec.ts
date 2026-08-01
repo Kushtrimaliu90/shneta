@@ -279,7 +279,15 @@ test.describe('journey 4 — guest order lookup', () => {
     await expect(page.getByText('€11.90').first()).toBeVisible();
 
     // docs/08 §4 — a page showing a customer's name, address and phone must never be indexed.
-    await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', /noindex/);
+    /*
+     * Asserted by **content**, not by position or count.
+     *
+     * Next streams metadata: under load the layout's default lands early and the page's override
+     * arrives later, so the document can carry two robots tags — and which of them is in the
+     * head varies with where the streaming boundary fell (docs/13 §N9). What the page promises
+     * is that it declares noindex, and that is what this checks.
+     */
+    await expect(page.locator('meta[name="robots"][content*="noindex"]')).not.toHaveCount(0);
   });
 
   test('a wrong email on a real order number is refused, generically', async ({ page }) => {

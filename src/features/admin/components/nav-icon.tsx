@@ -16,6 +16,7 @@ import {
   Target,
   Users,
   type LucideIcon,
+  Inbox,
 } from 'lucide-react';
 
 /**
@@ -36,6 +37,7 @@ const ICONS = {
   dashboard: LayoutDashboard,
   orders: ShoppingCart,
   customers: Users,
+  messages: Inbox,
   subscriptions: Repeat,
   products: Package,
   categories: FolderTree,

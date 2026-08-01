@@ -15,6 +15,10 @@ import { cn } from '@/lib/utils';
  *
  * Hidden entirely at zero rather than shown empty — a persistent bar with nothing in it is a
  * permanent strip of chrome across every page for a feature most visits never use.
+ *
+ * Not `fixed` itself: it is one row of the bottom stack the storefront layout owns. Two
+ * independently-fixed bottom bars overlap, and the one that loses is unclickable — which is
+ * exactly what happened when the cookie banner landed on top of this (docs/13 §N8).
  */
 export function CompareBar() {
   const t = useTranslations('compare');
@@ -23,7 +27,7 @@ export function CompareBar() {
   if (!ready || ids.length === 0) return null;
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-surface/95 backdrop-blur-sm">
+    <div className="border-t border-line bg-surface/95 backdrop-blur-sm">
       <div className="container-page flex items-center gap-3 py-3">
         <Scale className="size-5 shrink-0 text-forest-800" aria-hidden="true" />
         <p className="min-w-0 flex-1 truncate text-sm text-ink-900" data-numeric>

@@ -146,6 +146,12 @@ const NAV: NavSection[] = [
         capability: 'customers.view',
       },
       {
+        href: '/admin/messages',
+        label: 'Messages',
+        icon: 'messages',
+        capability: 'customers.view',
+      },
+      {
         href: '/admin/subscriptions',
         label: 'Subscriptions',
         icon: 'subscriptions',
@@ -241,6 +247,7 @@ const IMPLEMENTED = new Set([
   '/admin/goals',
   '/admin/compliance',
   '/admin/reviews',
+  '/admin/messages',
 ]);
 
 /** The sections and items this role may see, with empty sections dropped. */

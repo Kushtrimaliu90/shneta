@@ -5,7 +5,7 @@ Honest status against the launch checklist in `docs/10 §9` and the milestones i
 **Bottom line: it is a store. A guest can buy something, end to end, and pay cash on
 delivery.** Add to cart → four-step checkout → order placed by the `checkout_create_order`
 transaction → gated success page → track it later with the order number and email. Verified
-against the live database by 204 Playwright tests across desktop and a 390 px viewport.
+against the live database by 260 Playwright tests across desktop and a 390 px viewport.
 
 **It can also now fulfil what it sells.** Support signs in, works a queue, confirms, ships with
 tracking, delivers, cancels with a reason and refunds — every mutation audited, every transition
@@ -16,10 +16,14 @@ six tabs, uploads images, submits it; compliance reads the claims in both langua
 the storefront serves it on the next request. Brands, categories, health goals and ingredients
 are all editable in the panel. Nothing needs SQL any more.
 
-**What is left before a real customer: the email, and the products themselves.** Transactional
-emails record `skipped_no_provider` until a Resend key and a verified sending domain exist (§6),
-and the shop still sells 24 demo fixtures until somebody enters the real ones. `docs/12` still
-puts the earliest genuinely shippable point after **M8**.
+**And it now has something to read.** Six articles, ten FAQs, an offers page, a contact form
+that reaches an inbox, and a newsletter that actually double-opts-in.
+
+**What is left before a real customer: the email, and the products themselves.** Every
+transactional and marketing email records `skipped_no_provider` until a Resend key and a
+verified sending domain exist (§6) — the newsletter now depends on that to complete a
+subscription, not just to say thank you. And the shop still sells 24 demo fixtures until
+somebody enters the real ones.
 
 Legend: ✅ done and verified · 🟡 partial · ⬜ not started · ➖ not applicable yet
 
@@ -27,31 +31,31 @@ Legend: ✅ done and verified · 🟡 partial · ⬜ not started · ➖ not appl
 
 ## 1 · Infrastructure and pipeline
 
-| Item                                                  | State | Evidence                                                                                       |
-| ----------------------------------------------------- | ----- | ---------------------------------------------------------------------------------------------- |
-| Next.js app builds for production                     | ✅    | `pnpm build`, 46 routes, no warnings                                                           |
-| First Load JS within the 170 kB budget (`docs/09 §3`) | ✅    | 120–138 kB per route, enforced by `check:bundle`                                               |
-| Database schema applied                               | ✅    | 14 migrations on `rszbpdgfvyofvmuishmn`, Postgres 17.6                                         |
-| RLS enabled on every public table (`docs/10 §4`)      | ✅    | `tables_without_rls()` → `[]`                                                                  |
-| Integration suite against a real database             | ✅    | **45/45**, ~85 s                                                                               |
-| Unit suite                                            | ✅    | **97/97**                                                                                      |
-| E2E + axe on both locales                             | ✅    | **204/204**, repeatable; zero serious/critical violations on cart, checkout, account and admin |
-| Generated DB types match the live schema              | ✅    | `db:types:linked` → 2902 lines, `pnpm verify` green                                            |
-| CI pipeline (quality · integration+E2E · audit)       | ✅    | `.github/workflows/ci.yml`                                                                     |
-| Security headers (`docs/10 §5`)                       | ✅    | asserted by an E2E test                                                                        |
-| `/api/health` for uptime monitoring (`docs/10 §6`)    | ✅    | returns `{status:"ok",database:"ok"}`                                                          |
-| Sitemap + robots with hreflang (`docs/08 §4`)         | ✅    | 176 URLs, 352 hreflang links                                                                   |
-| Housekeeping cron, `CRON_SECRET`-guarded              | ✅    | 401 unauthenticated, 200 with token                                                            |
-| On-demand ISR purge, secret-guarded                   | ✅    | rejects unknown tags, 401 unauthenticated                                                      |
-| Sentry server + edge                                  | ✅    | inert without a DSN; client SDK lazy-loaded                                                    |
-| `vercel.json` — region `fra1`, crons                  | ✅    |                                                                                                |
-| Vercel project + domain + DNS                         | ⬜    | **owner task** (`docs/00`)                                                                     |
-| Resend domain verified (SPF/DKIM/DMARC)               | ⬜    | **owner task** — until then customers get no order receipt                                     |
-| Supabase staging + production projects                | ➖    | **owner decision (§7)** — one project serves all three roles                                   |
-| PITR / backups on production                          | ⬜    | **owner task**, `docs/10 §4`. More urgent under §7: no second database to fall back on         |
-| Destructive suites gated on `SUPABASE_TEST_PROJECT`   | ✅    | integration, E2E and the purge all refuse an undeclared target (§7)                            |
-| Uptime monitor pointed at `/api/health`               | ⬜    | **owner task**                                                                                 |
-| Restore drill                                         | ⬜    | `docs/10 §7`                                                                                   |
+| Item                                                  | State | Evidence                                                                                                          |
+| ----------------------------------------------------- | ----- | ----------------------------------------------------------------------------------------------------------------- |
+| Next.js app builds for production                     | ✅    | `pnpm build`, 63 routes, no warnings                                                                              |
+| First Load JS within the 170 kB budget (`docs/09 §3`) | ✅    | 120–138 kB per route, enforced by `check:bundle`                                                                  |
+| Database schema applied                               | ✅    | 16 migrations on `rszbpdgfvyofvmuishmn`, Postgres 17.6                                                            |
+| RLS enabled on every public table (`docs/10 §4`)      | ✅    | `tables_without_rls()` → `[]`                                                                                     |
+| Integration suite against a real database             | ✅    | **45/45**, ~85 s                                                                                                  |
+| Unit suite                                            | ✅    | **117/117**                                                                                                       |
+| E2E + axe on both locales                             | ✅    | **260/260**, repeatable; zero serious/critical violations on cart, checkout, account, admin and the content pages |
+| Generated DB types match the live schema              | ✅    | `db:types:linked` → 2902 lines, `pnpm verify` green                                                               |
+| CI pipeline (quality · integration+E2E · audit)       | ✅    | `.github/workflows/ci.yml`                                                                                        |
+| Security headers (`docs/10 §5`)                       | ✅    | asserted by an E2E test                                                                                           |
+| `/api/health` for uptime monitoring (`docs/10 §6`)    | ✅    | returns `{status:"ok",database:"ok"}`                                                                             |
+| Sitemap + robots with hreflang (`docs/08 §4`)         | ✅    | 176 URLs, 352 hreflang links                                                                                      |
+| Housekeeping cron, `CRON_SECRET`-guarded              | ✅    | 401 unauthenticated, 200 with token                                                                               |
+| On-demand ISR purge, secret-guarded                   | ✅    | rejects unknown tags, 401 unauthenticated                                                                         |
+| Sentry server + edge                                  | ✅    | inert without a DSN; client SDK lazy-loaded                                                                       |
+| `vercel.json` — region `fra1`, crons                  | ✅    |                                                                                                                   |
+| Vercel project + domain + DNS                         | ⬜    | **owner task** (`docs/00`)                                                                                        |
+| Resend domain verified (SPF/DKIM/DMARC)               | ⬜    | **owner task** — until then customers get no order receipt                                                        |
+| Supabase staging + production projects                | ➖    | **owner decision (§7)** — one project serves all three roles                                                      |
+| PITR / backups on production                          | ⬜    | **owner task**, `docs/10 §4`. More urgent under §7: no second database to fall back on                            |
+| Destructive suites gated on `SUPABASE_TEST_PROJECT`   | ✅    | integration, E2E and the purge all refuse an undeclared target (§7)                                               |
+| Uptime monitor pointed at `/api/health`               | ⬜    | **owner task**                                                                                                    |
+| Restore drill                                         | ⬜    | `docs/10 §7`                                                                                                      |
 
 ## 2 · Product — selling, fulfilling and stocking all work; the shop floor is still fixtures
 
@@ -60,12 +64,12 @@ Legend: ✅ done and verified · 🟡 partial · ⬜ not started · ➖ not appl
 | M0 · Scaffold                                | ✅    | —                                                                                                                                                                                                                                                                                                                                          |
 | M1 · Database and seed                       | ✅    | Schema + 24-product catalogue live. `scripts/seed-users.ts` and review fixtures outstanding                                                                                                                                                                                                                                                |
 | M2 · Auth and account shell                  | ✅    | Sign up / in / out, password reset, account overview and settings                                                                                                                                                                                                                                                                          |
-| M3 · Catalog browse                          | 🟡    | PLP, category, PDP, home, brands, goals, ingredients and SEO done. `/knowledge` and `/offers` outstanding                                                                                                                                                                                                                                  |
+| M3 · Catalog browse                          | ✅    | PLP, category, PDP, home, brands, goals, ingredients and SEO. The two outstanding pages, `/knowledge` and `/offers`, landed with M8                                                                                                                                                                                                        |
 | M4 · Cart and COD checkout                   | ✅    | Guest cart, cart page, 4-step checkout, gated success page, order lookup. Confirmation email needs Resend (§6)                                                                                                                                                                                                                             |
 | M5 · Orders ops and admin core               | ✅    | Admin shell, order queue + detail, full state machine, shipment, refund, lifecycle emails, dashboard, print docs, customer order pages                                                                                                                                                                                                     |
 | M6 · Admin catalog management                | ✅    | Create → edit → variants → label → media → SEO → submit → approve → live (journey 8). All six editor tabs, brands/categories/goals/ingredients admin, brand-logo upload, the compliance queue. Cache tags on every catalogue read (docs/13 §K1). Deferred and listed below: drag-reorder, lab reports, taxonomy SEO, unsaved-changes guard |
 | M7 · Reviews, wishlist, search, compare      | ✅    | Verified-purchase reviews with moderation, helpful votes and a delivered+7d request email; wishlist end to end; instant search overlay + `/search`; compare up to four. Deferred: an Articles tab (needs M8) and the review-request email needs Resend (§6)                                                                                |     |
-| M8 · Knowledge, offers, contact, newsletter  | 🟡    | Newsletter opt-in works; double opt-in email needs Resend (M8)                                                                                                                                                                                                                                                                             |
+| M8 · Knowledge, offers, contact, newsletter  | ✅    | Knowledge Center on a sanitised markdown pipeline, offers with claimable codes, contact form + admin inbox, newsletter double opt-in with a token unsubscribe, FAQ with JSON-LD, `/about` and the legal pages, cookie consent gating analytics. Six articles and ten FAQs seeded. Every email still needs Resend (§6)                      |
 | M9 · Subscriptions and loyalty               | ⬜    | RPCs and triggers exist and are tested; no UI                                                                                                                                                                                                                                                                                              |
 | M10 · Inventory ops, finder, remaining admin | ⬜    |                                                                                                                                                                                                                                                                                                                                            |
 | M11 · Hardening and launch                   | 🟡    | The ops half is done (this table §1). Performance, security and soak passes need the real product first                                                                                                                                                                                                                                    |
@@ -247,3 +251,26 @@ provider now does. It belongs in M11's performance pass and it is the highest-va
 `discovery.spec.ts` (journey 10) — each with its own reserved documentation IP block, because
 sign-in is rate-limited per address and two files sharing a block is a failure that looks like a
 broken feature. The allocation is written down in that helper.
+
+---
+
+## 11 · What M8 deliberately left out
+
+| Item                                   | Why it is not here                                                                                                                                                                                                          | When               |
+| -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------ |
+| An analytics provider                  | The consent banner is real and gates correctly; `lib/analytics.ts` is a no-op. docs/10 never picks between Plausible, Umami and GA4, and the choice changes the snippet, the event API and the privacy notice (docs/13 §N6) | Owner decision     |
+| `/admin/content/*` (docs/06 §13)       | Articles, pages, FAQs and banners are all editable **by migration and seed**, not in the panel. Six articles is a launch's worth; a CMS for them is a milestone of its own                                                  | M10                |
+| Replying to a contact message in-panel | The inbox records that a reply was sent; the reply goes from the operator's own mail client. A second outbound identity is a deliverability problem, and a mailbox threads better (docs/13 §N5)                             | Not planned        |
+| Article cover images                   | `pnpm seed:images` is still outstanding (§8), so every article renders the tinted type placeholder. The upload path exists in the `content` bucket; nothing writes to it yet                                                | With `seed:images` |
+| `/finder` (footer link)                | docs/12 puts the quiz in M10. The footer has linked to it since M0                                                                                                                                                          | M10                |
+
+### The emails M8 added, all waiting on Resend
+
+`contact_ack`, `newsletter_confirm`, `newsletter_welcome`, plus M7's `review_request`. All four
+are wired, logged and asserted by tests through `email_log` — they record `skipped_no_provider`
+and will start sending the moment a key and a verified domain exist.
+
+**One of them is now load-bearing**, which is new: a newsletter subscription cannot be completed
+without the confirmation email arriving. Until Resend is configured, `newsletter_subscribers`
+collects rows that can never confirm themselves. They are not lost — the token is stored, and the
+first thing to do after wiring Resend is to mail everyone whose `confirmed_at` is still null.

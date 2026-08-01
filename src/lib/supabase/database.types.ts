@@ -1037,6 +1037,7 @@ export type Database = {
           id: string
           locale: string
           source: string | null
+          unsubscribe_token: string
           unsubscribed_at: string | null
         }
         Insert: {
@@ -1047,6 +1048,7 @@ export type Database = {
           id?: string
           locale?: string
           source?: string | null
+          unsubscribe_token?: string
           unsubscribed_at?: string | null
         }
         Update: {
@@ -1057,6 +1059,7 @@ export type Database = {
           id?: string
           locale?: string
           source?: string | null
+          unsubscribe_token?: string
           unsubscribed_at?: string | null
         }
         Relationships: []
@@ -2597,6 +2600,16 @@ export type Database = {
       is_admin: { Args: never; Returns: boolean }
       is_service_role: { Args: never; Returns: boolean }
       is_staff: { Args: never; Returns: boolean }
+      list_public_coupons: {
+        Args: never
+        Returns: {
+          code: string
+          ends_at: string
+          min_subtotal_cents: number
+          type: Database["public"]["Enums"]["discount_type"]
+          value: number
+        }[]
+      }
       log_audit: {
         Args: {
           p_action: string
@@ -2608,11 +2621,12 @@ export type Database = {
         }
         Returns: undefined
       }
-      newsletter_confirm: { Args: { p_token: string }; Returns: boolean }
+      newsletter_confirm: { Args: { p_token: string }; Returns: Json }
       newsletter_subscribe: {
         Args: { p_email: string; p_locale?: string; p_source?: string }
         Returns: Json
       }
+      newsletter_unsubscribe: { Args: { p_token: string }; Returns: boolean }
       redeem_loyalty_points: { Args: never; Returns: Json }
       search_products: {
         Args: {

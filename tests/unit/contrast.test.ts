@@ -108,6 +108,24 @@ describe('text on filled surfaces', () => {
   });
 
   /**
+   * The article-card cover placeholder, and the general rule it cost us (docs/13 §N7).
+   *
+   * The first version used `text-forest-800/40` on the same tint — a token at 40% alpha, which
+   * *looks* like a style choice and is a contrast decision. It resolves to #9bb0a7 on #f0f7f3:
+   * **2.1:1**, less than half the floor, and axe found 233 instances of it on one page.
+   *
+   * The rule this encodes: **an alpha on a text colour is not a design nit, it is a new colour**
+   * — so placeholders use a solid token, and this asserts the one that replaced it.
+   */
+  it('forest-600 passes on the forest-50 tint, which is why placeholders use it', () => {
+    expect(ratio(token('forest-600'), token('forest-50'))).toBeGreaterThanOrEqual(AA_TEXT);
+  });
+
+  it('forest-500 does NOT pass on the forest-50 tint, so it is not the fallback', () => {
+    expect(ratio(token('forest-500'), token('forest-50'))).toBeLessThan(AA_TEXT);
+  });
+
+  /**
    * The admin environment badge — the only thing distinguishing a preview panel from the
    * production one, so it must be legible before it is pretty.
    *
