@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { requireEnv } from '@/lib/env.server';
 import { logger } from '@/lib/logger';
+import { findReviewRequestTargets, sendReviewRequest } from '@/features/reviews/email';
 
 /**
  * docs/10 §5 — nightly housekeeping, 03:30 UTC.
@@ -9,6 +10,7 @@ import { logger } from '@/lib/logger';
  *   · abandon carts untouched for 14 days (docs/07 §3.4)
  *   · cancel card orders left unpaid for more than 24 h (docs/07 §6.2)
  *   · purge rate_limits buckets older than 2 days
+ *   · ask for a review seven days after delivery (docs/12 M7)
  *
  * Service-role by design — cron jobs are one of the six sanctioned uses (docs/02 §6).
  * Idempotent: every step is bounded by a timestamp predicate, so re-running it the same
@@ -39,7 +41,12 @@ export async function GET(request: NextRequest) {
   }
 
   const supabase = createAdminClient();
-  const summary = { cartsAbandoned: 0, ordersCancelled: 0, rateLimitsPurged: 0 };
+  const summary = {
+    cartsAbandoned: 0,
+    ordersCancelled: 0,
+    rateLimitsPurged: 0,
+    reviewRequestsSent: 0,
+  };
   const failures: string[] = [];
 
   const fourteenDaysAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
@@ -97,6 +104,21 @@ export async function GET(request: NextRequest) {
       .select('key');
     if (error) failures.push(`rate_limits: ${error.message}`);
     else summary.rateLimitsPurged = data?.length ?? 0;
+  }
+
+  /*
+   * 4 · Ask for a review, seven days after delivery (docs/12 M7).
+   *
+   * Sequential rather than `Promise.all`: a hundred concurrent sends would hit the provider's
+   * rate limit and fail as a batch, and nothing here is time-critical enough to be worth that.
+   * `sendReviewRequest` swallows its own failures, so one bad address cannot end the run.
+   */
+  {
+    const targets = await findReviewRequestTargets(new Date());
+    for (const target of targets) {
+      await sendReviewRequest(target);
+      summary.reviewRequestsSent += 1;
+    }
   }
 
   if (failures.length > 0) {

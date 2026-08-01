@@ -5,6 +5,8 @@ import type { Locale } from '@/lib/constants';
 import { PriceTag } from '@/components/storefront/price-tag';
 import { RatingStars } from '@/components/storefront/rating-stars';
 import { ProductImage } from '@/components/storefront/product-image';
+import { WishlistButton } from '@/features/wishlist/components/wishlist-button';
+import { CompareButton } from '@/features/compare/components/compare-button';
 import type { ProductListItem } from '@/features/catalog/types';
 import { cn } from '@/lib/utils';
 
@@ -59,6 +61,20 @@ export function ProductCard({
               {t('outOfStock')}
             </span>
           )}
+        </div>
+
+        {/*
+          `z-10`, because the card's name is a stretched link covering the whole tile. Without
+          it the heart is under the anchor and every tap opens the product instead — the exact
+          trap that makes stretched links worth commenting on.
+        */}
+        <div className="absolute top-2 right-2 z-10 flex flex-col gap-1">
+          <WishlistButton
+            productId={product.id}
+            productName={name}
+            returnPath={`/product/${product.slug}`}
+          />
+          <CompareButton productId={product.id} productName={name} />
         </div>
       </div>
 

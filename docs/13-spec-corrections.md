@@ -736,6 +736,162 @@ result (see §K, `getEditorOptions`), and the reason `admin-queries.ts` logs eac
 
 ---
 
+## M. What building reviews, wishlist, search and compare taught us
+
+### M1 · BLOCKER (pre-existing) — the storefront has never been statically rendered
+
+`docs/02 §5` describes the catalogue as static with ISR and on-demand tag purging, and §K1
+fixed the second half of that. The first half has never been true.
+
+`Navbar` calls `getCartItemCount()`, which reads `cookies()`. It is rendered by the storefront
+**layout**, and a request-scoped API in a layout opts every page beneath it into dynamic
+rendering. So since M4, `/`, `/shop`, every category, brand, goal, ingredient and product page
+has been server-rendered per request. The build output still says `● (SSG)` and lists prerendered
+paths, which is what made it invisible — but `.next/server/app` contains **seven** `.html` files,
+all of them auth pages, and a product page answers with
+`cache-control: private, no-cache, no-store`.
+
+**What still works:** the Data Cache. `unstable_cache` entries are shared across requests and
+`revalidateTag` purges them, which is why §K1's fix is real and why the brand-rename test passes.
+Database reads are cached and correctly invalidated.
+
+**What does not:** the Full Route Cache. Every visit re-runs the React render even when nothing
+changed, and `revalidate = 300` on those pages currently means nothing.
+
+**Not fixed in M7**, deliberately: the fix is to make the cart badge a client component that
+fetches its count after mount, which changes the navbar's contract and wants its own change and
+its own verification. It is listed in docs/14 §10 as the first thing to do in M11's performance
+pass — and it is worth doing, because it converts every catalogue page from a render into a file.
+
+The lesson is narrow and worth stating on its own: **a layout is the most expensive possible
+place to touch `cookies()`.** M7 nearly repeated it — the first version of `WishlistProvider`
+took `isSignedIn` as a prop and the layout supplied it with `getCurrentUser()`. One line, and it
+would have re-committed the same mistake in the same file. The provider fetches its own state
+after mount instead.
+
+### M2 · A cached page cannot carry per-viewer state
+
+The PDP renders reviews. Three things about a review are per-person: whether you voted it
+helpful, whether you wrote it, and whether you may write one at all. None of them can be part of
+a shared cache entry, and reading the session to compute them would have made the page dynamic —
+the §M1 trap again, one component further in.
+
+So the split is explicit: `listProductReviews` uses the **anonymous public client** and returns
+exactly what a logged-out visitor may see, which is also what belongs in cached HTML and in
+search-engine results. `loadReviewContext` is a server action the client calls after mount, and
+it returns only the caller's own state.
+
+The same shape serves the wishlist: hearts render unfilled in the cached HTML and fill in when
+the provider's single request resolves.
+
+### M3 · A `'use server'` file may export only async functions
+
+`export const MIN_QUERY_LENGTH = 2` next to the search action is a **build error**, not a lint
+warning — every export of a `'use server'` module becomes a POST endpoint, and a constant cannot
+be one. It moved to `features/search/constants.ts`.
+
+Worth recording because the failure arrives from webpack at build time with no hint that a plain
+constant is the problem, and the same file happily exports `interface` and `type` (both erased).
+
+### M4 · Departure from spec: no Articles tab in search
+
+docs/05 §8 specifies three result groups — products, articles, ingredients. Articles are absent,
+because `/knowledge/[slug]` arrives with M8 and an article result today would be a link to a 404.
+Ingredients take the second slot; they have real pages, and a shopper typing "magnesium" is often
+looking for the ingredient rather than one product.
+
+Same rule as the lab-report uploads left out of M6 (§L4): **a surface with no destination is
+worse than a missing surface**, because the missing one is obvious and the broken one is not.
+
+### M5 · Departure from spec: no "approve without publishing" in the compliance queue
+
+Carried over from §L3 and repeated here for the review queue, where the same question came up
+and got the same answer: an item that stays in a queue after you act on it is broken. The review
+queue's three verbs all remove the review from the pending tab.
+
+### M6 · Price per serving refuses to guess
+
+docs/05 §9 asks the comparison table for a computed price per serving. Nothing in the schema
+stores a pack count — `serving_size` is free text an editor typed. `servingsFrom` looks for a
+number followed by "per pack" or "për paketë" and returns `null` otherwise, which renders as "—".
+
+A guess would be worse than a blank, and not marginally: price per serving is _the_ number a
+shopper uses to decide which of two products is cheaper. One derived from a misparsed label is
+not a rough answer, it is a confident wrong one. The unit test pins both halves, including that
+a pack size of zero yields `null` rather than a division by zero.
+
+### M7 · Fixture reviews change a seeded product's rating
+
+`purgeFixtures` deletes reviews belonging to fixture **products** (`slug LIKE 'product-%'`).
+Journey 6 reviews a **seeded** product, because that is what a customer buys in the checkout
+helper — so its reviews fell outside the sweep, and every run would have left the demo catalogue
+a little more highly rated by nobody.
+
+They are cleaned up by the auth-user deletion that already runs: `reviews.user_id` and
+`wishlist_items.user_id` both cascade from `profiles`, and deleting a review fires
+`refresh_product_rating`, so `rating_avg` returns to what it was. The comment now says so, since
+the connection between "delete the test user" and "restore the catalogue's ratings" is not one
+anybody would reconstruct from the code.
+
+That was the analysis. It was also wrong about one thing, and finding out how is §M9: the
+auth-user deletion this depends on had never once succeeded.
+
+### M8 · The third instance of an assertion about a shared list
+
+Journey 6 wrote a review titled "Does what it says" and asserted, from a logged-out context,
+that it was **not** visible before approval. On desktop it passed. On mobile it failed — because
+the two projects run concurrently against one database, and the mobile run's shopper was seeing
+the desktop run's _approved_ review.
+
+Read literally, the failure said a pending review is public. It is not; the test was.
+
+Same shape as the compliance queue in §L (fixtures named identically) and as §K2 and §L8
+(assertions that could not fail). The rule that covers all four: **anything asserted against a
+list the whole suite shares must be identified uniquely** — and where the assertion is that
+something is _absent_, that is not a nicety, it is the difference between a passing suite and a
+reported security hole that does not exist.
+
+### M9 · BLOCKER — the fixture purge had never deleted a single user
+
+`pnpm purge:test-data` reported "nothing to purge" against a database holding **580** fixture
+profiles. It had been failing since M5 and saying nothing.
+
+Eleven tables reference `profiles(id)` with no ON DELETE clause — `audit_logs.actor_id`,
+`products.approved_by`, `stock_movements.created_by` and eight more. In Postgres that means
+NO ACTION, a restriction. Deleting an auth user cascades to its profile, the first of those
+constraints refuses, the transaction aborts, and GoTrue returns a bare `500` that `supabase-js`
+surfaces as an `AuthRetryableFetchError` whose `message` is `{}`.
+
+The loop counted successes:
+
+```ts
+const { error } = await db.auth.admin.deleteUser(profile.id);
+if (!error) deletedUsers += 1; // 580 errors, 0 counted, summary says "nothing to purge"
+```
+
+**Why it mattered beyond tidiness:** M7 reviews seeded products, and `reviews.user_id` cascades
+from `profiles` — so the reviews stayed too. Six of them had pushed `now-vitamin-d3-4000` to
+**4.0 stars from five reviews written by nobody**, on the live database, visible to anyone
+browsing. A catalogue test then failed for the right reason and reported the wrong cause.
+
+**Fix**, in two parts:
+
+1. The FKs stay. An audit row that can lose its actor is not an audit row, and the same
+   reasoning already protects `stock_movements` and `loyalty_transactions`. What was missing is
+   that fixture _actors_ need the treatment fixture _ledgers_ already get: `audit_logs` rows for
+   a fixture user are deleted (an audit trail of test activity is test data), and the other ten
+   references are nulled — the row belongs to the shop, only the "who" was a fixture.
+2. **The failure is now reported.** A purge that cannot delete its users has left the database
+   dirtier than it found it, and the one thing it must not do is say so quietly. The count map
+   gains an `auth users FAILED (…)` entry carrying the first error.
+
+The second part is the more important one. The FK oversight is a day's worth of accumulated
+rows; the swallowed error is why nobody noticed for three milestones. It is the fourth time in
+this codebase that discarding a Supabase error changed the meaning of a result — see §K
+(`getEditorOptions`), §L9 (the audit-column typo) and the original `data ?? []` sweep in §G2.
+
+---
+
 ## E. Stack decisions taken at M0
 
 | Item          | Spec                  | Built as            | Why                                                                                               |

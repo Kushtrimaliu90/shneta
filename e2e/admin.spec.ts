@@ -1,14 +1,13 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
-import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { randomUUID } from 'node:crypto';
-import { readFileSync } from 'node:fs';
 import {
   ACTION_TIMEOUT,
   CHEAP_ORDER_TOTAL,
   CHEAP_SKU,
   placeGuestOrder,
 } from './helpers/storefront';
+import { db, deleteCreatedUsers, ipAllocator, signIn, staffUser } from './helpers/accounts';
 
 /**
  * docs/09 §1 journey 7 — admin order operations — plus the shell's role filtering.
@@ -21,111 +20,19 @@ import {
  * `@shneta.test` on every address, which is the only pattern `purgeFixtures` deletes.
  */
 
-function env(): Record<string, string> {
-  const out: Record<string, string> = {};
-  try {
-    for (const line of readFileSync('.env.local', 'utf8').split('\n')) {
-      const match = /^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/.exec(line);
-      if (match?.[1] && match[2] !== undefined) out[match[1]] = match[2].trim();
-    }
-  } catch {
-    /* CI supplies these through process.env */
-  }
-  return { ...out, ...(process.env as Record<string, string>) };
-}
+const ips = ipAllocator('233.252.0');
 
-const { NEXT_PUBLIC_SUPABASE_URL: URL_, SUPABASE_SERVICE_ROLE_KEY: KEY } = env();
-const service: SupabaseClient | null =
-  URL_ && KEY ? createClient(URL_, KEY, { auth: { persistSession: false } }) : null;
-
-const created: string[] = [];
-
-test.afterAll(async () => {
-  // Belt and braces with the global teardown: these are gone either way, but leaving staff
-  // accounts lying around between runs is not something to rely on a later step for.
-  for (const id of created) await service?.auth.admin.deleteUser(id);
-});
-
-/**
- * docs/02 §9 — sign-in is limited to 5 attempts per 15 minutes per IP, and this file signs in
- * once per test. 192.0.2.0/24 belongs to checkout.spec.ts and 198.51.100/203.0.113 to
- * auth.spec.ts, so this file takes the fourth documentation block.
- *
- * 233.252.0.0/24 is MCAST-TEST-NET — reserved, never routable, and therefore just as safe as
- * a TEST-NET block for a value that only ever appears in an `x-forwarded-for` header.
- */
-let addressCounter = 0;
-
-test.beforeAll(async () => {
-  await service?.from('rate_limits').delete().like('key', '%:233.252.0.%');
-});
+test.afterAll(deleteCreatedUsers);
+test.beforeAll(() => ips.reset());
 
 test.beforeEach(async ({ page }, testInfo) => {
-  addressCounter += 1;
-  const octet = ((testInfo.workerIndex * 50 + addressCounter) % 250) + 1;
-  await page.setExtraHTTPHeaders({ 'x-forwarded-for': `233.252.0.${octet}` });
+  await page.setExtraHTTPHeaders({ 'x-forwarded-for': ips.next(testInfo.workerIndex) });
 });
-
-type StaffRole =
-  | 'support'
-  | 'warehouse_manager'
-  | 'product_manager'
-  | 'content_manager'
-  | 'compliance_manager'
-  | 'admin'
-  | 'customer';
-
-/**
- * The service client, narrowed once — non-null assertions are banned (CLAUDE.md §1), and a
- * named throw reports the real problem when the credentials are genuinely absent.
- */
-function db(): SupabaseClient {
-  if (!service) throw new Error('Service credentials missing; cannot run admin E2E.');
-  return service;
-}
-
-/** Creates a confirmed user and sets its role through the service client. */
-async function staffUser(role: StaffRole): Promise<{ email: string; password: string }> {
-  const service = db();
-
-  const email = `e2e-${role}-${randomUUID()}@shneta.test`;
-  const password = `Pw-${randomUUID()}`;
-
-  const { data, error } = await service.auth.admin.createUser({
-    email,
-    password,
-    email_confirm: true,
-    user_metadata: { full_name: `E2E ${role}` },
-  });
-  if (error || !data.user) throw new Error(`fixture staff user failed: ${error?.message}`);
-  created.push(data.user.id);
-
-  if (role !== 'customer') {
-    // `handle_new_user` defaults to `customer`; the service role is exempt from
-    // `prevent_role_escalation` (docs/13 §A4), which is what makes this possible.
-    const { error: roleError } = await service
-      .from('profiles')
-      .update({ role })
-      .eq('id', data.user.id);
-    if (roleError) throw new Error(`role assignment failed: ${roleError.message}`);
-  }
-
-  return { email, password };
-}
-
-async function signIn(page: Page, email: string, password: string) {
-  await page.goto('/en/auth/sign-in');
-  await page.locator('#email').fill(email);
-  await page.locator('#password').fill(password);
-  await page.getByRole('button', { name: 'Sign in' }).click();
-  // The action redirects on success; waiting on the URL leaving /auth is the reliable signal.
-  await expect(page).not.toHaveURL(/\/auth\/sign-in/, { timeout: 30_000 });
-}
 
 /**
  * Returns the admin nav, opening the drawer first when the viewport needs it.
  *
- * Below `lg` the persistent rail is `hidden` and the nav lives in a drawer behind "Open admin
+ * Below `lg` the persistent rail is hidden and the nav lives in a drawer behind "Open admin
  * menu". That is not a quirk to work around — it is the mobile design, and a warehouse phone
  * has to reach the same links a desk browser does. So the test does what the operator does.
  *

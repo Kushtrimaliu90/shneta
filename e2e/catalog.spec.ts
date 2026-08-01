@@ -132,12 +132,28 @@ test.describe('product detail', () => {
     expect(types).toContain('BreadcrumbList');
 
     const product = parsed.find((schema) => schema['@type'] === 'Product') as
-      { offers: { price: string; priceCurrency: string }; aggregateRating?: unknown } | undefined;
+      | {
+          offers: { price: string; priceCurrency: string };
+          aggregateRating?: { ratingValue: string; reviewCount: number };
+        }
+      | undefined;
     expect(product?.offers.priceCurrency).toBe('EUR');
     expect(product?.offers.price).toBe('9.90');
-    // No reviews in the fixture, so aggregateRating must be absent — emitting it with
-    // reviewCount 0 is a Search Console error.
-    expect(product?.aggregateRating).toBeUndefined();
+
+    /*
+     * The rule is "never emit `aggregateRating` with a count of zero" — that is a Search Console
+     * error — not "never emit it".
+     *
+     * This used to assert the field was simply absent, which held only because nothing could
+     * create a review. M7 can: `reviews.spec.ts` writes and approves one on this very product,
+     * and the two specs run concurrently, so whether a rating exists here is a race. Asserting
+     * the *contract* holds either way; asserting the absence made this test a report of what
+     * some other spec happened to be doing.
+     */
+    if (product?.aggregateRating !== undefined) {
+      expect(product.aggregateRating.reviewCount).toBeGreaterThan(0);
+      expect(Number(product.aggregateRating.ratingValue)).toBeGreaterThan(0);
+    }
   });
 
   test('a missing product renders the localized 404', async ({ page }) => {

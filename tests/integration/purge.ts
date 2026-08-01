@@ -326,14 +326,103 @@ export async function purgeFixtures(
     record('orders', (await db.from('orders').delete().in('id', orderIds).select('id')).data);
   }
 
-  // --- auth users (profiles, carts and addresses cascade from here) ---------
+  /*
+   * --- auth users (profiles, carts, addresses, reviews and wishlists cascade) -------------
+   *
+   * The M7 journeys review and save **seeded** products, not fixture ones, so the
+   * `product-%` sweep above cannot reach those rows. They come out here instead:
+   * `reviews.user_id` and `wishlist_items.user_id` both cascade from `profiles`, which
+   * cascades from the auth user.
+   *
+   * Deleting a review also fires `refresh_product_rating`, so a seeded product's `rating_avg`
+   * returns to what it was — without which every run would leave the demo catalogue a little
+   * more highly rated by nobody.
+   */
   const { data: profiles } = await db.from('profiles').select('id').like('email', '%@shneta.test');
+  const profileIds = (profiles ?? []).map((row) => row.id);
+
+  if (profileIds.length > 0) {
+    /*
+     * Eleven tables reference `profiles(id)` with **no ON DELETE clause**, which in Postgres
+     * means NO ACTION — a restriction. Deleting an auth user cascades to its profile, that
+     * violates the first of those constraints, and the whole transaction aborts. GoTrue reports
+     * it as a bare `500`, `supabase-js` surfaces an `AuthRetryableFetchError` whose `message`
+     * is `{}`, and the loop below used to write `if (!error) deletedUsers += 1` — so a cleanup
+     * that deleted nothing at all reported "nothing to purge".
+     *
+     * It had been failing since M5, when staff actions started writing `audit_logs`. By the end
+     * of M7 the database held **580** fixture profiles, and six orphaned reviews had pushed a
+     * seeded product's rating to 4.0 from nobody.
+     *
+     * The FKs are right and are not being changed: an audit row that can lose its actor is not
+     * an audit row, and the same reasoning already protects `stock_movements` and
+     * `loyalty_transactions` (see the note at the top of this file). What was missing is that
+     * fixture *actors* need the same treatment as fixture *ledgers* — clear the references
+     * first, then delete.
+     *
+     * `audit_logs` rows are deleted outright because an audit trail of test activity is itself
+     * test data. Everywhere else the reference is nulled: the row belongs to the shop, only the
+     * "who" was a fixture.
+     */
+    record(
+      'audit_logs',
+      (await db.from('audit_logs').delete().in('actor_id', profileIds).select('id')).data,
+    );
+
+    const detach = async (
+      table:
+        | 'products'
+        | 'product_variant_costs'
+        | 'stock_movements'
+        | 'order_events'
+        | 'refunds'
+        | 'articles'
+        | 'loyalty_transactions'
+        | 'contact_messages'
+        | 'settings',
+      column: string,
+    ) => {
+      const { error } = await db
+        .from(table)
+        .update({ [column]: null })
+        .in(column, profileIds);
+      if (error) counts[`${table}.${column} detach failed`] = 1;
+    };
+
+    await detach('products', 'approved_by');
+    await detach('product_variant_costs', 'updated_by');
+    await detach('stock_movements', 'created_by');
+    await detach('order_events', 'created_by');
+    await detach('refunds', 'created_by');
+    await detach('articles', 'author_id');
+    await detach('loyalty_transactions', 'created_by');
+    await detach('contact_messages', 'replied_by');
+    await detach('settings', 'updated_by');
+
+    // `coupon_redemptions.user_id` is NOT NULL, so the row goes rather than the reference.
+    record(
+      'coupon_redemptions',
+      (await db.from('coupon_redemptions').delete().in('user_id', profileIds).select('coupon_id'))
+        .data,
+    );
+  }
+
   let deletedUsers = 0;
-  for (const profile of profiles ?? []) {
-    const { error } = await db.auth.admin.deleteUser(profile.id);
-    if (!error) deletedUsers += 1;
+  const userFailures: string[] = [];
+  for (const id of profileIds) {
+    const { error } = await db.auth.admin.deleteUser(id);
+    if (error) userFailures.push(error.message || error.name);
+    else deletedUsers += 1;
   }
   if (deletedUsers > 0) counts['auth users'] = deletedUsers;
+
+  /*
+   * Reported, not swallowed. A purge that cannot delete its users has left the database dirtier
+   * than it found it, and the one thing it must not do is say so quietly.
+   */
+  if (userFailures.length > 0) {
+    counts[`auth users FAILED (${userFailures[0] ?? 'unknown'})`] = userFailures.length;
+  }
 
   /*
    * Guest carts from aborted runs have no owner to cascade from, so they need collecting

@@ -1,11 +1,12 @@
 import { getTranslations } from 'next-intl/server';
-import { Search, ShoppingBag, User } from 'lucide-react';
+import { ShoppingBag, User } from 'lucide-react';
 import { Link } from '@/i18n/routing';
 import { BrandMark } from '@/components/storefront/brand-mark';
 import { MobileNav } from '@/components/storefront/mobile-nav';
 import { PRIMARY_NAV } from '@/components/storefront/nav-links';
 import { LocaleSwitcher } from '@/components/shared/locale-switcher';
 import { getCartItemCount } from '@/features/cart/queries';
+import { SearchOverlay } from '@/features/search/components/search-overlay';
 
 /**
  * docs/04 §6 — cream, hairline bottom border, sticky; logo left, nav centre, actions right.
@@ -43,13 +44,8 @@ export async function Navbar() {
         <div className="ml-auto flex items-center gap-1 lg:ml-0">
           <LocaleSwitcher className="mr-1 hidden sm:flex" />
 
-          <Link
-            href="/search"
-            aria-label={t('common.search')}
-            className="inline-flex size-11 items-center justify-center rounded-md text-forest-800 transition-colors hover:bg-forest-50"
-          >
-            <Search className="size-5" aria-hidden="true" />
-          </Link>
+          {/* docs/05 §8 — the magnifier opens the instant overlay rather than navigating. */}
+          <SearchOverlay />
 
           <Link
             href="/account"

@@ -64,7 +64,7 @@ Legend: ✅ done and verified · 🟡 partial · ⬜ not started · ➖ not appl
 | M4 · Cart and COD checkout                   | ✅    | Guest cart, cart page, 4-step checkout, gated success page, order lookup. Confirmation email needs Resend (§6)                                                                                                                                                                                                                             |
 | M5 · Orders ops and admin core               | ✅    | Admin shell, order queue + detail, full state machine, shipment, refund, lifecycle emails, dashboard, print docs, customer order pages                                                                                                                                                                                                     |
 | M6 · Admin catalog management                | ✅    | Create → edit → variants → label → media → SEO → submit → approve → live (journey 8). All six editor tabs, brands/categories/goals/ingredients admin, brand-logo upload, the compliance queue. Cache tags on every catalogue read (docs/13 §K1). Deferred and listed below: drag-reorder, lab reports, taxonomy SEO, unsaved-changes guard |
-| M7 · Reviews, wishlist, search, compare      | ⬜    |                                                                                                                                                                                                                                                                                                                                            |
+| M7 · Reviews, wishlist, search, compare      | ✅    | Verified-purchase reviews with moderation, helpful votes and a delivered+7d request email; wishlist end to end; instant search overlay + `/search`; compare up to four. Deferred: an Articles tab (needs M8) and the review-request email needs Resend (§6)                                                                                |     |
 | M8 · Knowledge, offers, contact, newsletter  | 🟡    | Newsletter opt-in works; double opt-in email needs Resend (M8)                                                                                                                                                                                                                                                                             |
 | M9 · Subscriptions and loyalty               | ⬜    | RPCs and triggers exist and are tested; no UI                                                                                                                                                                                                                                                                                              |
 | M10 · Inventory ops, finder, remaining admin | ⬜    |                                                                                                                                                                                                                                                                                                                                            |
@@ -214,3 +214,36 @@ docs/06 §3–§7 and §14 are not built, each for a stated reason rather than b
 Two carried over from earlier milestones and still outstanding: `pnpm seed:images` (§8), and the
 in-app notification a rejected product manager should get instead of being told in person
 (docs/06 §14 — the note currently lives only in `audit_logs`).
+
+---
+
+## 10 · What M7 deliberately left out, and one thing to fix first
+
+### The one to fix first
+
+**The storefront is not statically rendered, and has not been since M4** (docs/13 §M1).
+`Navbar` reads the cart cookie, the navbar is in the layout, and a request-scoped API in a layout
+makes every page beneath it dynamic. The Data Cache and tag purging work correctly — that half is
+real — but every catalogue visit re-runs a React render that could have been a file.
+
+The fix is one component: make the cart badge fetch its count after mount, as the wishlist
+provider now does. It belongs in M11's performance pass and it is the highest-value item in it.
+
+### Deferred from M7
+
+| Item                                     | Why it is not here                                                                                                                                                                    | When            |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------- |
+| Articles tab in search (docs/05 §8)      | `/knowledge/[slug]` arrives with M8, so an article result today is a link to a 404. Ingredients take the slot (docs/13 §M4)                                                           | M8              |
+| Review-request email actually sending    | The cron step, the query and the template are built and wired. Like every other email it records `skipped_no_provider` until Resend has a verified domain (§6)                        | Owner task (§6) |
+| Q&A on the PDP                           | docs/05 §3 marks it "v2 placeholder hidden", and it is hidden                                                                                                                         | v2              |
+| "Frequently bought together" / "Similar" | `product_relations` exists and is unpopulated; a recommendations strip built on an empty table shows nothing and looks broken                                                         | With seed data  |
+| Add-to-cart from the comparison table    | docs/05 §9 sketches it in the header row, but a multi-variant product cannot be added without asking which one — and the visitor is comparing precisely because they have not decided | Not planned     |
+| `/account/addresses`                     | Named in docs/05 §14 and marked **M5** in the account nav, which shipped without it. Not an M7 regression, but the nav badge now claims a milestone that is complete                  | M10             |
+
+### What M7 changed about testing
+
+`e2e/helpers/accounts.ts` now owns test users, the service client and the sign-in helper, which
+`admin.spec.ts` used to. Two new spec files came with it — `reviews.spec.ts` (journey 6) and
+`discovery.spec.ts` (journey 10) — each with its own reserved documentation IP block, because
+sign-in is rate-limited per address and two files sharing a block is a failure that looks like a
+broken feature. The allocation is written down in that helper.

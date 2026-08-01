@@ -14,6 +14,10 @@ import { ProductImage } from '@/components/storefront/product-image';
 import { getProduct, listProducts } from '@/features/catalog/queries';
 import { knownDietaryTags } from '@/features/catalog/filters';
 import { BuyBox } from '@/features/cart/components/buy-box';
+import { listProductReviews } from '@/features/reviews/queries';
+import { ReviewsSection } from '@/features/reviews/components/reviews-section';
+import { WishlistButton } from '@/features/wishlist/components/wishlist-button';
+import { CompareButton } from '@/features/compare/components/compare-button';
 import type { ProductVariantDetail } from '@/features/catalog/types';
 
 type Props = { params: Promise<{ locale: string; slug: string }> };
@@ -84,7 +88,7 @@ export default async function ProductPage({ params }: Props) {
   const product = await getProduct(slug);
   if (!product) notFound();
 
-  const t = await getTranslations();
+  const [t, reviews] = await Promise.all([getTranslations(), listProductReviews(product.id)]);
   const origin = clientEnv.NEXT_PUBLIC_SITE_URL;
   const name = pickLocale(product.name, locale);
   const variant = primaryVariant(product.variants);
@@ -189,6 +193,17 @@ export default async function ProductPage({ params }: Props) {
             */}
             <div className="mt-6">
               <BuyBox variants={product.variants} />
+            </div>
+
+            {/* docs/05 §3 — wishlist and compare sit under the buy action, not beside it. */}
+            <div className="mt-3 flex flex-wrap items-center gap-1">
+              <WishlistButton
+                productId={product.id}
+                productName={name}
+                returnPath={`/product/${product.slug}`}
+                variant="labelled"
+              />
+              <CompareButton productId={product.id} productName={name} variant="labelled" />
             </div>
 
             {/* Trust row (docs/04 §1.5 — microcopy near money) */}
@@ -299,14 +314,11 @@ export default async function ProductPage({ params }: Props) {
               </section>
             )}
 
-            <section className="mt-12">
-              <h2 className="font-display text-2xl font-semibold text-forest-900">
-                {t('product.reviews')}
-              </h2>
-              <div className="mt-4">
-                <RatingStars rating={product.ratingAvg} count={product.ratingCount} size="md" />
-              </div>
-            </section>
+            {/*
+              docs/05 §3 — page one is server-rendered so the review text is in the cached HTML,
+              and everything viewer-specific arrives after mount. See `listProductReviews`.
+            */}
+            <ReviewsSection productId={product.id} productSlug={product.slug} initial={reviews} />
           </div>
 
           {/* Sidebar */}
