@@ -134,12 +134,33 @@ export async function assertNoRealOrders(url: string, key: string): Promise<void
   }
 }
 
+/**
+ * A minimal `.env` reader for the scripts and suites that run outside Next.
+ *
+ * **Unwraps matching surrounding quotes, because dotenv does.** Next loads `.env.local` through
+ * `@next/env` and strips them, so the application saw `BIOCODE <porosite@shtrejt.com>` while
+ * everything reading through this function saw `"BIOCODE <porosite@shtrejt.com>"` — quotes
+ * included. Two readers of one file disagreeing about its contents is the kind of bug that only
+ * shows up in the one place the value has to be exactly right.
+ *
+ * Here that place was `pnpm email:test`, which posts `EMAIL_FROM` straight to Resend as the
+ * `from` address. A quoted value is not a valid address, so the tool for proving email works was
+ * the one thing guaranteed not to. Quoting is *required* for this variable, since the value
+ * contains spaces and angle brackets.
+ */
 export function envFromLocalFile(path = '.env.local'): Record<string, string> {
   const env: Record<string, string> = {};
   try {
     for (const line of readFileSync(path, 'utf8').split('\n')) {
       const match = /^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/.exec(line);
-      if (match?.[1] && match[2] !== undefined) env[match[1]] = match[2].trim();
+      if (!match?.[1] || match[2] === undefined) continue;
+
+      const raw = match[2].trim();
+      const quoted =
+        raw.length >= 2 &&
+        ((raw.startsWith('"') && raw.endsWith('"')) || (raw.startsWith("'") && raw.endsWith("'")));
+
+      env[match[1]] = quoted ? raw.slice(1, -1) : raw;
     }
   } catch {
     // Falls through to process.env, which is how CI supplies these.

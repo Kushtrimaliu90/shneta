@@ -1962,6 +1962,60 @@ only the owner can finish — a gap that stays legible rather than a document th
 
 ---
 
+## V. What proving email actually works taught us
+
+### V1 · Two readers of one `.env` file disagreed, and only one value showed it
+
+Next loads `.env.local` through `@next/env`, which follows dotenv and **strips a wrapping pair of
+quotes**. The suites and scripts run outside Next and use `envFromLocalFile`, which did not. So
+the application read
+
+    BIOCODE <porosite@shtrejt.com>
+
+and every script read
+
+    "BIOCODE <porosite@shtrejt.com>"
+
+For eleven variables that difference is invisible, because nothing else in the file is quoted —
+quoting is only *required* for `EMAIL_FROM`, whose value contains spaces and angle brackets.
+
+Which meant the one place the discrepancy surfaced was `pnpm email:test`, the tool whose entire
+job is to prove email works. It posted the quoted string as the `from` address and Resend
+answered `422 Invalid \`from\` field`. Confirmed by sending both forms: the unquoted one is
+delivered, the quoted one is rejected.
+
+The lesson is not "strip quotes". It is that **a second reader of a config format is a second
+implementation of that format**, and it will agree with the first everywhere except the one value
+that exercises the part you did not implement. `envFromLocalFile` now matches dotenv's quoting
+rule and has its own unit tests.
+
+The same trap is waiting in the hosting dashboard, from the other direction: Vercel stores the
+literal string, so quoting `EMAIL_FROM` *there* reproduces the 422 in production. `.env.example`
+now says so at the line.
+
+### V2 · Three hundred and nineteen log rows, zero sends
+
+`email_log` held 319 rows: 318 `skipped_test_recipient`, one `skipped_no_provider`. Not a single
+`sent`, ever.
+
+Every one of them is correct behaviour — the E2E suite mails `@biocode.test` addresses and §S1's
+guard refuses them before the provider. But the consequence is worth stating plainly: **a green
+suite, a verified domain and a valid API key together prove nothing about whether email works.**
+The suite asserts a row exists in `email_log`, deliberately without asserting its status, so it
+passes identically whether the provider is perfect or absent.
+
+What closed the gap was two sends to `delivered@resend.dev`, Resend's sandbox address — one
+through the script and one through the real runtime path (`POST /api/newsletter` → `sendEmail` →
+`email_log`). Both reported `delivered`, and the second wrote the first `sent` row this project
+has ever produced. The sandbox address matters: it exercises the whole path without mailing a
+person and without the bounce risk that §S1 exists to prevent.
+
+Inbox placement is still unproven and cannot be proven from here — whether a message lands in the
+inbox or in spam depends on the receiving provider. That half needs a human with a Gmail account,
+which is why `pnpm email:test` prints a checklist rather than a pass.
+
+---
+
 ## E. Stack decisions taken at M0
 
 | Item          | Spec                  | Built as            | Why                                                                                               |
