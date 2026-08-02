@@ -30,14 +30,27 @@
  * owner cannot claim them. Replace with the real handles before launch.
  */
 insert into settings (key, value) values
+  /*
+   * Contact details, on the domain the shop actually runs on.
+   *
+   * `phone` and the three social URLs are deliberately **empty** rather than plausible. They used
+   * to hold `+383 40 000 000` and `instagram.com/biocode` — a number that dials nowhere and links
+   * to accounts nobody owns, on a domain nobody registered. Every surface that renders them does
+   * so conditionally, so empty means "not shown" rather than "shown wrong", and a wrong phone
+   * number on a shop that sells cash-on-delivery is worse than no phone number.
+   *
+   * Fill them in `/admin/settings` — and note that this seed block overwrites the `settings` rows
+   * unconditionally on every run, so `pnpm db:seed:linked` will revert whatever is set there.
+   * That is fine while the values here are the truth and a trap once they are not.
+   */
   ('store', jsonb_build_object(
       'name', 'BIOCODE',
-      'email', 'info@biocode.com',
-      'phone', '+383 40 000 000',
+      'email', 'info@shtrejt.com',
+      'phone', '',
       'address', 'Prishtinë, Kosovë',
-      'instagram', 'https://instagram.com/biocode',
-      'tiktok', 'https://tiktok.com/@biocode',
-      'facebook', 'https://facebook.com/biocode')),
+      'instagram', '',
+      'tiktok', '',
+      'facebook', '')),
   ('tax', '{"rate": 18}'::jsonb),
   ('loyalty', '{"earn_rate_points_per_eur": 1, "redeem_points": 100, "redeem_value_cents": 500}'::jsonb),
   ('checkout', '{"max_item_qty": 20, "cod_enabled": true, "bank_pos_enabled": false}'::jsonb),

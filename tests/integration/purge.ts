@@ -79,6 +79,61 @@ export function assertPurgeable(url: string): void {
   }
 }
 
+/**
+ * The second guard: refuse a database that holds an order from a real person.
+ *
+ * `assertPurgeable` asks whether the target *declares itself* a test database. That is a
+ * statement of intent in a file, and intent is exactly what goes stale — docs/14 §7 requires
+ * `SUPABASE_TEST_PROJECT` to be deleted on launch day, which means the whole protection rests on
+ * somebody remembering to do it at the moment they are busiest. This asks the database instead:
+ * is there anything in here that a customer put there?
+ *
+ * Two guards, two failure modes. A misconfigured env var is caught by the first. A correctly
+ * configured env var that nobody updated when the shop went live is caught by this one. Neither
+ * subsumes the other, and this project runs one Supabase project for dev, test and production
+ * (docs/14 §7), so it needs both.
+ *
+ * **What counts as real.** Any order whose email is neither a `@biocode.test` fixture nor an
+ * `@deleted.invalid` anonymisation left by the GDPR-erasure tests. Both are residue this suite
+ * created; anything else was placed by a person.
+ *
+ * A query failure throws rather than passing. A safety check that cannot see the data has not
+ * verified anything, and treating "I could not look" as "it is fine" is how these get useless.
+ */
+export async function assertNoRealOrders(url: string, key: string): Promise<void> {
+  if (/^https?:\/\/(127\.0\.0\.1|localhost)(:|\/|$)/.test(url)) return;
+
+  const client = createClient(url, key, { auth: { persistSession: false } });
+
+  const { data, error } = await client
+    .from('orders')
+    .select('order_number, created_at')
+    .not('email', 'ilike', '%@biocode.test')
+    .not('email', 'ilike', '%@deleted.invalid')
+    .limit(3);
+
+  if (error) {
+    throw new Error(
+      `Refusing to run: could not check ${url} for real orders (${error.message}).\n` +
+        'The guard has to be able to see the data to clear it.',
+    );
+  }
+
+  if (data && data.length > 0) {
+    const sample = (data as { order_number: string; created_at: string }[])
+      .map((row) => `${row.order_number} (${row.created_at.slice(0, 10)})`)
+      .join(', ');
+
+    throw new Error(
+      `Refusing to run against ${url}: it holds ${data.length === 3 ? 'at least 3' : data.length} ` +
+        `order(s) that no test created — ${sample}.\n\n` +
+        'This database is serving real customers. The test suites place orders, consume stock and\n' +
+        'delete rows; none of that belongs here. Point them at a separate project and remove\n' +
+        'SUPABASE_TEST_PROJECT from this environment (docs/14 §7).',
+    );
+  }
+}
+
 export function envFromLocalFile(path = '.env.local'): Record<string, string> {
   const env: Record<string, string> = {};
   try {
@@ -308,9 +363,24 @@ export async function purgeFixtures(
     (await db.from('ingredients').delete().like('slug', 'ingredient-%').select('id')).data,
   );
 
-  // --- orders ---------------------------------------------------------------
-  const { data: orders } = await db.from('orders').select('id').like('email', '%@biocode.test');
-  const orderIds = (orders ?? []).map((row) => row.id);
+  /*
+   * --- orders ---------------------------------------------------------------
+   *
+   * Matched on the fixture email, **plus** the `SH-9999-` order-number prefix.
+   *
+   * That prefix exists for one test: the one proving `assertNoRealOrders` fires, which has to
+   * insert an order that deliberately looks like a real customer's. If that test dies between
+   * the insert and its `finally`, the row it leaves behind would trip the guard and refuse every
+   * later run — a test capable of bricking the suite. The prefix makes `pnpm purge:test-data`
+   * the recovery, instead of someone working out what to delete by hand.
+   *
+   * Real order numbers are `SH-<year>-<sequence>-<suffix>`, so `SH-9999-` cannot collide.
+   */
+  const { data: byEmail } = await db.from('orders').select('id').like('email', '%@biocode.test');
+  const { data: byNumber } = await db.from('orders').select('id').like('order_number', 'SH-9999-%');
+  const orderIds = [
+    ...new Set([...(byEmail ?? []), ...(byNumber ?? [])].map((row) => row.id)),
+  ];
 
   if (orderIds.length > 0) {
     await restockTestOrders(db, orderIds, record);

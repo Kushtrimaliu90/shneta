@@ -1887,6 +1887,81 @@ Pinning `?goal=gjumi` fixed the test, and the finding is the general one: an E2E
 
 ---
 
+## U. What loading the launch copy taught us
+
+### U1 · Editing a seed file does not re-seed anything
+
+`supabase db push --include-seed` tracks a hash per seed file. When the hash changes it prints
+`Updating seed hash to …`, records it, and **skips execution**. Only a file it has never seen
+produces `Seeding data from …` and actually runs.
+
+The consequence is quiet and one-directional: an edit to `seed.sql` reaches every fresh
+`db reset` and never reaches the environment that is already live. Found by correcting the store
+contact block, pushing, and watching the live row keep saying `info@biocode.com` — twice, because
+the first attempt was to move the statement into an existing seed file, which had the same hash
+problem for the same reason.
+
+Two things follow. Content that must land on a seeded database goes in a **new numbered file**;
+seed corrections behave like migrations. And the two mechanisms serve different jobs: `seed.sql`
+is what a fresh environment gets, `seeds/NN-*.sql` is how an existing one is changed.
+
+### U2 · A guard that reads config protects against the wrong failure
+
+`assertPurgeable` asks whether `SUPABASE_TEST_PROJECT` names the target. That catches a
+misconfigured environment, and it is the earlier and cheaper check — it throws during import,
+before a fixture exists.
+
+What it cannot catch is the failure this project is actually exposed to. One Supabase project
+serves dev, test and production (§7), and the entire protection on launch day is a human
+remembering to delete an environment variable at the moment they are busiest. A config guard
+reads the intent; it has no opinion about whether the intent is still true.
+
+So there is now a second guard that asks the database: `assertNoRealOrders` refuses any target
+holding an order whose email is neither a `@biocode.test` fixture nor an `@deleted.invalid`
+anonymisation. Both are residue this suite created; anything else was placed by a person.
+
+Three details that decide whether it is useful or ends up switched off:
+
+- **It fails closed on a query error.** A guard that cannot see the data has verified nothing,
+  and "I could not look" must not read as "it is fine".
+- **The `@deleted.invalid` exclusion is load-bearing.** Fifteen anonymised orders were already
+  sitting in the database from the GDPR-erasure tests. Without the exclusion the guard would have
+  fired on day one, and a guard that always fires is a guard someone deletes.
+- **Its own test can brick the suite,** because proving it works means inserting an order that
+  looks real. If that test dies between the insert and its `finally`, the leftover row refuses
+  every later run. Hence the `SH-9999-` order-number prefix and a matching sweep in
+  `purgeFixtures`: recovery is `pnpm purge:test-data` rather than a manual hunt.
+
+### U3 · Placeholder contact details are worse than empty ones
+
+`settings.store` shipped with `info@biocode.com`, `+383 40 000 000` and three social URLs under
+`/biocode` — a domain nobody registered, a number that dials nowhere, accounts that do not exist.
+All of it rendered on the live contact page.
+
+The fix is not to invent better-looking values. Every surface renders these conditionally, so
+**empty means "not shown" while wrong means "shown wrong"**, and on a shop that sells cash on
+delivery a phone number nobody answers costs a sale and a complaint. The email moved to the domain
+that exists; the rest is blank until the owner fills it in.
+
+The general form: seed data that looks plausible is more dangerous than seed data that looks
+obviously absent, because only one of the two survives review.
+
+### U4 · Two compliance lists, and the one the writer cannot see
+
+The 16 goal intros are health claims. They were written against the same banned-verb list the
+BioHack editor enforces (`src/lib/claims.ts`), and checked with it — in both locales, which
+matters because the Albanian is what the market reads and an English-only check would cover the
+half fewer customers see.
+
+The legal pages are a different problem and it is worth naming the difference. Engineering can
+write a privacy policy that is *more* accurate than a template, because the facts are in the
+codebase: what is collected, which processor receives it, how long it is kept. What engineering
+cannot supply is whether the document is sufficient under Kosovo law, or the trader's registration
+details. So the copy is written, and both pages carry a visible `[BIZNESI: plotëso]` marker where
+only the owner can finish — a gap that stays legible rather than a document that looks complete.
+
+---
+
 ## E. Stack decisions taken at M0
 
 | Item          | Spec                  | Built as            | Why                                                                                               |

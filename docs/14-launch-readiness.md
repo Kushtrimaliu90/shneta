@@ -403,12 +403,12 @@ evidence, or with the reason it cannot be ticked from a laptop.
 | Item                                       | Evidence                                                                                                                 |
 | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------ |
 | Prod env vars validated                    | `env.server.ts` + `env.client.ts` fail the build on a missing required key; `tests/unit/env.test.ts`                     |
-| Migrations applied                         | 20 on `rszbpdgfvyofvmuishmn`; `pnpm check:sql` gates structure in CI                                                     |
+| Migrations applied                         | 22 on `rszbpdgfvyofvmuishmn`; `pnpm check:sql` gates structure in CI                                                     |
 | Staff accounts with role rows              | Seven `@biocode.dev` accounts, roles verified. The password is not stored — `pnpm seed:users --reset-password` mints one |
 | Compliance disclaimer on required surfaces | Asserted on five surfaces in both locales by `e2e/compliance.spec.ts`. It had covered two                                |
 | Cookie consent live                        | Shipped M8, gates `lib/analytics.ts`                                                                                     |
 | Sitemap + hreflang                         | Reciprocal sq/en alternates on every URL, asserted by `e2e/compliance.spec.ts` — which found `/finder` missing entirely  |
-| E2E suite green                            | **390/390** across desktop and 390 px, against the live database                                                         |
+| E2E suite green                            | **416** across desktop and 390 px, against the live database (was 390 before the BioHack milestone)                      |
 | RLS matrix green                           | `tests/integration/rls.test.ts`, plus the attack suite in `security.test.ts` (docs/09 §5)                                |
 | Dependency audit                           | `pnpm audit` clean at `--audit-level moderate` — 3 high + 1 moderate cleared (docs/13 §Q5)                               |
 | Security headers + CSP                     | Asserted by `e2e/security.spec.ts`; enforcement is `CSP_ENFORCE=true` (docs/13 §Q3)                                      |
@@ -434,9 +434,9 @@ evidence, or with the reason it cannot be ticked from a laptop.
 
 | Item                  | State                                                                                                                                                               |
 | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Legal pages final     | Seeded as `[LEGAL: review]` placeholders. Checkout makes customers accept them, so this is on the critical path — the content editor now flags it on the row itself |
+| Legal pages final     | **Drafted, not reviewed.** Terms, privacy and shipping/returns are written (`supabase/seeds/06-static-pages.sql`) and live. They are accurate about what the software does, and they are not a lawyer’s work — checkout still makes customers accept them. The trader identification block carries a `[BIZNESI: plotëso]` marker, because only the owner has those facts |
 | Real catalogue loaded | 24 demo fixtures. `pnpm purge:demo` cannot run until real products exist (§7 step 2)                                                                                |
-| Health-goal intros    | 16 goals seeded `[CONTENT: replace]`; docs/05 §5 wants 150+ unique words each                                                                                       |
+| Health-goal intros    | ✅ All 16 written in both locales, 161–198 words each, claim-linted against `src/lib/claims.ts` (`supabase/seeds/05-goal-content.sql`)                              |
 | Brand assets          | Real brand names with placeholder logos — replace with authorised assets (docs/11 §5)                                                                               |
 
 ### The one that is neither
@@ -543,3 +543,45 @@ config.** `getApprovedConfig` returning null means `/biohack` shows an error rat
 protocol — deliberate, so the failure is legible — but it means migration 22 is not optional
 infrastructure. It ships as a migration rather than a seed for exactly that reason: the linked
 project receives migrations only.
+
+---
+
+## 18 · The launch-copy pass
+
+Everything in §14's "blocked on content" row that engineering could actually write, written.
+
+### Done
+
+| Item                 | State                                                                                                                                                                   |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Health-goal intros   | All 16, both locales, 161–198 words each. Every one is checked against the banned-verb list in `src/lib/claims.ts` — the same list the BioHack editor hard-blocks on     |
+| `/about`             | Written, both locales                                                                                                                                                   |
+| Terms of use         | Written. Prices, VAT, the 20-unit cap, cash-on-delivery and the card method being off are all read off the implementation rather than assumed                           |
+| Privacy policy       | Written. The "what we collect" section is an inventory of what the code actually stores, processor by processor, including the BioHack answers                          |
+| Shipping and returns | Written. €2.00 standard / free over €30.00 / 1–3 days, €4.00 same-day Prishtina, the 14-day withdrawal right and the sealed-goods exception that applies to supplements |
+| Store contact        | `info@biocode.com` and `+383 40 000 000` are gone. The email is on the domain that exists; the phone and the three social URLs are **empty rather than invented**       |
+
+### Still outstanding, and only the owner can close it
+
+1. **Legal review.** The three pages above were written by engineering. They are accurate about
+   the software and they are not a substitute for someone qualified in Kosovo consumer and data
+   protection law. Checkout makes every customer tick a box accepting them.
+2. **Trader identification.** Terms and privacy both carry `[BIZNESI: plotëso]` where the
+   registered name, business number, fiscal number and registered address belong. A distance
+   seller is legally required to identify itself; inventing those would be worse than the gap.
+3. **A real phone number** in `/admin/settings`, and the socials if they exist. A shop selling
+   cash-on-delivery with no phone number is a real friction point.
+4. **`info@shtrejt.com` must actually receive mail.** Resend is configured to *send* from the
+   domain; receiving needs MX records. Every legal page tells customers to write to that address.
+
+### One workflow trap found while applying it
+
+**`supabase db push --include-seed` does not re-run a seed file whose contents changed.** It
+prints `Updating seed hash to …`, records the new hash, and skips execution; only a file it has
+never seen runs. So an edit to `seed.sql` reaches a fresh `db reset` and silently never reaches
+the linked project.
+
+Found by editing the store block in `seed.sql`, pushing, and watching the live row keep saying
+`info@biocode.com`. The correction had to become its own numbered file
+(`seeds/07-store-contact.sql`) to land. In practice, seed corrections behave like migrations and
+have to be numbered like them.

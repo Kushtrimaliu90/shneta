@@ -1,4 +1,4 @@
-import { assertPurgeable, envFromLocalFile } from '../tests/integration/purge';
+import { assertNoRealOrders, assertPurgeable, envFromLocalFile } from '../tests/integration/purge';
 
 /**
  * Playwright global setup — refuses to run against an undeclared database.
@@ -17,9 +17,10 @@ import { assertPurgeable, envFromLocalFile } from '../tests/integration/purge';
  * pointing somewhere — quite possibly production. What matters is the database the app under
  * test writes to, which is why the URL is read the same way the app reads it.
  */
-export default function globalSetup() {
+export default async function globalSetup() {
   const env = { ...envFromLocalFile(), ...process.env };
   const url = env.NEXT_PUBLIC_SUPABASE_URL ?? '';
+  const key = env.SUPABASE_SERVICE_ROLE_KEY ?? '';
 
   if (!url) {
     throw new Error(
@@ -29,4 +30,13 @@ export default function globalSetup() {
   }
 
   assertPurgeable(url);
+
+  /*
+   * The second guard — ask the database, not the config (see `assertNoRealOrders`).
+   *
+   * Skipped without a service key, which is the one case where it cannot run: a browser-only
+   * run against `E2E_BASE_URL` has no credentials of its own. `assertPurgeable` still applied
+   * above, and that check needs no database access.
+   */
+  if (key) await assertNoRealOrders(url, key);
 }
