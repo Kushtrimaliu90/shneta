@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useId, useRef, useState } from 'react';
+import { BrandMark } from '@/components/storefront/brand-mark';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { LogOut, Menu, X } from 'lucide-react';
@@ -136,7 +137,7 @@ export function AdminTopbar({
 
         <div className="relative flex h-full w-[17rem] max-w-[85vw] flex-col bg-surface shadow-xl">
           <div className="flex h-16 shrink-0 items-center justify-between border-b border-line px-4">
-            <span className="font-display text-lg font-semibold text-forest-900">BIOCODE</span>
+            <BrandMark />
             <button
               type="button"
               onClick={() => {

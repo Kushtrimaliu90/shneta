@@ -6,13 +6,19 @@ spinner and PDP rating ring (docs/04 §2), so the logo and the interface share o
 
 ## Files
 
-| File                       | Use                                                |
-| -------------------------- | -------------------------------------------------- |
-| `biocode-logo-primary.svg` | Default horizontal lockup, light backgrounds       |
-| `biocode-logo-reverse.svg` | Cream/lime version for forest or photo backgrounds |
-| `biocode-logo-stacked.svg` | Square-ish lockup (social avatars, packaging)      |
-| `biocode-mark.svg`         | Ring alone (favicon source, watermark)             |
-| `biocode-app-icon.svg`     | 512 rounded tile (PWA / app stores)                |
+| File                       | Use                                                  |
+| -------------------------- | ---------------------------------------------------- |
+| `biocode-logo-primary.svg` | Default horizontal lockup, light backgrounds         |
+| `biocode-logo-reverse.svg` | Cream/lime version for forest or photo backgrounds   |
+| `biocode-logo-stacked.svg` | Square-ish lockup (social avatars, packaging)        |
+| `biocode-mark.svg`         | Ring alone (favicon source, watermark)               |
+| `biocode-app-icon.svg`     | 512 rounded tile (PWA / app stores)                  |
+| `biocode-brand-sheet.svg`  | One-page overview of the whole system                |
+| `png/`                     | Ready-to-use exports — icons 1024, lockups 2400/1600 |
+
+Use the **SVGs** anywhere the surface renders vector (the site, PDFs, print). The PNGs exist for
+the places that cannot: marketplace listings, social profile uploads, courier paperwork, anything
+that asks you to "upload a logo file".
 
 ## Rules
 
@@ -32,7 +38,12 @@ The kit is the source of truth; the app must not diverge from it.
 - `src/components/storefront/brand-mark.tsx` — the header lockup. Its two arc paths are **copied
   verbatim** from `biocode-mark.svg`: same 100-unit radius, same 26-unit stroke, same sweep. A
   hand-redrawn navbar mark is how a logo ends up subtly wrong in the one place everybody sees it.
-- `src/app/icon.svg`, `src/app/apple-icon.svg` — favicon and app icon, both the 512 tile.
+- `src/app/icon.svg` — the favicon, from `biocode-app-icon.svg`. SVG because a browser tab is
+  rendered at anything from 16 to 64 px and a vector is the only thing sharp at all of them.
+- `src/app/apple-icon.png` — the iOS home-screen icon, from `png/app-icon-1024.png`. **PNG, not
+  SVG**: Safari does not accept an SVG `apple-touch-icon`, so an `apple-icon.svg` here would have
+  silently produced no icon at all — the kind of thing nobody notices until somebody adds the site
+  to their home screen and gets a grey screenshot.
 - `src/components/shared/vitality-ring.tsx` — the _functional_ ring: rating arcs, routine
   completeness, the spinner. Parameterised by value, so its gap moves; the logo's does not.
 - `src/styles/globals.css` — the palette above, as tokens. `tests/unit/contrast.test.ts` reads

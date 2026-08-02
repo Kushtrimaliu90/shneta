@@ -1,6 +1,7 @@
 import { getLocale, getTranslations } from 'next-intl/server';
 import { BadgeCheck, Truck } from 'lucide-react';
 import { Link } from '@/i18n/routing';
+import { BrandMark } from '@/components/storefront/brand-mark';
 import { PRIMARY_NAV } from '@/components/storefront/nav-links';
 import { NewsletterStatus } from '@/components/storefront/newsletter-status';
 
@@ -54,7 +55,12 @@ export async function Footer() {
       <div className="container-page py-14 lg:py-20">
         <div className="grid gap-10 lg:grid-cols-[1.4fr_repeat(4,1fr)]">
           <div className="max-w-xs">
-            <p className="font-display text-xl font-semibold tracking-tight text-white">BIOCODE</p>
+            {/*
+              The kit's reverse lockup, which exists for exactly this ground (forest-950 is the
+              kit's "deep panel"). It replaces a bare text wordmark — the footer was the one place
+              the brand appeared without its mark.
+            */}
+            <BrandMark tone="reverse" />
             <p className="mt-3 text-sm text-white/70">{t('footer.tagline')}</p>
 
             <form action="/api/newsletter" method="post" className="mt-6">

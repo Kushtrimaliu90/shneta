@@ -16,12 +16,36 @@ import { cn } from '@/lib/utils';
  * one. The wordmark is Space Grotesk Medium via `font-display`, which the kit specifies and the
  * site already loads — no new font licence.
  */
-export function BrandMark({ className }: { className?: string }) {
+export type BrandTone = 'default' | 'reverse';
+
+export function BrandMark({
+  className,
+  tone = 'default',
+}: {
+  className?: string;
+  /**
+   * `reverse` is the kit's second official lockup — cream ring, cream wordmark — and it exists
+   * for exactly one situation: a forest-950 ground or dark photography. It is not a colour
+   * choice. `USAGE.md` forbids it anywhere else, because the cream ring on a light surface is
+   * invisible.
+   */
+  tone?: BrandTone;
+}) {
+  const isReverse = tone === 'reverse';
+
   return (
     <span className={cn('inline-flex items-center gap-2.5', className)}>
       <svg width="28" height="28" viewBox="0 0 254 254" aria-hidden="true" className="shrink-0">
         <g transform="translate(127 127)" fill="none" strokeLinecap="round" strokeWidth="26">
-          <path d="M99.03 -13.92 A100 100 0 1 1 30.90 -95.11" stroke="var(--color-forest-800)" />
+          <path
+            d="M99.03 -13.92 A100 100 0 1 1 30.90 -95.11"
+            stroke={isReverse ? 'var(--color-cream)' : 'var(--color-forest-800)'}
+          />
+          {/*
+            The lime segment never changes, in either lockup. `USAGE.md`: "never recolour the lime
+            segment". It reads 10.86:1 on the deep panel and 1.43:1 on cream — which is why it is
+            always paired with the forest or cream arc and never carries the mark alone.
+          */}
           <path d="M65.61 -75.47 A100 100 0 0 1 85.72 -51.50" stroke="var(--color-lime-500)" />
         </g>
       </svg>
@@ -35,7 +59,14 @@ export function BrandMark({ className }: { className?: string }) {
         `text-forest-900` is `#123227` — the kit's wordmark colour, distinct from the `forest-800`
         of the ring beside it. They are deliberately two different greens.
       */}
-      <span className="font-display text-xl leading-none font-medium text-forest-900">BIOCODE</span>
+      <span
+        className={cn(
+          'font-display text-xl leading-none font-medium',
+          isReverse ? 'text-cream' : 'text-forest-900',
+        )}
+      >
+        BIOCODE
+      </span>
     </span>
   );
 }

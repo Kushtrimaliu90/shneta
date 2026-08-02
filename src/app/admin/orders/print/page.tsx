@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation';
+import { BrandMark } from '@/components/storefront/brand-mark';
 import type { Metadata } from 'next';
 import { formatPrice } from '@/lib/money';
 import { pickLocale } from '@/lib/i18n';
@@ -85,7 +86,12 @@ export default async function PrintOrdersPage({ searchParams }: Props) {
         >
           <header className="flex items-start justify-between gap-6 border-b-2 border-forest-800 pb-3">
             <div>
-              <p className="font-display text-xl font-semibold text-forest-900">BIOCODE</p>
+              {/*
+                The full lockup, not a text wordmark: this is the one BIOCODE artefact that leaves
+                the building on paper, in a customer's hands, with a courier. It prints in the
+                default tone because invoice stock is white.
+              */}
+              <BrandMark />
               <p className="mt-0.5 text-xs text-ink-600">Prishtinë, Kosovë · shtrejt.com</p>
             </div>
             <div className="text-right">

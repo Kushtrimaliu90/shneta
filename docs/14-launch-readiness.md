@@ -144,6 +144,14 @@ These are the ones that need an account or a domain, not code:
 | Vercel project + domain + DNS      | `runbooks/deploy.md`                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 | Legal copy for terms and privacy   | Checkout requires customers to accept them; they are currently `[LEGAL: review]` placeholders                                                                                                                                                                                                                                                                                                                                                                            |
 
+**On the domain specifically.** `shtrejt.com` appears in three places — `seed.sql`'s
+`settings.store.email`, the invoice/packing-slip header, and the SEO preview in the product
+editor. It predates the rebrand: it was registered when the brand was SHNETA, because
+shneta.com was taken. It was deliberately **not** swapped for a plausible `biocode.com`, which
+nobody owns — an unowned domain in a From: address reads as configured and delivers to spam.
+Registering the real one updates all three, and unblocks Resend, which unblocks fourteen
+templates.
+
 ---
 
 ## 7 · One Supabase project for dev, test and production
