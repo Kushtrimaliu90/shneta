@@ -42,7 +42,7 @@ export function AddressBook({ addresses }: { addresses: AddressRow[] }) {
       {addresses.length === 0 && !creating ? (
         <div className="rounded-lg border border-dashed border-line-strong bg-surface p-10 text-center">
           <MapPin className="mx-auto size-6 text-ink-500" aria-hidden="true" />
-          <p className="mt-2 font-medium text-forest-900">{t('empty')}</p>
+          <p className="mt-2 font-medium text-carbon-900">{t('empty')}</p>
           <p className="mt-1.5 text-sm text-ink-600">{t('emptyHint')}</p>
         </div>
       ) : (
@@ -81,14 +81,14 @@ function AddressCard({ address }: { address: AddressRow }) {
     <li
       className={cn(
         'rounded-lg border bg-surface p-4',
-        address.isDefaultShipping ? 'border-forest-800' : 'border-line',
+        address.isDefaultShipping ? 'border-carbon-800' : 'border-line',
       )}
     >
       <div className="flex items-start justify-between gap-2">
         <p className="font-medium text-ink-900">
           {address.label || address.recipientName}
           {address.isDefaultShipping && (
-            <span className="ml-2 rounded-sm bg-forest-100 px-1.5 py-0.5 font-ui text-[11px] font-semibold text-forest-900">
+            <span className="ml-2 rounded-sm bg-carbon-100 px-1.5 py-0.5 font-ui text-[11px] font-semibold text-carbon-900">
               {t('defaultBadge')}
             </span>
           )}

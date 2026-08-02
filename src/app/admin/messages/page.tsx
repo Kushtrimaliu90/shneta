@@ -81,7 +81,7 @@ export default async function AdminMessagesPage({ searchParams }: Props) {
 
   return (
     <div className="max-w-3xl">
-      <h1 className="font-display text-2xl font-semibold text-forest-900">Messages</h1>
+      <h1 className="font-display text-2xl font-semibold text-carbon-900">Messages</h1>
       <p className="mt-1 text-sm text-ink-600">
         Everything sent through the contact form. Reply from your own mail client and mark it here.
       </p>
@@ -97,8 +97,8 @@ export default async function AdminMessagesPage({ searchParams }: Props) {
               className={cn(
                 'inline-flex min-h-9 items-center gap-1.5 rounded-sm border px-3 text-sm transition-colors',
                 active
-                  ? 'border-forest-800 bg-forest-100 font-medium text-forest-900'
-                  : 'border-line-strong text-ink-600 hover:bg-forest-50',
+                  ? 'border-carbon-800 bg-carbon-100 font-medium text-carbon-900'
+                  : 'border-line-strong text-ink-600 hover:bg-carbon-50',
               )}
             >
               {LABELS[value]}
@@ -113,7 +113,7 @@ export default async function AdminMessagesPage({ searchParams }: Props) {
       {messages.length === 0 ? (
         <div className="mt-8 rounded-lg border border-dashed border-line-strong bg-surface p-10 text-center">
           <Inbox className="mx-auto size-6 text-ink-500" aria-hidden="true" />
-          <p className="mt-2 font-medium text-forest-900">
+          <p className="mt-2 font-medium text-carbon-900">
             {status === 'new' ? 'Nothing waiting' : 'Nothing answered yet'}
           </p>
           <p className="mt-1.5 text-sm text-ink-600">Messages arrive here from the contact form.</p>
@@ -129,9 +129,9 @@ export default async function AdminMessagesPage({ searchParams }: Props) {
                     {message.name}{' '}
                     <a
                       href={`mailto:${message.email}?subject=${encodeURIComponent(
-                        `Re: ${message.subject ?? 'Your message to SHNETA'}`,
+                        `Re: ${message.subject ?? 'Your message to BIOCODE'}`,
                       )}`}
-                      className="rounded-sm text-sm font-normal text-forest-800 underline underline-offset-4"
+                      className="rounded-sm text-sm font-normal text-carbon-800 underline underline-offset-4"
                     >
                       {message.email}
                     </a>
@@ -147,7 +147,7 @@ export default async function AdminMessagesPage({ searchParams }: Props) {
                 </div>
 
                 {message.subject && (
-                  <p className="mt-1 text-sm font-medium text-forest-900">{message.subject}</p>
+                  <p className="mt-1 text-sm font-medium text-carbon-900">{message.subject}</p>
                 )}
                 <p className="mt-1.5 text-sm leading-relaxed whitespace-pre-wrap text-ink-600">
                   {message.body}

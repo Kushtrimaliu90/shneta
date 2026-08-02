@@ -10,7 +10,7 @@ export default async function AdminFaqsPage() {
 
   return (
     <section>
-      <h2 className="font-display text-lg font-semibold text-forest-900">FAQs</h2>
+      <h2 className="font-display text-lg font-semibold text-carbon-900">FAQs</h2>
       <p className="mt-0.5 mb-4 max-w-2xl text-sm text-ink-600">
         Shown on the FAQ page and published as structured data for search engines — so an answer
         here is an answer Google may quote. Order is by the number on each row.

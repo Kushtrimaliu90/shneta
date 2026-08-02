@@ -71,7 +71,7 @@ function StepShell({
           {stepLabel}
         </p>
         <div
-          className="h-1 flex-1 overflow-hidden rounded-full bg-forest-100"
+          className="h-1 flex-1 overflow-hidden rounded-full bg-carbon-100"
           role="progressbar"
           aria-valuenow={step}
           aria-valuemin={1}
@@ -79,13 +79,13 @@ function StepShell({
           aria-label={stepLabel}
         >
           <div
-            className="h-full rounded-full bg-forest-800 transition-all"
+            className="h-full rounded-full bg-carbon-800 transition-all"
             style={{ width: `${(step / TOTAL_STEPS) * 100}%` }}
           />
         </div>
       </div>
 
-      <h1 className="mt-4 font-display text-2xl font-semibold text-forest-900 sm:text-3xl">
+      <h1 className="mt-4 font-display text-2xl font-semibold text-carbon-900 sm:text-3xl">
         {title}
       </h1>
       {hint && <p className="mt-1 text-sm text-ink-600">{hint}</p>}
@@ -95,12 +95,12 @@ function StepShell({
       <div className="mt-8 flex items-center gap-3">
         <button
           type="submit"
-          className="inline-flex h-11 items-center rounded-sm bg-forest-800 px-5 text-base text-white hover:bg-forest-700"
+          className="inline-flex h-11 items-center rounded-sm bg-carbon-800 px-5 text-base text-white hover:bg-carbon-700"
         >
           {nextLabel}
         </button>
         {backHref && (
-          <a href={backHref} className="text-sm text-forest-800 underline underline-offset-4">
+          <a href={backHref} className="text-sm text-carbon-800 underline underline-offset-4">
             {backLabel}
           </a>
         )}
@@ -127,8 +127,8 @@ function GoalTile({
     <label
       className={cn(
         'flex cursor-pointer items-center gap-2 rounded-sm border px-3 py-2.5 text-sm transition-colors',
-        'has-[:checked]:border-forest-800 has-[:checked]:bg-forest-100 has-[:checked]:font-medium',
-        'border-line-strong text-ink-900 hover:bg-forest-50',
+        'has-[:checked]:border-carbon-800 has-[:checked]:bg-carbon-100 has-[:checked]:font-medium',
+        'border-line-strong text-ink-900 hover:bg-carbon-50',
       )}
     >
       <input
@@ -136,7 +136,7 @@ function GoalTile({
         name={name}
         value={value}
         defaultChecked={checked}
-        className="size-4 accent-forest-800"
+        className="size-4 accent-carbon-800"
       />
       {label}
     </label>

@@ -62,7 +62,7 @@ export default async function AdminOrderDetailPage({ params }: Props) {
     <div>
       <Link
         href="/admin/orders"
-        className="inline-flex items-center gap-1.5 rounded-sm text-sm text-ink-600 hover:text-forest-800"
+        className="inline-flex items-center gap-1.5 rounded-sm text-sm text-ink-600 hover:text-carbon-800"
       >
         <ArrowLeft className="size-4" aria-hidden="true" />
         All orders
@@ -70,7 +70,7 @@ export default async function AdminOrderDetailPage({ params }: Props) {
 
       <div className="mt-3 flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="font-display text-2xl font-semibold text-forest-900" data-numeric>
+          <h1 className="font-display text-2xl font-semibold text-carbon-900" data-numeric>
             {order.orderNumber}
           </h1>
           <p className="mt-1 text-sm text-ink-600">
@@ -128,7 +128,7 @@ export default async function AdminOrderDetailPage({ params }: Props) {
             <div className="mt-3 overflow-x-auto rounded-lg border border-line bg-surface">
               <table className="w-full min-w-[30rem] border-collapse text-sm">
                 <thead>
-                  <tr className="border-b border-line bg-forest-50 text-left">
+                  <tr className="border-b border-line bg-carbon-50 text-left">
                     <th
                       scope="col"
                       className="px-4 py-2.5 font-ui text-xs font-semibold text-ink-600 uppercase"
@@ -224,7 +224,7 @@ export default async function AdminOrderDetailPage({ params }: Props) {
               >
                 Customer note
               </h2>
-              <p className="mt-2 rounded-md bg-forest-50 p-3 text-sm text-ink-900">
+              <p className="mt-2 rounded-md bg-carbon-50 p-3 text-sm text-ink-900">
                 {order.customerNote}
               </p>
             </section>
@@ -249,7 +249,7 @@ export default async function AdminOrderDetailPage({ params }: Props) {
             </p>
             {/* docs/06 §2 — a guest badge, because it changes how support follows up. */}
             {!order.userId && (
-              <p className="mt-2 inline-block rounded-sm bg-forest-100 px-2 py-0.5 font-ui text-xs font-semibold text-forest-900">
+              <p className="mt-2 inline-block rounded-sm bg-carbon-100 px-2 py-0.5 font-ui text-xs font-semibold text-carbon-900">
                 Guest order
               </p>
             )}
@@ -282,7 +282,7 @@ export default async function AdminOrderDetailPage({ params }: Props) {
                   </p>
                   {/* docs/06 §2 — COD shows what the courier must collect. */}
                   {payment.provider === 'cod' && payment.status === 'pending' && (
-                    <p className="mt-1 font-medium text-forest-900" data-numeric>
+                    <p className="mt-1 font-medium text-carbon-900" data-numeric>
                       Collect {money(payment.amountCents)}
                     </p>
                   )}
@@ -309,7 +309,7 @@ export default async function AdminOrderDetailPage({ params }: Props) {
                         href={shipment.trackingUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="rounded-sm text-forest-800 underline underline-offset-4"
+                        className="rounded-sm text-carbon-800 underline underline-offset-4"
                       >
                         {shipment.trackingNumber}
                       </a>

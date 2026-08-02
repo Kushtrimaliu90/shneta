@@ -17,23 +17,23 @@
 -- Settings (docs/03 §13, docs/11 §1)
 -- -----------------------------------------------------------------------------
 /*
- * The brand is SHNETA; the registered domain is **shtrejt.com** (shneta.com was taken).
+ * The brand is BIOCODE; the registered domain is **shtrejt.com** (biocode.com was taken).
  * The contact address must sit on the domain that actually gets SPF/DKIM/DMARC records,
  * because a From: address on a domain nobody verified goes straight to spam.
  *
- * Social handles are left as `shneta` deliberately — those are account names, not DNS, and
+ * Social handles are left as `biocode` deliberately — those are account names, not DNS, and
  * they only change if the owner cannot claim them. Replace with the real handles before
  * launch (docs/14 §3, brand assets).
  */
 insert into settings (key, value) values
   ('store', jsonb_build_object(
-      'name', 'SHNETA',
-      'email', 'info@shtrejt.com',
+      'name', 'BIOCODE',
+      'email', 'info@biocode.com',
       'phone', '+383 40 000 000',
       'address', 'Prishtinë, Kosovë',
-      'instagram', 'https://instagram.com/shneta',
-      'tiktok', 'https://tiktok.com/@shneta',
-      'facebook', 'https://facebook.com/shneta')),
+      'instagram', 'https://instagram.com/biocode',
+      'tiktok', 'https://tiktok.com/@biocode',
+      'facebook', 'https://facebook.com/biocode')),
   ('tax', '{"rate": 18}'::jsonb),
   ('loyalty', '{"earn_rate_points_per_eur": 1, "redeem_points": 100, "redeem_value_cents": 500}'::jsonb),
   ('checkout', '{"max_item_qty": 20, "cod_enabled": true, "bank_pos_enabled": false}'::jsonb),
@@ -211,7 +211,7 @@ on conflict (id) do update
 --   · coupons WELCOME10 / FALAS / EXPIRED5, and system SUB-10 with
 --     is_system = true and is_active = TRUE (docs/13 §A3 — an inactive system
 --     coupon can never be applied by the checkout RPC)
---   · orders, subscription and wishlist fixtures for klienti@shneta.dev
+--   · orders, subscription and wishlist fixtures for klienti@biocode.dev
 --
 -- Auth users come from `scripts/seed-users.ts`, which must run BEFORE this file
 -- because the user-dependent fixtures reference its fixed UUIDs (docs/11 §10).

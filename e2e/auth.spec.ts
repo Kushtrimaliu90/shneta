@@ -77,7 +77,7 @@ test.beforeEach(async ({ page }, testInfo) => {
 
 async function confirmedUser() {
   if (!service) throw new Error('Integration credentials missing; cannot run auth E2E.');
-  const email = `e2e-${randomUUID()}@shneta.test`;
+  const email = `e2e-${randomUUID()}@biocode.test`;
   const password = `Pw-${randomUUID()}`;
 
   const { data, error } = await service.auth.admin.createUser({
@@ -116,7 +116,7 @@ test.describe('auth pages', () => {
 
   test('wrong credentials give one generic, non-enumerating message', async ({ page }) => {
     await page.goto('/en/auth/sign-in');
-    await page.locator('#email').fill('definitely-not-a-user@shneta.test');
+    await page.locator('#email').fill('definitely-not-a-user@biocode.test');
     await page.locator('#password').fill('wrong-password-here');
     await page.getByRole('button', { name: 'Sign in' }).click();
 
@@ -129,7 +129,7 @@ test.describe('auth pages', () => {
   test('sign-up requires the terms checkbox', async ({ page }) => {
     await page.goto('/en/auth/sign-up');
     await page.locator('#fullName').fill('Arta Krasniqi');
-    await page.locator('#email').fill(`e2e-${Date.now()}@shneta.test`);
+    await page.locator('#email').fill(`e2e-${Date.now()}@biocode.test`);
     await page.locator('#password').fill('a-good-passphrase');
 
     // The native `required` attribute blocks submission before the action is reached.
@@ -173,7 +173,7 @@ test.describe('auth pages', () => {
     const messages: string[] = [];
     for (let attempt = 0; attempt < 11; attempt += 1) {
       await page.goto('/en/auth/sign-in');
-      await page.locator('#email').fill('brute-force@shneta.test');
+      await page.locator('#email').fill('brute-force@biocode.test');
       await page.locator('#password').fill(`guess-${attempt}`);
       await page.getByRole('button', { name: 'Sign in' }).click();
       messages.push((await page.locator('form').getByRole('alert').textContent()) ?? '');
@@ -187,7 +187,7 @@ test.describe('auth pages', () => {
 
   test('forgot-password never reveals whether an account exists', async ({ page }) => {
     await page.goto('/en/auth/forgot-password');
-    await page.locator('#email').fill('nobody-here@shneta.test');
+    await page.locator('#email').fill('nobody-here@biocode.test');
     await page.getByRole('button', { name: 'Send the link' }).click();
 
     await expect(page.getByText('If an account exists for that address')).toBeVisible();

@@ -61,7 +61,7 @@ export default async function AdminMovementsPage({ searchParams }: Props) {
     <div>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="font-display text-2xl font-semibold text-forest-900">Stock movements</h1>
+          <h1 className="font-display text-2xl font-semibold text-carbon-900">Stock movements</h1>
           <p className="mt-1 max-w-2xl text-sm text-ink-600">
             Every change to stock, in order. Sales and restocks are written by the shop; received
             and adjusted rows are written by people.
@@ -69,7 +69,7 @@ export default async function AdminMovementsPage({ searchParams }: Props) {
         </div>
         <Link
           href="/admin/inventory"
-          className="rounded-sm text-sm text-forest-800 underline underline-offset-4"
+          className="rounded-sm text-sm text-carbon-800 underline underline-offset-4"
         >
           Stock levels
         </Link>
@@ -103,8 +103,8 @@ export default async function AdminMovementsPage({ searchParams }: Props) {
               className={cn(
                 'inline-flex min-h-9 items-center rounded-sm border px-3 text-sm transition-colors',
                 active
-                  ? 'border-forest-800 bg-forest-100 font-medium text-forest-900'
-                  : 'border-line-strong text-ink-600 hover:bg-forest-50',
+                  ? 'border-carbon-800 bg-carbon-100 font-medium text-carbon-900'
+                  : 'border-line-strong text-ink-600 hover:bg-carbon-50',
               )}
             >
               {value ? MOVEMENT_LABELS[value] : 'All'}
@@ -142,14 +142,14 @@ export default async function AdminMovementsPage({ searchParams }: Props) {
         </div>
         <button
           type="submit"
-          className="h-9 rounded-sm border border-line-strong px-3 text-sm text-ink-900 hover:bg-forest-50"
+          className="h-9 rounded-sm border border-line-strong px-3 text-sm text-ink-900 hover:bg-carbon-50"
         >
           Apply
         </button>
         {(from || to) && (
           <Link
             href={href({})}
-            className="h-9 rounded-sm px-2 py-1.5 text-sm text-forest-800 underline underline-offset-4"
+            className="h-9 rounded-sm px-2 py-1.5 text-sm text-carbon-800 underline underline-offset-4"
           >
             Clear dates
           </Link>
@@ -159,7 +159,7 @@ export default async function AdminMovementsPage({ searchParams }: Props) {
       {rows.length === 0 ? (
         <div className="mt-8 rounded-lg border border-dashed border-line-strong bg-surface p-10 text-center">
           <ScrollText className="mx-auto size-6 text-ink-500" aria-hidden="true" />
-          <p className="mt-2 font-medium text-forest-900">No movements in this view</p>
+          <p className="mt-2 font-medium text-carbon-900">No movements in this view</p>
           <p className="mt-1.5 text-sm text-ink-600">
             Widen the dates, or clear the filters to see the whole ledger.
           </p>
@@ -175,7 +175,7 @@ export default async function AdminMovementsPage({ searchParams }: Props) {
             <table className="w-full min-w-[56rem] border-collapse text-sm">
               <caption className="sr-only">Stock movements, newest first</caption>
               <thead>
-                <tr className="border-b border-line bg-forest-50 text-left">
+                <tr className="border-b border-line bg-carbon-50 text-left">
                   {['When', 'Product', 'SKU', 'Type', 'Qty', 'Batch', 'Note', 'By'].map(
                     (heading) => (
                       <th
@@ -237,7 +237,7 @@ export default async function AdminMovementsPage({ searchParams }: Props) {
             <div className="mt-4 flex justify-center">
               <Link
                 href={href({ before: nextCursor })}
-                className="inline-flex h-9 items-center rounded-sm border border-line-strong px-4 text-sm text-ink-900 hover:bg-forest-50"
+                className="inline-flex h-9 items-center rounded-sm border border-line-strong px-4 text-sm text-ink-900 hover:bg-carbon-50"
               >
                 Older movements
               </Link>

@@ -40,7 +40,7 @@ export default async function AccountOrdersPage({ params }: Props) {
   if (orders.length === 0) {
     return (
       <div>
-        <h2 className="font-display text-2xl font-semibold text-forest-900">
+        <h2 className="font-display text-2xl font-semibold text-carbon-900">
           {t('order.myOrders.title')}
         </h2>
         <EmptyState
@@ -50,7 +50,7 @@ export default async function AccountOrdersPage({ params }: Props) {
           className="mt-6"
           action={
             <Link href="/shop" className={buttonVariants()}>
-              {t('home.hero.ctaPrimary')}
+              {t('common.browseShop')}
             </Link>
           }
         />
@@ -61,7 +61,7 @@ export default async function AccountOrdersPage({ params }: Props) {
   return (
     <div>
       {/* h2, not h1: the account layout owns the page's single h1 (the greeting). */}
-      <h2 className="font-display text-2xl font-semibold text-forest-900">
+      <h2 className="font-display text-2xl font-semibold text-carbon-900">
         {t('order.myOrders.title')}
       </h2>
 
@@ -75,10 +75,10 @@ export default async function AccountOrdersPage({ params }: Props) {
           <li key={order.id}>
             <Link
               href={`/account/orders/${order.orderNumber}`}
-              className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-line bg-surface p-4 transition-colors hover:border-line-strong hover:bg-forest-50/40"
+              className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-line bg-surface p-4 transition-colors hover:border-line-strong hover:bg-carbon-50/40"
             >
               <div className="min-w-0">
-                <p className="font-medium text-forest-900" data-numeric>
+                <p className="font-medium text-carbon-900" data-numeric>
                   {order.orderNumber}
                 </p>
                 <p className="mt-0.5 text-sm text-ink-600">
@@ -92,7 +92,7 @@ export default async function AccountOrdersPage({ params }: Props) {
 
               <div className="flex items-center gap-3">
                 <OrderStatusPill status={order.status} />
-                <span className="font-semibold text-forest-900" data-numeric>
+                <span className="font-semibold text-carbon-900" data-numeric>
                   {formatPrice(order.totalCents, locale)}
                 </span>
               </div>

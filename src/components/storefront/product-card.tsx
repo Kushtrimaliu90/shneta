@@ -11,7 +11,7 @@ import type { ProductListItem } from '@/features/catalog/types';
 import { cn } from '@/lib/utils';
 
 /**
- * docs/04 §6 — surface card, 1:1 image on a cream tile, brand eyebrow, 2-line name clamp,
+ * docs/04 §6 — surface card, 1:1 image on a bone tile, brand eyebrow, 2-line name clamp,
  * rating, price row, badges top-left.
  *
  * The whole card is one link with the product name as its accessible label, rather than
@@ -41,7 +41,7 @@ export function ProductCard({
         className,
       )}
     >
-      <div className="relative aspect-square bg-cream">
+      <div className="relative aspect-square bg-bone">
         <ProductImage
           path={product.imagePath}
           alt={name}
@@ -52,7 +52,7 @@ export function ProductCard({
 
         <div className="absolute top-3 left-3 flex flex-col items-start gap-1.5">
           {isOnSale && (
-            <span className="rounded-sm bg-forest-800 px-2 py-1 text-xs font-semibold text-white">
+            <span className="rounded-sm bg-carbon-800 px-2 py-1 text-xs font-semibold text-white">
               {t('onSale')}
             </span>
           )}
@@ -81,7 +81,7 @@ export function ProductCard({
       <div className="flex flex-1 flex-col gap-2 p-4">
         <Link
           href={`/brands/${product.brandSlug}`}
-          className="relative z-10 w-fit rounded-sm eyebrow hover:text-forest-700"
+          className="relative z-10 w-fit rounded-sm eyebrow hover:text-carbon-700"
         >
           {product.brandName}
         </Link>

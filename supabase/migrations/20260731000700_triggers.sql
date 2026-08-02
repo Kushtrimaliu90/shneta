@@ -127,13 +127,13 @@ create trigger review_votes_count
 create or replace function public.sync_loyalty_balance() returns trigger
 language plpgsql security definer set search_path = public as $$
 begin
-  perform set_config('shneta.loyalty_sync', 'on', true);
+  perform set_config('biocode.loyalty_sync', 'on', true);
 
   update profiles
      set loyalty_points = greatest(0, loyalty_points + new.points)
    where id = new.user_id;
 
-  perform set_config('shneta.loyalty_sync', 'off', true);
+  perform set_config('biocode.loyalty_sync', 'off', true);
   return null;
 end $$;
 
@@ -145,7 +145,7 @@ create or replace function public.guard_profile_self_update() returns trigger
 language plpgsql security definer set search_path = public as $$
 begin
   if new.loyalty_points is distinct from old.loyalty_points
-     and coalesce(current_setting('shneta.loyalty_sync', true), 'off') <> 'on'
+     and coalesce(current_setting('biocode.loyalty_sync', true), 'off') <> 'on'
      and auth.uid() is not null
      and not is_service_role()
      and not has_any_role(array['admin','support']::user_role[])

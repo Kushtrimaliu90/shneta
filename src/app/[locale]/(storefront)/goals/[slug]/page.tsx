@@ -64,7 +64,7 @@ export default async function GoalPage({ params, searchParams }: Props) {
           <li>
             <Link
               href="/goals"
-              className="rounded-sm underline underline-offset-4 hover:text-forest-700"
+              className="rounded-sm underline underline-offset-4 hover:text-carbon-700"
             >
               {t('goals.title')}
             </Link>

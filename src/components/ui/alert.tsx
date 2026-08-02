@@ -6,7 +6,7 @@ type Tone = 'error' | 'success' | 'info';
 const TONE = {
   error: { icon: AlertTriangle, className: 'border-error/30 bg-error/5 text-ink-900' },
   success: { icon: CheckCircle2, className: 'border-success/30 bg-success/5 text-ink-900' },
-  info: { icon: Info, className: 'border-forest-500/30 bg-forest-50 text-ink-900' },
+  info: { icon: Info, className: 'border-carbon-500/30 bg-carbon-50 text-ink-900' },
 } as const;
 
 /**

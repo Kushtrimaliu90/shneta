@@ -59,11 +59,11 @@ export function FinderResults({
   if (items.length === 0) {
     return (
       <div className="rounded-lg border border-dashed border-line-strong bg-surface p-10 text-center">
-        <p className="font-display text-lg font-semibold text-forest-900">{t('emptyTitle')}</p>
+        <p className="font-display text-lg font-semibold text-carbon-900">{t('emptyTitle')}</p>
         <p className="mt-1.5 text-sm text-ink-600">{t('emptyBody')}</p>
         <Link
           href="/shop"
-          className="mt-4 inline-flex h-11 items-center rounded-sm bg-forest-800 px-5 text-base text-white hover:bg-forest-700"
+          className="mt-4 inline-flex h-11 items-center rounded-sm bg-carbon-800 px-5 text-base text-white hover:bg-carbon-700"
         >
           {t('resultsTitle')}
         </Link>
@@ -75,7 +75,7 @@ export function FinderResults({
     <div>
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="font-display text-2xl font-semibold text-forest-900 sm:text-3xl">
+          <h1 className="font-display text-2xl font-semibold text-carbon-900 sm:text-3xl">
             {t('resultsTitle')}
           </h1>
           <p className="mt-1 text-sm text-ink-600">
@@ -162,7 +162,7 @@ function CompletenessRing({ percent, label }: { percent: number; label: string }
   return (
     <div className="flex items-center gap-3">
       <svg width="80" height="80" viewBox="0 0 80 80" role="img" aria-label={label}>
-        <circle cx="40" cy="40" r={radius} fill="none" strokeWidth="7" className="stroke-forest-100" />
+        <circle cx="40" cy="40" r={radius} fill="none" strokeWidth="7" className="stroke-carbon-100" />
         <circle
           cx="40"
           cy="40"
@@ -172,13 +172,13 @@ function CompletenessRing({ percent, label }: { percent: number; label: string }
           strokeLinecap="round"
           strokeDasharray={`${filled} ${circumference}`}
           transform="rotate(-90 40 40)"
-          className="stroke-forest-800"
+          className="stroke-carbon-800"
         />
         <text
           x="40"
           y="45"
           textAnchor="middle"
-          className="fill-forest-900 font-ui text-base font-semibold"
+          className="fill-carbon-900 font-ui text-base font-semibold"
         >
           {percent}%
         </text>

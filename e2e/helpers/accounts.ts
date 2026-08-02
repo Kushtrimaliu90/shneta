@@ -9,7 +9,7 @@ import { readFileSync } from 'node:fs';
  * Extracted from `admin.spec.ts` when the M7 journeys needed the same three things — a user
  * with a role, a sign-in, and a service client to assert against. Copying them would have meant
  * three definitions of "make a staff user" drifting apart, and the E2E teardown only deletes
- * what matches the `@shneta.test` convention these enforce.
+ * what matches the `@biocode.test` convention these enforce.
  */
 
 export function env(): Record<string, string> {
@@ -59,15 +59,15 @@ export async function deleteCreatedUsers(): Promise<void> {
 /**
  * Creates a confirmed user and sets its role through the service client.
  *
- * Minted per test rather than signing in as the `@shneta.dev` seed accounts: the suite then
+ * Minted per test rather than signing in as the `@biocode.dev` seed accounts: the suite then
  * works on a database where `pnpm seed:users` has never run, needs no shared password, and one
- * test cannot disturb another's account. `@shneta.test` on every address, which is the only
+ * test cannot disturb another's account. `@biocode.test` on every address, which is the only
  * pattern `purgeFixtures` deletes.
  */
 export async function staffUser(role: StaffRole): Promise<{ email: string; password: string }> {
   const client = db();
 
-  const email = `e2e-${role}-${randomUUID()}@shneta.test`;
+  const email = `e2e-${role}-${randomUUID()}@biocode.test`;
   const password = `Pw-${randomUUID()}`;
 
   const { data, error } = await client.auth.admin.createUser({

@@ -71,7 +71,7 @@ function db(): SupabaseClient {
 async function customer(): Promise<{ email: string; password: string }> {
   const service = db();
 
-  const email = `e2e-acct-${randomUUID()}@shneta.test`;
+  const email = `e2e-acct-${randomUUID()}@biocode.test`;
   const password = `Pw-${randomUUID()}`;
 
   const { data, error } = await service.auth.admin.createUser({

@@ -44,7 +44,7 @@ export default async function AccountWishlistPage({ params }: Props) {
   if (items.length === 0) {
     return (
       <div>
-        <h2 className="font-display text-2xl font-semibold text-forest-900">
+        <h2 className="font-display text-2xl font-semibold text-carbon-900">
           {t('wishlist.title')}
         </h2>
         <EmptyState
@@ -64,7 +64,7 @@ export default async function AccountWishlistPage({ params }: Props) {
 
   return (
     <div>
-      <h2 className="font-display text-2xl font-semibold text-forest-900">{t('wishlist.title')}</h2>
+      <h2 className="font-display text-2xl font-semibold text-carbon-900">{t('wishlist.title')}</h2>
       <p className="mt-1 text-sm text-ink-600" data-numeric>
         {t('wishlist.itemCount', { count: items.length })}
       </p>
@@ -79,7 +79,7 @@ export default async function AccountWishlistPage({ params }: Props) {
                 key={item.productId}
                 className="flex items-center gap-4 rounded-lg border border-line bg-surface p-3"
               >
-                <div className="size-16 shrink-0 overflow-hidden rounded-sm bg-cream">
+                <div className="size-16 shrink-0 overflow-hidden rounded-sm bg-bone">
                   <ProductImage
                     path={item.imagePath}
                     alt={name}
@@ -92,7 +92,7 @@ export default async function AccountWishlistPage({ params }: Props) {
                   {item.brandName && <p className="eyebrow">{item.brandName}</p>}
                   <Link
                     href={`/product/${item.slug}`}
-                    className="rounded-sm font-medium text-ink-900 hover:text-forest-800"
+                    className="rounded-sm font-medium text-ink-900 hover:text-carbon-800"
                   >
                     {name}
                   </Link>

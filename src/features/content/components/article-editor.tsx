@@ -194,7 +194,7 @@ export function ArticleEditor({
         </SubmitButton>
         <Link
           href="/admin/content"
-          className="text-sm text-forest-800 underline underline-offset-4"
+          className="text-sm text-carbon-800 underline underline-offset-4"
         >
           Back to articles
         </Link>
@@ -203,7 +203,7 @@ export function ArticleEditor({
             href={`/knowledge/${article.slug}`}
             target="_blank"
             rel="noreferrer"
-            className="text-sm text-forest-800 underline underline-offset-4"
+            className="text-sm text-carbon-800 underline underline-offset-4"
           >
             View on the shop
           </a>

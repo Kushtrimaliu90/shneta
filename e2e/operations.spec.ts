@@ -218,7 +218,7 @@ test.describe('settings (docs/06 §15)', () => {
     const admin = await staffUser('admin');
     await signIn(page, admin.email, admin.password);
 
-    const invitee = `e2e-invited-${Date.now()}-${test.info().workerIndex}@shneta.test`;
+    const invitee = `e2e-invited-${Date.now()}-${test.info().workerIndex}@biocode.test`;
 
     await page.goto('/admin/settings/team');
     await page.getByRole('button', { name: 'Add someone' }).click();

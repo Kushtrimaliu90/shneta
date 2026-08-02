@@ -70,7 +70,7 @@ export function NewProductForm({ brands }: { brands: { id: string; name: string 
       action={formAction}
       className="w-full rounded-lg border border-line-strong bg-surface p-4"
     >
-      <h2 className="font-display text-sm font-semibold text-forest-900">New product</h2>
+      <h2 className="font-display text-sm font-semibold text-carbon-900">New product</h2>
       <p className="mt-1 text-xs text-ink-600">
         Enough to create a draft. Everything else is in the editor.
       </p>

@@ -90,7 +90,7 @@ export default async function NewsletterConfirmPage({ params, searchParams }: Pr
         <XCircle className="size-10 text-ink-500" aria-hidden="true" />
       )}
 
-      <h1 className="mt-4 font-display text-2xl font-semibold text-forest-900">
+      <h1 className="mt-4 font-display text-2xl font-semibold text-carbon-900">
         {confirmed ? t('confirmTitle') : t('confirmFailedTitle')}
       </h1>
       <p className="mt-2 max-w-md text-ink-600">

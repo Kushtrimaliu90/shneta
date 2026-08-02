@@ -14,7 +14,7 @@ import { cn } from '@/lib/utils';
  *    for someone who cannot separate amber from green.
  * 3. **AA at badge size.** Solid semantic fills with white text, not `/15` tints of the same
  *    colour — that tint pattern is what put the environment badge at 4.08:1 (docs/13 §I5).
- *    White clears AA on warning, success, error, info, forest-800 and ink-600, all asserted in
+ *    White clears AA on warning, success, error, info, carbon-800 and ink-600, all asserted in
  *    `tests/unit/contrast.test.ts`.
  *
  * The ordering is deliberate too: `confirmed` is the pale forest tint and `processing` the deep
@@ -23,8 +23,8 @@ import { cn } from '@/lib/utils';
 
 const ORDER_TONES: Record<string, string> = {
   pending: 'bg-warning text-white',
-  confirmed: 'bg-forest-100 text-forest-900',
-  processing: 'bg-forest-800 text-white',
+  confirmed: 'bg-carbon-100 text-carbon-900',
+  processing: 'bg-carbon-800 text-white',
   shipped: 'bg-info text-white',
   delivered: 'bg-success text-white',
   cancelled: 'bg-ink-600 text-white',

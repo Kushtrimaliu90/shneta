@@ -106,12 +106,12 @@ export function BuyBox({
                       'inline-flex min-h-11 cursor-pointer items-center rounded-sm border px-3.5 text-sm transition-colors',
                       // docs/04 §10 — the focus ring has to be visible on the label, since
                       // the radio itself is visually hidden.
-                      'focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-forest-700',
+                      'focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-carbon-700',
                       unavailable
                         ? 'cursor-not-allowed border-dashed border-line-strong text-ink-500 line-through'
                         : active
-                          ? 'border-forest-800 bg-forest-100 font-medium text-forest-900'
-                          : 'border-line-strong text-ink-900 hover:bg-forest-50',
+                          ? 'border-carbon-800 bg-carbon-100 font-medium text-carbon-900'
+                          : 'border-line-strong text-ink-900 hover:bg-carbon-50',
                     ].join(' ')}
                   >
                     <input

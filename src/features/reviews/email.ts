@@ -26,7 +26,7 @@ const COPY = {
     intro:
       'Porosia jote u dorëzua para një jave. Nëse ke një minutë, një vlerësim i shkurtër ndihmon klientët e tjerë të zgjedhin.',
     cta: 'Vlerëso produktin',
-    footer: 'E merr këtë email sepse ke bërë një porosi te SHNETA.',
+    footer: 'E merr këtë email sepse ke bërë një porosi te BIOCODE.',
   },
   en: {
     subject: 'How was your {product}?',
@@ -34,7 +34,7 @@ const COPY = {
     intro:
       'Your order arrived a week ago. If you have a minute, a short review helps other customers choose.',
     cta: 'Review the product',
-    footer: 'You are receiving this because you ordered from SHNETA.',
+    footer: 'You are receiving this because you ordered from BIOCODE.',
   },
 } as const;
 

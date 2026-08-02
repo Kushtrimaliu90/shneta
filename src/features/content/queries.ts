@@ -412,7 +412,7 @@ const readStoreSettings = async (): Promise<{
   const text = (key: string) => (typeof value[key] === 'string' ? (value[key] as string) : null);
 
   return {
-    name: text('name') ?? 'SHNETA',
+    name: text('name') ?? 'BIOCODE',
     email: text('email'),
     phone: text('phone'),
     address: text('address'),

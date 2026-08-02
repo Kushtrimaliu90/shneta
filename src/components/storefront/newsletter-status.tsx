@@ -40,7 +40,7 @@ export function NewsletterStatus() {
       // docs/04 §10 — async results are announced.
       role="status"
       aria-live="polite"
-      className={status === 'ok' ? 'mt-3 text-sm text-lime-400' : 'mt-3 text-sm text-white/80'}
+      className={status === 'ok' ? 'mt-3 text-sm text-signal-400' : 'mt-3 text-sm text-white/80'}
     >
       {t(status === 'ok' ? 'success' : status === 'throttled' ? 'throttled' : 'invalid')}
     </p>

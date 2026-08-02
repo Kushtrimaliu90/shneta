@@ -1,6 +1,6 @@
-# SHNETA — Claude Code Project Guide
+# BIOCODE — Claude Code Project Guide
 
-SHNETA is a production e-commerce wellness marketplace (supplements + education) for the Albanian-speaking market, launching in Kosovo. Stack: **Next.js 15 (App Router) · React 19 · TypeScript strict · Tailwind CSS v4 · shadcn/ui · Supabase (Postgres + Auth + Storage) · TanStack Query · React Hook Form + Zod · Framer Motion · Resend · Vitest · Playwright · Vercel**.
+BIOCODE is a production e-commerce wellness marketplace (supplements + education) for the Albanian-speaking market, launching in Kosovo. Stack: **Next.js 15 (App Router) · React 19 · TypeScript strict · Tailwind CSS v4 · shadcn/ui · Supabase (Postgres + Auth + Storage) · TanStack Query · React Hook Form + Zod · Framer Motion · Resend · Vitest · Playwright · Vercel**.
 
 ## Documentation map (read before coding)
 
@@ -20,6 +20,9 @@ All specs live in `docs/`. Start every session by reading `docs/00-README.md`, t
 | Envs, CI/CD, deployment, cron                                                | `docs/10-operations-deployment.md`                 |
 | Seed data                                                                    | `docs/11-seed-data.md`                             |
 | What to build next + acceptance criteria                                     | `docs/12-build-plan.md`                            |
+| Corrections and findings from every milestone                                | `docs/13-spec-corrections.md`                      |
+| Honest launch status, with evidence per checklist item                       | `docs/14-launch-readiness.md`                      |
+| The next feature: the BioHack Protocol Generator                             | `docs/15-biohack-protocol-generator.md`            |
 
 Work through `docs/12-build-plan.md` milestone by milestone. Do not skip ahead; each milestone assumes the previous ones are merged and green.
 

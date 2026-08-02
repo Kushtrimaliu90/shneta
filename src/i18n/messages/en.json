@@ -1,7 +1,7 @@
 {
   "common": {
-    "brand": "SHNETA",
-    "tagline": "Your health, simplified.",
+    "brand": "BIOCODE",
+    "tagline": "Unlock your biology.",
     "skipToContent": "Skip to content",
     "loading": "Loading…",
     "retry": "Try again",
@@ -13,7 +13,8 @@
     "cart": "Cart",
     "cartItems": "{count, plural, =0 {Your cart is empty} one {# item in cart} other {# items in cart}}",
     "backHome": "Back to home",
-    "learnMore": "Learn more"
+    "learnMore": "Learn more",
+    "browseShop": "Browse the shop"
   },
   "nav": {
     "primary": "Main navigation",
@@ -32,11 +33,11 @@
   },
   "home": {
     "hero": {
-      "eyebrow": "Trusted supplements in Kosovo",
-      "title": "Your health, simplified.",
-      "subtitle": "Genuine supplements from brands you know, with every ingredient disclosed and plain guidance on how to use them — so you can choose with confidence.",
-      "ctaPrimary": "Browse the shop",
-      "ctaSecondary": "Find your routine"
+      "eyebrow": "Nutrition, decoded",
+      "title": "Your biology has a code.",
+      "subtitle": "Unlock your potential with supplements chosen for what your body is actually asking for — every ingredient disclosed, every dose explained, nothing hidden behind a proprietary blend.",
+      "ctaPrimary": "Shop the range",
+      "ctaSecondary": "Decode your routine"
     },
     "trust": {
       "shipping": {
@@ -70,7 +71,7 @@
     }
   },
   "footer": {
-    "tagline": "Supplements and health knowledge for the Albanian-speaking market.",
+    "tagline": "Premium nutrition for people who want to understand what they are taking, and why.",
     "shop": "Shop",
     "goalsColumn": "Health goals",
     "knowledgeColumn": "Knowledge",
@@ -582,7 +583,7 @@
     "starsOf": "{count} out of 5",
     "verified": "Verified purchase",
     "helpful": "Helpful",
-    "shopReply": "SHNETA replied",
+    "shopReply": "BIOCODE replied",
     "pagination": "Review pages",
     "previous": "Previous",
     "next": "Next",
@@ -805,8 +806,8 @@
   },
   "admin": {},
   "finder": {
-    "title": "Find your routine",
-    "intro": "Five short questions. We suggest three to five products for what you actually want to work on — and tell you why each one is there.",
+    "title": "Decode your routine",
+    "intro": "Five short questions. We read them against what each product is actually for, and suggest three to five that fit — with the reason each one made the list.",
     "start": "Start",
     "step": "Step {current} of {total}",
     "next": "Continue",

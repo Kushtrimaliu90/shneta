@@ -64,8 +64,8 @@ describe('truncate', () => {
 
 describe('absoluteUrl', () => {
   it('builds canonical-safe absolute URLs', () => {
-    expect(absoluteUrl('/shop', 'https://shneta.com')).toBe('https://shneta.com/shop');
-    expect(absoluteUrl('shop', 'https://shneta.com')).toBe('https://shneta.com/shop');
+    expect(absoluteUrl('/shop', 'https://biocode.com')).toBe('https://biocode.com/shop');
+    expect(absoluteUrl('shop', 'https://biocode.com')).toBe('https://biocode.com/shop');
   });
 });
 

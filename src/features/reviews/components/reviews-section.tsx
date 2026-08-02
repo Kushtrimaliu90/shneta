@@ -72,7 +72,7 @@ export function ReviewsSection({
 
   return (
     <section id="reviews" className="mt-12 scroll-mt-24">
-      <h2 className="font-display text-2xl font-semibold text-forest-900">{t('title')}</h2>
+      <h2 className="font-display text-2xl font-semibold text-carbon-900">{t('title')}</h2>
 
       {data.summary.total === 0 ? (
         <p className="mt-3 text-sm text-ink-600">{t('emptyState')}</p>
@@ -182,7 +182,7 @@ function ReviewCard({
               key={star}
               className={cn(
                 'size-3.5',
-                star <= review.rating ? 'fill-lime-500 text-lime-500' : 'text-line-strong',
+                star <= review.rating ? 'fill-signal-500 text-signal-500' : 'text-line-strong',
               )}
             />
           ))}
@@ -211,8 +211,8 @@ function ReviewCard({
       )}
 
       {review.adminReply && (
-        <div className="mt-3 rounded-sm border-l-2 border-forest-800 bg-forest-50 p-3">
-          <p className="text-xs font-semibold text-forest-900">{t('shopReply')}</p>
+        <div className="mt-3 rounded-sm border-l-2 border-carbon-800 bg-carbon-50 p-3">
+          <p className="text-xs font-semibold text-carbon-900">{t('shopReply')}</p>
           <p className="mt-1 text-sm text-ink-600">{review.adminReply}</p>
         </div>
       )}
@@ -225,8 +225,8 @@ function ReviewCard({
           onClick={vote}
           className={cn(
             'inline-flex items-center gap-1.5 rounded-sm px-2 py-1 text-xs transition-colors',
-            hasVoted ? 'bg-forest-100 text-forest-900' : 'text-ink-600',
-            canVote ? 'hover:bg-forest-50' : 'cursor-default',
+            hasVoted ? 'bg-carbon-100 text-carbon-900' : 'text-ink-600',
+            canVote ? 'hover:bg-carbon-50' : 'cursor-default',
           )}
         >
           <ThumbsUp className="size-3.5" aria-hidden="true" />
@@ -270,7 +270,7 @@ function WriteReview({
           link: (chunks) => (
             <Link
               href={`/auth/sign-in?next=/product/${productSlug}`}
-              className="rounded-sm text-forest-800 underline underline-offset-4"
+              className="rounded-sm text-carbon-800 underline underline-offset-4"
             >
               {chunks}
             </Link>
@@ -345,7 +345,7 @@ function ReviewForm({ productId, onDone }: { productId: string; onDone: () => vo
               <Star
                 className={cn(
                   'size-7',
-                  star <= rating ? 'fill-lime-500 text-lime-500' : 'text-line-strong',
+                  star <= rating ? 'fill-signal-500 text-signal-500' : 'text-line-strong',
                 )}
               />
             </button>

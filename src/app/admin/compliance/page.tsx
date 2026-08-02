@@ -36,7 +36,7 @@ export default async function AdminCompliancePage() {
 
   return (
     <div className="max-w-3xl">
-      <h1 className="font-display text-2xl font-semibold text-forest-900">Compliance</h1>
+      <h1 className="font-display text-2xl font-semibold text-carbon-900">Compliance</h1>
       <p className="mt-1 text-sm text-ink-600">
         {queue.length === 0
           ? 'Nothing is waiting for review.'
@@ -56,7 +56,7 @@ export default async function AdminCompliancePage() {
       {queue.length === 0 ? (
         <div className="mt-8 rounded-lg border border-dashed border-line-strong bg-surface p-10 text-center">
           <ShieldCheck className="mx-auto size-6 text-success" aria-hidden="true" />
-          <p className="mt-2 font-medium text-forest-900">The queue is empty</p>
+          <p className="mt-2 font-medium text-carbon-900">The queue is empty</p>
           <p className="mt-1.5 text-sm text-ink-600">
             Products appear here when a product manager submits them for review.
           </p>
@@ -69,7 +69,7 @@ export default async function AdminCompliancePage() {
             return (
               <li key={item.id} className="rounded-lg border border-line bg-surface p-4">
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
-                  <h2 className="font-display text-base font-semibold text-forest-900">
+                  <h2 className="font-display text-base font-semibold text-carbon-900">
                     {pickLocale(item.name, 'en') || item.slug}
                   </h2>
                   <p className="text-xs text-ink-600">
@@ -93,13 +93,13 @@ export default async function AdminCompliancePage() {
                 <p className="mt-2 text-xs text-ink-600">
                   <Link
                     href={`/admin/products/${item.id}`}
-                    className="rounded-sm text-forest-800 underline underline-offset-4"
+                    className="rounded-sm text-carbon-800 underline underline-offset-4"
                   >
                     Open the full record
                   </Link>
                 </p>
 
-                <dl className="mt-3 flex flex-col gap-3 rounded-sm bg-forest-50/60 p-3 text-sm">
+                <dl className="mt-3 flex flex-col gap-3 rounded-sm bg-carbon-50/60 p-3 text-sm">
                   {(
                     [
                       ['Description', item.description],
@@ -149,7 +149,7 @@ export default async function AdminCompliancePage() {
         the job occasionally needs.
       */}
       <section className="mt-12 border-t border-line pt-8">
-        <h2 className="font-display text-lg font-semibold text-forest-900">Certifications</h2>
+        <h2 className="font-display text-lg font-semibold text-carbon-900">Certifications</h2>
         <p className="mt-0.5 mb-4 max-w-2xl text-sm text-ink-600">
           The badges a product can claim. Compliance owns this list because a certification on a
           product page is a claim about the product.

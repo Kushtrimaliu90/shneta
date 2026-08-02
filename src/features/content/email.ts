@@ -22,14 +22,14 @@ const CONTACT_COPY = {
     heading: 'Faleminderit që na shkrove',
     intro:
       'E kemi marrë mesazhin tënd dhe përgjigjemi brenda një dite pune. Nuk ke nevojë ta dërgosh përsëri.',
-    footer: 'Ky është një konfirmim automatik nga SHNETA.',
+    footer: 'Ky është një konfirmim automatik nga BIOCODE.',
   },
   en: {
     subject: 'We have your message',
     heading: 'Thanks for writing',
     intro:
       'We have your message and will reply within one working day. There is no need to send it again.',
-    footer: 'This is an automatic confirmation from SHNETA.',
+    footer: 'This is an automatic confirmation from BIOCODE.',
   },
 } as const;
 
@@ -68,12 +68,12 @@ const NEWSLETTER_COPY = {
     confirmIntro:
       'Konfirmo adresën për të marrë këshilla praktike dhe njoftime për ofertat. Nëse nuk je ti, thjesht injoroje këtë email.',
     confirmCta: 'Konfirmo abonimin',
-    welcomeSubject: 'Mirë se erdhe në SHNETA',
+    welcomeSubject: 'Mirë se erdhe në BIOCODE',
     welcomeHeading: 'Mirë se erdhe',
     welcomeIntro:
       'Faleminderit që u regjistrove. Do të të shkruajmë vetëm kur kemi diçka të dobishme për të thënë.',
     welcomeCoupon: 'Kodi WELCOME10 ul 10% porosinë tënde të parë.',
-    footer: 'E merr këtë email sepse u regjistrove te SHNETA.',
+    footer: 'E merr këtë email sepse u regjistrove te BIOCODE.',
     unsubscribe: 'Çregjistrohu',
   },
   en: {
@@ -82,12 +82,12 @@ const NEWSLETTER_COPY = {
     confirmIntro:
       'Confirm your address to get practical advice and news about offers. If this was not you, just ignore this email.',
     confirmCta: 'Confirm subscription',
-    welcomeSubject: 'Welcome to SHNETA',
+    welcomeSubject: 'Welcome to BIOCODE',
     welcomeHeading: 'Welcome',
     welcomeIntro:
       'Thank you for subscribing. We will only write when we have something useful to say.',
     welcomeCoupon: 'Code WELCOME10 takes 10% off your first order.',
-    footer: 'You are receiving this because you subscribed at SHNETA.',
+    footer: 'You are receiving this because you subscribed at BIOCODE.',
     unsubscribe: 'Unsubscribe',
   },
 } as const;

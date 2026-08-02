@@ -15,16 +15,16 @@ test.describe('app shell', () => {
 
     await expect(page).toHaveURL(/\/$/);
     await expect(page.locator('html')).toHaveAttribute('lang', 'sq');
-    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Shëndeti yt, i thjeshtuar.');
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Biologjia jote ka një kod.');
     // Scoped to the hero: the bestsellers section carries the same CTA (docs/05 §1.5).
-    await expect(page.getByRole('link', { name: 'Shfleto dyqanin' }).first()).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Shiko produktet' }).first()).toBeVisible();
   });
 
   test('renders the English home page under /en', async ({ page }) => {
     await page.goto('/en');
 
     await expect(page.locator('html')).toHaveAttribute('lang', 'en');
-    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Your health, simplified.');
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Your biology has a code.');
   });
 
   test('the locale switcher preserves the current path', async ({ page }) => {

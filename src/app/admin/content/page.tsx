@@ -46,8 +46,8 @@ export default async function AdminArticlesPage({ searchParams }: Props) {
                 className={cn(
                   'inline-flex min-h-8 items-center rounded-sm border px-2.5 text-xs transition-colors',
                   active
-                    ? 'border-forest-800 bg-forest-100 font-medium text-forest-900'
-                    : 'border-line-strong text-ink-600 hover:bg-forest-50',
+                    ? 'border-carbon-800 bg-carbon-100 font-medium text-carbon-900'
+                    : 'border-line-strong text-ink-600 hover:bg-carbon-50',
                 )}
               >
                 {value ? STATUS_LABELS[value] : 'All'}
@@ -58,7 +58,7 @@ export default async function AdminArticlesPage({ searchParams }: Props) {
 
         <Link
           href="/admin/content/articles/new"
-          className="inline-flex h-9 items-center gap-1.5 rounded-sm bg-forest-800 px-3.5 text-sm text-white hover:bg-forest-700"
+          className="inline-flex h-9 items-center gap-1.5 rounded-sm bg-carbon-800 px-3.5 text-sm text-white hover:bg-carbon-700"
         >
           <Plus className="size-4" aria-hidden="true" />
           New article
@@ -68,7 +68,7 @@ export default async function AdminArticlesPage({ searchParams }: Props) {
       {rows.length === 0 ? (
         <div className="mt-6 rounded-lg border border-dashed border-line-strong bg-surface p-10 text-center">
           <FileText className="mx-auto size-6 text-ink-500" aria-hidden="true" />
-          <p className="mt-2 font-medium text-forest-900">Nothing in this view</p>
+          <p className="mt-2 font-medium text-carbon-900">Nothing in this view</p>
           <p className="mt-1.5 text-sm text-ink-600">
             Write one, or clear the filter to see everything.
           </p>
@@ -83,7 +83,7 @@ export default async function AdminArticlesPage({ searchParams }: Props) {
           <table className="w-full min-w-[44rem] border-collapse text-sm">
             <caption className="sr-only">Articles, most recently edited first</caption>
             <thead>
-              <tr className="border-b border-line bg-forest-50 text-left">
+              <tr className="border-b border-line bg-carbon-50 text-left">
                 {['Title', 'Kind', 'Status', 'Updated'].map((heading) => (
                   <th
                     key={heading}
@@ -103,7 +103,7 @@ export default async function AdminArticlesPage({ searchParams }: Props) {
                     <td className="px-4 py-3">
                       <Link
                         href={`/admin/content/articles/${row.id}`}
-                        className="rounded-sm font-medium text-forest-800 underline underline-offset-4"
+                        className="rounded-sm font-medium text-carbon-800 underline underline-offset-4"
                       >
                         {row.titleSq || row.slug}
                       </Link>

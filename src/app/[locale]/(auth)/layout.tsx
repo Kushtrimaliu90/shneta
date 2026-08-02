@@ -18,7 +18,7 @@ export default async function AuthLayout({
   const t = await getTranslations('common');
 
   return (
-    <div className="flex min-h-dvh flex-col bg-cream">
+    <div className="flex min-h-dvh flex-col bg-bone">
       <a href="#main" className="skip-link">
         {t('skipToContent')}
       </a>

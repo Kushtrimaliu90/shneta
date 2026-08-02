@@ -9,7 +9,7 @@ import { parseClientEnv } from '@/lib/env.client';
  * `server-only`, which throws by design outside a server context.
  */
 const VALID = {
-  NEXT_PUBLIC_SITE_URL: 'https://shneta.com',
+  NEXT_PUBLIC_SITE_URL: 'https://biocode.com',
   NEXT_PUBLIC_SUPABASE_URL: 'https://abcdefghijkl.supabase.co',
   NEXT_PUBLIC_SUPABASE_ANON_KEY: 'a'.repeat(40),
 };
@@ -25,7 +25,7 @@ describe('parseClientEnv', () => {
   });
 
   it('rejects a site URL that is not a URL', () => {
-    expect(() => parseClientEnv({ ...VALID, NEXT_PUBLIC_SITE_URL: 'shneta.com' })).toThrow(
+    expect(() => parseClientEnv({ ...VALID, NEXT_PUBLIC_SITE_URL: 'biocode.com' })).toThrow(
       /NEXT_PUBLIC_SITE_URL/,
     );
   });

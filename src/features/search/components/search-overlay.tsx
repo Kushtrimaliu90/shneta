@@ -85,7 +85,7 @@ export function SearchOverlay() {
         type="button"
         onClick={() => setOpen(true)}
         aria-label={t('open')}
-        className="inline-flex size-11 items-center justify-center rounded-md text-forest-800 transition-colors hover:bg-forest-50"
+        className="inline-flex size-11 items-center justify-center rounded-md text-carbon-800 transition-colors hover:bg-carbon-50"
       >
         <Search className="size-5" aria-hidden="true" />
       </button>
@@ -101,7 +101,7 @@ export function SearchOverlay() {
         className="fixed inset-0 z-40 cursor-default bg-ink-900/20"
       />
 
-      <div className="fixed inset-x-0 top-0 z-50 border-b border-line bg-cream shadow-lg">
+      <div className="fixed inset-x-0 top-0 z-50 border-b border-line bg-bone shadow-lg">
         <div className="container-page py-4">
           <form onSubmit={submit} role="search" className="flex items-center gap-2">
             <Search className="size-5 shrink-0 text-ink-500" aria-hidden="true" />
@@ -122,7 +122,7 @@ export function SearchOverlay() {
               type="button"
               onClick={() => setOpen(false)}
               aria-label={t('close')}
-              className="inline-flex size-9 items-center justify-center rounded-md text-ink-600 hover:bg-forest-50"
+              className="inline-flex size-9 items-center justify-center rounded-md text-ink-600 hover:bg-carbon-50"
             >
               <X className="size-5" aria-hidden="true" />
             </button>
@@ -152,9 +152,9 @@ export function SearchOverlay() {
                         <Link
                           href={`/product/${product.slug}`}
                           onClick={() => setOpen(false)}
-                          className="flex items-center gap-3 rounded-md p-2 hover:bg-forest-50"
+                          className="flex items-center gap-3 rounded-md p-2 hover:bg-carbon-50"
                         >
-                          <div className="size-10 shrink-0 overflow-hidden rounded-sm bg-cream">
+                          <div className="size-10 shrink-0 overflow-hidden rounded-sm bg-bone">
                             <ProductImage
                               path={product.imagePath}
                               alt={name}
@@ -186,7 +186,7 @@ export function SearchOverlay() {
                       <Link
                         href={`/ingredients/${ingredient.slug}`}
                         onClick={() => setOpen(false)}
-                        className="inline-flex rounded-sm border border-line px-2.5 py-1 text-sm text-ink-900 hover:bg-forest-50"
+                        className="inline-flex rounded-sm border border-line px-2.5 py-1 text-sm text-ink-900 hover:bg-carbon-50"
                       >
                         {pickLocale(ingredient.name, locale)}
                       </Link>
@@ -201,7 +201,7 @@ export function SearchOverlay() {
                 href={`/search?q=${encodeURIComponent(query.trim())}`}
                 onClick={() => setOpen(false)}
                 className={cn(
-                  'mt-3 inline-block rounded-sm text-sm font-medium text-forest-800 underline underline-offset-4',
+                  'mt-3 inline-block rounded-sm text-sm font-medium text-carbon-800 underline underline-offset-4',
                 )}
               >
                 {t('seeAll', { query: query.trim() })}

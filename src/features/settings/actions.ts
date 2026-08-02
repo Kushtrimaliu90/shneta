@@ -77,7 +77,7 @@ async function writeSetting(
 
 const storeSchema = z.object({
   name: z.string().trim().min(1, 'The shop needs a name.').max(60),
-  email: z.string().trim().email('A valid address, like info@shneta.com.'),
+  email: z.string().trim().email('A valid address, like info@biocode.com.'),
   phone: z.string().trim().max(40).optional().or(z.literal('')),
   address: z.string().trim().max(200).optional().or(z.literal('')),
   instagram: z.string().trim().url('A full address, starting with https://').optional().or(z.literal('')),

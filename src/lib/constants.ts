@@ -38,11 +38,11 @@ export const SUBSCRIPTION_FREQUENCY_DAYS = [30, 45, 60, 90] as const;
 export type SubscriptionFrequencyDays = (typeof SUBSCRIPTION_FREQUENCY_DAYS)[number];
 
 /** docs/07 §3.1 — guest cart token cookie. */
-export const CART_COOKIE_NAME = 'shneta_cart';
+export const CART_COOKIE_NAME = 'biocode_cart';
 export const CART_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 365;
 
 /** docs/13 §B1 — short-lived proof-of-purchase for the checkout success page. */
-export const ORDER_ACCESS_COOKIE_NAME = 'shneta_order_access';
+export const ORDER_ACCESS_COOKIE_NAME = 'biocode_order_access';
 export const ORDER_ACCESS_COOKIE_MAX_AGE_SECONDS = 60 * 30;
 
 /** docs/02 §5 — the complete cache-tag vocabulary. Nothing outside this list may be tagged. */

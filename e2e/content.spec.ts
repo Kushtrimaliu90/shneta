@@ -40,14 +40,14 @@ test.describe('journey 11 — the content pages in both languages', () => {
      * it is the piece most likely to stay untranslated in real life, so it is the one that
      * proves an English reader gets the Albanian text and is told why, rather than a blank page.
      */
-    await page.goto('/en/knowledge/shneta-tani-ne-kosove');
+    await page.goto('/en/knowledge/biocode-tani-ne-kosove');
 
     await expect(page.getByText('This piece is only available in Albanian for now.')).toBeVisible();
     // …and the body really is there, not just the note.
     await expect(page.getByText('Pagesa në dorëzim')).toBeVisible();
 
     // On the Albanian page the same article is not a fallback, so no note.
-    await page.goto('/knowledge/shneta-tani-ne-kosove');
+    await page.goto('/knowledge/biocode-tani-ne-kosove');
     await expect(page.getByText('This piece is only available in Albanian for now.')).toHaveCount(
       0,
     );
@@ -131,7 +131,7 @@ test.describe('FAQ (docs/05 §16)', () => {
 test.describe('contact (docs/05 §16)', () => {
   test('a message reaches the database and is acknowledged', async ({ page }) => {
     const marker = randomUUID().slice(0, 8);
-    const email = `e2e-contact-${marker}@shneta.test`;
+    const email = `e2e-contact-${marker}@biocode.test`;
 
     await page.goto('/en/contact');
     await page.locator('#contact-name').fill('E2E Sender');
@@ -168,7 +168,7 @@ test.describe('contact (docs/05 §16)', () => {
 
 test.describe('newsletter double opt-in (docs/08 §5)', () => {
   test('subscribing writes a pending row and mails a confirmation', async ({ page }) => {
-    const email = `e2e-news-${randomUUID().slice(0, 8)}@shneta.test`;
+    const email = `e2e-news-${randomUUID().slice(0, 8)}@biocode.test`;
 
     await page.goto('/en');
     const footer = page.getByRole('contentinfo');

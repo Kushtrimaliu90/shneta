@@ -82,7 +82,7 @@ export default async function SubscriptionActionPage({ params, searchParams }: P
         <XCircle className="size-10 text-ink-500" aria-hidden="true" />
       )}
 
-      <h1 className="mt-4 font-display text-2xl font-semibold text-forest-900">
+      <h1 className="mt-4 font-display text-2xl font-semibold text-carbon-900">
         {outcome === 'skipped'
           ? t('oneClick.skippedTitle')
           : outcome === 'paused'

@@ -44,7 +44,7 @@ export async function ProductListingPage({
   return (
     <div className="container-page py-8 lg:py-12">
       <header className="mb-8">
-        <h1 className="font-display text-3xl font-semibold text-forest-900 lg:text-4xl">{title}</h1>
+        <h1 className="font-display text-3xl font-semibold text-carbon-900 lg:text-4xl">{title}</h1>
         <p className="mt-2 text-sm text-ink-500" data-numeric>
           {t('shop.productCount', { count: result.total })}
         </p>
@@ -73,8 +73,8 @@ export async function ProductListingPage({
                 className={cn(
                   'rounded-sm px-2.5 py-1.5 text-sm transition-colors',
                   sort === activeSort
-                    ? 'bg-forest-100 font-medium text-forest-900'
-                    : 'text-ink-600 hover:bg-forest-50',
+                    ? 'bg-carbon-100 font-medium text-carbon-900'
+                    : 'text-ink-600 hover:bg-carbon-50',
                 )}
               >
                 {t(`shop.sort.${sort}`)}
@@ -99,7 +99,7 @@ export async function ProductListingPage({
                 <Link
                   href={pageHref(result.page - 1)}
                   rel="prev"
-                  className="rounded-md border border-line-strong px-3.5 py-2 text-sm hover:bg-forest-50"
+                  className="rounded-md border border-line-strong px-3.5 py-2 text-sm hover:bg-carbon-50"
                 >
                   {t('shop.previous')}
                 </Link>
@@ -111,7 +111,7 @@ export async function ProductListingPage({
                 <Link
                   href={pageHref(result.page + 1)}
                   rel="next"
-                  className="rounded-md border border-line-strong px-3.5 py-2 text-sm hover:bg-forest-50"
+                  className="rounded-md border border-line-strong px-3.5 py-2 text-sm hover:bg-carbon-50"
                 >
                   {t('shop.next')}
                 </Link>

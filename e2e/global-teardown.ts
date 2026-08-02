@@ -8,7 +8,7 @@ import { describeCounts, envFromLocalFile, purgeFixtures } from '../tests/integr
  * run, pass **or** fail, which is the property that matters — a failed checkout run is
  * precisely when a half-finished order is most likely to be sitting there.
  *
- * `purgeFixtures` only ever matches the fixture naming conventions (`%@shneta.test`,
+ * `purgeFixtures` only ever matches the fixture naming conventions (`%@biocode.test`,
  * `product-%`, `brand-%`) and refuses the production hostname outright, so it cannot
  * damage real data even if aimed at it.
  */

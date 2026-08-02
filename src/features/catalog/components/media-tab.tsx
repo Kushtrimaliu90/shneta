@@ -165,7 +165,7 @@ export function MediaTab({
         <ul className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
           {images.map((image, index) => (
             <li key={image.id} className="rounded-lg border border-line bg-surface p-2">
-              <div className="relative aspect-square overflow-hidden rounded-sm bg-cream">
+              <div className="relative aspect-square overflow-hidden rounded-sm bg-bone">
                 <Image
                   src={`${publicBaseUrl}/${image.storagePath}`}
                   alt={image.alt.sq ?? image.alt.en ?? ''}
@@ -176,7 +176,7 @@ export function MediaTab({
                   unoptimized
                 />
                 {index === 0 && (
-                  <span className="absolute top-1 left-1 rounded-sm bg-forest-800 px-1.5 py-0.5 font-ui text-[11px] font-semibold text-white">
+                  <span className="absolute top-1 left-1 rounded-sm bg-carbon-800 px-1.5 py-0.5 font-ui text-[11px] font-semibold text-white">
                     Main
                   </span>
                 )}

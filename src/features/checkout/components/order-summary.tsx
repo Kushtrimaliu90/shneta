@@ -21,7 +21,7 @@ export async function OrderSummary({ order }: { order: OrderSummaryData }) {
   return (
     <div className="flex flex-col gap-8">
       <section aria-labelledby="order-items">
-        <h2 id="order-items" className="font-display text-lg font-semibold text-forest-900">
+        <h2 id="order-items" className="font-display text-lg font-semibold text-carbon-900">
           {t('order.items')}
         </h2>
         <ul className="mt-3 divide-y divide-line text-sm">
@@ -84,7 +84,7 @@ export async function OrderSummary({ order }: { order: OrderSummaryData }) {
 
       <div className="grid gap-8 sm:grid-cols-2">
         <section aria-labelledby="order-address">
-          <h2 id="order-address" className="font-display text-lg font-semibold text-forest-900">
+          <h2 id="order-address" className="font-display text-lg font-semibold text-carbon-900">
             {t('order.deliveryAddress')}
           </h2>
           <address className="mt-3 text-sm leading-relaxed text-ink-600 not-italic">
@@ -97,7 +97,7 @@ export async function OrderSummary({ order }: { order: OrderSummaryData }) {
         </section>
 
         <section aria-labelledby="order-delivery">
-          <h2 id="order-delivery" className="font-display text-lg font-semibold text-forest-900">
+          <h2 id="order-delivery" className="font-display text-lg font-semibold text-carbon-900">
             {t('order.delivery')}
           </h2>
           <p className="mt-3 text-sm text-ink-600">

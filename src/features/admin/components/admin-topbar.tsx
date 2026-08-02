@@ -69,22 +69,22 @@ export function AdminTopbar({
         aria-expanded={open}
         aria-controls={panelId}
         aria-label="Open admin menu"
-        className="inline-flex size-11 items-center justify-center rounded-md text-forest-800 hover:bg-forest-50 lg:hidden"
+        className="inline-flex size-11 items-center justify-center rounded-md text-carbon-800 hover:bg-carbon-50 lg:hidden"
       >
         <Menu className="size-5" aria-hidden="true" />
       </button>
 
       <Link
         href="/admin"
-        className="font-display text-base font-semibold text-forest-900 lg:hidden"
+        className="font-display text-base font-semibold text-carbon-900 lg:hidden"
       >
-        SHNETA Admin
+        BIOCODE Admin
       </Link>
 
       {environment && (
         /*
          * Solid fill, white text. The first version used `bg-warning/15` with `text-warning`,
-         * which axe measured at 4.08:1 — a 15% tint over cream resolves to #f4e5da, and the
+         * which axe measured at 4.08:1 — a 15% tint over bone resolves to #f4e5da, and the
          * amber on that misses AA. White on solid warning is 5.02:1 (asserted in
          * tests/unit/contrast.test.ts).
          *
@@ -100,7 +100,7 @@ export function AdminTopbar({
         {/* The storefront, for checking that a change actually landed. */}
         <Link
           href="/"
-          className="hidden rounded-sm px-2 text-sm text-ink-600 underline underline-offset-4 hover:text-forest-800 sm:block"
+          className="hidden rounded-sm px-2 text-sm text-ink-600 underline underline-offset-4 hover:text-carbon-800 sm:block"
         >
           View store
         </Link>
@@ -131,12 +131,12 @@ export function AdminTopbar({
           type="button"
           aria-label="Close admin menu"
           onClick={() => setOpen(false)}
-          className="absolute inset-0 size-full cursor-default bg-forest-950/40"
+          className="absolute inset-0 size-full cursor-default bg-carbon-950/40"
         />
 
         <div className="relative flex h-full w-[17rem] max-w-[85vw] flex-col bg-surface shadow-xl">
           <div className="flex h-16 shrink-0 items-center justify-between border-b border-line px-4">
-            <span className="font-display text-lg font-semibold text-forest-900">SHNETA</span>
+            <span className="font-display text-lg font-semibold text-carbon-900">BIOCODE</span>
             <button
               type="button"
               onClick={() => {
@@ -144,7 +144,7 @@ export function AdminTopbar({
                 triggerRef.current?.focus();
               }}
               aria-label="Close admin menu"
-              className="inline-flex size-11 items-center justify-center rounded-md text-forest-800 hover:bg-forest-50"
+              className="inline-flex size-11 items-center justify-center rounded-md text-carbon-800 hover:bg-carbon-50"
             >
               <X className="size-5" aria-hidden="true" />
             </button>
@@ -171,8 +171,8 @@ export function AdminTopbar({
                           className={cn(
                             'flex min-h-11 items-center gap-2.5 rounded-md px-2 text-sm',
                             active
-                              ? 'bg-forest-100 font-medium text-forest-900'
-                              : 'text-ink-600 hover:bg-forest-50',
+                              ? 'bg-carbon-100 font-medium text-carbon-900'
+                              : 'text-ink-600 hover:bg-carbon-50',
                           )}
                         >
                           <NavIcon name={item.icon} className="size-4 shrink-0" />

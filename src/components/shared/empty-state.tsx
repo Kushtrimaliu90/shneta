@@ -27,8 +27,8 @@ export function EmptyState({
         className,
       )}
     >
-      <Icon className="size-8 text-forest-500" aria-hidden="true" />
-      <p className="mt-4 font-display text-lg font-semibold text-forest-900">{title}</p>
+      <Icon className="size-8 text-carbon-500" aria-hidden="true" />
+      <p className="mt-4 font-display text-lg font-semibold text-carbon-900">{title}</p>
       {body && <p className="mt-2 max-w-sm text-sm text-ink-600">{body}</p>}
       {action && <div className="mt-6">{action}</div>}
     </div>

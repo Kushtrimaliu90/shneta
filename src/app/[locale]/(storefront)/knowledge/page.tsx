@@ -76,7 +76,7 @@ export default async function KnowledgePage({ params, searchParams }: Props) {
   return (
     <div className="container-page py-8 lg:py-12">
       <header className="mb-8">
-        <h1 className="font-display text-3xl font-semibold text-forest-900 lg:text-4xl">
+        <h1 className="font-display text-3xl font-semibold text-carbon-900 lg:text-4xl">
           {t('title')}
         </h1>
         <p className="mt-2 max-w-2xl text-ink-600">{t('intro')}</p>
@@ -96,8 +96,8 @@ export default async function KnowledgePage({ params, searchParams }: Props) {
               className={cn(
                 'inline-flex min-h-9 items-center gap-1.5 rounded-sm border px-3 text-sm transition-colors',
                 active
-                  ? 'border-forest-800 bg-forest-100 font-medium text-forest-900'
-                  : 'border-line-strong text-ink-600 hover:bg-forest-50',
+                  ? 'border-carbon-800 bg-carbon-100 font-medium text-carbon-900'
+                  : 'border-line-strong text-ink-600 hover:bg-carbon-50',
               )}
             >
               {value ? t(`types.${value}`) : t('all')}
@@ -121,8 +121,8 @@ export default async function KnowledgePage({ params, searchParams }: Props) {
                 className={cn(
                   'inline-flex min-h-8 items-center rounded-full border px-3 text-xs transition-colors',
                   active
-                    ? 'border-forest-800 bg-forest-800 font-medium text-white'
-                    : 'border-line text-ink-600 hover:bg-forest-50',
+                    ? 'border-carbon-800 bg-carbon-800 font-medium text-white'
+                    : 'border-line text-ink-600 hover:bg-carbon-50',
                 )}
               >
                 #{value}

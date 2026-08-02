@@ -147,7 +147,7 @@ export async function sendOrderConfirmation(orderId: string): Promise<void> {
 <html lang="${locale}">
   <body style="margin:0;background:#FAF9F5;font-family:ui-sans-serif,system-ui,sans-serif;color:#1B1E1C">
     <div style="max-width:600px;margin:0 auto;padding:32px 20px">
-      <p style="margin:0;font-size:20px;font-weight:600;color:#123227">SHNETA</p>
+      <p style="margin:0;font-size:20px;font-weight:600;color:#123227">BIOCODE</p>
       <hr style="border:none;border-top:3px solid #1C4636;margin:12px 0 28px" />
 
       <h1 style="margin:0;font-size:22px;color:#123227">${c.heading}</h1>
@@ -189,7 +189,7 @@ export async function sendOrderConfirmation(orderId: string): Promise<void> {
 
       <hr style="border:none;border-top:1px solid #E6E8E4;margin:32px 0 16px" />
       <p style="margin:0;font-size:12px;color:#8B948E;line-height:1.6">
-        SHNETA · Prishtinë, Kosovë
+        BIOCODE · Prishtinë, Kosovë
       </p>
     </div>
   </body>

@@ -38,7 +38,7 @@ const COPY = {
     pausedIntro:
       'Tri dërgesa radhazi nuk u krijuan dot, ndaj e ndalëm abonimin që të mos vazhdojë të dështojë. Mund ta rifillosh me një klikim nga llogaria jote.',
     manage: 'Menaxho abonimin',
-    footer: 'E merr këtë email sepse ke një abonim aktiv te SHNETA.',
+    footer: 'E merr këtë email sepse ke një abonim aktiv te BIOCODE.',
   },
   en: {
     noticeSubject: 'Your delivery is being prepared',
@@ -60,7 +60,7 @@ const COPY = {
     pausedIntro:
       'Three deliveries in a row could not be created, so we paused the subscription rather than let it keep failing. You can restart it in one click from your account.',
     manage: 'Manage subscription',
-    footer: 'You are receiving this because you have an active subscription at SHNETA.',
+    footer: 'You are receiving this because you have an active subscription at BIOCODE.',
   },
 } as const;
 

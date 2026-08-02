@@ -45,7 +45,7 @@ function IconSubmit({
       disabled={pending || disabled}
       className={cn(
         'inline-flex size-11 items-center justify-center rounded-sm text-ink-900 transition-colors',
-        'hover:bg-forest-50 disabled:cursor-not-allowed disabled:opacity-40',
+        'hover:bg-carbon-50 disabled:cursor-not-allowed disabled:opacity-40',
       )}
     >
       {children}

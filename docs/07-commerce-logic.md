@@ -26,7 +26,7 @@ Rounding: integer math, floor on percentage discount, half-up on tax. Order stor
 
 ## 3. Cart
 
-**3.1 Model:** DB-backed (`carts`/`cart_items`), one active cart per identity. Authenticated: `user_id` cart via RLS. Guest: cart with `anon_token`; token stored in httpOnly, Secure, SameSite=Lax cookie `shneta_cart` (1 year); all guest cart ops go through server actions using the admin client filtered by token (docs/02 §6). Client keeps a lightweight mirror (TanStack Query) for the drawer; server is truth.
+**3.1 Model:** DB-backed (`carts`/`cart_items`), one active cart per identity. Authenticated: `user_id` cart via RLS. Guest: cart with `anon_token`; token stored in httpOnly, Secure, SameSite=Lax cookie `biocode_cart` (1 year); all guest cart ops go through server actions using the admin client filtered by token (docs/02 §6). Client keeps a lightweight mirror (TanStack Query) for the drawer; server is truth.
 **3.2 Rules:** qty 1–20 per line (settings); adding existing variant increments; inactive/unpublished variants are pruned on read with a notice; stock is _not_ reserved by carting (only checkout decrements) but add-to-cart validates current availability; drawer shows free-shipping progress using the cheapest active method's `free_over`.
 **3.3 Merge on sign-in:** if guest cart exists → upsert its lines into the user cart (sum quantities, cap 20), mark guest cart `converted`, clear cookie. Idempotent.
 **3.4 Abandonment:** carts untouched 14 days → cron marks `abandoned` (data for future win-back emails; no emails v1).

@@ -62,7 +62,7 @@ export function OrderTimeline({ orderId, events }: { orderId: string; events: Or
                 >
                   {when.display}
                 </time>
-                <span className="font-medium text-forest-900">
+                <span className="font-medium text-carbon-900">
                   {TYPE_LABELS[event.type] ?? event.type}
                 </span>
                 {event.message && <span className="min-w-0 text-ink-600">{event.message}</span>}

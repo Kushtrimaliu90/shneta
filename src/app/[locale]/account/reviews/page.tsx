@@ -49,7 +49,7 @@ export default async function AccountReviewsPage({ params }: Props) {
   if (reviews.length === 0) {
     return (
       <div>
-        <h2 className="font-display text-2xl font-semibold text-forest-900">{t('title')}</h2>
+        <h2 className="font-display text-2xl font-semibold text-carbon-900">{t('title')}</h2>
         <EmptyState icon={Star} title={t('empty')} body={t('emptyHint')} className="mt-6" />
       </div>
     );
@@ -57,7 +57,7 @@ export default async function AccountReviewsPage({ params }: Props) {
 
   return (
     <div>
-      <h2 className="font-display text-2xl font-semibold text-forest-900">{t('title')}</h2>
+      <h2 className="font-display text-2xl font-semibold text-carbon-900">{t('title')}</h2>
 
       <ul className="mt-6 flex flex-col gap-4">
         {reviews.map((review) => {
@@ -66,7 +66,7 @@ export default async function AccountReviewsPage({ params }: Props) {
           return (
             <li key={review.id} className="rounded-lg border border-line bg-surface p-4">
               <div className="flex gap-4">
-                <div className="size-16 shrink-0 overflow-hidden rounded-sm bg-cream">
+                <div className="size-16 shrink-0 overflow-hidden rounded-sm bg-bone">
                   <ProductImage
                     path={review.productImagePath}
                     alt={productName}
@@ -79,7 +79,7 @@ export default async function AccountReviewsPage({ params }: Props) {
                   <div className="flex flex-wrap items-center gap-2">
                     <Link
                       href={`/product/${review.productSlug}`}
-                      className="rounded-sm font-medium text-forest-800 underline underline-offset-4"
+                      className="rounded-sm font-medium text-carbon-800 underline underline-offset-4"
                     >
                       {productName}
                     </Link>
@@ -106,7 +106,7 @@ export default async function AccountReviewsPage({ params }: Props) {
                         className={cn(
                           'size-3.5',
                           star <= review.rating
-                            ? 'fill-lime-500 text-lime-500'
+                            ? 'fill-signal-500 text-signal-500'
                             : 'text-line-strong',
                         )}
                       />
@@ -131,7 +131,7 @@ export default async function AccountReviewsPage({ params }: Props) {
                     </p>
                   )}
                   {review.adminReply && (
-                    <div className="mt-2 rounded-sm border-l-2 border-forest-800 bg-forest-50 p-2.5 text-sm text-ink-600">
+                    <div className="mt-2 rounded-sm border-l-2 border-carbon-800 bg-carbon-50 p-2.5 text-sm text-ink-600">
                       {review.adminReply}
                     </div>
                   )}

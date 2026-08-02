@@ -35,7 +35,7 @@ Browser ──► Vercel (Next.js)
 ## 3. Repository layout
 
 ```
-shneta/
+biocode/
   CLAUDE.md  docs/  supabase/{config.toml, migrations/, seed.sql}
   public/    src/   .github/workflows/ci.yml
   package.json  next.config.ts  tsconfig.json  playwright.config.ts  vitest.config.ts

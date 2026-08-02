@@ -97,7 +97,7 @@ export async function getAllSettings(): Promise<AllSettings> {
 
   return {
     store: {
-      name: text(store, 'name', 'SHNETA'),
+      name: text(store, 'name', 'BIOCODE'),
       email: text(store, 'email'),
       phone: text(store, 'phone'),
       address: text(store, 'address'),

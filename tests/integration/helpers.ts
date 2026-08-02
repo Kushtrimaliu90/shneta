@@ -71,7 +71,7 @@ export interface TestUser {
  */
 export async function createUser(role: string = 'customer'): Promise<TestUser> {
   const service = serviceClient();
-  const email = `test-${randomUUID()}@shneta.test`;
+  const email = `test-${randomUUID()}@biocode.test`;
   const password = `Pw-${randomUUID()}`;
 
   const { data, error } = await service.auth.admin.createUser({
@@ -242,7 +242,7 @@ export interface CheckoutArgs {
 export function checkoutParams(args: CheckoutArgs) {
   return {
     p_cart_id: args.cartId,
-    p_email: args.email ?? 'klient@shneta.test',
+    p_email: args.email ?? 'klient@biocode.test',
     p_phone: '+38344000000',
     p_shipping_address: ADDRESS,
     p_billing_address: ADDRESS,

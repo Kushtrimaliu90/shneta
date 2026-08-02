@@ -15,7 +15,7 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js';
  *   · categories  `slug LIKE 'category-%'`
  *   · goals       `slug LIKE 'goal-%'`
  *   · ingredients `slug LIKE 'ingredient-%'`
- *   · emails      `LIKE '%@shneta.test'`
+ *   · emails      `LIKE '%@biocode.test'`
  * Real catalogue data cannot match those — the seeded catalogue is slugged in Albanian.
  *
  * Deletion order matters: `stock_movements.variant_id` and `loyalty_transactions.order_id`
@@ -26,7 +26,7 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 /**
  * The database this is allowed to delete from must say so out loud.
  *
- * The previous guard refused a list of `shneta.com` hostnames, which was security theatre:
+ * The previous guard refused a list of `biocode.com` hostnames, which was security theatre:
  * a Supabase database is never *at* the site's hostname, it is at
  * `<ref>.supabase.co`. The check could not have fired for any real target. It was written
  * when dev and prod were assumed to be different projects; the moment one project became
@@ -309,7 +309,7 @@ export async function purgeFixtures(
   );
 
   // --- orders ---------------------------------------------------------------
-  const { data: orders } = await db.from('orders').select('id').like('email', '%@shneta.test');
+  const { data: orders } = await db.from('orders').select('id').like('email', '%@biocode.test');
   const orderIds = (orders ?? []).map((row) => row.id);
 
   if (orderIds.length > 0) {
@@ -338,7 +338,7 @@ export async function purgeFixtures(
    * returns to what it was — without which every run would leave the demo catalogue a little
    * more highly rated by nobody.
    */
-  const { data: profiles } = await db.from('profiles').select('id').like('email', '%@shneta.test');
+  const { data: profiles } = await db.from('profiles').select('id').like('email', '%@biocode.test');
   const profileIds = (profiles ?? []).map((row) => row.id);
 
   if (profileIds.length > 0) {
@@ -492,7 +492,7 @@ export async function purgeFixtures(
   }
   record(
     'newsletter_subscribers',
-    (await db.from('newsletter_subscribers').delete().like('email', '%@shneta.test').select('id'))
+    (await db.from('newsletter_subscribers').delete().like('email', '%@biocode.test').select('id'))
       .data,
   );
   record(

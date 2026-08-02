@@ -22,7 +22,7 @@ import '@/styles/globals.css';
  */
 
 export const metadata: Metadata = {
-  title: { default: 'SHNETA Admin', template: '%s · SHNETA Admin' },
+  title: { default: 'BIOCODE Admin', template: '%s · BIOCODE Admin' },
   // Belt and braces with robots.txt: the panel must never be indexed, and a header on the
   // route is not something a misconfigured `NEXT_PUBLIC_SITE_URL` can undo.
   robots: { index: false, follow: false, nocache: true },
@@ -51,7 +51,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
      */
     <html lang="en" className={fontVariables}>
       <body className="antialiased">
-        <div className="min-h-dvh bg-cream lg:grid lg:grid-cols-[15rem_1fr]">
+        <div className="min-h-dvh bg-bone lg:grid lg:grid-cols-[15rem_1fr]">
           <AdminSidebar sections={sections} />
 
           <div className="flex min-w-0 flex-col">

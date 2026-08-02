@@ -2,11 +2,11 @@
 
 ## 1. Environments
 
-| Env     | App                                  | Supabase                  | Purpose                                                                     |
-| ------- | ------------------------------------ | ------------------------- | --------------------------------------------------------------------------- |
-| local   | `pnpm dev`                           | `supabase start` (Docker) | development; `supabase db reset` reapplies migrations + `supabase/seed.sql` |
-| staging | Vercel preview/staging domain        | project `shneta-staging`  | every PR preview points here; E2E target                                    |
-| prod    | `shneta.com` (+ apex/`www` redirect) | project `shneta-prod`     | customers                                                                   |
+| Env     | App                                   | Supabase                  | Purpose                                                                     |
+| ------- | ------------------------------------- | ------------------------- | --------------------------------------------------------------------------- |
+| local   | `pnpm dev`                            | `supabase start` (Docker) | development; `supabase db reset` reapplies migrations + `supabase/seed.sql` |
+| staging | Vercel preview/staging domain         | project `biocode-staging` | every PR preview points here; E2E target                                    |
+| prod    | `biocode.com` (+ apex/`www` redirect) | project `biocode-prod`    | customers                                                                   |
 
 Git flow: trunk-based; PR → checks + preview → squash-merge to `main` → auto-deploy staging path → manual promote to prod (Vercel "Promote" or protected `production` branch — pick one, document in repo). Migrations: committed SQL in `supabase/migrations/`; applied by CI to staging on merge (`supabase db push --linked` with staging ref) and to prod during promote (manual approval job). Never dashboard-edit schema.
 

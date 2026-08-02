@@ -25,10 +25,10 @@ export function AdminSidebar({ sections }: { sections: NavSection[] }) {
       <div className="sticky top-0 flex h-screen flex-col">
         <Link
           href="/admin"
-          className="flex h-16 shrink-0 items-center gap-2 border-b border-line px-5 font-display text-lg font-semibold text-forest-900"
+          className="flex h-16 shrink-0 items-center gap-2 border-b border-line px-5 font-display text-lg font-semibold text-carbon-900"
         >
-          SHNETA
-          <span className="rounded-sm bg-forest-100 px-1.5 py-0.5 font-ui text-[11px] font-semibold tracking-wide text-forest-900 uppercase">
+          BIOCODE
+          <span className="rounded-sm bg-carbon-100 px-1.5 py-0.5 font-ui text-[11px] font-semibold tracking-wide text-carbon-900 uppercase">
             Admin
           </span>
         </Link>
@@ -59,8 +59,8 @@ export function AdminSidebar({ sections }: { sections: NavSection[] }) {
                         className={cn(
                           'flex min-h-10 items-center gap-2.5 rounded-md px-2 text-sm transition-colors',
                           active
-                            ? 'bg-forest-100 font-medium text-forest-900'
-                            : 'text-ink-600 hover:bg-forest-50 hover:text-forest-800',
+                            ? 'bg-carbon-100 font-medium text-carbon-900'
+                            : 'text-ink-600 hover:bg-carbon-50 hover:text-carbon-800',
                         )}
                       >
                         <NavIcon name={item.icon} className="size-4 shrink-0" />

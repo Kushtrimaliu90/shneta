@@ -29,7 +29,7 @@ export function PriceTag({
     <p className={cn('flex flex-wrap items-baseline gap-2', className)} data-numeric>
       <span
         className={cn(
-          'font-semibold text-forest-900',
+          'font-semibold text-carbon-900',
           size === 'lg' && 'text-2xl',
           size === 'md' && 'text-lg',
           size === 'sm' && 'text-base',
@@ -44,7 +44,7 @@ export function PriceTag({
             <span className="sr-only">{t('wasPrice')} </span>
             {formatPrice(compareAtPriceCents, locale)}
           </s>
-          <span className="rounded-sm bg-forest-800 px-1.5 py-0.5 text-xs font-semibold text-white">
+          <span className="rounded-sm bg-carbon-800 px-1.5 py-0.5 text-xs font-semibold text-white">
             −{discount}%
           </span>
         </>

@@ -48,7 +48,7 @@ export default async function AccountOrderPage({ params }: Props) {
     <div>
       <Link
         href="/account/orders"
-        className="inline-flex items-center gap-1.5 rounded-sm text-sm text-ink-600 hover:text-forest-800"
+        className="inline-flex items-center gap-1.5 rounded-sm text-sm text-ink-600 hover:text-carbon-800"
       >
         <ArrowLeft className="size-4" aria-hidden="true" />
         {t('order.myOrders.title')}
@@ -58,7 +58,7 @@ export default async function AccountOrderPage({ params }: Props) {
         <div>
           <p className="eyebrow">{t('order.orderNumber')}</p>
           {/* h2: the account layout owns the h1 (docs/04 §10 — one h1 per page). */}
-          <h2 className="mt-1 font-display text-2xl font-semibold text-forest-900" data-numeric>
+          <h2 className="mt-1 font-display text-2xl font-semibold text-carbon-900" data-numeric>
             {order.orderNumber}
           </h2>
           <p className="mt-1 text-sm text-ink-500">

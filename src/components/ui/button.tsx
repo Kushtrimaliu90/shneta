@@ -9,17 +9,17 @@ import { cn } from '@/lib/utils';
  */
 const buttonVariants = cva(
   'inline-flex items-center justify-center gap-2 rounded-md font-medium whitespace-nowrap ' +
-    'transition-colors duration-150 ease-[var(--ease-shneta)] ' +
+    'transition-colors duration-150 ease-[var(--ease-biocode)] ' +
     'disabled:pointer-events-none disabled:opacity-50 ' +
     "[&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-5",
   {
     variants: {
       variant: {
-        primary: 'bg-forest-800 text-white hover:bg-forest-700',
-        secondary: 'border border-line-strong bg-surface text-ink-900 hover:bg-forest-50',
-        ghost: 'text-forest-800 hover:bg-forest-50',
+        primary: 'bg-carbon-800 text-white hover:bg-carbon-700',
+        secondary: 'border border-line-strong bg-surface text-ink-900 hover:bg-carbon-50',
+        ghost: 'text-carbon-800 hover:bg-carbon-50',
         destructive: 'bg-error text-white hover:brightness-110',
-        link: 'text-forest-700 underline underline-offset-4 hover:text-forest-800',
+        link: 'text-carbon-700 underline underline-offset-4 hover:text-carbon-800',
       },
       size: {
         sm: 'h-9 px-3.5 text-sm',

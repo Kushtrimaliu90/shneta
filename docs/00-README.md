@@ -1,8 +1,8 @@
-# SHNETA Specification Pack — README
+# BIOCODE Specification Pack — README
 
 **Version 2.0 (Final, build-ready) · Supersedes the v1.0 single-document SRS draft**
 
-This pack is the complete specification for building SHNETA to production. It is written for AI coding agents (Claude Code first) and human developers. It replaces the earlier "250–400 page single document" plan deliberately: one giant document is the wrong artifact for agentic development. Agents work best with **modular, task-scoped documents** they can load selectively — that is what this pack is.
+This pack is the complete specification for building BIOCODE to production. It is written for AI coding agents (Claude Code first) and human developers. It replaces the earlier "250–400 page single document" plan deliberately: one giant document is the wrong artifact for agentic development. Agents work best with **modular, task-scoped documents** they can load selectively — that is what this pack is.
 
 ## What's in the pack
 
@@ -23,6 +23,9 @@ docs/
   10-operations-deployment.md   ← environments, CI/CD, cron, monitoring, launch
   11-seed-data.md               ← concrete seed content
   12-build-plan.md              ← 12 milestones with acceptance criteria
+  13-spec-corrections.md        ← every correction and finding, milestone by milestone
+  14-launch-readiness.md        ← honest status against the launch checklist
+  15-biohack-protocol-generator.md ← the next feature: the BioHack Protocol Generator
 ```
 
 **Precedence:** if documents ever conflict: `03-database.md` wins on data, `07-commerce-logic.md` wins on business rules, `02-architecture.md` wins on code structure, `CLAUDE.md` wins on conventions.

@@ -17,7 +17,7 @@ Markdown stored per-locale in jsonb; rendered with react-markdown + remark-gfm +
 
 ## 4. SEO
 
-- **Metadata:** `generateMetadata` everywhere; title pattern `{Page} | SHNETA` (home: `SHNETA — Suplemente dhe Wellness në Kosovë`); descriptions from `seo` jsonb with sensible fallbacks; canonical absolute; `alternates.languages` hreflang sq/en + `x-default` → sq.
+- **Metadata:** `generateMetadata` everywhere; title pattern `{Page} | BIOCODE` (home: `BIOCODE — Suplemente dhe Wellness në Kosovë`); descriptions from `seo` jsonb with sensible fallbacks; canonical absolute; `alternates.languages` hreflang sq/en + `x-default` → sq.
 - **JSON-LD:** Organization + WebSite/SearchAction (home); Product (+Offer availability from stock, +AggregateRating when count>0) and BreadcrumbList (PDP); ItemList (PLP/brand/goal); Article (knowledge); FAQPage (/faq). Helper `lib/seo.ts` builds all — no ad-hoc schema in pages.
 - **Sitemaps:** `app/sitemap.ts` → index of segmented maps (static, categories, products, brands, goals, ingredients, articles) with `lastModified` from `updated_at`; robots allows all except `/admin`, `/account`, `/checkout`, `/cart`, `/api`.
 - **URLs:** stable, lowercase, hyphenated, slug immutability post-publish; archived product = friendly gone page (docs/07 §10) keeping status 410 semantics (Next: render page + `robots: noindex`).
@@ -29,7 +29,7 @@ Footer + home block → `subscribeNewsletter` (rate-limited, honeypot) → row +
 
 ## 6. Transactional email (Resend + react-email)
 
-Shared layout: logo, forest header rule, content, footer (contact, address, unsubscribe where applicable). All bilingual — template renders in `order.locale` / `profile.preferred_locale`. From: `SHNETA <porosite@shneta.com>` (env `EMAIL_FROM`; verify domain, SPF/DKIM per docs/10). Every send via `lib/email/send.ts` → logs to `email_log`.
+Shared layout: logo, carbon header rule, content, footer (contact, address, unsubscribe where applicable). All bilingual — template renders in `order.locale` / `profile.preferred_locale`. From: `BIOCODE <porosite@biocode.com>` (env `EMAIL_FROM`; verify domain, SPF/DKIM per docs/10). Every send via `lib/email/send.ts` → logs to `email_log`.
 
 | Template                                            | Trigger                                      | Key content                                                                            |
 | --------------------------------------------------- | -------------------------------------------- | -------------------------------------------------------------------------------------- |

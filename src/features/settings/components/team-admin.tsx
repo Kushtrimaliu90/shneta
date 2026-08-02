@@ -144,7 +144,7 @@ function MemberRow({ member, isSelf }: { member: TeamMember; isSelf: boolean }) 
     <li
       className={cn(
         'rounded-lg border bg-surface p-4',
-        member.deactivated ? 'border-line bg-cream' : 'border-line',
+        member.deactivated ? 'border-line bg-bone' : 'border-line',
       )}
     >
       <div className="flex flex-wrap items-center justify-between gap-3">

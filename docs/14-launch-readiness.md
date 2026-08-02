@@ -161,7 +161,7 @@ purge all refuse to start. Not a boolean — a ref, so it stops matching the mom
 changes, whereas `ALLOW=1` in a shell profile would follow you anywhere. `127.0.0.1` is exempt,
 being disposable by definition.
 
-The guard it replaced refused a list of `shneta.com` hostnames, which could never have fired:
+The guard it replaced refused a list of `biocode.com` hostnames, which could never have fired:
 a Supabase database is at `<ref>.supabase.co`, never at the site's hostname. It was written
 assuming dev and prod were different projects and protected nothing once they were not.
 
@@ -388,22 +388,22 @@ evidence, or with the reason it cannot be ticked from a laptop.
 
 ### Ready — evidence in the repo
 
-| Item                                       | Evidence                                                                                                                |
-| ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
-| Prod env vars validated                    | `env.server.ts` + `env.client.ts` fail the build on a missing required key; `tests/unit/env.test.ts`                    |
-| Migrations applied                         | 20 on `rszbpdgfvyofvmuishmn`; `pnpm check:sql` gates structure in CI                                                    |
-| Staff accounts with role rows              | Seven `@shneta.dev` accounts, roles verified. The password is not stored — `pnpm seed:users --reset-password` mints one |
-| Compliance disclaimer on required surfaces | Asserted on five surfaces in both locales by `e2e/compliance.spec.ts`. It had covered two                               |
-| Cookie consent live                        | Shipped M8, gates `lib/analytics.ts`                                                                                    |
-| Sitemap + hreflang                         | Reciprocal sq/en alternates on every URL, asserted by `e2e/compliance.spec.ts` — which found `/finder` missing entirely |
-| E2E suite green                            | **390/390** across desktop and 390 px, against the live database                                                        |
-| RLS matrix green                           | `tests/integration/rls.test.ts`, plus the attack suite in `security.test.ts` (docs/09 §5)                               |
-| Dependency audit                           | `pnpm audit` clean at `--audit-level moderate` — 3 high + 1 moderate cleared (docs/13 §Q5)                              |
-| Security headers + CSP                     | Asserted by `e2e/security.spec.ts`; enforcement is `CSP_ENFORCE=true` (docs/13 §Q3)                                     |
-| Admin surface refuses signed-out callers   | All 23 admin routes plus the export handler, asserted individually                                                      |
-| Performance budget                         | `pnpm check:bundle` — every route inside 170 kB; storefront served from the route cache (§Q1)                           |
-| Rollback plan                              | `vercel rollback` + `runbooks/incident.md`; migration recovery in `runbooks/restore.md`                                 |
-| Restore procedure documented               | `runbooks/restore.md` — written, **not yet drilled**                                                                    |
+| Item                                       | Evidence                                                                                                                 |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------ |
+| Prod env vars validated                    | `env.server.ts` + `env.client.ts` fail the build on a missing required key; `tests/unit/env.test.ts`                     |
+| Migrations applied                         | 20 on `rszbpdgfvyofvmuishmn`; `pnpm check:sql` gates structure in CI                                                     |
+| Staff accounts with role rows              | Seven `@biocode.dev` accounts, roles verified. The password is not stored — `pnpm seed:users --reset-password` mints one |
+| Compliance disclaimer on required surfaces | Asserted on five surfaces in both locales by `e2e/compliance.spec.ts`. It had covered two                                |
+| Cookie consent live                        | Shipped M8, gates `lib/analytics.ts`                                                                                     |
+| Sitemap + hreflang                         | Reciprocal sq/en alternates on every URL, asserted by `e2e/compliance.spec.ts` — which found `/finder` missing entirely  |
+| E2E suite green                            | **390/390** across desktop and 390 px, against the live database                                                         |
+| RLS matrix green                           | `tests/integration/rls.test.ts`, plus the attack suite in `security.test.ts` (docs/09 §5)                                |
+| Dependency audit                           | `pnpm audit` clean at `--audit-level moderate` — 3 high + 1 moderate cleared (docs/13 §Q5)                               |
+| Security headers + CSP                     | Asserted by `e2e/security.spec.ts`; enforcement is `CSP_ENFORCE=true` (docs/13 §Q3)                                      |
+| Admin surface refuses signed-out callers   | All 23 admin routes plus the export handler, asserted individually                                                       |
+| Performance budget                         | `pnpm check:bundle` — every route inside 170 kB; storefront served from the route cache (§Q1)                            |
+| Rollback plan                              | `vercel rollback` + `runbooks/incident.md`; migration recovery in `runbooks/restore.md`                                  |
+| Restore procedure documented               | `runbooks/restore.md` — written, **not yet drilled**                                                                     |
 
 ### Blocked on the owner — not engineering work
 
@@ -446,3 +446,51 @@ Nothing in M11 changed that, and nothing in the code can.
 | Zero-result search logging       | docs/10 §6 marks it Phase 2, and it needs traffic to say anything                                                                                                                                               | Post-launch           |
 | Storage bucket backups           | docs/10 §7 accepts Phase 2. Worth knowing: **a database restore does not restore images**, and `restore.md` says so at the point it matters                                                                     | Post-launch           |
 | Load / soak testing              | docs/12 asks for a staging soak. There is no staging (§7), and soaking the production database is not a test                                                                                                    | With a second project |
+
+---
+
+## 16 · The BIOCODE rebrand
+
+The shop was built as SHNETA and rebranded to **BIOCODE** after M11. Recorded here because a
+ledger that quietly changes its subject's name is not a ledger.
+
+**Brand line:** _Your biology has a code. Unlock your potential._
+**Campaign line:** _Unlock your biology._
+
+### What changed
+
+| Layer      | Before                          | After                                                                   |
+| ---------- | ------------------------------- | ----------------------------------------------------------------------- |
+| Name       | SHNETA                          | BIOCODE                                                                 |
+| Primary    | `forest` — herbal green         | `carbon` — deep blue-graphite (`#0D1620` → `#EEF3F7`)                   |
+| Accent     | `lime` `#A3E635`                | `signal` `#2EE6C5` — electric aqua                                      |
+| Background | `cream` `#FAF9F5` (warm)        | `bone` `#F7F9FA` (cool)                                                 |
+| Mark       | The ring, stroked               | Four bars on a carbon tile — legible at 16 px (docs/13 §R5)             |
+| Motif      | "Vitality Ring"                 | "Signal Ring" — same geometry, product-only, never the logo             |
+| Type       | Space Grotesk / Inter / Manrope | unchanged — it already read technical, which is what the rebrand wanted |
+
+Every token was designed **against** `tests/unit/contrast.test.ts` rather than checked after
+(docs/13 §R1). All 32 assertions pass unchanged; the suite needed only its token _names_ updated.
+
+### What it is safe to forget, and is not
+
+- **Cookies were renamed** (`shneta_cart` → `biocode_cart`). Every existing cart is orphaned by
+  that. Free today because there are no customers; after launch the same change would need a
+  read-both-write-new migration.
+- **Six live staff accounts were migrated** from `@shneta.dev` to `@biocode.dev`, and
+  `seed:users` now reconciles the address on re-run — it previously could not, and would have
+  reported the new name forever while the accounts kept the old one (docs/13 §R3).
+- **The `settings.store` row is data, not code.** It was updated in the live database; a fresh
+  `supabase db reset` picks up the same values from `seed.sql`.
+- **Fixture domains moved** to `%@biocode.test`, and `purgeFixtures` matches on that convention.
+  Renaming one without the other would have left every future test row un-purgeable.
+
+### Still outstanding after the rebrand
+
+Nothing in §14 changed status. Two items gained a line of scope:
+
+- **Brand assets** — the placeholder logos are now placeholder logos for a _different_ brand.
+  The BIOCODE mark itself is real and shipped; what is still missing is the third-party brand
+  imagery for the products being resold.
+- **Domain** — `biocode.com` and the social handles in `settings.store` are placeholders written
+  to look right. Nobody has registered them.

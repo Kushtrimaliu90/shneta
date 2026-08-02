@@ -26,7 +26,7 @@ export default function LocaleError({
   return (
     <div className="container-page flex min-h-[60vh] flex-col items-center justify-center py-20 text-center">
       <AlertTriangle className="size-10 text-warning" aria-hidden="true" />
-      <h1 className="mt-6 font-display text-3xl font-semibold text-forest-900">{t('title')}</h1>
+      <h1 className="mt-6 font-display text-3xl font-semibold text-carbon-900">{t('title')}</h1>
       <p className="mt-3 max-w-md text-ink-600">{t('body')}</p>
       <Button size="lg" className="mt-8" onClick={reset}>
         {t('cta')}

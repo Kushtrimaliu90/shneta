@@ -53,7 +53,7 @@ export default function GlobalError({ error }: { error: Error & { digest?: strin
               textDecoration: 'none',
             }}
           >
-            SHNETA
+            BIOCODE
           </a>
         </div>
       </body>

@@ -17,7 +17,7 @@ export function organizationSchema(origin: string): JsonLd {
   return {
     '@context': 'https://schema.org',
     '@type': 'Organization',
-    name: 'SHNETA',
+    name: 'BIOCODE',
     url: origin,
     logo: `${origin}/icon.svg`,
     address: {
@@ -33,7 +33,7 @@ export function webSiteSchema(origin: string): JsonLd {
   return {
     '@context': 'https://schema.org',
     '@type': 'WebSite',
-    name: 'SHNETA',
+    name: 'BIOCODE',
     url: origin,
     potentialAction: {
       '@type': 'SearchAction',
@@ -144,9 +144,9 @@ export function articleSchema(
     dateModified: article.updatedAt,
     author: {
       '@type': article.authorName ? 'Person' : 'Organization',
-      name: article.authorName ?? 'SHNETA',
+      name: article.authorName ?? 'BIOCODE',
     },
-    publisher: { '@type': 'Organization', name: 'SHNETA' },
+    publisher: { '@type': 'Organization', name: 'BIOCODE' },
     mainEntityOfPage: `${origin}/knowledge/${article.slug}`,
   };
 }

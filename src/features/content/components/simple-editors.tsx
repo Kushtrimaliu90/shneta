@@ -61,7 +61,7 @@ function PageForm({ page }: { page: PageRow }) {
         type="button"
         onClick={() => setOpen(!open)}
         aria-expanded={open}
-        className="flex w-full items-center justify-between gap-3 p-4 text-left hover:bg-forest-50"
+        className="flex w-full items-center justify-between gap-3 p-4 text-left hover:bg-carbon-50"
       >
         <span>
           <span className="font-medium text-ink-900">{PAGE_TITLES[page.slug] ?? page.slug}</span>
@@ -159,7 +159,7 @@ export function FaqsEditor({ faqs }: { faqs: FaqRow[] }) {
       {faqs.length === 0 ? (
         <div className="rounded-lg border border-dashed border-line-strong bg-surface p-10 text-center">
           <HelpCircle className="mx-auto size-6 text-ink-500" aria-hidden="true" />
-          <p className="mt-2 font-medium text-forest-900">No questions yet</p>
+          <p className="mt-2 font-medium text-carbon-900">No questions yet</p>
         </div>
       ) : (
         categories.map((category) => (
@@ -188,14 +188,14 @@ function FaqRowView({ faq }: { faq: FaqRow }) {
     <li
       className={cn(
         'rounded-sm border',
-        faq.isActive ? 'border-line bg-surface' : 'border-line bg-cream',
+        faq.isActive ? 'border-line bg-surface' : 'border-line bg-bone',
       )}
     >
       <button
         type="button"
         onClick={() => setOpen(!open)}
         aria-expanded={open}
-        className="flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left text-sm hover:bg-forest-50"
+        className="flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left text-sm hover:bg-carbon-50"
       >
         <span className="text-ink-900">{faq.question.sq || '(no question)'}</span>
         <span className="flex shrink-0 items-center gap-2 text-xs text-ink-500">
@@ -321,7 +321,7 @@ export function BannersEditor({ banners }: { banners: BannerRow[] }) {
       {banners.length === 0 ? (
         <div className="rounded-lg border border-dashed border-line-strong bg-surface p-10 text-center">
           <Megaphone className="mx-auto size-6 text-ink-500" aria-hidden="true" />
-          <p className="mt-2 font-medium text-forest-900">No banners</p>
+          <p className="mt-2 font-medium text-carbon-900">No banners</p>
           <p className="mt-1.5 text-sm text-ink-600">
             Placements the shop reads: <span className="font-mono">home_hero</span>,{' '}
             <span className="font-mono">offers</span>.
@@ -360,12 +360,12 @@ function BannerRowView({ banner }: { banner: BannerRow }) {
         type="button"
         onClick={() => setOpen(!open)}
         aria-expanded={open}
-        className="flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left text-sm hover:bg-forest-50"
+        className="flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left text-sm hover:bg-carbon-50"
       >
         <span className="text-ink-900">{banner.title.sq || '(no title)'}</span>
         <span className="flex shrink-0 items-center gap-2 text-xs text-ink-500">
           {!banner.isActive && <span>Inactive</span>}
-          {scheduled && <span className="text-forest-800">Scheduled</span>}
+          {scheduled && <span className="text-carbon-800">Scheduled</span>}
           {expired && <span className="text-warning">Expired</span>}
           <span data-numeric>#{banner.position}</span>
         </span>

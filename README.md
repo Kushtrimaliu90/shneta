@@ -1,4 +1,4 @@
-# SHNETA
+# BIOCODE
 
 Multi-brand wellness marketplace for the Albanian-speaking market, launching in Kosovo.
 Supplements plus an education layer, bilingual (sq/en), Cash-on-Delivery first.

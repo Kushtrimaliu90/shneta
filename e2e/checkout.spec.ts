@@ -14,7 +14,7 @@ import {
  * docs/09 §1 journeys 1, 3 and 4 — the money paths.
  *
  * These place **real orders** against whatever `.env.local` points at, so:
- *   · every email ends in `@shneta.test`, which is the only thing `purgeFixtures` matches,
+ *   · every email ends in `@biocode.test`, which is the only thing `purgeFixtures` matches,
  *     and `e2e/global-teardown.ts` runs it after the whole run, pass or fail;
  *   · the teardown also writes a compensating `cancel_restock` movement per line, otherwise
  *     each run would permanently eat fixture stock until journey 1 failed for a reason that
@@ -94,7 +94,7 @@ function uniqueEmail(label: string): string {
   // Playwright gives no per-test random source, and Math.random() would make a failure
   // unreproducible from the report. The worker index plus the label is enough to be unique
   // within a run, and the teardown clears the previous run's rows.
-  return `e2e-${label}-w${process.env.TEST_PARALLEL_INDEX ?? '0'}@shneta.test`;
+  return `e2e-${label}-w${process.env.TEST_PARALLEL_INDEX ?? '0'}@biocode.test`;
 }
 
 test.describe('journey 1 — guest buys with cash on delivery', () => {
@@ -295,7 +295,7 @@ test.describe('journey 4 — guest order lookup', () => {
     const orderNumber = await placeOrder(page, email);
 
     await page.goto('/en/order-lookup');
-    await submitLookup(page, orderNumber, 'someone-else@shneta.test');
+    await submitLookup(page, orderNumber, 'someone-else@biocode.test');
 
     // docs/05 §13 — the same message either way, so this cannot confirm the number exists.
     await expect(page.getByText("We couldn't find an order with those details.")).toBeVisible();
@@ -328,7 +328,7 @@ test.describe('journey 4 — guest order lookup', () => {
   /*
    * docs/08 §4 lists exactly which paths robots.txt disallows — and `/order-lookup` is not
    * among them, deliberately: the *form* is a public utility page people search for
-   * ("track my SHNETA order"). It is the order **result** that must never be indexed, and
+   * ("track my BIOCODE order"). It is the order **result** that must never be indexed, and
    * that is asserted in the journey above where a real order exists to look at.
    */
   test('robots.txt disallows the money paths in both locales (docs/08 §4)', async ({ page }) => {

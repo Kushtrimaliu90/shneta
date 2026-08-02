@@ -56,7 +56,7 @@ export default async function AdminInventoryPage({ searchParams }: Props) {
     <div>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="font-display text-2xl font-semibold text-forest-900">Inventory</h1>
+          <h1 className="font-display text-2xl font-semibold text-carbon-900">Inventory</h1>
           <p className="mt-1 max-w-2xl text-sm text-ink-600">
             On-hand counts per variant. Every change here writes a ledger row — receive what
             arrives, adjust what does not match the shelf, and say why.
@@ -64,7 +64,7 @@ export default async function AdminInventoryPage({ searchParams }: Props) {
         </div>
         <Link
           href="/admin/movements"
-          className="rounded-sm text-sm text-forest-800 underline underline-offset-4"
+          className="rounded-sm text-sm text-carbon-800 underline underline-offset-4"
         >
           Stock movements
         </Link>
@@ -100,8 +100,8 @@ export default async function AdminInventoryPage({ searchParams }: Props) {
                 className={cn(
                   'inline-flex min-h-9 items-center gap-1.5 rounded-sm border px-3 text-sm transition-colors',
                   active
-                    ? 'border-forest-800 bg-forest-100 font-medium text-forest-900'
-                    : 'border-line-strong text-ink-600 hover:bg-forest-50',
+                    ? 'border-carbon-800 bg-carbon-100 font-medium text-carbon-900'
+                    : 'border-line-strong text-ink-600 hover:bg-carbon-50',
                 )}
               >
                 {value ? STOCK_STATUS_LABELS[value] : 'All'}
@@ -133,7 +133,7 @@ export default async function AdminInventoryPage({ searchParams }: Props) {
           </div>
           <button
             type="submit"
-            className="h-9 rounded-sm border border-line-strong px-3 text-sm text-ink-900 hover:bg-forest-50"
+            className="h-9 rounded-sm border border-line-strong px-3 text-sm text-ink-900 hover:bg-carbon-50"
           >
             Search
           </button>

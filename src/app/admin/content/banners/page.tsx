@@ -10,7 +10,7 @@ export default async function AdminBannersPage() {
 
   return (
     <section>
-      <h2 className="font-display text-lg font-semibold text-forest-900">Banners</h2>
+      <h2 className="font-display text-lg font-semibold text-carbon-900">Banners</h2>
       <p className="mt-0.5 mb-4 max-w-2xl text-sm text-ink-600">
         A banner shows only while it is active and inside its dates. Leaving the dates empty means
         &ldquo;always&rdquo;.

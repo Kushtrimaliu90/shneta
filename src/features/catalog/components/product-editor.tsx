@@ -89,8 +89,8 @@ export function ProductEditor({
             className={cn(
               '-mb-px min-h-10 border-b-2 px-3 text-sm transition-colors',
               tab === key
-                ? 'border-forest-800 font-medium text-forest-900'
-                : 'border-transparent text-ink-600 hover:text-forest-800',
+                ? 'border-carbon-800 font-medium text-carbon-900'
+                : 'border-transparent text-ink-600 hover:text-carbon-800',
             )}
           >
             {label}
@@ -236,7 +236,7 @@ function GeneralTab({
              * requires the slug. Read-only keeps it in the payload where the database's own
              * guard can compare it and confirm nothing changed.
              */
-            className={cn(inputClass, locked && 'bg-cream text-ink-500')}
+            className={cn(inputClass, locked && 'bg-bone text-ink-500')}
           />
         </div>
         <div>
@@ -414,7 +414,7 @@ function VariantsTab({ product }: { product: AdminProduct }) {
         <table className="w-full min-w-[36rem] border-collapse text-sm">
           <caption className="sr-only">Variants of this product</caption>
           <thead>
-            <tr className="border-b border-line bg-forest-50 text-left">
+            <tr className="border-b border-line bg-carbon-50 text-left">
               {['SKU', 'Name', 'Price', 'State', ''].map((heading) => (
                 <th
                   key={heading}
@@ -449,7 +449,7 @@ function VariantsTab({ product }: { product: AdminProduct }) {
                   ) : (
                     <span className="text-ink-500">Inactive</span>
                   )}
-                  {variant.isDefault && <span className="ml-1 text-forest-800">· default</span>}
+                  {variant.isDefault && <span className="ml-1 text-carbon-800">· default</span>}
                 </td>
                 <td className="px-3 py-2 text-right">
                   <button
@@ -515,7 +515,7 @@ function VariantForm({
   return (
     <div className="rounded-lg border border-line-strong bg-surface p-4">
       <div className="flex items-center justify-between">
-        <h3 className="font-display text-sm font-semibold text-forest-900">
+        <h3 className="font-display text-sm font-semibold text-carbon-900">
           {variant ? `Edit ${variant.sku}` : 'New variant'}
         </h3>
         <button type="button" onClick={onDone} aria-label="Close" className="text-ink-500">
@@ -701,7 +701,7 @@ function LabelTab({
         <table className="w-full min-w-[40rem] border-collapse text-sm">
           <caption className="sr-only">Ingredients in one serving</caption>
           <thead>
-            <tr className="border-b border-line bg-forest-50 text-left">
+            <tr className="border-b border-line bg-carbon-50 text-left">
               {['Ingredient', 'Amount', 'Unit', '% NRV', 'Per serving'].map((heading) => (
                 <th
                   key={heading}
@@ -911,7 +911,7 @@ function SeoTab({ product }: { product: AdminProduct }) {
       <div className="rounded-lg border border-line bg-surface p-4">
         <p className="text-xs font-semibold tracking-wide text-ink-600 uppercase">Preview</p>
         <p className="mt-2 text-sm text-ink-500">shtrejt.com › product › {product.slug}</p>
-        <p className="truncate text-base text-forest-800 underline underline-offset-2">
+        <p className="truncate text-base text-carbon-800 underline underline-offset-2">
           {values.titleSq || derivedTitle || product.slug}
         </p>
         <p className="mt-0.5 line-clamp-2 text-sm text-ink-600">
@@ -1010,7 +1010,7 @@ function ComplianceTab({
   return (
     <div className="flex max-w-3xl flex-col gap-6">
       <div className="rounded-lg border border-line bg-surface p-4">
-        <h3 className="font-display text-sm font-semibold text-forest-900">Approval</h3>
+        <h3 className="font-display text-sm font-semibold text-carbon-900">Approval</h3>
         {product.approvedBy ? (
           <p className="mt-1.5 text-sm text-ink-600">
             Approved

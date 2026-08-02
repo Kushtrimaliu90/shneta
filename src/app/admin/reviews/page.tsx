@@ -44,7 +44,7 @@ export default async function AdminReviewsPage({ searchParams }: Props) {
 
   return (
     <div className="max-w-3xl">
-      <h1 className="font-display text-2xl font-semibold text-forest-900">Reviews</h1>
+      <h1 className="font-display text-2xl font-semibold text-carbon-900">Reviews</h1>
       <p className="mt-1 text-sm text-ink-600">
         Every review is read before it is published. Nothing a customer writes appears on the
         storefront until it is approved here.
@@ -61,8 +61,8 @@ export default async function AdminReviewsPage({ searchParams }: Props) {
               className={cn(
                 'inline-flex min-h-9 items-center gap-1.5 rounded-sm border px-3 text-sm transition-colors',
                 active
-                  ? 'border-forest-800 bg-forest-100 font-medium text-forest-900'
-                  : 'border-line-strong text-ink-600 hover:bg-forest-50',
+                  ? 'border-carbon-800 bg-carbon-100 font-medium text-carbon-900'
+                  : 'border-line-strong text-ink-600 hover:bg-carbon-50',
               )}
             >
               {TAB_LABELS[value] ?? value}
@@ -77,7 +77,7 @@ export default async function AdminReviewsPage({ searchParams }: Props) {
       {reviews.length === 0 ? (
         <div className="mt-8 rounded-lg border border-dashed border-line-strong bg-surface p-10 text-center">
           <MessageSquare className="mx-auto size-6 text-ink-500" aria-hidden="true" />
-          <p className="mt-2 font-medium text-forest-900">
+          <p className="mt-2 font-medium text-carbon-900">
             {status === 'pending'
               ? 'Nothing is waiting'
               : `No ${TAB_LABELS[status]?.toLowerCase()} reviews`}

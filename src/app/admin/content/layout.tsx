@@ -15,7 +15,7 @@ export default async function ContentLayout({ children }: { children: React.Reac
 
   return (
     <div>
-      <h1 className="font-display text-2xl font-semibold text-forest-900">Content</h1>
+      <h1 className="font-display text-2xl font-semibold text-carbon-900">Content</h1>
       <p className="mt-1 max-w-2xl text-sm text-ink-600">
         Everything the shop says that is not a product. Albanian is required; English is optional
         and falls back to Albanian when it is missing.

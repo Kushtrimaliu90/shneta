@@ -29,7 +29,7 @@ export function CompareBar() {
   return (
     <div className="border-t border-line bg-surface/95 backdrop-blur-sm">
       <div className="container-page flex items-center gap-3 py-3">
-        <Scale className="size-5 shrink-0 text-forest-800" aria-hidden="true" />
+        <Scale className="size-5 shrink-0 text-carbon-800" aria-hidden="true" />
         <p className="min-w-0 flex-1 truncate text-sm text-ink-900" data-numeric>
           {t('bar', { count: ids.length })}
         </p>

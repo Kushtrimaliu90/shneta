@@ -64,13 +64,13 @@ export function CartBadge() {
     <Link
       href="/cart"
       aria-label={label}
-      className="relative inline-flex size-11 items-center justify-center rounded-md text-forest-800 transition-colors hover:bg-forest-50"
+      className="relative inline-flex size-11 items-center justify-center rounded-md text-carbon-800 transition-colors hover:bg-carbon-50"
     >
       <ShoppingBag className="size-5" aria-hidden="true" />
       {count !== null && count > 0 && (
         <span
           aria-hidden="true"
-          className="absolute top-1.5 right-1 min-w-4 rounded-full bg-lime-500 px-1 text-[10px] leading-4 font-semibold text-lime-950"
+          className="absolute top-1.5 right-1 min-w-4 rounded-full bg-signal-500 px-1 text-[10px] leading-4 font-semibold text-signal-950"
           data-numeric
         >
           {count > 99 ? '99+' : count}

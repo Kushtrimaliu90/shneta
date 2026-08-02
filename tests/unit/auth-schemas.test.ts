@@ -45,7 +45,7 @@ describe('phoneSchema — Kosovo numbers (docs/05 §12.1)', () => {
 
 describe('emailSchema', () => {
   it('trims and lowercases so lookups are stable', () => {
-    expect(emailSchema.parse('  Klient@SHNETA.com ')).toBe('klient@shneta.com');
+    expect(emailSchema.parse('  Klient@BIOCODE.com ')).toBe('klient@biocode.com');
   });
 
   it('rejects malformed addresses', () => {

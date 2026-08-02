@@ -5,7 +5,7 @@ Implemented as `supabase/seed.sql` (+ a small `scripts/seed-users.ts` for auth u
 ## 1. Settings & config
 
 ```
-settings: store {name:"SHNETA", email:"info@shneta.com", phone:"+383 4X XXX XXX", address:"Prishtinë, Kosovë", instagram, tiktok, facebook}
+settings: store {name:"BIOCODE", email:"info@biocode.com", phone:"+383 4X XXX XXX", address:"Prishtinë, Kosovë", instagram, tiktok, facebook}
           tax {rate: 18} · loyalty {earn_rate_points_per_eur:1, redeem_points:100, redeem_value_cents:500}
           checkout {max_item_qty:20, cod_enabled:true, bank_pos_enabled:false}
           inventory {default_low_stock_threshold:5} · subscriptions {notice_days:3, default_discount_pct:10}
@@ -17,7 +17,7 @@ shipping_methods:
 
 ## 2. Users (local/staging via script; passwords printed once)
 
-admin@shneta.dev (admin) · pm@shneta.dev (product_manager) · content@shneta.dev (content_manager) · support@shneta.dev (support) · depo@shneta.dev (warehouse_manager) · compliance@shneta.dev (compliance_manager) · klienti@shneta.dev (customer, has 2 delivered orders in fixtures for review/loyalty tests). Prod: create only the real admin via dashboard, then `update profiles set role='admin' where email=…` migration-style one-off.
+admin@biocode.dev (admin) · pm@biocode.dev (product_manager) · content@biocode.dev (content_manager) · support@biocode.dev (support) · depo@biocode.dev (warehouse_manager) · compliance@biocode.dev (compliance_manager) · klienti@biocode.dev (customer, has 2 delivered orders in fixtures for review/loyalty tests). Prod: create only the real admin via dashboard, then `update profiles set role='admin' where email=…` migration-style one-off.
 
 ## 3. Categories (slug · name sq / en) — mega-menu tree
 
@@ -59,13 +59,13 @@ Vitamin C (strong) · Vitamin D3 (strong) · Vitamin B12 (strong) · Vitamin B-C
 20. NOW Psyllium Husk — ushqime-funksionale — 500 g €12.90 — tretja — psyllium.
 21. MyProtein Electrolyte Tabs — elektrolitet — 20 tabs Lemon €7.90 — energji — electrolytes.
 22. Swisse Hair Skin Nails — vitaminat — 60 tabs €18.90 — floket, lekura, thonjte — HA, C, Zn.
-23. SHNETA Shaker 600 ml — aksesore — Black €6.90 / Green €6.90 — (no ingredients).
+23. BIOCODE Shaker 600 ml — aksesore — Black €6.90 / Green €6.90 — (no ingredients).
 24. Pako Imuniteti (bundle) — pako — 1 set €29.90 (compare-at €36.70) — imuniteti — references products 1, 2, 4 in description; ingredients union.
     Each product: ~120-word description, how-to-use, warnings where sensible, 2 images, ingredient rows with amounts + %NRV where standard, one certification sample set (GMP, Non-GMO, Halal on 4–5 items), stock 25–120 (product 21 stock=3 → low-stock fixture; one variant of product 7 stock=0 → OOS fixture), relations (7↔10 frequently_bought, 1↔2 related), reviews: 12 approved across products (varied ratings incl. one 2★), 2 pending. Products 1 & 7 `is_featured`.
 
 ## 8. Content
 
-Articles (6, sq full / en full): guide "Si të zgjedhësh proteinën e duhur / How to choose the right protein" (links 7,8,9) · guide "Udhëzues për Vitaminën D / A guide to Vitamin D" (links 1) · article "Magnezi dhe gjumi / Magnesium and sleep" (links 3,17) · recipe "Smoothie proteinik pas stërvitjes / Post-workout protein smoothie" (links 7) · research "Çfarë thotë shkenca për kreatinën / What the science says about creatine" (links 10,11; cites 2 external sources) · news "SHNETA tani në Kosovë / SHNETA is live in Kosovo". FAQs (10) across categories porosia/dërgesa/pagesa/produktet/llogaria — includes "A paguaj në dorëzim? / Can I pay on delivery?" and returns policy. Pages: about, terms, privacy, shipping-returns with structured placeholder copy marked `[LEGAL: review]`. Banners: 1 home_hero (launch), 1 home_strip (free shipping over €30), 1 offers, 1 announcement ("Dërgesa falas mbi €30").
+Articles (6, sq full / en full): guide "Si të zgjedhësh proteinën e duhur / How to choose the right protein" (links 7,8,9) · guide "Udhëzues për Vitaminën D / A guide to Vitamin D" (links 1) · article "Magnezi dhe gjumi / Magnesium and sleep" (links 3,17) · recipe "Smoothie proteinik pas stërvitjes / Post-workout protein smoothie" (links 7) · research "Çfarë thotë shkenca për kreatinën / What the science says about creatine" (links 10,11; cites 2 external sources) · news "BIOCODE tani në Kosovë / BIOCODE is live in Kosovo". FAQs (10) across categories porosia/dërgesa/pagesa/produktet/llogaria — includes "A paguaj në dorëzim? / Can I pay on delivery?" and returns policy. Pages: about, terms, privacy, shipping-returns with structured placeholder copy marked `[LEGAL: review]`. Banners: 1 home_hero (launch), 1 home_strip (free shipping over €30), 1 offers, 1 announcement ("Dërgesa falas mbi €30").
 
 ## 9. Commerce fixtures (local/staging only)
 

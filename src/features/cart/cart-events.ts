@@ -10,7 +10,7 @@
  * The event is fire-and-forget: the badge refetches rather than trusting a payload, so a caller
  * cannot report the wrong count.
  */
-export const CART_CHANGED_EVENT = 'shneta:cart-changed';
+export const CART_CHANGED_EVENT = 'biocode:cart-changed';
 
 /** Safe to call from anywhere on the client, including during SSR (where it does nothing). */
 export function notifyCartChanged(): void {

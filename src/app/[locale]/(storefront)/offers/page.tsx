@@ -56,15 +56,15 @@ export default async function OffersPage({ params }: Props) {
   return (
     <div className="container-page py-8 lg:py-12">
       <header className="mb-8">
-        <h1 className="font-display text-3xl font-semibold text-forest-900 lg:text-4xl">
+        <h1 className="font-display text-3xl font-semibold text-carbon-900 lg:text-4xl">
           {t('title')}
         </h1>
         <p className="mt-2 max-w-2xl text-ink-600">{t('intro')}</p>
       </header>
 
       {banner && (
-        <div className="mb-8 rounded-xl border border-forest-800 bg-forest-50 p-5 lg:p-6">
-          <p className="font-display text-xl font-semibold text-forest-900">
+        <div className="mb-8 rounded-xl border border-carbon-800 bg-carbon-50 p-5 lg:p-6">
+          <p className="font-display text-xl font-semibold text-carbon-900">
             {pickLocale(banner.title, locale)}
           </p>
           {pickLocale(banner.subtitle, locale) && (
@@ -96,7 +96,7 @@ export default async function OffersPage({ params }: Props) {
         <div className="flex flex-col gap-12">
           {coupons.length > 0 && (
             <section>
-              <h2 className="font-display text-2xl font-semibold text-forest-900">
+              <h2 className="font-display text-2xl font-semibold text-carbon-900">
                 {t('couponsTitle')}
               </h2>
               <ul className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -109,7 +109,7 @@ export default async function OffersPage({ params }: Props) {
 
           {onSale.items.length > 0 && (
             <section>
-              <h2 className="font-display text-2xl font-semibold text-forest-900">
+              <h2 className="font-display text-2xl font-semibold text-carbon-900">
                 {t('onSaleTitle')}{' '}
                 <span className="font-ui text-sm font-normal text-ink-500" data-numeric>
                   {onSale.total}

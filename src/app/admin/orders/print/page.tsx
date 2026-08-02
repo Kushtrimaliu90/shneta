@@ -71,7 +71,7 @@ export default async function PrintOrdersPage({ searchParams }: Props) {
         The only thing that does not print. `print:hidden` is Tailwind's `@media print` variant,
         so no custom stylesheet is needed.
       */}
-      <div className="mb-6 rounded-md border border-line bg-forest-50 p-3 text-sm print:hidden">
+      <div className="mb-6 rounded-md border border-line bg-carbon-50 p-3 text-sm print:hidden">
         <strong>{orders.length}</strong> {doc === 'packing' ? 'packing slip' : 'invoice'}
         {orders.length === 1 ? '' : 's'} ready. Press <kbd>Ctrl</kbd>+<kbd>P</kbd> to print.
         {doc === 'packing' && ' Prices are omitted — this goes in the box.'}
@@ -83,9 +83,9 @@ export default async function PrintOrdersPage({ searchParams }: Props) {
           // `break-after-page` on every order, so one print job yields one page each.
           className="break-after-page pb-8"
         >
-          <header className="flex items-start justify-between gap-6 border-b-2 border-forest-800 pb-3">
+          <header className="flex items-start justify-between gap-6 border-b-2 border-carbon-800 pb-3">
             <div>
-              <p className="font-display text-xl font-semibold text-forest-900">SHNETA</p>
+              <p className="font-display text-xl font-semibold text-carbon-900">BIOCODE</p>
               <p className="mt-0.5 text-xs text-ink-600">Prishtinë, Kosovë · shtrejt.com</p>
             </div>
             <div className="text-right">
@@ -138,7 +138,7 @@ export default async function PrintOrdersPage({ searchParams }: Props) {
               {order.payments.some(
                 (payment) => payment.provider === 'cod' && payment.status === 'pending',
               ) && (
-                <p className="mt-2 border border-forest-800 px-2 py-1 font-semibold" data-numeric>
+                <p className="mt-2 border border-carbon-800 px-2 py-1 font-semibold" data-numeric>
                   COLLECT {formatPrice(order.totalCents, 'en')}
                 </p>
               )}

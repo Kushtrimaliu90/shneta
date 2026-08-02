@@ -9,7 +9,7 @@ import type { Variants, Transition } from 'motion/react';
  * respect the OS setting for transform-based animation. The result is opacity-only.
  */
 
-export const EASE_SHNETA = [0.16, 1, 0.3, 1] as const;
+export const EASE_BIOCODE = [0.16, 1, 0.3, 1] as const;
 
 export const DURATION = {
   micro: 0.15,
@@ -17,7 +17,7 @@ export const DURATION = {
   page: 0.4,
 } as const;
 
-const base: Transition = { duration: DURATION.ui, ease: EASE_SHNETA };
+const base: Transition = { duration: DURATION.ui, ease: EASE_BIOCODE };
 
 /** The workhorse: 12px rise + fade. */
 export const fadeUp: Variants = {
@@ -41,8 +41,8 @@ export function stagger(step = 0.06, delayChildren = 0): Variants {
 /** Cart drawer (docs/04 §6). */
 export const drawerSlide: Variants = {
   hidden: { x: '100%' },
-  visible: { x: 0, transition: { duration: DURATION.page, ease: EASE_SHNETA } },
-  exit: { x: '100%', transition: { duration: DURATION.ui, ease: EASE_SHNETA } },
+  visible: { x: 0, transition: { duration: DURATION.page, ease: EASE_BIOCODE } },
+  exit: { x: '100%', transition: { duration: DURATION.ui, ease: EASE_BIOCODE } },
 };
 
 /** Mega menu (docs/04 §6) — fade with a 0.98→1 scale. */
@@ -52,17 +52,17 @@ export const megaMenu: Variants = {
     opacity: 1,
     scale: 1,
     y: 0,
-    transition: { duration: DURATION.micro, ease: EASE_SHNETA },
+    transition: { duration: DURATION.micro, ease: EASE_BIOCODE },
   },
-  exit: { opacity: 0, scale: 0.98, transition: { duration: DURATION.micro, ease: EASE_SHNETA } },
+  exit: { opacity: 0, scale: 0.98, transition: { duration: DURATION.micro, ease: EASE_BIOCODE } },
 };
 
-/** docs/04 §2 — the Vitality Ring draws in once, 400ms, ease-out-quint. */
-export const vitalityRing: Variants = {
+/** docs/04 §2 — the Signal Ring draws in once, 400ms, ease-out-quint. */
+export const signalRing: Variants = {
   hidden: { pathLength: 0, opacity: 0 },
   visible: {
     pathLength: 1,
     opacity: 1,
-    transition: { duration: DURATION.page, ease: EASE_SHNETA },
+    transition: { duration: DURATION.page, ease: EASE_BIOCODE },
   },
 };

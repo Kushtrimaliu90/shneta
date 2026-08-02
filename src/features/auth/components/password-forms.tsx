@@ -22,7 +22,7 @@ export function ForgotPasswordForm() {
         </Alert>
         <Link
           href="/auth/sign-in"
-          className="rounded-sm text-center text-sm text-forest-700 underline underline-offset-4"
+          className="rounded-sm text-center text-sm text-carbon-700 underline underline-offset-4"
         >
           {t('auth.forgotPassword.backToSignIn')}
         </Link>
@@ -46,7 +46,7 @@ export function ForgotPasswordForm() {
 
       <Link
         href="/auth/sign-in"
-        className="rounded-sm text-center text-sm text-forest-700 underline underline-offset-4"
+        className="rounded-sm text-center text-sm text-carbon-700 underline underline-offset-4"
       >
         {t('auth.forgotPassword.backToSignIn')}
       </Link>

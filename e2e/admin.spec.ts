@@ -13,11 +13,11 @@ import { db, deleteCreatedUsers, ipAllocator, signIn, staffUser } from './helper
  * docs/09 §1 journey 7 — admin order operations — plus the shell's role filtering.
  *
  * Staff users are minted per test through the service role rather than signing in as the
- * `@shneta.dev` seed accounts. Three reasons: the suite then works on a database where
+ * `@biocode.dev` seed accounts. Three reasons: the suite then works on a database where
  * `pnpm seed:users` has never run; it needs no shared password, so nothing has to be
  * committed or passed through CI; and one test cannot disturb another's account.
  *
- * `@shneta.test` on every address, which is the only pattern `purgeFixtures` deletes.
+ * `@biocode.test` on every address, which is the only pattern `purgeFixtures` deletes.
  */
 
 const ips = ipAllocator('233.252.0');
@@ -140,7 +140,7 @@ test.describe('journey 7 — support walks an order from placed to delivered', (
     page,
     browser,
   }) => {
-    const customerEmail = `e2e-j7-w${process.env.TEST_PARALLEL_INDEX ?? '0'}@shneta.test`;
+    const customerEmail = `e2e-j7-w${process.env.TEST_PARALLEL_INDEX ?? '0'}@biocode.test`;
 
     /*
      * The order is placed in its own context, as a guest. Not because the customer and the
@@ -284,7 +284,7 @@ test.describe('journey 7 — support walks an order from placed to delivered', (
     page,
     browser,
   }) => {
-    const customerEmail = `e2e-j7note-w${process.env.TEST_PARALLEL_INDEX ?? '0'}@shneta.test`;
+    const customerEmail = `e2e-j7note-w${process.env.TEST_PARALLEL_INDEX ?? '0'}@biocode.test`;
 
     const shopper = await browser.newContext();
     const shopperPage = await shopper.newPage();
@@ -336,7 +336,7 @@ test.describe('dashboard (docs/06 §1)', () => {
     await shopperPage.setExtraHTTPHeaders({ 'x-forwarded-for': '233.252.0.242' });
     await placeGuestOrder(
       shopperPage,
-      `e2e-dash-w${process.env.TEST_PARALLEL_INDEX ?? '0'}@shneta.test`,
+      `e2e-dash-w${process.env.TEST_PARALLEL_INDEX ?? '0'}@biocode.test`,
     );
     await shopper.close();
 
@@ -393,7 +393,7 @@ test.describe('print documents (docs/06 §2)', () => {
     await shopperPage.setExtraHTTPHeaders({ 'x-forwarded-for': '233.252.0.243' });
     const orderNumber = await placeGuestOrder(
       shopperPage,
-      `e2e-print-w${process.env.TEST_PARALLEL_INDEX ?? '0'}@shneta.test`,
+      `e2e-print-w${process.env.TEST_PARALLEL_INDEX ?? '0'}@biocode.test`,
     );
     await shopper.close();
 

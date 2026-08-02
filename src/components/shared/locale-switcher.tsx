@@ -57,8 +57,8 @@ export function LocaleSwitcher({ className }: { className?: string }) {
             className={cn(
               'rounded-sm px-2 py-1 font-ui text-xs font-semibold uppercase transition-colors',
               isActive
-                ? 'bg-forest-100 text-forest-900'
-                : 'text-ink-500 hover:bg-forest-50 hover:text-forest-800',
+                ? 'bg-carbon-100 text-carbon-900'
+                : 'text-ink-500 hover:bg-carbon-50 hover:text-carbon-800',
             )}
           >
             {locale}

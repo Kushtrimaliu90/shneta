@@ -1,7 +1,7 @@
 {
   "common": {
-    "brand": "SHNETA",
-    "tagline": "Shëndeti yt, i thjeshtuar.",
+    "brand": "BIOCODE",
+    "tagline": "Zbulo kodin e trupit tënd.",
     "skipToContent": "Kalo te përmbajtja",
     "loading": "Duke u ngarkuar…",
     "retry": "Provo përsëri",
@@ -13,7 +13,8 @@
     "cart": "Shporta",
     "cartItems": "{count, plural, =0 {Shporta është bosh} one {# produkt në shportë} other {# produkte në shportë}}",
     "backHome": "Kthehu në ballinë",
-    "learnMore": "Mëso më shumë"
+    "learnMore": "Mëso më shumë",
+    "browseShop": "Shiko dyqanin"
   },
   "nav": {
     "primary": "Navigimi kryesor",
@@ -32,11 +33,11 @@
   },
   "home": {
     "hero": {
-      "eyebrow": "Suplemente të besueshme në Kosovë",
-      "title": "Shëndeti yt, i thjeshtuar.",
-      "subtitle": "Suplemente origjinale nga marka të njohura, me përbërës të deklaruar plotësisht dhe udhëzime të qarta — që të zgjedhësh me siguri.",
-      "ctaPrimary": "Shfleto dyqanin",
-      "ctaSecondary": "Gjej rutinën tënde"
+      "eyebrow": "Ushqyerja, e deshifruar",
+      "title": "Biologjia jote ka një kod.",
+      "subtitle": "Zhbllokoje potencialin tënd me suplemente të zgjedhura për atë që trupi yt kërkon vërtet — çdo përbërës i deklaruar, çdo dozë e shpjeguar, asgjë e fshehur pas një përzierjeje pronësore.",
+      "ctaPrimary": "Shiko produktet",
+      "ctaSecondary": "Deshifro rutinën tënde"
     },
     "trust": {
       "shipping": {
@@ -70,7 +71,7 @@
     }
   },
   "footer": {
-    "tagline": "Suplemente dhe njohuri për shëndetin, për tregun shqipfolës.",
+    "tagline": "Ushqyerje premium për njerëzit që duan të kuptojnë çfarë po marrin, dhe pse.",
     "shop": "Dyqani",
     "goalsColumn": "Qëllimet shëndetësore",
     "knowledgeColumn": "Njohuri",
@@ -582,7 +583,7 @@
     "starsOf": "{count} nga 5",
     "verified": "Blerje e verifikuar",
     "helpful": "E dobishme",
-    "shopReply": "SHNETA u përgjigj",
+    "shopReply": "BIOCODE u përgjigj",
     "pagination": "Faqet e vlerësimeve",
     "previous": "Para",
     "next": "Vazhdo",
@@ -805,8 +806,8 @@
   },
   "admin": {},
   "finder": {
-    "title": "Gjej rutinën tënde",
-    "intro": "Pesë pyetje të shkurtra. Të sugjerojmë tre deri në pesë produkte për atë që dëshiron të përmirësosh — dhe të themi pse është aty secili.",
+    "title": "Deshifro rutinën tënde",
+    "intro": "Pesë pyetje të shkurtra. I lexojmë përballë asaj për të cilën shërben secili produkt, dhe sugjerojmë tre deri në pesë që përshtaten — me arsyen pse secili hyri në listë.",
     "start": "Fillo",
     "step": "Hapi {current} nga {total}",
     "next": "Vazhdo",

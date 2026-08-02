@@ -26,10 +26,10 @@
  *
  * One password for all seven accounts, generated at random and printed **once**. Not stored,
  * not committed, not recoverable — re-run with `--reset-password` to mint a new one. The
- * accounts are `@shneta.dev`, which docs/11 scopes to local and staging.
+ * accounts are `@biocode.dev`, which docs/11 scopes to local and staging.
  *
  * The guard is the same one the test suites use: it refuses to run unless
- * `SUPABASE_TEST_PROJECT` names the target. Creating a user called `admin@shneta.dev` with a
+ * `SUPABASE_TEST_PROJECT` names the target. Creating a user called `admin@biocode.dev` with a
  * printed-to-console password on a database serving real customers is precisely the kind of
  * thing that must not be one careless `.env.local` away.
  */
@@ -44,43 +44,43 @@ import { assertPurgeable, envFromLocalFile } from '../tests/integration/purge';
 const USERS = [
   {
     id: 'e0000000-0000-4000-8000-000000000001',
-    email: 'admin@shneta.dev',
+    email: 'admin@biocode.dev',
     role: 'admin',
-    name: 'Admin SHNETA',
+    name: 'Admin BIOCODE',
   },
   {
     id: 'e0000000-0000-4000-8000-000000000002',
-    email: 'pm@shneta.dev',
+    email: 'pm@biocode.dev',
     role: 'product_manager',
     name: 'Produkt Menaxher',
   },
   {
     id: 'e0000000-0000-4000-8000-000000000003',
-    email: 'content@shneta.dev',
+    email: 'content@biocode.dev',
     role: 'content_manager',
     name: 'Content Menaxher',
   },
   {
     id: 'e0000000-0000-4000-8000-000000000004',
-    email: 'support@shneta.dev',
+    email: 'support@biocode.dev',
     role: 'support',
-    name: 'Suport SHNETA',
+    name: 'Suport BIOCODE',
   },
   {
     id: 'e0000000-0000-4000-8000-000000000005',
-    email: 'depo@shneta.dev',
+    email: 'depo@biocode.dev',
     role: 'warehouse_manager',
-    name: 'Depo SHNETA',
+    name: 'Depo BIOCODE',
   },
   {
     id: 'e0000000-0000-4000-8000-000000000006',
-    email: 'compliance@shneta.dev',
+    email: 'compliance@biocode.dev',
     role: 'compliance_manager',
-    name: 'Compliance SHNETA',
+    name: 'Compliance BIOCODE',
   },
   {
     id: 'e0000000-0000-4000-8000-000000000007',
-    email: 'klienti@shneta.dev',
+    email: 'klienti@biocode.dev',
     role: 'customer',
     name: 'Klienti Provë',
   },
@@ -95,7 +95,7 @@ function generatePassword(): string {
 interface Outcome {
   email: string;
   role: string;
-  action: 'created' | 'password reset' | 'already existed';
+  action: 'created' | 'password reset' | 'email updated' | 'already existed';
   roleChanged: boolean;
 }
 
@@ -129,6 +129,35 @@ async function upsertUser(
       const { error } = await db.auth.admin.updateUserById(user.id, { password });
       if (error) throw new Error(`${user.email}: ${error.message}`);
       action = 'password reset';
+    }
+
+    /*
+     * Reconcile the address, not just the password.
+     *
+     * These are created **by fixed id**, so a re-run after the address changes hits
+     * "already exists" and returns — leaving the account on its old email while this script
+     * reports the new one. The BIOCODE rebrand is exactly that case: six `@shneta.dev`
+     * accounts that `seed:users` would have gone on claiming were `@biocode.dev` forever.
+     *
+     * Read-then-write so the common case (nothing changed) costs no write and the output
+     * stays honest about what actually happened.
+     */
+    const { data: current } = await db.auth.admin.getUserById(user.id);
+    if (current.user && current.user.email !== user.email) {
+      const { error } = await db.auth.admin.updateUserById(user.id, {
+        email: user.email,
+        email_confirm: true,
+      });
+      if (error) throw new Error(`${user.email} rename: ${error.message}`);
+
+      // `profiles.email` is populated by `handle_new_user` at insert and does not follow.
+      const { error: profileError } = await db
+        .from('profiles')
+        .update({ email: user.email })
+        .eq('id', user.id);
+      if (profileError) throw new Error(`${user.email} profile rename: ${profileError.message}`);
+
+      action = 'email updated';
     }
   }
 

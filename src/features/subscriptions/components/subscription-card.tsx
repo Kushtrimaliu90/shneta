@@ -75,13 +75,13 @@ export function SubscriptionCard({ subscription }: { subscription: SubscriptionV
     <li
       className={cn(
         'rounded-lg border bg-surface p-4',
-        isCancelled ? 'border-line bg-cream' : 'border-line-strong',
+        isCancelled ? 'border-line bg-bone' : 'border-line-strong',
       )}
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="flex items-center gap-2 font-display text-lg font-semibold text-forest-900">
-            <CalendarClock className="size-5 text-forest-800" aria-hidden="true" />
+          <p className="flex items-center gap-2 font-display text-lg font-semibold text-carbon-900">
+            <CalendarClock className="size-5 text-carbon-800" aria-hidden="true" />
             {t('everyDays', { count: subscription.frequencyDays })}
           </p>
 
@@ -140,10 +140,10 @@ export function SubscriptionCard({ subscription }: { subscription: SubscriptionV
                 // Not `opacity-70`: fading a container recolours the text inside it and drops
                 // tokens below AA (docs/13 §Q6). The line-through and the 'unavailable' note
                 // carry the meaning without touching contrast.
-                !item.isAvailable && 'bg-cream',
+                !item.isAvailable && 'bg-bone',
               )}
             >
-              <div className="size-12 shrink-0 overflow-hidden rounded-sm bg-cream">
+              <div className="size-12 shrink-0 overflow-hidden rounded-sm bg-bone">
                 <ProductImage
                   path={item.imagePath}
                   alt={name}
@@ -156,7 +156,7 @@ export function SubscriptionCard({ subscription }: { subscription: SubscriptionV
                 <Link
                   href={`/product/${item.productSlug}`}
                   className={cn(
-                    'rounded-sm text-sm font-medium text-ink-900 hover:text-forest-800',
+                    'rounded-sm text-sm font-medium text-ink-900 hover:text-carbon-800',
                     !item.isAvailable && 'line-through',
                   )}
                 >
@@ -208,7 +208,7 @@ export function SubscriptionCard({ subscription }: { subscription: SubscriptionV
         )}
         <div className="flex justify-between font-medium">
           <dt className="text-ink-900">{t('subtotal')}</dt>
-          <dd className="text-forest-900" data-numeric>
+          <dd className="text-carbon-900" data-numeric>
             {formatPrice(total, locale)}
           </dd>
         </div>
@@ -339,7 +339,7 @@ export function SubscriptionCard({ subscription }: { subscription: SubscriptionV
 
       {subscription.orders.length > 0 && (
         <details className="mt-4 border-t border-line pt-3">
-          <summary className="cursor-pointer text-sm font-medium text-forest-800">
+          <summary className="cursor-pointer text-sm font-medium text-carbon-800">
             {t('ordersHeading')} <span data-numeric>({subscription.orders.length})</span>
           </summary>
           <ul className="mt-2 flex flex-col gap-1.5">
@@ -347,7 +347,7 @@ export function SubscriptionCard({ subscription }: { subscription: SubscriptionV
               <li key={order.orderNumber} className="flex items-center justify-between text-sm">
                 <Link
                   href={`/account/orders/${order.orderNumber}`}
-                  className="rounded-sm text-forest-800 underline underline-offset-4"
+                  className="rounded-sm text-carbon-800 underline underline-offset-4"
                   data-numeric
                 >
                   {order.orderNumber}

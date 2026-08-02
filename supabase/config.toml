@@ -1,4 +1,4 @@
-project_id = "shneta"
+project_id = "biocode"
 
 [api]
 enabled = true

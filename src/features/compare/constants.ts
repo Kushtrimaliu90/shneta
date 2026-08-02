@@ -12,7 +12,7 @@ export const COMPARE_MAX = 4;
  * requires the table to be shareable, so a link someone was sent must win over whatever happens
  * to be in the recipient's cookie.
  */
-export const COMPARE_COOKIE = 'shneta_compare';
+export const COMPARE_COOKIE = 'biocode_compare';
 export const COMPARE_COOKIE_MAX_AGE_SECONDS = 30 * 24 * 60 * 60;
 
 /**

@@ -50,7 +50,7 @@ export default async function ComparePage({ params, searchParams }: Props) {
 
   return (
     <div className="container-page py-10">
-      <h1 className="font-display text-3xl font-semibold text-forest-900">{t('title')}</h1>
+      <h1 className="font-display text-3xl font-semibold text-carbon-900">{t('title')}</h1>
 
       {products.length === 0 ? (
         <EmptyState

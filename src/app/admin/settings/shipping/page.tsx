@@ -10,7 +10,7 @@ export default async function AdminShippingSettingsPage() {
 
   return (
     <section>
-      <h2 className="font-display text-lg font-semibold text-forest-900">Shipping methods</h2>
+      <h2 className="font-display text-lg font-semibold text-carbon-900">Shipping methods</h2>
       <p className="mt-0.5 mb-4 max-w-2xl text-sm text-ink-600">
         What customers can choose at checkout, in the order shown. Changing a price or a
         free-delivery threshold takes effect on the shop immediately.

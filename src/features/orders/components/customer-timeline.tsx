@@ -34,7 +34,7 @@ export async function CustomerTimeline({ events }: { events: OrderEvent[] }) {
 
   return (
     <section aria-labelledby="customer-timeline">
-      <h2 id="customer-timeline" className="font-display text-lg font-semibold text-forest-900">
+      <h2 id="customer-timeline" className="font-display text-lg font-semibold text-carbon-900">
         {t('order.timeline.title')}
       </h2>
 

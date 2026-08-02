@@ -172,7 +172,7 @@ export function TaxForm({ settings }: { settings: TaxSettings }) {
           )}
         </div>
 
-        <div className="rounded-sm border border-line bg-cream p-3 text-xs text-ink-600">
+        <div className="rounded-sm border border-line bg-bone p-3 text-xs text-ink-600">
           <p className="font-medium text-ink-900">Prices include VAT</p>
           <p className="mt-1">
             Fixed, and not a preference. Every price in the catalogue is what the customer pays;

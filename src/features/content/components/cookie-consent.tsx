@@ -22,7 +22,7 @@ import { cn } from '@/lib/utils';
  * read without JavaScript is the one that keeps that door open.
  */
 
-const CONSENT_COOKIE = 'shneta_consent';
+const CONSENT_COOKIE = 'biocode_consent';
 const CONSENT_MAX_AGE = 180 * 24 * 60 * 60;
 
 export type ConsentChoice = 'accepted' | 'rejected';
@@ -73,7 +73,7 @@ export function CookieConsent() {
           {t('body')}{' '}
           <Link
             href="/legal/privacy"
-            className="rounded-sm text-forest-800 underline underline-offset-4"
+            className="rounded-sm text-carbon-800 underline underline-offset-4"
           >
             {t('privacyLink')}
           </Link>

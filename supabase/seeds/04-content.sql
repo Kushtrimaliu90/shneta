@@ -85,9 +85,9 @@ insert into articles (
   ),
   (
     'e1000000-0000-4000-8000-000000000006',
-    'shneta-tani-ne-kosove',
+    'biocode-tani-ne-kosove',
     'news',
-    '{"sq":"SHNETA tani në Kosovë","en":"SHNETA is live in Kosovo"}'::jsonb,
+    '{"sq":"BIOCODE tani në Kosovë","en":"BIOCODE is live in Kosovo"}'::jsonb,
     '{"sq":"Pagesa në dorëzim, dërgesa 1–3 ditë, dhe çdo përbërës i deklaruar.","en":"Cash on delivery, 1–3 day shipping, and every ingredient disclosed."}'::jsonb,
     /*
      * Albanian only, on purpose. docs/05 §7 requires the English page to fall back to the
@@ -96,7 +96,7 @@ insert into articles (
      * real life is the one that tests it.
      */
     jsonb_build_object(
-      'sq', E'## Jemi online\n\nSHNETA është tani e hapur për porosi në gjithë Kosovën.\n\n### Çfarë funksionon që sot\n\n- **Pagesa në dorëzim** — paguan kur e merr paketën\n- **Dërgesa 1–3 ditë pune**, falas mbi 30 €\n- Çdo produkt me listën e plotë të përbërësve dhe %NRV\n\n### Çfarë vjen më pas\n\nAbonimet dhe programi i pikëve janë në punë e sipër. Deri atëherë, kodi **WELCOME10** ul 10% porosinë e parë.'
+      'sq', E'## Jemi online\n\nBIOCODE është tani e hapur për porosi në gjithë Kosovën.\n\n### Çfarë funksionon që sot\n\n- **Pagesa në dorëzim** — paguan kur e merr paketën\n- **Dërgesa 1–3 ditë pune**, falas mbi 30 €\n- Çdo produkt me listën e plotë të përbërësve dhe %NRV\n\n### Çfarë vjen më pas\n\nAbonimet dhe programi i pikëve janë në punë e sipër. Deri atëherë, kodi **WELCOME10** ul 10% porosinë e parë.'
     ),
     'published', now() - interval '3 days', 1, '{lajme,kosove}'
   )

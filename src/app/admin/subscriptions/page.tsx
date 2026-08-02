@@ -54,7 +54,7 @@ export default async function AdminSubscriptionsPage({ searchParams }: Props) {
 
   return (
     <div className="max-w-4xl">
-      <h1 className="font-display text-2xl font-semibold text-forest-900">Subscriptions</h1>
+      <h1 className="font-display text-2xl font-semibold text-carbon-900">Subscriptions</h1>
       <p className="mt-1 text-sm text-ink-600">
         Scheduled repeat orders. The renewal engine runs daily at 06:00 CET and pays on delivery,
         like every other order.
@@ -106,8 +106,8 @@ export default async function AdminSubscriptionsPage({ searchParams }: Props) {
               className={cn(
                 'inline-flex min-h-9 items-center gap-1.5 rounded-sm border px-3 text-sm transition-colors',
                 active
-                  ? 'border-forest-800 bg-forest-100 font-medium text-forest-900'
-                  : 'border-line-strong text-ink-600 hover:bg-forest-50',
+                  ? 'border-carbon-800 bg-carbon-100 font-medium text-carbon-900'
+                  : 'border-line-strong text-ink-600 hover:bg-carbon-50',
               )}
             >
               {value ? LABELS[value] : 'All'}
@@ -122,7 +122,7 @@ export default async function AdminSubscriptionsPage({ searchParams }: Props) {
       {rows.length === 0 ? (
         <div className="mt-8 rounded-lg border border-dashed border-line-strong bg-surface p-10 text-center">
           <Repeat className="mx-auto size-6 text-ink-500" aria-hidden="true" />
-          <p className="mt-2 font-medium text-forest-900">No subscriptions in this view</p>
+          <p className="mt-2 font-medium text-carbon-900">No subscriptions in this view</p>
           <p className="mt-1.5 text-sm text-ink-600">
             They appear when a customer chooses &ldquo;subscribe and save&rdquo; at checkout.
           </p>
@@ -137,7 +137,7 @@ export default async function AdminSubscriptionsPage({ searchParams }: Props) {
           <table className="w-full min-w-[44rem] border-collapse text-sm">
             <caption className="sr-only">Subscriptions, soonest delivery first</caption>
             <thead>
-              <tr className="border-b border-line bg-forest-50 text-left">
+              <tr className="border-b border-line bg-carbon-50 text-left">
                 {['Customer', 'Every', 'Next run', 'Items', 'Orders', 'Status'].map((heading) => (
                   <th
                     key={heading}

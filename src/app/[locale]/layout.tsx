@@ -15,7 +15,7 @@ export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
 }
 
-/** docs/08 §4 — `{Page} | SHNETA`, absolute canonical, hreflang sq/en with x-default → sq. */
+/** docs/08 §4 — `{Page} | BIOCODE`, absolute canonical, hreflang sq/en with x-default → sq. */
 export async function generateMetadata({ params }: LayoutParams): Promise<Metadata> {
   const locale = resolveLocale((await params).locale);
   const t = await getTranslations({ locale, namespace: 'common' });
@@ -26,19 +26,19 @@ export async function generateMetadata({ params }: LayoutParams): Promise<Metada
     title: {
       default:
         locale === 'sq'
-          ? 'SHNETA — Suplemente dhe Wellness në Kosovë'
-          : 'SHNETA — Supplements and Wellness in Kosovo',
-      template: '%s | SHNETA',
+          ? 'BIOCODE — Suplemente dhe Wellness në Kosovë'
+          : 'BIOCODE — Supplements and Wellness in Kosovo',
+      template: '%s | BIOCODE',
     },
     description: t('tagline'),
-    applicationName: 'SHNETA',
+    applicationName: 'BIOCODE',
     alternates: {
       canonical: locale === DEFAULT_LOCALE ? '/' : `/${locale}`,
       languages: { sq: '/', en: '/en', 'x-default': '/' },
     },
     openGraph: {
       type: 'website',
-      siteName: 'SHNETA',
+      siteName: 'BIOCODE',
       locale: locale === 'sq' ? 'sq_AL' : 'en_GB',
       url: origin,
     },
