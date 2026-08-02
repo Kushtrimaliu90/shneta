@@ -1,5 +1,6 @@
-import { beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { anonClient, serviceClient } from './helpers';
+import { findBannedClaims } from '@/lib/claims';
 import { loadConfig } from '@/features/biohack/config-mapper';
 import { generateProtocol } from '@/features/biohack/engine';
 import type { CatalogProduct, ProtocolConfig, ProtocolInputs } from '@/features/biohack/types';
@@ -130,15 +131,20 @@ describe('the shipped config is complete (docs/15 §5)', () => {
    * build instead of waiting for someone to read fifty rows.
    */
   it('no PSE or caution copy uses a banned verb', () => {
-    const banned = /\b(cure[sd]?|treat(s|ed|ment)?|prevent(s|ed)?|heal(s|ed)?|diagnos|kuron|mjekon|parandalon|shëron)\b/i;
-
+    /*
+     * The same list the admin editor hard-blocks on, imported rather than restated. Two copies
+     * of a compliance rule is one copy that goes stale — and this test would then pass on copy
+     * the editor rejects, or the reverse.
+     */
     for (const b of config.blocks) {
       for (const [locale, text] of [['sq', b.why.sq], ['en', b.why.en]] as const) {
-        expect(banned.test(text), `${b.goalSlug}/${b.ingredientSlug ?? 'habit'} ${locale}: "${text}"`)
-          .toBe(false);
+        expect(
+          findBannedClaims(text),
+          `${b.goalSlug}/${b.ingredientSlug ?? 'habit'} ${locale}: "${text}"`,
+        ).toEqual([]);
       }
       if (b.caution) {
-        expect(banned.test(b.caution.sq + ' ' + b.caution.en), 'caution copy').toBe(false);
+        expect(findBannedClaims(`${b.caution.sq} ${b.caution.en}`), 'caution copy').toEqual([]);
       }
     }
   });
@@ -260,6 +266,80 @@ describe('docs/15 definition of done, against real data', () => {
       const result = generateProtocol(config, catalog, answers({ goals: [slug] }));
       expect(result.items.length, `${slug} produced nothing`).toBeGreaterThan(0);
     }
+  });
+});
+
+/**
+ * docs/15 §7 — "approval flips the storefront version".
+ *
+ * The state machine and the index that enforces it, exercised for real: a second approved config
+ * must be impossible, and approving one must archive the other. The admin action does these in a
+ * fixed order because of this constraint, so the constraint is what gets tested — an action that
+ * happens to work today would keep working if the index were dropped, and this would not.
+ *
+ * Restores the database afterwards, pass or fail. It runs against the same project the storefront
+ * reads, and leaving v2 approved would change what every later test — and the running site — sees.
+ */
+describe('the approval cycle (docs/15 §4)', () => {
+  let approvedId: string;
+  let testConfigId: string | null = null;
+
+  beforeAll(async () => {
+    const { data } = await serviceClient()
+      .from('protocol_configs')
+      .select('id')
+      .eq('status', 'approved')
+      .single();
+    approvedId = (data as { id: string }).id;
+  });
+
+  afterAll(async () => {
+    const db = serviceClient();
+    // Delete first: the partial unique index would reject re-approving v1 while v2 is approved.
+    if (testConfigId) await db.from('protocol_configs').delete().eq('id', testConfigId);
+    await db.from('protocol_configs').update({ status: 'approved' }).eq('id', approvedId);
+  });
+
+  it('refuses a second approved config', async () => {
+    const db = serviceClient();
+    const { data } = await db
+      .from('protocol_configs')
+      .insert({ status: 'draft' })
+      .select('id')
+      .single();
+
+    testConfigId = (data as { id: string }).id;
+
+    const { error } = await db
+      .from('protocol_configs')
+      .update({ status: 'approved' })
+      .eq('id', testConfigId);
+
+    expect(error, 'one_approved_protocol_config must reject this').not.toBeNull();
+    expect(error?.code, 'a unique violation').toBe('23505');
+  });
+
+  it('archiving the live version first is what lets the next one be approved', async () => {
+    const db = serviceClient();
+    if (!testConfigId) throw new Error('previous test did not create a config');
+
+    await db.from('protocol_configs').update({ status: 'archived' }).eq('id', approvedId);
+
+    const { error } = await db
+      .from('protocol_configs')
+      .update({ status: 'approved', approved_at: new Date().toISOString() })
+      .eq('id', testConfigId);
+
+    expect(error, 'the slot is free now').toBeNull();
+
+    // And the storefront loader follows the flag rather than the version number.
+    const loaded = await loadConfig(db);
+    expect(loaded, 'an approved config with no blocks still loads').not.toBeNull();
+    expect(loaded?.blocks).toHaveLength(0);
+
+    // Put it back for the rest of the suite, in the same order the action uses.
+    await db.from('protocol_configs').update({ status: 'archived' }).eq('id', testConfigId);
+    await db.from('protocol_configs').update({ status: 'approved' }).eq('id', approvedId);
   });
 });
 

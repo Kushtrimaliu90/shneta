@@ -1,6 +1,7 @@
 'use client';
 
 import { useActionState, useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useLocale, useTranslations } from 'next-intl';
 import { Check, Copy, RefreshCw, ShoppingBag } from 'lucide-react';
 import { formatPrice } from '@/lib/money';
@@ -43,6 +44,10 @@ export function ProtocolActions({
   const t = useTranslations('biohack');
   const locale = useLocale() as Locale;
 
+  /** The layout's bottom stack. Resolved after mount; see the note on `bar` below. */
+  const [slot, setSlot] = useState<HTMLElement | null>(null);
+  useEffect(() => setSlot(document.getElementById('bottom-stack-slot')), []);
+
   const [cartState, cartAction] = useActionState<ProtocolActionState, FormData>(
     addProtocolToCart,
     null,
@@ -75,16 +80,21 @@ export function ProtocolActions({
     message = { text: cartError(cartState.error, t), tone: 'error' };
   }
 
-  return (
-    /*
-     * Opaque, not translucent.
-     *
-     * A blurred `bg-surface/85` looks better over the page — and fails contrast the moment it
-     * comes to rest over the dark footer, because the effective background is then whatever is
-     * behind it. axe caught exactly that. A sticky bar cannot promise AA against a background it
-     * does not control, so it stops being translucent.
-     */
-    <div className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-surface shadow-[0_-2px_12px_rgba(0,0,0,0.06)]">
+  /*
+   * Rendered into the layout's bottom stack, not fixed on its own.
+   *
+   * Fixing it independently put it under the consent banner on mobile and made the primary CTA
+   * unclickable — the same defect docs/13 §N8 records for the compare bar, which is why the stack
+   * exists. The trade is that the bar is not in the server-rendered HTML: it appears on mount.
+   * Acceptable here and nowhere else, because swap, remove and the running total are all client
+   * state anyway, so this page has no meaningful no-JavaScript rendering to protect.
+   *
+   * Opaque, not translucent: `bg-surface/85` with a blur looks better and fails contrast the
+   * moment it rests over the dark footer, because the effective background is then whatever is
+   * behind it. A pinned bar cannot promise AA against a background it does not control.
+   */
+  const bar = (
+    <div className="border-t border-line bg-surface shadow-[0_-2px_12px_rgba(0,0,0,0.06)]">
       <div className="mx-auto flex max-w-4xl flex-col gap-3 px-4 py-3 sm:px-6">
         {message && (
           <p
@@ -142,6 +152,9 @@ export function ProtocolActions({
       </div>
     </div>
   );
+
+  // Null on the server and on the first client render, so hydration matches.
+  return slot ? createPortal(bar, slot) : null;
 }
 
 /** The action's error union → its message, exhaustively. A new key fails the build here. */

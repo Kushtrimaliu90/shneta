@@ -18,8 +18,33 @@ const ips = ipAllocator('233.252.4');
 test.afterAll(deleteCreatedUsers);
 test.beforeAll(() => ips.reset());
 
+/**
+ * Every context starts as a visitor who has already answered the cookie banner.
+ *
+ * Not a convenience. This is the first page whose interactions all live at the *bottom* — the
+ * total, add-all, the trace expander, the per-item Remove buttons — and until consent is
+ * answered the banner is pinned over exactly that strip. On a 390 px viewport there is little
+ * else below the fold, so the clicks land on the banner.
+ *
+ * Seeding the cookie rather than clicking the banner away, because the banner reads its cookie
+ * **after mount** (deliberately, to avoid a hydration flash) and therefore appears a moment
+ * after the page does. A dismiss-if-visible helper raced it and lost: not yet rendered when the
+ * check ran, covering the button by the time the test clicked.
+ *
+ * `rejected`, so no analytics loads — the honest default for a test.
+ *
+ * Content sitting under the bottom stack while consent is unanswered is a property of the shared
+ * layout rather than of this feature; recorded in docs/13 §T12.
+ */
 test.beforeEach(async ({ page }, testInfo) => {
   await page.setExtraHTTPHeaders({ 'x-forwarded-for': ips.next(testInfo.workerIndex) });
+  await page.context().addCookies([
+    {
+      name: 'biocode_consent',
+      value: 'rejected',
+      url: testInfo.project.use.baseURL ?? 'http://127.0.0.1:3000',
+    },
+  ]);
 });
 
 /** Steps 1 and 2, with the answers docs/15 §8 names. Leaves the browser on the result page. */
@@ -177,7 +202,11 @@ test.describe('the result page (docs/15 §1 step 3)', () => {
     expect(code).toMatch(/^[a-z0-9]{16}$/);
 
     // A fresh context: no cookies, no session — exactly what a recipient has.
+    // Its own context, so `beforeEach`'s consent cookie does not reach it — set it here too.
     const other = await browser.newContext();
+    await other.addCookies([
+      { name: 'biocode_consent', value: 'rejected', url: test.info().project.use.baseURL ?? '' },
+    ]);
     const guest = await other.newPage();
     await guest.goto(`/en/p/${code}`);
 
@@ -210,11 +239,88 @@ test.describe('the result page (docs/15 §1 step 3)', () => {
   });
 });
 
+test.describe('the admin ruleset editor (docs/15 §4)', () => {
+  test('the simulator generates against the current version without writing', async ({ page }) => {
+    const manager = await staffUser('product_manager');
+    await signIn(page, manager.email, manager.password);
+
+    await page.goto('/admin/biohack');
+    await expect(page.getByRole('heading', { level: 1, name: 'BioHack' })).toBeVisible({
+      timeout: ACTION_TIMEOUT,
+    });
+
+    // Answers on the left, a generated protocol on the right, no round trip in between.
+    await expect(page.getByRole('group', { name: /Goals/ })).toBeVisible();
+    const items = page.getByText('Items', { exact: true });
+    await expect(items).toBeVisible();
+
+    // Changing an answer changes the result in place — the URL never moves.
+    const url = page.url();
+    await page.getByRole('button', { name: 'vegan', exact: true }).click();
+    expect(page.url()).toBe(url);
+    await expect(page.getByText(/Trace \(\d+\)/)).toBeVisible();
+  });
+
+  test('an approved version is read-only until a draft is started', async ({ page }) => {
+    const manager = await staffUser('product_manager');
+    await signIn(page, manager.email, manager.password);
+
+    /*
+     * `?goal=` pinned rather than taking the tab's default first goal.
+     *
+     * The default is `health_goals` in `sort_order`, and the admin taxonomy spec creates goals of
+     * its own — so the first tile is sometimes another test's fixture with no blocks. Naming the
+     * goal makes the assertion about the editor rather than about who ran first.
+     */
+    await page.goto('/admin/biohack?tab=matrix&goal=gjumi');
+    await expect(page.getByText(/^\d+ blocks? for/)).toBeVisible({ timeout: ACTION_TIMEOUT });
+
+    // docs/15 §4 — approved configs are immutable, so the editor offers nothing to press.
+    await expect(page.getByRole('button', { name: 'Add block' })).toHaveCount(0);
+
+    await page.goto('/admin/biohack?tab=versions');
+    await expect(
+      page.getByRole('button', { name: /Start a new draft/ }),
+    ).toBeVisible();
+  });
+
+  test('compliance can reach the screen but cannot edit the ruleset', async ({ page }) => {
+    const compliance = await staffUser('compliance_manager');
+    await signIn(page, compliance.email, compliance.password);
+
+    await page.goto('/admin/biohack?tab=settings');
+    await expect(page.getByText(/view the ruleset but not change it/)).toBeVisible({
+      timeout: ACTION_TIMEOUT,
+    });
+
+    await page.goto('/admin/biohack?tab=versions');
+    // No draft button: starting one is `biohack.manage`, which compliance does not hold.
+    await expect(page.getByRole('button', { name: /Start a new draft/ })).toHaveCount(0);
+  });
+
+  test('a role without the capability cannot reach the screen at all', async ({ page }) => {
+    const warehouse = await staffUser('warehouse_manager');
+    await signIn(page, warehouse.email, warehouse.password);
+
+    await page.goto('/admin/biohack');
+    await expect(page).toHaveURL(/\/admin$/);
+  });
+
+  test('the analytics tab counts the protocols that were generated', async ({ page }) => {
+    const manager = await staffUser('product_manager');
+    await signIn(page, manager.email, manager.password);
+
+    await page.goto('/admin/biohack?tab=analytics');
+    await expect(page.getByText('Protocols generated')).toBeVisible({ timeout: ACTION_TIMEOUT });
+    await expect(page.getByText('Most-chosen goal combinations')).toBeVisible();
+  });
+});
+
 test.describe('accessibility (docs/15 §7)', () => {
   test('axe finds nothing serious on all three steps', async ({ page }) => {
     await page.goto('/en/biohack');
     await assertNoBlockingViolations(page, 'step 1');
-
+  
     await page.getByRole('checkbox', { name: 'Better Sleep' }).check();
     await page.getByRole('button', { name: 'Continue' }).click();
     await expect(page.getByRole('group', { name: 'Diet' })).toBeVisible();
@@ -229,6 +335,20 @@ test.describe('accessibility (docs/15 §7)', () => {
       timeout: ACTION_TIMEOUT,
     });
     await assertNoBlockingViolations(page, 'result');
+  });
+
+  test('axe finds nothing serious across the admin tabs', async ({ page }) => {
+    // One sign-in for six tabs: docs/13 §P3 records the auth quota as this suite's real limit.
+    const manager = await staffUser('product_manager');
+    await signIn(page, manager.email, manager.password);
+
+    for (const tab of ['simulator', 'matrix', 'conflicts', 'settings', 'versions', 'analytics']) {
+      await page.goto(`/admin/biohack?tab=${tab}`);
+      await expect(page.getByRole('heading', { level: 1, name: 'BioHack' })).toBeVisible({
+        timeout: ACTION_TIMEOUT,
+      });
+      await assertNoBlockingViolations(page, `/admin/biohack?tab=${tab}`);
+    }
   });
 });
 

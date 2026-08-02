@@ -54,6 +54,8 @@ export type Capability =
   | 'content.manage'
   | 'inventory.manage'
   | 'compliance.approve'
+  | 'biohack.view'
+  | 'biohack.manage'
   | 'reviews.moderate'
   | 'coupons.view'
   | 'coupons.manage'
@@ -80,6 +82,14 @@ const CAPABILITIES: Record<Capability, readonly UserRole[]> = {
   'content.manage': ['content_manager'],
   'inventory.manage': ['warehouse_manager', 'product_manager'],
   'compliance.approve': ['compliance_manager'],
+  /*
+   * docs/15 §4 — product managers build the ruleset, compliance approves it, and both have to
+   * reach the screen. Split the way coupons already are: `view` opens `/admin/biohack` and the
+   * simulator, `manage` is every mutation, approval stays on `compliance.approve`. One
+   * capability for both would either hand compliance an editor or hide the diff they must sign.
+   */
+  'biohack.view': ['product_manager', 'compliance_manager'],
+  'biohack.manage': ['product_manager'],
   'reviews.moderate': ['support', 'content_manager'],
   'coupons.view': ['support'],
   'coupons.manage': [],
@@ -182,6 +192,12 @@ const NAV: NavSection[] = [
         capability: 'catalog.manage',
       },
       { href: '/admin/goals', label: 'Health goals', icon: 'goals', capability: 'content.manage' },
+      {
+        href: '/admin/biohack',
+        label: 'BioHack',
+        icon: 'goals',
+        capability: 'biohack.view',
+      },
     ],
   },
   {
@@ -245,6 +261,7 @@ const IMPLEMENTED = new Set([
   '/admin/brands',
   '/admin/ingredients',
   '/admin/goals',
+  '/admin/biohack',
   '/admin/compliance',
   '/admin/reviews',
   '/admin/messages',

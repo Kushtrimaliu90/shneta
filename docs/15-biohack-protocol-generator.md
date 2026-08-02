@@ -330,3 +330,59 @@ survive into the BioHack engine:
 The BioHack engine's §3.6 "never dropping the per-goal core guarantee" is the same class of rule
 as the first, and §6's degenerate-result handling the same as the second. Port the tests, not just
 the intent.
+
+---
+
+## Build log — what shipped, and where each §0 item landed
+
+Built in the order §8 prescribes. Recorded in `docs/13 §T` and `docs/14 §17`.
+
+### The five §0 items, resolved
+
+1. **Prose casing.** Still `BIOCODE` everywhere, deliberately, with one exception: the eyebrow
+   above the generator reads **BioCode Labs**, because that is the sub-brand's own casing. A
+   ~50-string sweep to change prose casing would touch every doc heading and every email template
+   for a typographic preference, and doing it in the same change as a feature would make both
+   unreviewable. Still open.
+2. **BioCode Labs.** Arrived here, as the eyebrow on `/biohack`, on the result page, and on the
+   share page. No separate hub page — the sub-brand is a label on this feature, not a section.
+3. **`EMAIL_FROM` / verified domain.** Resolved before this milestone: `shtrejt.com` is registered
+   and verified with Resend (docs/13 §S).
+4. **Logo asset kit.** Resolved before this milestone (docs/14 §16). `pnpm seed:images` is still
+   outstanding and unrelated.
+5. **`/finder` → `/biohack`.** Done, in the change that superseded it — 308 from both locales,
+   route and feature deleted, both hard-won rules ported as named tests (docs/05 §10).
+
+### Where the build departed from this document, and why
+
+| Spec asked for                    | Built instead                                                                                                                                                                    | Reason                                                                                                              |
+| --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| Goal tiles as `aria-pressed` toggle buttons | A checkbox group in a `GET` form                                                                                                                                        | Native semantics for "choose several", announces itself without an ARIA attribute to get wrong, and step 1 works with JavaScript off — docs/01 §4's target device is a mid-range Android on mobile data |
+| Step 3 as the third screen of one route | A stored protocol at `/biohack/[code]`                                                                                                                                     | A result has to survive a reload, a bookmark, a sign-in round trip and being sent to someone (docs/13 §T6). It also made the §6 guest round trip disappear (§T7) |
+| Result page regenerates from the answers | Renders the stored snapshot                                                                                                                                               | Otherwise reopening a link after a catalogue change silently returns a different protocol, and "compliance can point at the version that produced it" becomes false |
+| Drag-to-reorder = weight          | A weight number field                                                                                                                                                            | Weight sums across goals — that is the synergy mechanism. A drag handle orders one list and cannot express the number |
+| Banned-verb linter "warn on save" | Hard block, both locales, shared with the config's integration test                                                                                                              | The reviewer who would catch it does not exist for this copy: it is recombined and generated at a customer, never read as a page (docs/13 §T10) |
+| Per-item "next-ranked alternative" | Six ranked alternates shipped in the payload, swapped client-side                                                                                                               | Most alternates serve more than one chosen goal, so per-item lists would ship the same object repeatedly. A flat pool also makes swap and remove pure client state, which is what keeps a shared link stable |
+
+### Definition of done, line by line
+
+> _a customer opens **Krijo Protokollin BioHack**, picks Gjumë + Stres, vegan, no caffeine, and in
+> <60 s holds a phased Protokoll BioHack where magnez appears once with a two-goal "PSE", kafeinë
+> is absent, every price is live, add-all lands the products in the cart in one action, the trace
+> reads like a human explanation in Albanian, compliance can point to the approved config version
+> that produced it — and not a single "shneta" string survives anywhere in the repo._
+
+All asserted, split across three suites:
+
+- **<60 s, magnesium once with both goals, live prices, add-all** — `e2e/biohack.spec.ts`, which
+  times the whole flow from `/biohack` to the result page.
+- **Magnesium at score 165 carrying `gjumi` + `stresi`, no non-vegan product, every variant real**
+  — `tests/integration/biohack.test.ts`, against the shipped config and the live catalogue.
+- **The trace in Albanian** — rendered from `TraceKind` + subjects, so the engine stays pure and
+  the sentence is written in the UI. Asserted in the E2E by opening the expander.
+- **Compliance can point at the version** — `config_version` is stored on every row and shown as
+  a chip on the result page.
+- **No `shneta` string** — one deliberate historical note in `scripts/seed-users.ts`, unchanged.
+
+One clause is **not** met, and knowingly: *kafeinë is absent* passes trivially, because the
+catalogue has no caffeinated product to exclude. See docs/14 §17.

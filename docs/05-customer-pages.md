@@ -7,7 +7,7 @@ Format per page: **Route · Access · Rendering · Sections · Data · Actions �
 Static+ISR. Sections in order:
 
 1. **Announcement bar** (banner `announcement`, dismissible per session).
-2. **Hero** (banner `home_hero`): Space Grotesk headline ("Biologjia jote ka një kod." / "Your biology has a code." — docs/01 §brand), subline, primary CTA → `/shop`, secondary → `/finder`; product visual right; vitality ring draw-in.
+2. **Hero** (banner `home_hero`): Space Grotesk headline ("Biologjia jote ka një kod." / "Your biology has a code." — docs/01 §brand), subline, primary CTA → `/shop`, secondary → `/biohack` (was `/finder`, §10); product visual right; vitality ring draw-in.
 3. **Trust strip:** 4 items — free delivery over threshold (from settings), COD available, authentic brands, easy returns.
 4. **Shop by goal:** 8 goal tiles (icon, name) → `/goals/[slug]`, "All goals" link.
 5. **Bestsellers:** 8 ProductCards (query: published, ordered by 90-day sales count with fallback `is_featured`), carousel on mobile.
@@ -56,9 +56,30 @@ Dynamic. Instant overlay from navbar (client, debounced 250 ms, calls a `searchQ
 
 Dynamic, max 4 products (add via compare toggle on cards/PDP; state in URL + cookie). Sticky product header row (image, name, price, add-to-cart), attribute rows: price/serving count, price per serving (computed), form, key ingredient amounts (union of ingredients; aligned rows; “—” when absent), dietary tags, certifications, rating. Row-diff highlight toggle. Mobile: horizontal scroll with sticky first column. **Acceptance:** shareable URL reproduces the table; removing an item updates URL.
 
-## 10. Supplement Finder — `/finder`
+## 10. Supplement Finder — ~~`/finder`~~ **superseded by the BioHack Protocol Generator**
 
-Dynamic, multi-step quiz (Stepper): 1 primary goal (from health_goals) → 2 secondary goals (multi ≤ 2) → 3 lifestyle (diet: vegan/vegetarian/none; sleep quality; activity level) → 4 constraints (allergies/avoid tags, form preference, budget/month) → 5 email (optional, guests) → **Results**: "Your routine" — 3–5 products with per-product "why" line (matched goal/ingredient), routine completeness ring, total/month, add-all-to-cart, save (auth) . Matching = deterministic scoring v1: +3 primary-goal match, +1 secondary, filter out conflicting dietary tags/allergens, prefer rating & in-stock; seam left for AI coach (roadmap). Persists to `quiz_submissions`. **Acceptance:** finishing < 60 s; back navigation preserves answers; results never empty (fallback to bestsellers with notice).
+**Removed.** `/finder` now 308s to `/biohack`; the route, the feature and its 21 unit tests are
+deleted. The spec below is kept because the BioHack engine inherits two of its rules and because
+a ledger that erases what it replaced cannot be checked.
+
+> ~~Dynamic, multi-step quiz (Stepper): 1 primary goal (from health_goals) → 2 secondary goals
+> (multi ≤ 2) → 3 lifestyle → 4 constraints → 5 email (optional) → **Results**: "Your routine" —
+> 3–5 products with a per-product "why" line, completeness ring, total/month, add-all-to-cart,
+> save (auth). Matching = deterministic scoring v1. Persists to `quiz_submissions`.
+> **Acceptance:** finishing < 60 s; back navigation preserves answers; results never empty.~~
+
+**What carried over** (docs/15 §0 asked for the tests, not just the intent):
+
+- _Finishing under 60 s_ and _back navigation preserves answers_ — both are asserted against
+  `/biohack` in `e2e/biohack.spec.ts`.
+- _A budget is a constraint, not a preference_ (docs/13 §P7) — the engine may exceed a budget for
+  the per-goal core guarantee, but never silently: `tests/unit/biohack-engine.test.ts` asserts a
+  trace entry exists whenever it does.
+- _Results are never empty_ — with nothing in stock the protocol still returns, every item marked
+  "së shpejti" and the total honestly zero.
+
+`quiz_submissions` is retained for the historical rows and still appears in the GDPR export.
+New generations write `generated_protocols` instead. See **docs/15** for the replacement.
 
 ## 11. Offers — `/offers`
 

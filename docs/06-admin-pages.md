@@ -81,3 +81,31 @@ Queue: products `pending_review` with diff-view of claim-bearing fields (descrip
 ## 16. Admin quality bar
 
 Keyboard: ⌘K search, table row focus + enter to open. Autosave drafts where editors are long (products, articles) with dirty-state guard on navigation. All uploads validated (type/size) client+server. Timezone display: Europe/Belgrade with UTC on hover.
+
+## 17. BioHack — `/admin/biohack` (product_manager builds, compliance_manager approves)
+
+Six tabs behind `?tab=`, all operating on **one version**: the newest draft or pending version if
+one exists, otherwise the approved one. Start a draft and every tab shows the draft, including the
+simulator.
+
+| Tab           | What it does                                                                                                                                                 |
+| ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Simulator** | Any goal combination + refinements → instant generation, full raw trace. Config and catalogue are shipped to the browser and the pure engine runs there, so changing an answer costs no round trip. **No writes.** |
+| **Matrix**    | Per goal, the ranked blocks. Weight, core, phase, timing, active, and sq/en PSE + caution copy. Banned verbs are **rejected on save**, both locales (docs/13 §T10) |
+| **Conflicts** | The pair/goal rules: `exclude`, `timing_rule` (allowed slots), `caution` (note, separate slots)                                                              |
+| **Settings**  | `settings.biohack_engine` — item caps, max goals, duration, budget tiers, the per-goal core guarantee. Not versioned: these are operational dials, not copy compliance signs |
+| **Versions**  | Every version with its status. "Start a new draft" copies the approved one; draft → **Send for approval** → compliance **Approve** or **Send back**          |
+| **Analytics** | Generations, last 7 days, signed-in share, top goal combinations, per day. Two metrics docs/15 §4 asks for are absent and say so on the card — neither is recorded yet |
+
+**Capabilities.** `biohack.view` (product_manager + compliance_manager) opens the screen;
+`biohack.manage` (product_manager) is every mutation; `compliance.approve` is approval. Split
+because both roles need the screen and neither should have the other's power — compliance must see
+the draft to sign it, and must not be able to edit what they are signing.
+
+**Immutability.** Only a `draft` can be edited, enforced per statement rather than per screen: a
+stale tab pointing at a version that has since been submitted writes nothing. An approved config is
+the record of what compliance signed.
+
+**Acceptance:** an approved version offers no editing affordance; approving archives the previous
+version in the same action and purges `biohack-config` so the storefront switches immediately;
+`one_approved_protocol_config` makes two approved versions impossible at the database level.

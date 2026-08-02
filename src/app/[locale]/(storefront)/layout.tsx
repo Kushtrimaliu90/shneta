@@ -58,6 +58,18 @@ export default async function StorefrontLayout({
             beside a short bar is not an invisible pane over the page.
           */}
           <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 flex flex-col [&>*]:pointer-events-auto">
+            {/*
+              A slot for pages that need their own pinned bar — currently the BioHack result
+              page's total-and-actions footer, which portals into it.
+
+              It exists because that bar first fixed itself at `z-30` and reproduced §N8 exactly:
+              the consent banner sat on top of it and swallowed the clicks on "Shto gjithçka në
+              shportë", on mobile, for every first-time visitor. Two elements pinned to the same
+              edge always end that way. Joining the stack is the fix the stack was built for.
+
+              Empty it contributes no height, so every other page is unaffected.
+            */}
+            <div id="bottom-stack-slot" />
             <CompareBar />
             <CookieConsent />
           </div>

@@ -1688,6 +1688,205 @@ either is missing, and tells you what to add.
 
 ---
 
+## T. What building the BioHack Protocol Generator taught us
+
+### T1 · Postgres block comments nest, and a migration is one statement to `db push`
+
+Migration 22 refused to apply, and the error named "statement 0" — the whole file. Three
+theories, in order: odd apostrophes in the prose comments (made them even; still failed),
+semicolons inside string literals (a real latent hazard, fixed, still failed), and finally the
+actual cause.
+
+A comment contained the path `supabase/seeds/*`. **Postgres block comments nest** — unlike C, unlike
+JavaScript, unlike almost everything else a person writing SQL has in their fingers. That `/*`
+opened a second comment level that nothing ever closed, so the closing `*/` merely returned to
+depth one and every statement after it was commentary. Seven `/*` against six `*/`.
+
+Two lessons worth more than the fix. The first is diagnostic: the error pointed at the file, not
+a statement, and that is the signal — a syntax error inside one statement names that statement.
+Bisecting with a minimal probe migration proved the file was at fault in about a minute after an
+hour of reading SQL. (Clearing the probe afterwards needs
+`supabase migration repair --status reverted <version>`; a deleted file whose row survives in
+`supabase_migrations` blocks every later push.)
+
+The second is that `check:sql` did not catch it, and now the balance of `/*` and `*/` is one more
+thing it counts.
+
+### T2 · A `left join` in a seed is a CHECK violation waiting for a missing row
+
+The blocks insert joined 51 rows to `ingredients` on slug. `iron` exists as an ingredient with no
+product behind it in some environments and not others — and a `left join` that misses yields a row
+with a null `ingredient_id` and no habit text, which is exactly what
+`protocol_block_is_ingredient_or_habit` forbids. One absent ingredient failed the whole migration.
+
+`where b.ingredient_slug is null or i.id is not null` makes a missing ingredient cost one block
+instead of the config. A seed that joins to reference data should always state what it does when
+the reference is not there, because "it is always there" is a claim about every environment the
+migration will ever run in.
+
+### T3 · Forty-two tests passing first time is not evidence; mutation is
+
+The engine's unit suite went green on the first run, which is not what usually happens and is
+therefore worth distrusting. Three deliberate mutations later, two failed tests as expected and
+one — deleting the final tiebreak in `bestFirst` — failed **nothing**.
+
+The determinism test was proving that the pipeline is deterministic without proving that line
+contributed to it: the ordering it asserted came from an earlier sort plus V8's stable sort, so
+the tiebreak was dead code as far as the suite was concerned. The case that fixes it is
+deliberately awkward — one item scoring 100 from a single heavy block, another scoring 100 from
+two light ones, so the pre-sort inserts them in the wrong order and only the final comparison can
+put them right.
+
+A test suite that has never been mutated is a suite whose coverage is a guess.
+
+### T4 · An `sr-only` input is invisible to a person *and* to everything else
+
+The goal tiles hid a 1×1 `sr-only` checkbox behind a decorative checkmark span. Clicking the
+label worked, keyboard focus worked, a screen reader read it correctly — by every test a human
+would run, it was fine. Playwright's `.check()` could not tick it: the click landed on the
+decoration.
+
+The instinct is to fix the test. The right fix was the markup: the input is now transparent and
+stretched over the whole tile, so the hit area *is* the control. Same appearance, and now the
+thing that receives the click is the thing that holds the state. When automation cannot drive a
+control that a person can, the control is usually wrong — automation is a second implementation
+of "use this widget", and disagreement between the two is a finding.
+
+### T5 · A translucent sticky bar cannot promise contrast
+
+`bg-surface/85` with a backdrop blur looks better than an opaque bar over almost every part of a
+page. axe failed it, and correctly: when the bar comes to rest over the dark footer, the effective
+background is the footer, and `ink-500` on it is well below AA.
+
+There is no clever fix. A translucent element's contrast is a property of whatever is behind it,
+which it does not control and cannot know. Either the page guarantees what is underneath, or the
+element is opaque. Two other violations in the same pass were ordinary — `ink-500` on the lime
+habit tile, and a `<ul>` holding `<span>` chips directly — but this one is a rule: **translucency
+and a contrast guarantee are mutually exclusive.**
+
+### T6 · The customer's result page must not be a live query
+
+The first design regenerated the protocol on every view from the answers in the URL. It is
+tempting — the engine is a millisecond, the code is smaller, and nothing needs storing.
+
+It is also wrong twice over. A customer who reopens their link after the catalogue changed would
+see a different protocol with no explanation, and "compliance can point at the approved version
+that produced it" (docs/15 §8) would be false the moment a weight moved. So the row is written at
+generation and the page renders the **snapshot**. `inputs` and `config_version` are stored beside
+it so the same result can be reproduced deliberately, which is a different thing from reproducing
+it by accident.
+
+The corollary shaped the whole page: "Ndërro" and "Hiq" are client state and never write. Two
+people opening one share link must see the same protocol.
+
+### T7 · The guest round trip solved itself once the protocol had an address
+
+docs/15 §6 asks for guest state to survive signing in, and suggests encoding the inputs in the
+redirect and regenerating. Once the protocol is a stored row at its own URL, there is nothing to
+encode: the guest signs in, returns to the same URL, and "Ruaje" claims the unowned row for their
+account. `update … where user_id is null` is the whole implementation, and it is also what stops
+whoever holds the link from stealing a protocol that already has an owner.
+
+### T8 · Approving a version is three statements in one order, and an index enforces it
+
+`one_approved_protocol_config` is a partial unique index on `status` where `status = 'approved'`.
+Approving therefore cannot be a single update — the new row collides with the old one — so
+`approveConfig` archives the live version first, approves the candidate second, and purges
+`biohack-config` third.
+
+Writing it in that order is not defensive style; it is the only order that works, and the
+integration test asserts the constraint rather than the action. An action that happens to work
+would keep passing if the index were dropped. The test would not.
+
+The third statement matters as much as the first two: `getApprovedConfig` is an `unstable_cache`
+entry with no TTL (docs/13 §K1), so without `revalidateTag` an approved version reaches nobody
+until the next deploy — a failure that looks exactly like the approval not having happened.
+
+### T9 · The Finder's supersession was two changes that are wrong to ship apart
+
+Redirect without the sitemap edit leaves a listed URL that 308s. Sitemap edit without the redirect
+breaks every link in the wild. One test asserts both.
+
+Removing it also exposed a contradiction that had been live since M10: `/finder` was **in the
+sitemap and disallowed in `robots.txt`**. Nobody noticed because each file was correct on its own
+terms — the sitemap entry was added by a test asserting the page was listed, the disallow by the
+docs/08 §4 rule about query-driven surfaces. A page can be advertised or forbidden, not both.
+
+And a feature that stores personal data leaves an obligation behind it: `generated_protocols` now
+appears in the GDPR export next to `quiz_submissions`, because `inputs` holds the medication and
+life-stage answers.
+
+### T10 · Two compliance lists, one of them enforced, and the difference is the reviewer
+
+`CLAIMS_REMINDER` in the catalogue is advisory — shown beside a product description, never
+enforced, because a blocklist is defeated by a synonym and rejects "does not treat".
+
+The BioHack PSE copy gets a **hard block**, and the reason is not that the rule is stricter. It is
+that the reviewer does not exist. A product description is written once and read by a compliance
+manager before it ships. A protocol block's copy is recombined with fifteen others and generated
+at a customer; nobody ever reads the page it appears on. The same list is imported by the
+integration test that checks the shipped config, so the editor and the test can never disagree
+about what is allowed.
+
+### T11 · What the analytics card does not show, and why that is written on it
+
+docs/15 §4 asks for add-all conversion and most-swapped items. Neither is displayed, because
+neither is recorded: swaps are client state by design (§T6), and a cart carries no reference to
+the protocol that filled it. Both need an event to exist first.
+
+The card says so in plain text rather than omitting the sections silently. A missing metric that
+is explained is a backlog item; a missing metric that is merely absent reads as a metric of zero.
+
+### T12 · Two things pinned to the same edge is always the same bug
+
+The result page's action bar fixed itself at `z-30`. On mobile the cookie banner — `z-40`, in the
+layout's bottom stack — sat on top of it and swallowed every click on "Shto gjithçka në shportë".
+
+This is **docs/13 §N8 verbatim**: the compare bar and the banner did exactly this in M10, and the
+fix then was the shared bottom stack in the storefront layout, with a comment explaining why. The
+stack existed the whole time and the new bar simply did not join it. A pattern that has to be
+remembered is a pattern that will be forgotten; this one now has an explicit `#bottom-stack-slot`
+that a page portals into, which is a thing you can find by searching for the problem.
+
+The cost of joining it is that the bar is no longer server-rendered. Acceptable on this page and
+nowhere else: swap, remove and the running total are all client state, so there is no meaningful
+no-JavaScript rendering to protect.
+
+**Two E2E lessons came with it.** The first: content can sit under the bottom stack while consent
+is unanswered — a general property of the layout, not of this feature, and the reason every
+context in `biohack.spec.ts` starts with the consent cookie already set. The second is why it is a
+*cookie* and not a click: the banner reads its cookie **after mount**, deliberately, to avoid a
+hydration flash. A dismiss-if-visible helper therefore raced it and lost — not yet rendered when
+the check ran, covering the button by the time the test clicked. Seeding the state beats
+dismissing the symptom.
+
+### T13 · A fixture unique per file is not unique per run
+
+`e2e/operations.spec.ts` created a shipping method called `E2E Test Courier` and deleted it in
+`afterAll`. Correct for one run of one file — and `desktop` and `mobile` run every file
+concurrently against one database. The two raced: the second create collided on the name, and
+whichever `afterAll` fired first deleted the other's row mid-assertion.
+
+It passed for a whole milestone because the schedule happened to keep them apart, and started
+failing the day the suite grew by 34 tests. Nothing about the change caused it; the change only
+moved the timing. The name now carries the project, and cleanup matches on the prefix so a run
+that dies before `afterAll` is swept by the next one.
+
+Worth generalising: **a fixture name is only unique across everything that runs at once**, and in
+this suite that includes a second browser project running the same file.
+
+### T14 · The default row on an admin screen belongs to whoever ran first
+
+The matrix tab defaults to the first goal in `sort_order`. The admin taxonomy spec creates goals
+of its own, so during a full run the first tile was sometimes another test's fixture — `Emri
+Provëno`, with no blocks — and the assertion about the editor became an assertion about test
+ordering.
+
+Pinning `?goal=gjumi` fixed the test, and the finding is the general one: an E2E that depends on
+"the first item" depends on every other spec that can create items.
+
+---
+
 ## E. Stack decisions taken at M0
 
 | Item          | Spec                  | Built as            | Why                                                                                               |

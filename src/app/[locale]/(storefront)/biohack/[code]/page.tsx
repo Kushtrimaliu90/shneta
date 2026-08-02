@@ -2,6 +2,8 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import type { Locale } from '@/lib/constants';
+import { clientEnv } from '@/lib/env.client';
+import { absoluteUrl } from '@/lib/utils';
 import { getCurrentUser } from '@/features/auth/queries';
 import { getStoredProtocol } from '@/features/biohack/queries';
 import { ProtocolView } from '@/features/biohack/components/protocol-view';
@@ -37,7 +39,16 @@ export default async function ProtocolPage({ params }: Props) {
 
   const props = await protocolViewProps(stored.result, locale);
   const path = locale === 'sq' ? `/biohack/${code}` : `/${locale}/biohack/${code}`;
-  const sharePath = locale === 'sq' ? `/p/${code}` : `/${locale}/p/${code}`;
+
+  /*
+   * Absolute, because the share button puts this on the clipboard and a relative path pasted
+   * into a message is nothing at all. Built from the configured origin rather than
+   * `location.origin` so it is the canonical host even when the page is reached some other way.
+   */
+  const shareUrl = absoluteUrl(
+    locale === 'sq' ? `/p/${code}` : `/${locale}/p/${code}`,
+    clientEnv.NEXT_PUBLIC_SITE_URL,
+  );
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-10 sm:px-6 lg:py-14">
@@ -45,7 +56,7 @@ export default async function ProtocolPage({ params }: Props) {
         {...props}
         result={stored.result}
         shareCode={stored.shareCode}
-        shareUrl={sharePath}
+        shareUrl={shareUrl}
         canSave={Boolean(user) && (stored.isOwn || stored.claimable)}
         signInHref={`/auth/sign-in?next=${encodeURIComponent(path)}`}
       />

@@ -507,3 +507,39 @@ Nothing in §14 changed status. Two items gained a line of scope:
   imagery for the goods being resold, and `pnpm seed:images` (§8).
 - **Domain** — `biocode.com` and the social handles in `settings.store` are placeholders written
   to look right. Nobody has registered them.
+
+---
+
+## 17 · The BioHack Protocol Generator
+
+Built after M11, to the spec in **docs/15**. It is the first feature in the shop that produces a
+recommendation rather than a listing, which changes what "shipped" has to mean for it.
+
+### What is live
+
+| Piece                    | State                                                                                                                                  |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------- |
+| Schema                   | Migrations 21 and 22 applied. 4 tables, 2 enums, 3 columns, 1 security-definer RPC, RLS on all four                                    |
+| Engine                   | `features/biohack/engine.ts` — pure, deterministic, 44 unit tests, three of them mutation-verified (docs/13 §T3)                       |
+| Ruleset v1               | 51 blocks across all 16 goals, ≥3 per goal each with a core, 2 conflict rules, metric templates for all 16                             |
+| Customer flow            | `/biohack` steps 1–2, `/biohack/[code]` result, `/biohack/kujdes` gate, `/p/[code]` share. 17 E2E specs, axe clean on all three screens |
+| Admin                    | `/admin/biohack` — simulator, matrix, conflicts, settings, versions, analytics. axe clean on all six tabs                              |
+| Approval                 | draft → pending_review → approved, one approved version enforced by a partial unique index, storefront cache purged on approval        |
+| `/finder`                | 308 → `/biohack`; route, feature and its 21 unit tests deleted (docs/05 §10)                                                           |
+
+### What it deliberately does not do
+
+| Item                                | Why                                                                                                                                                                                                       | When                     |
+| ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------ |
+| Caffeine × sleep rule               | docs/15 §5 asks for a caffeine + L-theanine pairing and the conflict that goes with it. **The catalogue stocks neither ingredient.** The flags, the question and the engine's handling all exist and are unit tested; they filter nothing until such a product is stocked. An ingredient row with no product behind it would make the generator recommend something unbuyable | When the catalogue is real |
+| Add-all conversion, most-swapped    | Neither is recorded. Swaps are client state by design (docs/13 §T6) and a cart carries no reference to the protocol that filled it. Both need an event to exist first — the analytics card says so on its face rather than showing a zero | Needs an events table    |
+| Drag-to-reorder in the matrix       | Weight is not a rank — it *sums across goals*, which is the whole synergy mechanism. A drag handle expresses the order of one list and says nothing about the number that produced it                     | Not planned              |
+| A diff view for compliance          | docs/15 §4 asks compliance to review "a diff of all copy + rules". They currently review the draft itself in the matrix and conflicts tabs. A real diff needs a per-field comparison against the approved version | Before a second version ships |
+
+### What it adds to the launch checklist
+
+Nothing blocking, and one thing worth knowing: **the generator is dark without an approved
+config.** `getApprovedConfig` returning null means `/biohack` shows an error rather than an empty
+protocol — deliberate, so the failure is legible — but it means migration 22 is not optional
+infrastructure. It ships as a migration rather than a seed for exactly that reason: the linked
+project receives migrations only.

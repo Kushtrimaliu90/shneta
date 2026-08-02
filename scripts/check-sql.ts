@@ -33,11 +33,16 @@ const problems: string[] = [];
 const note = (file: string, message: string) => problems.push(`${file}: ${message}`);
 
 /** Strips comments, string literals and dollar-quoted bodies, preserving line numbers. */
-function stripNoise(sql: string): { code: string; dollarBalanced: boolean } {
+function stripNoise(sql: string): {
+  code: string;
+  dollarBalanced: boolean;
+  commentBalanced: boolean;
+} {
   let out = '';
   let i = 0;
   let dollarTag: string | null = null;
   let balanced = true;
+  let commentBalanced = true;
 
   while (i < sql.length) {
     const rest = sql.slice(i);
@@ -66,11 +71,35 @@ function stripNoise(sql: string): { code: string; dollarBalanced: boolean } {
       continue;
     }
 
+    /*
+     * Block comments, tracked by depth, because Postgres nests them.
+     *
+     * Unlike C, JavaScript and almost everything else, an inner comment opener inside a block
+     * comment starts a second level, and the next closer only returns to the first. Scanning
+     * to the first closer — which is how a person reads it, and what this did until migration
+     * 22 — makes an unterminated nested comment invisible here while it swallows every
+     * statement after it in Postgres.
+     *
+     * docs/13 §T1: the cost was an hour and three wrong theories, and the symptom was
+     * `db push` blaming "statement 0", i.e. the whole file.
+     */
     if (rest.startsWith('/*')) {
-      const end = sql.indexOf('*/', i + 2);
-      const block = sql.slice(i, end === -1 ? sql.length : end + 2);
-      out += block.replace(/[^\n]/g, ' ');
-      i = end === -1 ? sql.length : end + 2;
+      let depth = 0;
+      const start = i;
+      while (i < sql.length) {
+        if (sql.startsWith('/*', i)) {
+          depth += 1;
+          i += 2;
+        } else if (sql.startsWith('*/', i)) {
+          depth -= 1;
+          i += 2;
+          if (depth === 0) break;
+        } else {
+          i += 1;
+        }
+      }
+      if (depth > 0) commentBalanced = false;
+      out += sql.slice(start, i).replace(/[^\n]/g, ' ');
       continue;
     }
 
@@ -107,14 +136,18 @@ function stripNoise(sql: string): { code: string; dollarBalanced: boolean } {
   }
 
   if (dollarTag !== null) balanced = false;
-  return { code: out, dollarBalanced: balanced };
+  return { code: out, dollarBalanced: balanced, commentBalanced };
 }
 
 function checkFile(file: string, sql: string): void {
-  const { code, dollarBalanced } = stripNoise(sql);
+  const { code, dollarBalanced, commentBalanced } = stripNoise(sql);
 
   if (!dollarBalanced) {
     note(file, 'unterminated dollar-quoted block ($$ … $$)');
+  }
+
+  if (!commentBalanced) {
+    note(file, 'unterminated block comment — remember /* nests in Postgres (docs/13 §T1)');
   }
 
   let depth = 0;

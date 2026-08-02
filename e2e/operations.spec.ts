@@ -117,13 +117,36 @@ test.describe('inventory operations (docs/06 §8)', () => {
   });
 });
 
-/** Distinctive enough that the cleanup below can find it without matching anything seeded. */
-const E2E_METHOD_NAME = 'E2E Test Courier';
+/**
+ * Distinctive enough that the cleanup below can find it without matching anything seeded — and
+ * **unique per project**, which it was not.
+ *
+ * `desktop` and `mobile` run this file concurrently against one database. With a shared name the
+ * two runs raced: the second create collided, and whichever `afterAll` fired first deleted the
+ * other's row mid-assertion. It passed for a milestone because the schedule happened to separate
+ * them, and started failing the day the suite grew — the classic shape of a fixture that is
+ * unique per *file* rather than per *run*.
+ */
+const METHOD_PREFIX = 'E2E Test Courier';
+const methodName = () => `${METHOD_PREFIX} ${test.info().project.name}`;
 
 test.describe('settings (docs/06 §15)', () => {
-  // Runs pass or fail, which is the whole point — see the note in the shipping test.
-  test.afterAll(async () => {
-    await db().from('shipping_methods').delete().eq('name->>sq', E2E_METHOD_NAME);
+  /*
+   * Runs pass or fail, which is the whole point — see the note in the shipping test.
+   *
+   * Scoped to **this project's** rows. A prefix sweep across all of them looks tidier and
+   * reintroduces the exact race it was meant to fix from the other side: `desktop` finishing its
+   * describe block would delete `mobile`'s method while mobile was still asserting on it. Both
+   * projects then failed instead of one.
+   *
+   * Still a prefix within the project, so a run that died before `afterAll` is swept by the next
+   * run of the same project.
+   */
+  test.afterAll(async ({}, testInfo) => {
+    await db()
+      .from('shipping_methods')
+      .delete()
+      .like('name->>sq', `${METHOD_PREFIX} ${testInfo.project.name}%`);
   });
 
   test('a team invite creates an account that can reach the panel', async ({ page, browser }) => {
@@ -204,8 +227,9 @@ test.describe('settings (docs/06 §15)', () => {
     await page.goto('/admin/settings/shipping');
     await page.getByRole('button', { name: 'New method' }).click();
 
-    await page.locator('#nameSq').fill(E2E_METHOD_NAME);
-    await page.locator('#nameEn').fill(E2E_METHOD_NAME);
+    const name = methodName();
+    await page.locator('#nameSq').fill(name);
+    await page.locator('#nameEn').fill(name);
     await page.locator('#price').fill('7.77');
     await page.locator('#minDays').fill('9');
     await page.locator('#maxDays').fill('9');
@@ -213,7 +237,7 @@ test.describe('settings (docs/06 §15)', () => {
     await page.locator('#position').fill('99');
     await page.getByRole('button', { name: 'Create method' }).click();
 
-    await expect(page.getByText(E2E_METHOD_NAME).first()).toBeVisible({ timeout: ACTION_TIMEOUT });
+    await expect(page.getByText(name).first()).toBeVisible({ timeout: ACTION_TIMEOUT });
 
     /*
      * The point of the test: the write purges `CACHE_TAGS.shipping`, so checkout must offer the
@@ -227,7 +251,7 @@ test.describe('settings (docs/06 §15)', () => {
     await addCheapItemToCart(page);
     await page.goto('/en/checkout');
 
-    await expect(page.getByText(E2E_METHOD_NAME).first()).toBeVisible({ timeout: ACTION_TIMEOUT });
+    await expect(page.getByText(name).first()).toBeVisible({ timeout: ACTION_TIMEOUT });
     await expect(page.getByText('€7.77').first()).toBeVisible();
   });
 });

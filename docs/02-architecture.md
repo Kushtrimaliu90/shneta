@@ -106,11 +106,12 @@ Rules: `features/*` never import from `app/`; `components/storefront|admin` may 
 | Routes                                                                           | Mode                             | Revalidation                                |
 | -------------------------------------------------------------------------------- | -------------------------------- | ------------------------------------------- |
 | Home, PLP, PDP, brands, goals, ingredients, knowledge, offers, static pages, FAQ | Static + ISR, `revalidate = 300` | + on-demand `revalidateTag` on admin writes |
-| Search, compare, finder                                                          | Dynamic (query-driven)           | —                                           |
+| Search, compare, `/biohack`                                                      | Dynamic (query-driven)           | —                                           |
+| `/biohack/[code]`, `/p/[code]`                                                   | Dynamic, no cache                | —                                           |
 | Cart, checkout, account/**, order-lookup                                         | Dynamic, no cache                | —                                           |
 | Admin/**                                                                         | Dynamic, `no-store`              | —                                           |
 
-Cache tags (use exactly these): `products`, `product:{slug}`, `categories`, `brands`, `brand:{slug}`, `goals`, `ingredients`, `ingredient:{slug}`, `articles`, `article:{slug}`, `banners`, `settings`, `shipping`. Every admin mutation that touches public content calls `revalidateTag()` for the affected tags (helper `revalidatePublic(tags: string[])` in `lib/utils.ts`).
+Cache tags (use exactly these): `products`, `product:{slug}`, `categories`, `brands`, `brand:{slug}`, `goals`, `ingredients`, `ingredient:{slug}`, `articles`, `article:{slug}`, `banners`, `settings`, `shipping`, `biohack-config` (purged on approval and on an engine-settings change; see `BIOHACK_TAGS`). Every admin mutation that touches public content calls `revalidateTag()` for the affected tags (helper `revalidatePublic(tags: string[])` in `lib/utils.ts`).
 
 `generateStaticParams` prebuilds: top 200 products, all categories/brands/goals, published articles; everything else renders on demand then caches.
 
@@ -120,7 +121,7 @@ Cache tags (use exactly these): `products`, `product:{slug}`, `categories`, `bra
 | -------------------- | ---------------------------------------------------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Server (user ctx)    | `lib/supabase/server.ts` (`createServerClient` w/ cookies) | anon    | RSC reads, server actions — **default choice**                                                                                                                                                                                                                                                                                                      |
 | Browser              | `lib/supabase/client.ts`                                   | anon    | client components needing realtime/auth state (rare)                                                                                                                                                                                                                                                                                                |
-| Admin (service role) | `lib/supabase/admin.ts` (imports `server-only`)            | service | ONLY: payment webhooks; cron jobs; guest-cart ops keyed by `anon_token`; guest order lookup (number+email); email dispatch logging; auth-user provisioning in seed scripts; **GDPR erasure — scrubbing the GoTrue identity** (`customers/actions.ts`, M10); **team management — creating and banning a staff account** (`settings/actions.ts`, M10) |
+| Admin (service role) | `lib/supabase/admin.ts` (imports `server-only`)            | service | ONLY: payment webhooks; cron jobs; guest-cart ops keyed by `anon_token`; guest order lookup (number+email); email dispatch logging; auth-user provisioning in seed scripts; **GDPR erasure — scrubbing the GoTrue identity** (`customers/actions.ts`, M10); **team management — creating and banning a staff account** (`settings/actions.ts`, M10); **BioHack — loading the approved ruleset, writing a generated protocol, and reading one back by share code** (`biohack/config-loader.ts`, `biohack/actions.ts`, `biohack/queries.ts`) |
 
 Middleware refreshes the session per `@supabase/ssr` docs. Any new service-role usage must be added to this table via PR.
 
@@ -129,6 +130,22 @@ client cannot create, ban or re-address an auth user. Both are deliberately narr
 client mints or scrubs the _identity_ only, and the **role** is written through the SSR client, so
 `p_admin_update on profiles` and `prevent_role_escalation` still apply. Neither path can grant a
 permission (docs/13 §P4, §P5).
+
+The three BioHack entries are each the same shape of problem: **a table with no policy for the
+caller, on purpose.** The config tables are staff-read only, so an anonymous visitor generating a
+protocol cannot read the weights, the draft copy compliance has not signed, or the conflict
+matrix — the engine's inputs are fetched server-side and only the *result* reaches the browser.
+`generated_protocols` has no insert policy for anyone, because a guest has no session to write
+under and an anon insert policy would let anyone write arbitrary rows into the table behind the
+analytics card; the row's shape is fixed by the action instead. And the read-back is by share
+code, which a guest's own row would otherwise be invisible to under own-rows-only RLS.
+
+None of the three is a shortcut around a missing policy: in each case the absence of the policy
+_is_ the security property. Note the deliberate asymmetry with `/p/[code]`, the public share page,
+which uses the **anon** client and the `get_shared_protocol` RPC — a security-definer function
+that returns `result` and nothing else, so the page physically cannot read the `inputs` that
+record someone's medication and life-stage answers. `/admin/biohack` likewise reads through the
+**SSR** client, so the staff-read policies apply to the people they were written for.
 
 ## 7. Server Action contract
 

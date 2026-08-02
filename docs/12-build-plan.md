@@ -54,6 +54,10 @@ SubscribeToggle → subscription creation at checkout, account Subscriptions man
 
 ## M10 — Inventory ops, finder, remaining admin _(docs: 06 §8–15, 05 §10)_
 
+> The finder shipped in M10 and was **superseded after M11** by the BioHack Protocol Generator
+> (docs/15). `/finder` now 308s to `/biohack`. The acceptance criteria below were ported rather
+> than dropped — see docs/05 §10.
+
 Inventory pages (receive/adjust with batch/expiry, movements, order queue + packing slips), customers admin (LTV, GDPR export/anonymize), coupons admin, content admin (articles/pages/FAQs/banners editors), settings suite (store/shipping/payments/tax/loyalty/team/audit), supplement finder quiz + scoring + results.
 **Accept:** ledger invariant holds through receive/adjust E2E; finder completes < 60 s with non-empty results; team invite creates staff login; settings changes reflect on storefront (thresholds, methods).
 
