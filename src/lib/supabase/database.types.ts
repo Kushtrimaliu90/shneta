@@ -846,6 +846,51 @@ export type Database = {
         }
         Relationships: []
       }
+      generated_protocols: {
+        Row: {
+          config_version: number
+          created_at: string
+          id: string
+          inputs: Json
+          result: Json
+          share_code: string
+          user_id: string | null
+        }
+        Insert: {
+          config_version: number
+          created_at?: string
+          id?: string
+          inputs: Json
+          result: Json
+          share_code: string
+          user_id?: string | null
+        }
+        Update: {
+          config_version?: number
+          created_at?: string
+          id?: string
+          inputs?: Json
+          result?: Json
+          share_code?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "generated_protocols_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "generated_protocols_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "v_admin_customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       health_goals: {
         Row: {
           created_at: string
@@ -854,6 +899,7 @@ export type Database = {
           id: string
           image_path: string | null
           is_active: boolean
+          metrics_i18n: Json | null
           name: Json
           seo: Json
           slug: string
@@ -868,6 +914,7 @@ export type Database = {
           id?: string
           image_path?: string | null
           is_active?: boolean
+          metrics_i18n?: Json | null
           name: Json
           seo?: Json
           slug: string
@@ -882,6 +929,7 @@ export type Database = {
           id?: string
           image_path?: string | null
           is_active?: boolean
+          metrics_i18n?: Json | null
           name?: Json
           seo?: Json
           slug?: string
@@ -895,11 +943,13 @@ export type Database = {
         Row: {
           benefits: Json
           category: string | null
+          contains_caffeine: boolean
           created_at: string
           dosage_notes: Json
           evidence: Database["public"]["Enums"]["evidence_level"] | null
           id: string
           is_active: boolean
+          med_sensitive: boolean
           name: Json
           other_names: string[]
           safety_notes: Json
@@ -911,11 +961,13 @@ export type Database = {
         Insert: {
           benefits?: Json
           category?: string | null
+          contains_caffeine?: boolean
           created_at?: string
           dosage_notes?: Json
           evidence?: Database["public"]["Enums"]["evidence_level"] | null
           id?: string
           is_active?: boolean
+          med_sensitive?: boolean
           name: Json
           other_names?: string[]
           safety_notes?: Json
@@ -927,11 +979,13 @@ export type Database = {
         Update: {
           benefits?: Json
           category?: string | null
+          contains_caffeine?: boolean
           created_at?: string
           dosage_notes?: Json
           evidence?: Database["public"]["Enums"]["evidence_level"] | null
           id?: string
           is_active?: boolean
+          med_sensitive?: boolean
           name?: Json
           other_names?: string[]
           safety_notes?: Json
@@ -2073,6 +2127,212 @@ export type Database = {
         }
         Relationships: []
       }
+      protocol_blocks: {
+        Row: {
+          active: boolean
+          caution_i18n: Json | null
+          config_id: string
+          created_at: string
+          evidence: Database["public"]["Enums"]["evidence_level"] | null
+          goal_id: string
+          habit_i18n: Json | null
+          id: string
+          ingredient_id: string | null
+          is_core: boolean
+          phase: number
+          timing: Database["public"]["Enums"]["timing_slot"][]
+          updated_at: string
+          weight: number
+          why_i18n: Json
+        }
+        Insert: {
+          active?: boolean
+          caution_i18n?: Json | null
+          config_id: string
+          created_at?: string
+          evidence?: Database["public"]["Enums"]["evidence_level"] | null
+          goal_id: string
+          habit_i18n?: Json | null
+          id?: string
+          ingredient_id?: string | null
+          is_core?: boolean
+          phase?: number
+          timing?: Database["public"]["Enums"]["timing_slot"][]
+          updated_at?: string
+          weight: number
+          why_i18n: Json
+        }
+        Update: {
+          active?: boolean
+          caution_i18n?: Json | null
+          config_id?: string
+          created_at?: string
+          evidence?: Database["public"]["Enums"]["evidence_level"] | null
+          goal_id?: string
+          habit_i18n?: Json | null
+          id?: string
+          ingredient_id?: string | null
+          is_core?: boolean
+          phase?: number
+          timing?: Database["public"]["Enums"]["timing_slot"][]
+          updated_at?: string
+          weight?: number
+          why_i18n?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "protocol_blocks_config_id_fkey"
+            columns: ["config_id"]
+            isOneToOne: false
+            referencedRelation: "protocol_configs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "protocol_blocks_goal_id_fkey"
+            columns: ["goal_id"]
+            isOneToOne: false
+            referencedRelation: "health_goals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "protocol_blocks_ingredient_id_fkey"
+            columns: ["ingredient_id"]
+            isOneToOne: false
+            referencedRelation: "ingredients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      protocol_configs: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          notes: string | null
+          status: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          status?: string
+          updated_at?: string
+          version?: never
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          status?: string
+          updated_at?: string
+          version?: never
+        }
+        Relationships: [
+          {
+            foreignKeyName: "protocol_configs_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "protocol_configs_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "v_admin_customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "protocol_configs_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "protocol_configs_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "v_admin_customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      protocol_conflicts: {
+        Row: {
+          a_ingredient: string | null
+          b_goal: string | null
+          b_ingredient: string | null
+          config_id: string
+          created_at: string
+          id: string
+          kind: Database["public"]["Enums"]["conflict_kind"]
+          note_i18n: Json | null
+          rule: Json
+        }
+        Insert: {
+          a_ingredient?: string | null
+          b_goal?: string | null
+          b_ingredient?: string | null
+          config_id: string
+          created_at?: string
+          id?: string
+          kind: Database["public"]["Enums"]["conflict_kind"]
+          note_i18n?: Json | null
+          rule?: Json
+        }
+        Update: {
+          a_ingredient?: string | null
+          b_goal?: string | null
+          b_ingredient?: string | null
+          config_id?: string
+          created_at?: string
+          id?: string
+          kind?: Database["public"]["Enums"]["conflict_kind"]
+          note_i18n?: Json | null
+          rule?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "protocol_conflicts_a_ingredient_fkey"
+            columns: ["a_ingredient"]
+            isOneToOne: false
+            referencedRelation: "ingredients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "protocol_conflicts_b_goal_fkey"
+            columns: ["b_goal"]
+            isOneToOne: false
+            referencedRelation: "health_goals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "protocol_conflicts_b_ingredient_fkey"
+            columns: ["b_ingredient"]
+            isOneToOne: false
+            referencedRelation: "ingredients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "protocol_conflicts_config_id_fkey"
+            columns: ["config_id"]
+            isOneToOne: false
+            referencedRelation: "protocol_configs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       quiz_submissions: {
         Row: {
           answers: Json
@@ -3032,6 +3292,7 @@ export type Database = {
       }
       generate_access_token: { Args: never; Returns: string }
       generate_order_number: { Args: never; Returns: string }
+      get_shared_protocol: { Args: { p_code: string }; Returns: Json }
       has_any_role: {
         Args: { roles: Database["public"]["Enums"]["user_role"][] }
         Returns: boolean
@@ -3131,6 +3392,7 @@ export type Database = {
       article_status: "draft" | "in_review" | "published" | "archived"
       article_type: "article" | "guide" | "recipe" | "research" | "news"
       cart_status: "active" | "converted" | "abandoned"
+      conflict_kind: "exclude" | "caution" | "timing_rule"
       discount_type: "percentage" | "fixed" | "free_shipping"
       evidence_level: "strong" | "moderate" | "emerging" | "traditional"
       order_status:
@@ -3168,6 +3430,13 @@ export type Database = {
         | "refund_restock"
         | "adjustment"
       subscription_status: "active" | "paused" | "cancelled"
+      timing_slot:
+        | "mengjes"
+        | "dite"
+        | "mbremje"
+        | "para_gjumit"
+        | "me_ushqim"
+        | "para_stervitjes"
       user_role:
         | "customer"
         | "support"
@@ -3317,6 +3586,7 @@ export const Constants = {
       article_status: ["draft", "in_review", "published", "archived"],
       article_type: ["article", "guide", "recipe", "research", "news"],
       cart_status: ["active", "converted", "abandoned"],
+      conflict_kind: ["exclude", "caution", "timing_rule"],
       discount_type: ["percentage", "fixed", "free_shipping"],
       evidence_level: ["strong", "moderate", "emerging", "traditional"],
       order_status: [
@@ -3358,6 +3628,14 @@ export const Constants = {
         "adjustment",
       ],
       subscription_status: ["active", "paused", "cancelled"],
+      timing_slot: [
+        "mengjes",
+        "dite",
+        "mbremje",
+        "para_gjumit",
+        "me_ushqim",
+        "para_stervitjes",
+      ],
       user_role: [
         "customer",
         "support",
