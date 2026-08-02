@@ -1639,6 +1639,55 @@ knows the other exists.
 
 ---
 
+## S. What configuring email actually switched on
+
+### S1 · A key that had been safe to be missing became dangerous the moment it arrived
+
+For eleven milestones `sendEmail` recorded `skipped_no_provider` and returned cleanly, so the
+E2E suite could place forty orders a run and nothing left the building. The `@biocode.test`
+fixture convention was chosen for isolation, not for safety — nobody had to think about where
+those messages went, because they went nowhere.
+
+Adding `RESEND_API_KEY` changed that in one step, and not in the obvious direction. `.test` is
+reserved by RFC 6761 and can never be delegated, so every one of those addresses is a
+**guaranteed hard bounce**. A full suite run would have posted dozens of them at a sending
+domain that was verified an hour earlier and has no reputation yet — and bounce rate is the
+single fastest way to lose one. Providers suspend accounts over it. The damage does not undo
+itself when you stop: `shtrejt.com` would have reached launch already distrusted, with real
+order confirmations landing in spam.
+
+Nothing failed to catch this, because nothing was looking. The suites were green before the key
+and would have been green after it — the bounces happen at the provider, days later, and
+surface as a deliverability problem nobody connects to a test run.
+
+**The fix is a property of the address, not a flag.** `EMAIL_DISABLED=true` in the test
+environment is the obvious answer and the worse one: it has to be remembered, it is absent from
+a fresh clone, and it fails open. `isUndeliverableRecipient` refuses the reserved TLDs outright
+(`.test`, `.invalid`, `.example`, `.localhost`, plus the RFC 2606 `example.*` domains), checked
+**before** the provider lookup so it holds whether or not a key is configured.
+
+It records `skipped_test_recipient` rather than dropping the message, because the log is how
+three E2E tests assert an email was attempted. Those assertions check that a **row exists**,
+never its status — which is why this change did not break them, and is the right way to write
+them: whether a provider is configured is not the test's business.
+
+`.local` is deliberately allowed. It is mDNS, not an RFC 2606 reservation, and a corporate
+intranet can legitimately deliver to it — blocking it would be a guess dressed as a standard.
+
+### S2 · The key was in the file under a name nothing reads
+
+It arrived as `resend_api`. `serverEnv` reads `RESEND_API_KEY`, and both it and `EMAIL_FROM`
+are `.optional()` in the schema — correctly, since the app must run without them — so nothing
+complained. The app started, the health check passed, and every email silently recorded
+`skipped_no_provider` exactly as it had the day before.
+
+An optional variable is a variable whose absence produces no error anywhere, which is the
+behaviour you want and also means **the only proof it is wired is a send that succeeds**.
+Hence `pnpm email:test`: it reads the same two variables, fails loudly and specifically when
+either is missing, and tells you what to add.
+
+---
+
 ## E. Stack decisions taken at M0
 
 | Item          | Spec                  | Built as            | Why                                                                                               |

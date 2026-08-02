@@ -2,6 +2,7 @@ import 'server-only';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { serverEnv } from '@/lib/env.server';
 import { logger } from '@/lib/logger';
+import { isUndeliverableRecipient } from '@/lib/email/recipients';
 
 /**
  * docs/08 §6 — every send goes through here and is logged to `email_log`.
@@ -28,6 +29,7 @@ export interface EmailMessage {
 export type SendResult =
   | { status: 'sent'; providerId: string | null }
   | { status: 'skipped_no_provider' }
+  | { status: 'skipped_test_recipient' }
   | { status: 'failed'; error: string };
 
 async function record(
@@ -57,6 +59,26 @@ async function record(
 }
 
 export async function sendEmail(message: EmailMessage): Promise<SendResult> {
+  /*
+   * Checked before the provider, deliberately.
+   *
+   * A fixture address at `@biocode.test` can never receive mail (RFC 6761), so posting it to
+   * Resend produces a hard bounce and nothing else. Bounce rate is what destroys a sending
+   * domain's reputation, and the E2E suite generates dozens of these per run — invisible for
+   * eleven milestones because no key was configured, and live from the moment one was.
+   *
+   * Recorded rather than dropped: the log is how the suite asserts an email "was sent", and a
+   * missing row would break those assertions while hiding the reason.
+   */
+  if (isUndeliverableRecipient(message.to)) {
+    logger.info('Email skipped — undeliverable test recipient', {
+      template: message.template,
+      to: message.to.replace(/(.).*(@.*)/, '$1***$2'),
+    });
+    await record(message, 'skipped_test_recipient', null, null);
+    return { status: 'skipped_test_recipient' };
+  }
+
   const apiKey = serverEnv.RESEND_API_KEY;
   const from = serverEnv.EMAIL_FROM;
 

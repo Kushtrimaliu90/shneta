@@ -153,8 +153,10 @@ test.describe('contact (docs/05 §16)', () => {
     expect(row?.subject).toBe(`Subject ${marker}`);
     expect(row?.status, 'a new message starts in the queue').toBe('new');
 
-    // docs/05 §16 — the acknowledgement is attempted. With no provider configured it records
-    // `skipped_no_provider`, which still proves the send path ran rather than being skipped.
+    // docs/05 §16 — the acknowledgement is attempted. Fixture addresses are `@biocode.test`,
+    // which can never receive mail, so it records `skipped_test_recipient` (docs/13 §S1) — the
+    // row still proves the send path ran. Asserting existence rather than status on purpose:
+    // the status depends on whether a provider is configured, and the test should not.
     const { data: logged } = await db()
       .from('email_log')
       .select('template, status')
