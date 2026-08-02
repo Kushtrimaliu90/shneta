@@ -37,11 +37,13 @@ milestones of quietly re-rendering every request (docs/13 §Q1), the security pa
 runs as tests rather than as a checklist somebody ticked, the dependency audit is clean, and CSP
 enforcement is one environment variable away.
 
-**What is left before a real customer: the email, and the products themselves.** Every
-transactional and marketing email records `skipped_no_provider` until a Resend key and a
-verified sending domain exist (§6) — the newsletter now depends on that to complete a
-subscription, not just to say thank you. And the shop still sells 24 demo fixtures until
-somebody enters the real ones.
+**What is left before a real customer: one environment variable, and the products.**
+`shtrejt.com` is registered and verified in Resend, so the sending domain is real. What is not
+set is `RESEND_API_KEY` — and `sendEmail` needs the key and `EMAIL_FROM` together, so until both
+exist all fourteen templates record `skipped_no_provider` and nobody receives anything. The
+newsletter depends on that to _complete_ a subscription, not just to say thank you.
+`pnpm email:test you@gmail.com` proves deliverability once the key lands. And the shop still
+sells 24 demo fixtures until somebody enters the real ones.
 
 Legend: ✅ done and verified · 🟡 partial · ⬜ not started · ➖ not applicable yet
 
@@ -68,7 +70,7 @@ Legend: ✅ done and verified · 🟡 partial · ⬜ not started · ➖ not appl
 | Sentry server + edge                                  | ✅    | inert without a DSN; client SDK lazy-loaded                                                                       |
 | `vercel.json` — region `fra1`, crons                  | ✅    |                                                                                                                   |
 | Vercel project + domain + DNS                         | ⬜    | **owner task** (`docs/00`)                                                                                        |
-| Resend domain verified (SPF/DKIM/DMARC)               | ⬜    | **owner task** — until then customers get no order receipt                                                        |
+| Resend domain verified (SPF/DKIM/DMARC)               | ✅    | `shtrejt.com` registered and verified. **`RESEND_API_KEY` is still unset**, so nothing sends yet                  |
 | Supabase staging + production projects                | ➖    | **owner decision (§7)** — one project serves all three roles                                                      |
 | PITR / backups on production                          | ⬜    | **owner task**, `docs/10 §4`. More urgent under §7: no second database to fall back on                            |
 | Destructive suites gated on `SUPABASE_TEST_PROJECT`   | ✅    | integration, E2E and the purge all refuse an undeclared target (§7)                                               |
@@ -138,19 +140,21 @@ fixtures with (§7, step 2). Neither is an engineering task, and both block laun
 
 These are the ones that need an account or a domain, not code:
 
-| Task                               | Why it blocks                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
-| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `RESEND_API_KEY` + verified domain | **Deferred by the owner (2026-07-31).** The order-confirmation email is written, templated in both locales and wired into `placeOrder`; without the key `lib/email/send.ts` records `skipped_no_provider` and no-ops. Nothing breaks — but **customers get no receipt**, which for a cash-on-delivery shop in a new market is the main trust signal at the moment of purchase. Reversible at any time by adding the key; needs SPF, DKIM and DMARC on the sending domain |
-| Vercel project + domain + DNS      | `runbooks/deploy.md`                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
-| Legal copy for terms and privacy   | Checkout requires customers to accept them; they are currently `[LEGAL: review]` placeholders                                                                                                                                                                                                                                                                                                                                                                            |
+| Task                                | Why it blocks                                                                                                                                                                                                                                                    |
+| ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `RESEND_API_KEY` in the environment | **Half done.** `shtrejt.com` is registered and verified in Resend. What is missing is the key itself, in `.env.local` locally and in Vercel for deploys — until it is set, all fourteen templates record `skipped_no_provider` and no customer receives anything |
+| Vercel project + domain + DNS       | `runbooks/deploy.md`. The domain exists now; pointing it at Vercel is the remaining step                                                                                                                                                                         |
+| Legal copy for terms and privacy    | Checkout requires customers to accept them; they are currently `[LEGAL: review]` placeholders                                                                                                                                                                    |
 
-**On the domain specifically.** `shtrejt.com` appears in three places — `seed.sql`'s
-`settings.store.email`, the invoice/packing-slip header, and the SEO preview in the product
-editor. It predates the rebrand: it was registered when the brand was SHNETA, because
-shneta.com was taken. It was deliberately **not** swapped for a plausible `biocode.com`, which
-nobody owns — an unowned domain in a From: address reads as configured and delivers to spam.
-Registering the real one updates all three, and unblocks Resend, which unblocks fourteen
-templates.
+**On the domain.** `shtrejt.com` is registered and verified in Resend, and is deliberately not
+the brand name — biocode.com was unavailable, and the From: address has to sit on the domain
+holding the DNS records. Three files hardcode it: `seed.sql`'s `settings.store.email`, the
+invoice header, and the product editor's SEO preview. They move together or not at all.
+
+What remains is only the key. `sendEmail` reads `RESEND_API_KEY` and `EMAIL_FROM` together and
+degrades to `skipped_no_provider` if either is missing — so a half-configured environment is
+silent rather than broken, which is the right behaviour and also the reason nobody will notice
+the key is absent until they go looking in `email_log`.
 
 ---
 

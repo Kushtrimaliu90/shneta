@@ -17,20 +17,17 @@
 -- Settings (docs/03 §13, docs/11 §1)
 -- -----------------------------------------------------------------------------
 /*
- * The brand is BIOCODE. **No domain is registered for it.**
+ * The brand is BIOCODE; the registered domain is **shtrejt.com**, verified in Resend with
+ * SPF/DKIM/DMARC. The two are deliberately different: biocode.com was not available, and a
+ * contact address has to sit on the domain that actually holds the DNS records — a From:
+ * address on an unverified domain goes straight to spam.
  *
- * `shtrejt.com` below predates the rebrand — it was chosen when the brand was SHNETA, because
- * shneta.com was taken. It is left as the placeholder rather than swapped for a plausible-looking
- * `biocode.com` on purpose: a contact address has to sit on a domain that can actually carry
- * SPF/DKIM/DMARC, and writing one nobody owns would read as configured while being nothing. A
- * From: address on an unverified domain goes straight to spam.
+ * The same string is hardcoded in two other places, and all three must move together if the
+ * domain ever does: the invoice/packing-slip header (`app/admin/orders/print`) and the SEO
+ * preview in the product editor.
  *
- * Registering the real domain is docs/14 §6, and it blocks Resend, which blocks fourteen email
- * templates. Two other places hardcode this string — the invoice header and the SEO preview in
- * the product editor — and both need updating with it.
- *
- * Social handles are `biocode` deliberately: those are account names, not DNS, and they only
- * change if the owner cannot claim them. Replace with the real handles before launch.
+ * Social handles are `biocode` — those are account names, not DNS, and only change if the
+ * owner cannot claim them. Replace with the real handles before launch.
  */
 insert into settings (key, value) values
   ('store', jsonb_build_object(
