@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { BadgeCheck, RotateCcw, Truck, Wallet } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
@@ -7,7 +8,6 @@ import { pickLocale } from '@/lib/i18n';
 import { clientEnv } from '@/lib/env.client';
 import { organizationSchema, webSiteSchema } from '@/lib/seo';
 import { JsonLd } from '@/components/shared/json-ld';
-import { VitalityRing } from '@/components/shared/vitality-ring';
 import { ProductCard } from '@/components/storefront/product-card';
 import { buttonVariants } from '@/components/ui/button';
 import { getCategoryTree, listFeaturedProducts, listGoals } from '@/features/catalog/queries';
@@ -56,8 +56,12 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
           <div>
             <p className="eyebrow">{t('home.hero.eyebrow')}</p>
             {/*
-              The LCP element (docs/05 §1 acceptance). Text, not an image, rendered statically
-              with a self-hosted swap font so it paints on the first frame.
+              Rendered statically with a self-hosted swap font, so it paints on the first frame.
+
+              It *was* the LCP element (docs/05 §1 acceptance), chosen as text precisely so it
+              would be. The hero photograph beside it is larger and now takes that role; the note
+              is kept because the heading still has to paint immediately whether or not it wins
+              the measurement.
             */}
             <h1 className="mt-4 font-display text-[2.5rem] leading-[1.05] font-semibold tracking-tight text-balance text-forest-900 lg:text-[3.5rem]">
               {t('home.hero.title')}
@@ -84,10 +88,30 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
           </div>
 
           <div className="flex justify-center lg:justify-end">
-            <div className="relative flex aspect-square w-full max-w-md items-center justify-center rounded-[24px] border border-line bg-forest-50">
-              <VitalityRing value={0.78} size={180} strokeWidth={10} />
-              <span className="sr-only">{t('common.brand')}</span>
-            </div>
+            {/*
+              The hero product shot, replacing the Vitality Ring placeholder that stood here
+              while there was no photography.
+
+              `width`/`height` are the file's real pixels and the box is `h-auto w-full`, so the
+              aspect ratio comes from the image itself — nothing is cropped and the space is
+              reserved before it loads, which is what keeps CLS at zero.
+
+              **`priority` because this is now almost certainly the LCP element.** docs/05 §1
+              recorded the H1 as the LCP, chosen deliberately when the right-hand side was an
+              inline SVG; a 448 px-wide photograph above the fold takes that title. An
+              above-the-fold image without `priority` is lazy-loaded and *delays* the LCP, so the
+              honest fix is to preload it and keep the file small — the source is WebP at 122 kB
+              (down from a 939 kB PNG), and Next serves AVIF on top of that.
+            */}
+            <Image
+              src="/hero/lineup.webp"
+              alt={t('home.hero.imageAlt')}
+              width={667}
+              height={898}
+              sizes="(min-width: 1024px) 28rem, (min-width: 640px) 60vw, 90vw"
+              priority
+              className="h-auto w-full max-w-md rounded-[24px] border border-line object-cover"
+            />
           </div>
         </div>
       </section>
