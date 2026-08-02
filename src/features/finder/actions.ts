@@ -1,11 +1,13 @@
 'use server';
 
+import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { logger, describeError } from '@/lib/logger';
 import { fail, ok, type ActionResult } from '@/lib/result';
 import { getCurrentUser } from '@/features/auth/queries';
+import { limitByIp } from '@/lib/rate-limit';
 import { addToCart } from '@/features/cart/actions';
 import { readAnswers } from '@/features/finder/answers';
 import { getFinderCandidates } from '@/features/finder/queries';
@@ -22,6 +24,7 @@ import type { Json } from '@/lib/supabase/database.types';
 
 export type FinderErrorKey =
   | 'finder.errors.generic'
+  | 'finder.errors.tooMany'
   | 'finder.errors.nothingToAdd'
   | 'finder.errors.someUnavailable';
 
@@ -36,7 +39,14 @@ const saveSchema = z.object({
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function parseIds(value: string): string[] {
-  return [...new Set(value.split(',').map((id) => id.trim()).filter((id) => UUID.test(id)))];
+  return [
+    ...new Set(
+      value
+        .split(',')
+        .map((id) => id.trim())
+        .filter((id) => UUID.test(id)),
+    ),
+  ];
 }
 
 /**
@@ -52,6 +62,16 @@ export async function saveSubmission(
 ): Promise<FinderState> {
   const parsed = saveSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return fail<FinderErrorKey, { added?: number }>('finder.errors.generic');
+
+  /*
+   * `quiz_submissions` accepts a null `user_id`, which is what makes guest answers useful — and
+   * also what makes this an unauthenticated write endpoint. `finderSubmit` was declared in
+   * `RATE_LIMITS` when the table was designed and then never applied to anything; M11's security
+   * pass is what noticed. A limit nobody calls is a limit that does not exist.
+   */
+  if (!(await limitByIp('finderSubmit', await headers()))) {
+    return fail<FinderErrorKey, { added?: number }>('finder.errors.tooMany');
+  }
 
   try {
     const user = await getCurrentUser();
@@ -153,26 +173,38 @@ export async function submitFinder(formData: FormData): Promise<never> {
 
   const answers = readAnswers(Object.fromEntries(params.entries()));
 
-  try {
-    const candidates = await getFinderCandidates();
-    const routine = buildRoutine(candidates, answers);
+  /*
+   * Same endpoint, same exposure as `saveSubmission` — an unauthenticated write, so it is
+   * limited by IP. Checked **outside** the try: `redirect()` works by throwing, and a catch
+   * around it would swallow the redirect and log it as a failure.
+   *
+   * A refused write still shows the routine. The result belongs to the customer; the analytics
+   * row is ours to lose.
+   */
+  const withinBudget = await limitByIp('finderSubmit', await headers());
+  if (!withinBudget) logger.info('Finder submission rate limited');
 
-    const user = await getCurrentUser();
-    const supabase = await createClient();
+  if (withinBudget)
+    try {
+      const candidates = await getFinderCandidates();
+      const routine = buildRoutine(candidates, answers);
 
-    const payload = email && !user ? { ...answers, email } : answers;
+      const user = await getCurrentUser();
+      const supabase = await createClient();
 
-    const { error } = await supabase.from('quiz_submissions').insert({
-      user_id: user?.id ?? null,
-      answers: payload as unknown as Json,
-      recommended_product_ids: routine.products.map((product) => product.productId),
-    });
+      const payload = email && !user ? { ...answers, email } : answers;
 
-    // Logged, never thrown: a failed analytics write must not cost the customer their result.
-    if (error) logger.error('finder submission insert failed', { cause: error.message });
-  } catch (error) {
-    logger.error('finder submission threw', describeError(error));
-  }
+      const { error } = await supabase.from('quiz_submissions').insert({
+        user_id: user?.id ?? null,
+        answers: payload as unknown as Json,
+        recommended_product_ids: routine.products.map((product) => product.productId),
+      });
+
+      // Logged, never thrown: a failed analytics write must not cost the customer their result.
+      if (error) logger.error('finder submission insert failed', { cause: error.message });
+    } catch (error) {
+      logger.error('finder submission threw', describeError(error));
+    }
 
   params.set('step', '6');
   redirect(`${basePath}?${params.toString()}`);

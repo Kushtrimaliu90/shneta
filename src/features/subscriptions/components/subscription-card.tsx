@@ -75,7 +75,7 @@ export function SubscriptionCard({ subscription }: { subscription: SubscriptionV
     <li
       className={cn(
         'rounded-lg border bg-surface p-4',
-        isCancelled ? 'border-line opacity-70' : 'border-line-strong',
+        isCancelled ? 'border-line bg-cream' : 'border-line-strong',
       )}
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -137,7 +137,10 @@ export function SubscriptionCard({ subscription }: { subscription: SubscriptionV
               key={item.id}
               className={cn(
                 'flex items-center gap-3 rounded-sm border border-line p-2',
-                !item.isAvailable && 'opacity-70',
+                // Not `opacity-70`: fading a container recolours the text inside it and drops
+                // tokens below AA (docs/13 §Q6). The line-through and the 'unavailable' note
+                // carry the meaning without touching contrast.
+                !item.isAvailable && 'bg-cream',
               )}
             >
               <div className="size-12 shrink-0 overflow-hidden rounded-sm bg-cream">
@@ -236,10 +239,7 @@ export function SubscriptionCard({ subscription }: { subscription: SubscriptionV
             <form action={pauseAction} className="flex items-end gap-2">
               <input type="hidden" name="subscriptionId" value={subscription.id} />
               <div>
-                <label
-                  htmlFor={`resume-${subscription.id}`}
-                  className="block text-xs text-ink-600"
-                >
+                <label htmlFor={`resume-${subscription.id}`} className="block text-xs text-ink-600">
                   {t('resumeOn')}
                 </label>
                 <input
@@ -296,7 +296,10 @@ export function SubscriptionCard({ subscription }: { subscription: SubscriptionV
             <button
               type="button"
               onClick={() => setConfirmingCancel(true)}
-              className={cn(buttonVariants({ variant: 'link', size: 'sm' }), 'ml-auto text-ink-600')}
+              className={cn(
+                buttonVariants({ variant: 'link', size: 'sm' }),
+                'ml-auto text-ink-600',
+              )}
             >
               {t('cancel')}
             </button>
@@ -309,10 +312,7 @@ export function SubscriptionCard({ subscription }: { subscription: SubscriptionV
           <input type="hidden" name="subscriptionId" value={subscription.id} />
           <p className="text-sm font-medium text-ink-900">{t('cancelConfirm')}</p>
 
-          <label
-            htmlFor={`reason-${subscription.id}`}
-            className="mt-2 block text-xs text-ink-600"
-          >
+          <label htmlFor={`reason-${subscription.id}`} className="mt-2 block text-xs text-ink-600">
             {t('cancelReason')}
           </label>
           <textarea
@@ -340,8 +340,7 @@ export function SubscriptionCard({ subscription }: { subscription: SubscriptionV
       {subscription.orders.length > 0 && (
         <details className="mt-4 border-t border-line pt-3">
           <summary className="cursor-pointer text-sm font-medium text-forest-800">
-            {t('ordersHeading')}{' '}
-            <span data-numeric>({subscription.orders.length})</span>
+            {t('ordersHeading')} <span data-numeric>({subscription.orders.length})</span>
           </summary>
           <ul className="mt-2 flex flex-col gap-1.5">
             {subscription.orders.map((order) => (
@@ -384,10 +383,7 @@ function QuantityForm({
   removable: boolean;
 }) {
   const t = useTranslations('account.subscriptions');
-  const [, formAction] = useActionState<SubscriptionState, FormData>(
-    updateSubscriptionItem,
-    null,
-  );
+  const [, formAction] = useActionState<SubscriptionState, FormData>(updateSubscriptionItem, null);
 
   return (
     <form action={formAction} className="flex shrink-0 items-center gap-1">

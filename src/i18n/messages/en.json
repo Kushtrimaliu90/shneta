@@ -864,7 +864,8 @@
     "errors": {
       "generic": "Something went wrong. Please try again.",
       "nothingToAdd": "Nothing could be added — those products may have just gone out of stock.",
-      "someUnavailable": "Some products could not be added. Check your cart."
+      "someUnavailable": "Some products could not be added. Check your cart.",
+      "tooMany": "Too many attempts just now. Wait a few minutes and try again."
     }
   }
 }

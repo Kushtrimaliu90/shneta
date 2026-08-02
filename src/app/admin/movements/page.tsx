@@ -166,7 +166,12 @@ export default async function AdminMovementsPage({ searchParams }: Props) {
         </div>
       ) : (
         <>
-          <div className="mt-6 overflow-x-auto rounded-lg border border-line bg-surface">
+          <div
+            className="mt-6 overflow-x-auto rounded-lg border border-line bg-surface"
+            tabIndex={0}
+            role="region"
+            aria-label="Stock movements"
+          >
             <table className="w-full min-w-[56rem] border-collapse text-sm">
               <caption className="sr-only">Stock movements, newest first</caption>
               <thead>

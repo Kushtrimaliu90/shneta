@@ -80,7 +80,12 @@ export function CouponsAdmin({ rows, canManage }: { rows: CouponRow[]; canManage
           </p>
         </div>
       ) : (
-        <div className="mt-6 overflow-x-auto rounded-lg border border-line bg-surface">
+        <div
+          className="mt-6 overflow-x-auto rounded-lg border border-line bg-surface"
+          tabIndex={0}
+          role="region"
+          aria-label="Coupons"
+        >
           <table className="w-full min-w-[52rem] border-collapse text-sm">
             <caption className="sr-only">Coupons</caption>
             <thead>

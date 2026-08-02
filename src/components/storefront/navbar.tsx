@@ -1,21 +1,24 @@
 import { getTranslations } from 'next-intl/server';
-import { ShoppingBag, User } from 'lucide-react';
+import { User } from 'lucide-react';
 import { Link } from '@/i18n/routing';
 import { BrandMark } from '@/components/storefront/brand-mark';
 import { MobileNav } from '@/components/storefront/mobile-nav';
 import { PRIMARY_NAV } from '@/components/storefront/nav-links';
 import { LocaleSwitcher } from '@/components/shared/locale-switcher';
-import { getCartItemCount } from '@/features/cart/queries';
+import { CartBadge } from '@/features/cart/components/cart-badge';
 import { SearchOverlay } from '@/features/search/components/search-overlay';
 
 /**
  * docs/04 §6 — cream, hairline bottom border, sticky; logo left, nav centre, actions right.
  *
- * M0 renders the static shell. The mega menu, the command-style search overlay and the live
- * cart count arrive with M3/M4; the markup below is the surface they attach to.
+ * The header reads **nothing request-scoped**. That is deliberate and load-bearing: this
+ * component is rendered by the storefront layout, so one `cookies()` call here opts every
+ * catalogue page beneath it out of static rendering — which is exactly what happened between M4
+ * and M11 (docs/13 §M1). The cart count is per-visitor, so it lives in `CartBadge`, which
+ * fetches it after mount.
  */
 export async function Navbar() {
-  const [t, itemCount] = await Promise.all([getTranslations(), getCartItemCount()]);
+  const t = await getTranslations();
 
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-cream/95 backdrop-blur-sm">
@@ -56,26 +59,12 @@ export async function Navbar() {
           </Link>
 
           {/*
-            docs/05 §17 — count comes from the server on load. It is part of the accessible
-            label, so a screen-reader user hears "Cart, 2 items in cart" rather than just
-            "Cart" plus a number they cannot reach.
+            docs/05 §17 — the count is part of the accessible label, so a screen-reader user
+            hears "Cart, 2 items in cart" rather than "Cart" plus a number they cannot reach.
+            It arrives after mount; see the note above.
           */}
-          <Link
-            href="/cart"
-            aria-label={`${t('common.cart')}, ${t('common.cartItems', { count: itemCount })}`}
-            className="relative inline-flex size-11 items-center justify-center rounded-md text-forest-800 transition-colors hover:bg-forest-50"
-          >
-            <ShoppingBag className="size-5" aria-hidden="true" />
-            {itemCount > 0 && (
-              <span
-                aria-hidden="true"
-                className="absolute top-1.5 right-1 min-w-4 rounded-full bg-lime-500 px-1 text-[10px] leading-4 font-semibold text-lime-950"
-                data-numeric
-              >
-                {itemCount > 99 ? '99+' : itemCount}
-              </span>
-            )}
-          </Link>
+          <CartBadge />
+
         </div>
       </div>
     </header>

@@ -52,6 +52,14 @@ const STATIC_ROUTES: MetadataRoute.Sitemap = [
   entry('/brands', { priority: 0.7 }),
   entry('/knowledge', { changeFrequency: 'daily', priority: 0.8 }),
   entry('/offers', { changeFrequency: 'daily', priority: 0.7 }),
+  /*
+   * The finder shipped in M10 and was missed here — a page linked from the footer since M0 and
+   * invisible to search for a milestone. Found by writing the sitemap assertion in
+   * `e2e/compliance.spec.ts` rather than by anyone reading this list.
+   *
+   * Weekly rather than daily: the quiz itself does not change, only what it recommends.
+   */
+  entry('/finder', { changeFrequency: 'monthly', priority: 0.6 }),
   entry('/about', { changeFrequency: 'monthly', priority: 0.4 }),
   entry('/contact', { changeFrequency: 'monthly', priority: 0.4 }),
   entry('/faq', { changeFrequency: 'monthly', priority: 0.5 }),

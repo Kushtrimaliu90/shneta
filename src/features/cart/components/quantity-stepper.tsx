@@ -4,6 +4,7 @@ import { useTranslations } from 'next-intl';
 import { Minus, Plus, Trash2 } from 'lucide-react';
 import { useFormStatus } from 'react-dom';
 import { removeCartLineForm, updateCartQuantityForm } from '@/features/cart/actions';
+import { notifyCartChanged } from '@/features/cart/cart-events';
 import { cn } from '@/lib/utils';
 
 /**
@@ -12,7 +13,20 @@ import { cn } from '@/lib/utils';
  * Three separate one-field forms rather than one form with JavaScript branching: each button
  * is independently submittable, so the whole control works with JavaScript disabled, and
  * `useFormStatus` disables only the button being pressed.
+ *
+ * The actions are wrapped rather than passed straight through, so the navbar badge hears about
+ * the change (docs/13 §M1). Wrapping keeps the no-JavaScript path intact: without it the form
+ * still posts to the server action, and the badge is then correct on the next full render anyway.
  */
+async function updateQuantity(formData: FormData): Promise<void> {
+  await updateCartQuantityForm(formData);
+  notifyCartChanged();
+}
+
+async function removeLine(formData: FormData): Promise<void> {
+  await removeCartLineForm(formData);
+  notifyCartChanged();
+}
 function IconSubmit({
   label,
   children,
@@ -52,7 +66,7 @@ export function QuantityStepper({
 
   return (
     <div className="flex items-center gap-1">
-      <form action={updateCartQuantityForm}>
+      <form action={updateQuantity}>
         <input type="hidden" name="lineId" value={lineId} />
         <input type="hidden" name="quantity" value={quantity - 1} />
         {/* At one, decrementing removes the line — the action treats 0 as remove. */}
@@ -73,7 +87,7 @@ export function QuantityStepper({
         {quantity}
       </output>
 
-      <form action={updateCartQuantityForm}>
+      <form action={updateQuantity}>
         <input type="hidden" name="lineId" value={lineId} />
         <input type="hidden" name="quantity" value={quantity + 1} />
         <IconSubmit label={t('increase')} disabled={quantity >= maxQuantity}>
@@ -88,7 +102,7 @@ export function RemoveLineButton({ lineId }: { lineId: string }) {
   const t = useTranslations('cart');
 
   return (
-    <form action={removeCartLineForm}>
+    <form action={removeLine}>
       <input type="hidden" name="lineId" value={lineId} />
       <IconSubmit label={t('remove')}>
         <Trash2 className="size-4" aria-hidden="true" />

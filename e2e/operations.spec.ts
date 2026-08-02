@@ -1,4 +1,5 @@
-import { expect, test } from '@playwright/test';
+import AxeBuilder from '@axe-core/playwright';
+import { expect, test, type Page } from '@playwright/test';
 import { ACTION_TIMEOUT, CHEAP_SKU, addCheapItemToCart } from './helpers/storefront';
 import { db, deleteCreatedUsers, ipAllocator, signIn, staffUser } from './helpers/accounts';
 
@@ -318,3 +319,65 @@ test.describe('settings (docs/06 §15)', () => {
     await expect(page.getByText('€7.77').first()).toBeVisible();
   });
 });
+
+/**
+ * docs/09 §1 journey 12 — the axe pass, extended to everything M10 added.
+ *
+ * The existing sweep covers home, the shop, a PDP, cart, checkout, auth, account orders and the
+ * admin dashboard. M10 added six admin areas and the finder, and a screen with no axe assertion
+ * is a screen where the next contrast slip ships (docs/13 §N7 is what that looks like).
+ */
+test.describe('accessibility on the M10 surface (docs/09 §1 journey 12)', () => {
+  const STOREFRONT = ['/en/finder', '/en/finder?step=6&primary=imuniteti'];
+
+  for (const path of STOREFRONT) {
+    test(`axe finds no serious or critical violations on ${path}`, async ({ page }) => {
+      await page.goto(path);
+      await assertNoBlockingViolations(page, path);
+    });
+  }
+
+  const ADMIN = [
+    '/admin/inventory',
+    '/admin/movements',
+    '/admin/customers',
+    '/admin/coupons',
+    '/admin/content',
+    '/admin/content/faqs',
+    '/admin/settings',
+    '/admin/settings/team',
+    '/admin/settings/audit',
+  ];
+
+  test('axe finds no serious or critical violations across the admin screens', async ({ page }) => {
+    // One test, one sign-in. Nine sign-ins to assert nine pages would spend the auth quota that
+    // docs/13 §P3 records as the binding constraint on this suite.
+    const admin = await staffUser('admin');
+    await signIn(page, admin.email, admin.password);
+
+    for (const path of ADMIN) {
+      await page.goto(path);
+      await assertNoBlockingViolations(page, path);
+    }
+  });
+
+  test('the customer address book is accessible', async ({ page }) => {
+    const customer = await staffUser('customer');
+    await signIn(page, customer.email, customer.password);
+
+    await page.goto('/en/account/addresses');
+    await assertNoBlockingViolations(page, '/en/account/addresses');
+  });
+});
+
+async function assertNoBlockingViolations(page: Page, path: string): Promise<void> {
+  const results = await new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+    .analyze();
+
+  const blocking = results.violations.filter(
+    (violation) => violation.impact === 'serious' || violation.impact === 'critical',
+  );
+
+  expect(blocking, `${path}\n${blocking.map((v) => `${v.id}: ${v.help}`).join('\n')}`).toEqual([]);
+}

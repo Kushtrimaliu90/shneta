@@ -1,11 +1,12 @@
 'use client';
 
-import { useActionState } from 'react';
+import { useActionState, useEffect } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import { Alert } from '@/components/ui/alert';
 import { SubmitButton } from '@/components/ui/submit-button';
 import { ProductCard } from '@/components/storefront/product-card';
+import { notifyCartChanged } from '@/features/cart/cart-events';
 import {
   addRoutineToCart,
   saveSubmission,
@@ -45,6 +46,11 @@ export function FinderResults({
 
   const [cartState, cartAction] = useActionState<FinderState, FormData>(addRoutineToCart, null);
   const [saveState, saveAction] = useActionState<FinderState, FormData>(saveSubmission, null);
+
+  // Five products at once is the biggest single change the badge ever sees.
+  useEffect(() => {
+    if (cartState?.ok) notifyCartChanged();
+  }, [cartState]);
 
   const monthlyTotal = items.reduce((sum, item) => sum + item.product.priceCents, 0);
   const variantIds = items.map((item) => item.product.variantId).join(',');

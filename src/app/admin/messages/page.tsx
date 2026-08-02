@@ -102,7 +102,7 @@ export default async function AdminMessagesPage({ searchParams }: Props) {
               )}
             >
               {LABELS[value]}
-              <span className="font-ui text-xs text-ink-500" data-numeric>
+              <span className="font-ui text-xs text-ink-600" data-numeric>
                 {byStatus[value] ?? 0}
               </span>
             </Link>

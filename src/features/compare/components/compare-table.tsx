@@ -109,7 +109,12 @@ export function CompareTable({ products }: { products: CompareProduct[] }) {
         {t('highlightDifferences')}
       </label>
 
-      <div className="mt-4 overflow-x-auto rounded-lg border border-line bg-surface">
+      <div
+        className="mt-4 overflow-x-auto rounded-lg border border-line bg-surface"
+        tabIndex={0}
+        role="region"
+        aria-label="Product comparison"
+      >
         <table className="w-full border-collapse text-left">
           <caption className="sr-only">{t('title')}</caption>
           <thead>

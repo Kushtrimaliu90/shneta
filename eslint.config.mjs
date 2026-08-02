@@ -44,6 +44,25 @@ const config = [
        */
       'jsx-a11y/label-has-associated-control': ['error', { depth: 4 }],
 
+      /**
+       * Scrollable regions must be focusable, and this rule does not know that.
+       *
+       * axe's `scrollable-region-focusable` fails any container that scrolls but cannot be
+       * reached by keyboard — every admin table is `overflow-x-auto` with a `min-w` inside, so at
+       * 390 px they all scroll and none of them could be panned without a mouse. It found 52
+       * instances on `/admin/movements` alone (docs/13 §Q6).
+       *
+       * The fix the ARIA authoring practices prescribe is `role="region"` + `tabindex="0"` + a
+       * label, which is exactly what this rule forbids by default: its allowlist is
+       * `['tabpanel']`. Two accessibility tools disagreeing, and axe is the one measuring real
+       * browser behaviour — so `region` joins the allowlist rather than nine files getting a
+       * disable comment.
+       */
+      'jsx-a11y/no-noninteractive-tabindex': [
+        'error',
+        { tags: [], roles: ['tabpanel', 'region'], allowExpressionValues: true },
+      ],
+
       // CLAUDE.md §1 — strict TS, no escape hatches.
       '@typescript-eslint/no-explicit-any': 'error',
       '@typescript-eslint/no-non-null-assertion': 'error',

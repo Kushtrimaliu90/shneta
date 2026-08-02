@@ -66,7 +66,7 @@ export default async function AdminReviewsPage({ searchParams }: Props) {
               )}
             >
               {TAB_LABELS[value] ?? value}
-              <span className="font-ui text-xs text-ink-500" data-numeric>
+              <span className="font-ui text-xs text-ink-600" data-numeric>
                 {counts[value] ?? 0}
               </span>
             </Link>

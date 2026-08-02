@@ -1355,6 +1355,174 @@ Four, each for a stated reason:
 
 ---
 
+## Q. What the hardening pass taught us
+
+### Q1 · The storefront is static again, and the build output still cannot be trusted to say so
+
+§M1 recorded that `Navbar` read the cart cookie, that a request-scoped API in a layout makes
+every page beneath it dynamic, and that the build output printed `● (SSG)` throughout while
+`.next/server/app` held **seven** HTML files — all of them auth pages.
+
+Fixed by moving the count into `CartBadge`, a client component that fetches after mount. The
+header now reads nothing request-scoped at all.
+
+|                           | before  | after                                 |
+| ------------------------- | ------- | ------------------------------------- |
+| Prerendered `.html` files | 7       | **127**                               |
+| `/en` (home)              | dynamic | `x-nextjs-cache: HIT`, `s-maxage=300` |
+| `/en/product/…` (PDP)     | dynamic | `x-nextjs-cache: HIT`, `s-maxage=300` |
+
+**Not everything, and deliberately so.** `/shop`, `/shop/[category]`, `/goals/[slug]` and
+`/knowledge` all read `searchParams`, which is dynamic by definition — they have filters, and a
+filtered page cannot be a file. That is the correct trade, not an oversight, and
+`e2e/rendering.spec.ts` lists exactly which pages must be static so the distinction is written
+down rather than remembered.
+
+The guard is the interesting part. The regression is invisible in the build output — that is what
+let it survive from M4 to M11 — so the test asserts the **response header**: `no-store` present
+is the fingerprint of a dynamic render. One `cookies()` call in a layout component and eight
+tests go red at once.
+
+Two things the fix needed that the original note did not anticipate:
+
+- **The badge has to hear about changes.** `revalidatePath('/', 'layout')` re-renders the server
+  tree, but the count no longer comes from that render. A `shneta:cart-changed` DOM event covers
+  same-page mutations; the pathname covers navigation. A context provider would have meant every
+  future add-to-cart remembering to call a setter, and the one that forgets shows a stale number
+  for the rest of the session.
+- **The label must not lie while loading.** Rendering "0 items" and correcting it a moment later
+  tells a screen-reader user something false. The count is absent from the label until it arrives.
+
+### Q2 · A rate limit nobody calls is a rate limit that does not exist
+
+`RATE_LIMITS.finderSubmit` was declared when `quiz_submissions` was designed in M1 and applied to
+nothing. M10 then shipped the finder — an **unauthenticated write endpoint**, because the table
+accepts a null `user_id` on purpose so guest answers are recorded — with no limit on it at all.
+
+Found by reading the constant table against the call sites during the M11 security pass, not by a
+test. Worth stating plainly: the declaration looked like coverage. Anyone auditing `RATE_LIMITS`
+would have concluded the finder was protected.
+
+Both write paths are limited now. The one in `submitFinder` had to move **outside** its `try`:
+`redirect()` works by throwing, so a catch around it swallows the redirect and logs it as a
+failure.
+
+### Q3 · The strict CSP cannot be enforced, and it took an experiment to prove it
+
+docs/10 §5 asks for report-only in week one, then enforcement. Flipping the switch would have
+broken the entire site.
+
+Next.js streams its RSC payload and hydration data through inline `<script>` tags, so
+`script-src 'self'` blocks them. Measured rather than assumed: with the strict policy enforced,
+each of ten sampled pages logged a run of
+
+```
+Executing inline script violates the following Content Security Policy directive
+'script-src 'self''. … The action has been blocked.
+```
+
+and no page became interactive. The page renders — server HTML is fine — and nothing works.
+
+Both escapes cost more than they save:
+
+- A **nonce** must be generated per request in middleware, which makes every page dynamic and
+  undoes §Q1. Trading the Full Route Cache for a directive is the wrong side of that bargain.
+- **Hashes** cannot work: the inline payload differs per page and per build.
+
+So the policy ships in two versions. The **enforced** one allows inline script and keeps
+everything else strict — it still blocks third-party script origins, `eval`, plugin content,
+base-tag injection, framing and cross-origin form posts, which is most of what an injected
+`<script src>` or a clickjacking attempt needs. The **strict** one ships alongside as
+report-only, so violations stay visible and the day Next supports nonces without forcing dynamic
+rendering, the reports will already be clean.
+
+`CSP_ENFORCE` promotes the first from report-only to enforcing, so launch week is a redeploy
+rather than a code change and the rollback is unsetting a variable.
+
+### Q4 · Widening the axe pass found a contrast bug that had shipped in M5
+
+The axe sweep covered home, the shop, a PDP, cart, checkout, auth, account orders and the admin
+**dashboard**. M11 extended it to the M10 surface, and `/admin/inventory` returned **58
+violations** on the first run.
+
+The cause: every admin list puts a count inside its filter tabs —
+
+```tsx
+<span className="font-ui text-xs text-ink-500">{count}</span>
+```
+
+— and the selected tab is filled `forest-100`. `ink-500` on `forest-100` is **4.00:1** against a
+4.5 floor. Seven admin lists and the public Knowledge page carried it. It shipped in M5 and
+survived six milestones because **the one admin page axe covered has no tabs**.
+
+`ink-600` is 5.54:1, and `tests/unit/contrast.test.ts` now pins both directions — the failing
+pair and the passing one — the way §N7's `forest-600` pairing is pinned.
+
+The lesson is about coverage shape rather than colour: a sample of pages tests the pages in the
+sample. The tab pattern was on eight screens and none of them was the one being checked.
+
+### Q5 · Three advisories, and none of them ours
+
+`pnpm audit` reported 1 moderate and 3 high, all transitive: `postcss` (three) via Next's own
+dependency, and `sharp` (one, a libvips CVE bundle) via image optimisation. docs/09 §5 sets the
+gate at **no criticals**, which was already met — but shipping four known-high advisories at
+launch because the gate is written loosely is not a defensible reading of it.
+
+Both resolve with `pnpm.overrides` to already-published patches, and the build, the type check
+and the full suite pass unchanged. `pnpm audit` is now clean at `--audit-level moderate`.
+
+The trade worth naming: an override pins a transitive dependency ahead of what the parent
+declares, so a future Next release could conflict. That is a visible failure at install time,
+which is the right place for it — unlike an unpatched advisory, which is invisible until it is
+not.
+
+### Q6 · Two more things the widened axe pass found, both about hiding rather than colour
+
+**Scrollable regions were unreachable by keyboard.** Every admin table is `overflow-x-auto` with
+a `min-w` inside, so at 390 px each becomes a horizontally scrolling region — pannable with a
+mouse or a thumb, and impossible with a keyboard until you tab into a link three columns across.
+`/admin/movements` alone returned **52 instances**. Nine components now carry
+`role="region"` + `tabIndex={0}` + a label, which is the pattern the ARIA authoring practices
+prescribe.
+
+That fix then failed lint: `jsx-a11y/no-noninteractive-tabindex` allows `tabindex` only on
+`tabpanel` by default. Two accessibility tools disagreeing, and axe is the one measuring real
+browser behaviour — so `region` joined the allowlist in `eslint.config.mjs` with the reasoning
+written next to it, rather than nine files each carrying a disable comment.
+
+**`opacity-70` on a container is a contrast decision.** The team screen faded a deactivated
+member's row, the subscription card faded a cancelled subscription, the FAQ list faded a hidden
+question. Fading a container recolours every descendant: white-on-`ink-600` became
+`#fefdfc` on `#878d88` (**3.33:1**) and `ink-500` became `#969c97` on white (**2.75:1**).
+
+This is §N7's rule — _an alpha on a text colour is a new colour_ — one level up. The tokens were
+all correct; the wrapper undid them. Replaced with an explicit `bg-cream`, which reads as "off"
+without touching a single foreground value, and in every case the state was already labelled in
+words too.
+
+### Q7 · What M11 could not do, and why it is not a gap in the code
+
+docs/12 M11 asks for "every checklist item ticked with evidence". Six items cannot be ticked from
+here, and none of them is an engineering task:
+
+| Item                         | Blocked on                                                            |
+| ---------------------------- | --------------------------------------------------------------------- |
+| Domain, DNS, HTTPS           | Owner — no domain is registered                                       |
+| Resend verified, test sends  | Owner — fourteen templates are inert until it is (docs/14 §6)         |
+| Sentry alerts firing         | Owner — the SDK is wired and inert without a DSN                      |
+| Uptime monitor               | Owner — `/api/health` exists and answers                              |
+| Restore drill                | Owner — the runbook is written; the drill needs a scratch project     |
+| Real test order with courier | Owner — needs a courier and a real address                            |
+| Lighthouse ≥ 95 on prod      | Needs prod. Measurable now only against a laptop, which proves little |
+
+Two more are blocked on content rather than infrastructure: the legal pages are still
+`[LEGAL: review]` placeholders, and the shop still sells 24 demo fixtures.
+
+The honest summary is that **the code is ready and the business is not**, and that distinction is
+worth keeping visible rather than blurring into a percentage.
+
+---
+
 ## E. Stack decisions taken at M0
 
 | Item          | Spec                  | Built as            | Why                                                                                               |

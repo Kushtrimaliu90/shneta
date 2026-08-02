@@ -143,7 +143,7 @@ export default async function AdminProductsPage({ searchParams }: Props) {
               )}
             >
               {tab.label}
-              <span className="font-ui text-xs text-ink-500" data-numeric>
+              <span className="font-ui text-xs text-ink-600" data-numeric>
                 {tab.count}
               </span>
             </Link>
@@ -161,7 +161,12 @@ export default async function AdminProductsPage({ searchParams }: Props) {
           </p>
         </div>
       ) : (
-        <div className="mt-6 overflow-x-auto rounded-lg border border-line bg-surface">
+        <div
+          className="mt-6 overflow-x-auto rounded-lg border border-line bg-surface"
+          tabIndex={0}
+          role="region"
+          aria-label="Products"
+        >
           <table className="w-full min-w-[46rem] border-collapse text-sm">
             <caption className="sr-only">
               Products{statusParam ? ` with status ${statusParam}` : ''}, most recently edited first

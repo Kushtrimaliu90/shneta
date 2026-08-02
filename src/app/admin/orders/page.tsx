@@ -125,7 +125,7 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
               )}
             >
               {tab.label}
-              <span className="font-ui text-xs text-ink-500" data-numeric>
+              <span className="font-ui text-xs text-ink-600" data-numeric>
                 {tab.count}
               </span>
             </Link>
@@ -157,7 +157,12 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
             row and column context from it for free, and an operator can copy a column out
             into a spreadsheet — which is what they will do before any CSV export exists.
           */}
-          <div className="mt-6 overflow-x-auto rounded-lg border border-line bg-surface">
+          <div
+            className="mt-6 overflow-x-auto rounded-lg border border-line bg-surface"
+            tabIndex={0}
+            role="region"
+            aria-label="Orders"
+          >
             <table className="w-full min-w-[52rem] border-collapse text-sm">
               <caption className="sr-only">
                 Orders{statusParam ? ` with status ${statusParam}` : ''}, newest first

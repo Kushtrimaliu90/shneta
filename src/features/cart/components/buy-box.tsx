@@ -1,11 +1,12 @@
 'use client';
 
-import { useActionState, useState } from 'react';
+import { useActionState, useEffect, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { ShoppingBag } from 'lucide-react';
 import { pickLocale } from '@/lib/i18n';
 import type { Locale } from '@/lib/constants';
 import { Alert } from '@/components/ui/alert';
+import { notifyCartChanged } from '@/features/cart/cart-events';
 import { PriceTag } from '@/components/storefront/price-tag';
 import { SubmitButton } from '@/components/ui/submit-button';
 import { addToCart, type CartResult } from '@/features/cart/actions';
@@ -45,6 +46,11 @@ export function BuyBox({
     async (_previous, formData) => addToCart(formData),
     null,
   );
+
+  // Tells the navbar badge to refetch — see `CartBadge` and docs/13 §M1.
+  useEffect(() => {
+    if (state?.ok) notifyCartChanged();
+  }, [state]);
   const t = useTranslations();
   const locale = useLocale() as Locale;
 

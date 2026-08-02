@@ -26,24 +26,51 @@ function supabaseImagePattern(): { protocol: 'https' | 'http'; hostname: string;
 }
 
 /**
- * docs/10 §5. `style-src` keeps 'unsafe-inline' deliberately: Next.js injects inline styles and
- * the nonce alternative forces dynamic rendering, which would defeat the ISR strategy in
- * docs/02 §5. See docs/13 §F3.
+ * docs/10 §5 — the content security policy, in two versions.
+ *
+ * **Why two.** The strict version cannot be enforced. Next.js streams its RSC payload and
+ * hydration data through inline `<script>` tags, so `script-src 'self'` blocks them: the page
+ * renders and never hydrates. Measured, not assumed — with the strict policy enforced, every one
+ * of ten sampled pages logged a run of "Executing inline script violates ... 'script-src 'self''"
+ * and no page became interactive (docs/13 §Q3).
+ *
+ * The two escapes both cost more than they save:
+ *
+ *   · A **nonce** requires generating one per request in middleware, which makes every page
+ *     dynamic — undoing the static rendering M11 exists to restore (§Q1). Trading the Full Route
+ *     Cache for a directive is the wrong side of that bargain.
+ *   · **Hashes** cannot work: the inline payload differs per page and per build.
+ *
+ * So the enforced policy allows inline script and everything else stays strict. That is worth
+ * having on its own — it still blocks third-party script origins, `eval`, plugin content,
+ * base-tag injection, framing, and form posts to another origin, which is most of what an
+ * injected `<script src>` or a clickjacking attempt needs.
+ *
+ * The strict version ships alongside as **report-only**, so violations stay visible and the day
+ * Next supports nonces without forcing dynamic rendering, the reports will already be clean.
  */
-const CSP = [
+const CSP_BASE = [
   "default-src 'self'",
   "base-uri 'self'",
   "object-src 'none'",
   "frame-ancestors 'none'",
   "form-action 'self'",
-  "script-src 'self'" + (process.env.NODE_ENV === 'development' ? " 'unsafe-eval'" : ''),
+  // docs/13 §F3 — Next injects inline styles; the nonce alternative forces dynamic rendering.
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' blob: data: https://*.supabase.co https://*.supabase.in",
   "font-src 'self' data:",
   "connect-src 'self' https://*.supabase.co https://*.supabase.in wss://*.supabase.co",
   "manifest-src 'self'",
   'upgrade-insecure-requests',
-].join('; ');
+];
+
+const DEV_EVAL = process.env.NODE_ENV === 'development' ? " 'unsafe-eval'" : '';
+
+/** Enforced. Permissive only where Next leaves no choice. */
+const CSP_ENFORCED = [...CSP_BASE, `script-src 'self' 'unsafe-inline'${DEV_EVAL}`].join('; ');
+
+/** Report-only. What we would enforce if inline script were avoidable. */
+const CSP_STRICT = [...CSP_BASE, `script-src 'self'${DEV_EVAL}`].join('; ');
 
 const securityHeaders = [
   { key: 'X-Frame-Options', value: 'DENY' },
@@ -57,8 +84,22 @@ const securityHeaders = [
     key: 'Strict-Transport-Security',
     value: 'max-age=63072000; includeSubDomains; preload',
   },
-  // Report-only for the first week per docs/10 §5, then promoted to Content-Security-Policy.
-  { key: 'Content-Security-Policy-Report-Only', value: CSP },
+  /*
+   * docs/10 §5 asks for report-only in week one, then enforcement. `CSP_ENFORCE` is that switch,
+   * so the promotion is a redeploy rather than a code change and the rollback is unsetting it.
+   *
+   * Before the flip both headers are report-only, which is the point of week one: the strict one
+   * will report inline-script violations by design, and the enforced one reporting *anything* is
+   * the signal that something real would break.
+   */
+  {
+    key:
+      process.env.CSP_ENFORCE === 'true'
+        ? 'Content-Security-Policy'
+        : 'Content-Security-Policy-Report-Only',
+    value: CSP_ENFORCED,
+  },
+  { key: 'Content-Security-Policy-Report-Only', value: CSP_STRICT },
 ];
 
 const nextConfig: NextConfig = {

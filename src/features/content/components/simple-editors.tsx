@@ -185,7 +185,12 @@ function FaqRowView({ faq }: { faq: FaqRow }) {
   const [open, setOpen] = useState(false);
 
   return (
-    <li className={cn('rounded-sm border bg-surface', faq.isActive ? 'border-line' : 'border-line opacity-70')}>
+    <li
+      className={cn(
+        'rounded-sm border',
+        faq.isActive ? 'border-line bg-surface' : 'border-line bg-cream',
+      )}
+    >
       <button
         type="button"
         onClick={() => setOpen(!open)}

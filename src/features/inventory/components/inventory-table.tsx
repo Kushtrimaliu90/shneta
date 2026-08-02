@@ -61,7 +61,12 @@ export function InventoryTable({ rows }: { rows: InventoryRow[] }) {
   }
 
   return (
-    <div className="mt-6 overflow-x-auto rounded-lg border border-line bg-surface">
+    <div
+      className="mt-6 overflow-x-auto rounded-lg border border-line bg-surface"
+      tabIndex={0}
+      role="region"
+      aria-label="Stock levels"
+    >
       <table className="w-full min-w-[52rem] border-collapse text-sm">
         <caption className="sr-only">Stock levels, lowest first</caption>
         <thead>

@@ -105,7 +105,7 @@ export default async function AdminInventoryPage({ searchParams }: Props) {
                 )}
               >
                 {value ? STOCK_STATUS_LABELS[value] : 'All'}
-                <span className="font-ui text-xs text-ink-500" data-numeric>
+                <span className="font-ui text-xs text-ink-600" data-numeric>
                   {value ? (counts[value] ?? 0) : (counts.all ?? 0)}
                 </span>
               </Link>

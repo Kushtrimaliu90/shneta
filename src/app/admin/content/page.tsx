@@ -74,7 +74,12 @@ export default async function AdminArticlesPage({ searchParams }: Props) {
           </p>
         </div>
       ) : (
-        <div className="mt-6 overflow-x-auto rounded-lg border border-line bg-surface">
+        <div
+          className="mt-6 overflow-x-auto rounded-lg border border-line bg-surface"
+          tabIndex={0}
+          role="region"
+          aria-label="Articles"
+        >
           <table className="w-full min-w-[44rem] border-collapse text-sm">
             <caption className="sr-only">Articles, most recently edited first</caption>
             <thead>

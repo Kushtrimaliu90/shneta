@@ -7,10 +7,7 @@ import { getProfile } from '@/features/auth/queries';
 import { can } from '@/features/admin/roles';
 import { formatAdminDateTime, ORDER_STATUS_LABELS } from '@/features/admin/copy';
 import { getCustomer } from '@/features/customers/queries';
-import {
-  AnonymizeCustomer,
-  LoyaltyAdjuster,
-} from '@/features/customers/components/customer-tools';
+import { AnonymizeCustomer, LoyaltyAdjuster } from '@/features/customers/components/customer-tools';
 
 export const metadata: Metadata = { title: 'Customer' };
 
@@ -200,10 +197,7 @@ export default async function AdminCustomerPage({ params }: Props) {
                   {LEDGER_REASONS[entry.reason] ?? entry.reason}
                   {entry.note && <span className="text-ink-500"> — {entry.note}</span>}
                 </span>
-                <span
-                  className={entry.points > 0 ? 'text-success' : 'text-error'}
-                  data-numeric
-                >
+                <span className={entry.points > 0 ? 'text-success' : 'text-error'} data-numeric>
                   {entry.points > 0 ? `+${entry.points}` : entry.points}
                 </span>
                 <span className="text-xs text-ink-500" data-numeric>

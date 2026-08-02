@@ -9,7 +9,7 @@ import { logger, describeError } from '@/lib/logger';
 import { fail, ok, type ActionResult } from '@/lib/result';
 import { CART_COOKIE_NAME, CART_COOKIE_MAX_AGE_SECONDS, MAX_CART_ITEM_QTY } from '@/lib/constants';
 import { getCurrentUser } from '@/features/auth/queries';
-import { findActiveCart } from '@/features/cart/queries';
+import { findActiveCart, getCartItemCount } from '@/features/cart/queries';
 import { addToCartSchema, removeLineSchema, updateQuantitySchema } from '@/features/cart/schemas';
 import type { CartErrorKey } from '@/features/cart/types';
 
@@ -350,5 +350,24 @@ export async function mergeGuestCart(): Promise<ActionResult<{ merged: number }>
     // A failed merge must never block sign-in — the user keeps their account cart.
     logger.error('mergeGuestCart threw', describeError(error));
     return ok({ merged: 0 });
+  }
+}
+
+/**
+ * The navbar badge's count, fetched by the client after mount.
+ *
+ * Exists so `Navbar` does not have to read `cookies()` — see `CartBadge` and docs/13 §M1. It is
+ * a server action rather than a route handler for the reason `loadWishlistState` is: the same
+ * pattern, one fewer public URL, and the cart cookie is read by code that already knows how.
+ *
+ * Never throws. A badge that cannot load its number shows no number; it must not take the header
+ * down with it.
+ */
+export async function loadCartItemCount(): Promise<number> {
+  try {
+    return await getCartItemCount();
+  } catch (error) {
+    logger.error('loadCartItemCount threw', describeError(error));
+    return 0;
   }
 }

@@ -5,10 +5,7 @@ import { AlertTriangle, Repeat } from 'lucide-react';
 import { getProfile } from '@/features/auth/queries';
 import { can } from '@/features/admin/roles';
 import { formatAdminDateTime } from '@/features/admin/copy';
-import {
-  countAdminSubscriptions,
-  listAdminSubscriptions,
-} from '@/features/subscriptions/queries';
+import { countAdminSubscriptions, listAdminSubscriptions } from '@/features/subscriptions/queries';
 import { SUBSCRIPTION_STATUSES, toSubscriptionStatus } from '@/features/subscriptions/types';
 import { createClient } from '@/lib/supabase/server';
 import { cn } from '@/lib/utils';
@@ -114,7 +111,7 @@ export default async function AdminSubscriptionsPage({ searchParams }: Props) {
               )}
             >
               {value ? LABELS[value] : 'All'}
-              <span className="font-ui text-xs text-ink-500" data-numeric>
+              <span className="font-ui text-xs text-ink-600" data-numeric>
                 {value ? (counts[value] ?? 0) : (counts.all ?? 0)}
               </span>
             </Link>
@@ -131,7 +128,12 @@ export default async function AdminSubscriptionsPage({ searchParams }: Props) {
           </p>
         </div>
       ) : (
-        <div className="mt-6 overflow-x-auto rounded-lg border border-line bg-surface">
+        <div
+          className="mt-6 overflow-x-auto rounded-lg border border-line bg-surface"
+          tabIndex={0}
+          role="region"
+          aria-label="Subscriptions"
+        >
           <table className="w-full min-w-[44rem] border-collapse text-sm">
             <caption className="sr-only">Subscriptions, soonest delivery first</caption>
             <thead>

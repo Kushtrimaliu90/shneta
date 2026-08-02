@@ -108,6 +108,23 @@ describe('text on filled surfaces', () => {
   });
 
   /**
+   * `forest-100` is the **active filter tab** fill, and it is darker than `forest-50` — so a
+   * colour that passes on one tint can still fail on the other (docs/13 §Q4).
+   *
+   * Seven admin lists and the public Knowledge page all put a count in `ink-500` inside a tab
+   * that turns `forest-100` when selected: 4.00:1 against a 4.5 floor. It shipped in M5 and
+   * survived to M11, because the only page axe covered was the dashboard, which has no tabs.
+   * Widening the axe pass is what found it; this is what stops it coming back.
+   */
+  it('ink-500 does NOT pass on the forest-100 tint either', () => {
+    expect(ratio(token('ink-500'), token('forest-100'))).toBeLessThan(AA_TEXT);
+  });
+
+  it('ink-600 passes on the forest-100 tint, which is why active tabs use it', () => {
+    expect(ratio(token('ink-600'), token('forest-100'))).toBeGreaterThanOrEqual(AA_TEXT);
+  });
+
+  /**
    * The article-card cover placeholder, and the general rule it cost us (docs/13 §N7).
    *
    * The first version used `text-forest-800/40` on the same tint — a token at 40% alpha, which

@@ -5,7 +5,7 @@ Honest status against the launch checklist in `docs/10 §9` and the milestones i
 **Bottom line: it is a store. A guest can buy something, end to end, and pay cash on
 delivery.** Add to cart → four-step checkout → order placed by the `checkout_create_order`
 transaction → gated success page → track it later with the order number and email. Verified
-against the live database by 286 Playwright tests across desktop and a 390 px viewport.
+against the live database by 390 Playwright tests across desktop and a 390 px viewport.
 
 **It can also now fulfil what it sells.** Support signs in, works a queue, confirms, ships with
 tracking, delivers, cancels with a reason and refunds — every mutation audited, every transition
@@ -32,6 +32,11 @@ and FAQs and banners are edited without a migration, and an admin can invite a c
 the VAT rate or add a courier and see it on the shop the next time a page renders. A visitor who
 does not know what to buy can answer five questions and get a routine.
 
+**And it has now been hardened.** The storefront is served from files again after seven
+milestones of quietly re-rendering every request (docs/13 §Q1), the security pass in docs/09 §5
+runs as tests rather than as a checklist somebody ticked, the dependency audit is clean, and CSP
+enforcement is one environment variable away.
+
 **What is left before a real customer: the email, and the products themselves.** Every
 transactional and marketing email records `skipped_no_provider` until a Resend key and a
 verified sending domain exist (§6) — the newsletter now depends on that to complete a
@@ -50,14 +55,14 @@ Legend: ✅ done and verified · 🟡 partial · ⬜ not started · ➖ not appl
 | First Load JS within the 170 kB budget (`docs/09 §3`) | ✅    | 120–138 kB per route, enforced by `check:bundle`                                                                  |
 | Database schema applied                               | ✅    | 20 migrations on `rszbpdgfvyofvmuishmn`, Postgres 17.6                                                            |
 | RLS enabled on every public table (`docs/10 §4`)      | ✅    | `tables_without_rls()` → `[]`                                                                                     |
-| Integration suite against a real database             | ✅    | **70/70**, ~88 s                                                                                                  |
-| Unit suite                                            | ✅    | **138/138**                                                                                                       |
-| E2E + axe on both locales                             | ✅    | **286/286**, repeatable; zero serious/critical violations on cart, checkout, account, admin and the content pages |
+| Integration suite against a real database             | ✅    | **87/87**, ~97 s — includes the docs/09 §5 attack suite                                                           |
+| Unit suite                                            | ✅    | **140/140**                                                                                                       |
+| E2E + axe on both locales                             | ✅    | **390/390**, repeatable; zero serious/critical violations on cart, checkout, account, admin and the content pages |
 | Generated DB types match the live schema              | ✅    | `db:types:linked` → 3372 lines, `pnpm verify` green                                                               |
 | CI pipeline (quality · integration+E2E · audit)       | ✅    | `.github/workflows/ci.yml`                                                                                        |
 | Security headers (`docs/10 §5`)                       | ✅    | asserted by an E2E test                                                                                           |
 | `/api/health` for uptime monitoring (`docs/10 §6`)    | ✅    | returns `{status:"ok",database:"ok"}`                                                                             |
-| Sitemap + robots with hreflang (`docs/08 §4`)         | ✅    | 176 URLs, 352 hreflang links                                                                                      |
+| Sitemap + robots with hreflang (`docs/08 §4`)         | ✅    | Reciprocal sq/en alternates on every URL, asserted by `e2e/compliance.spec.ts`                                    |
 | Two crons, `CRON_SECRET`-guarded                      | ✅    | housekeeping 03:30, subscription renewals 05:00; both 401 unauthenticated, 200 with token                         |
 | On-demand ISR purge, secret-guarded                   | ✅    | rejects unknown tags, 401 unauthenticated                                                                         |
 | Sentry server + edge                                  | ✅    | inert without a DSN; client SDK lazy-loaded                                                                       |
@@ -68,7 +73,7 @@ Legend: ✅ done and verified · 🟡 partial · ⬜ not started · ➖ not appl
 | PITR / backups on production                          | ⬜    | **owner task**, `docs/10 §4`. More urgent under §7: no second database to fall back on                            |
 | Destructive suites gated on `SUPABASE_TEST_PROJECT`   | ✅    | integration, E2E and the purge all refuse an undeclared target (§7)                                               |
 | Uptime monitor pointed at `/api/health`               | ⬜    | **owner task**                                                                                                    |
-| Restore drill                                         | ⬜    | `docs/10 §7`                                                                                                      |
+| Restore drill                                         | ⬜    | **owner task** — `runbooks/restore.md` is written; the drill needs a scratch project (`docs/10 §7`)               |
 
 ## 2 · Product — selling, fulfilling and stocking all work; the shop floor is still fixtures
 
@@ -85,7 +90,7 @@ Legend: ✅ done and verified · 🟡 partial · ⬜ not started · ➖ not appl
 | M8 · Knowledge, offers, contact, newsletter  | ✅    | Knowledge Center on a sanitised markdown pipeline, offers with claimable codes, contact form + admin inbox, newsletter double opt-in with a token unsubscribe, FAQ with JSON-LD, `/about` and the legal pages, cookie consent gating analytics. Six articles and ten FAQs seeded. Every email still needs Resend (§6)                                                         |
 | M9 · Subscriptions and loyalty               | ✅    | Subscribe-and-save on the PDP; a renewal engine whose idempotency is one SQL statement (docs/13 §O1); skip, pause, resume, re-cadence and cancel from the account or from a token link needing no session; points on delivery and a redeem-for-coupon exchange; a read-only admin schedule with a cron health widget. Deferred below                                          |
 | M10 · Inventory ops, finder, remaining admin | ✅    | Inventory with receive/adjust/thresholds and the movements ledger; customers with lifetime value, manual points and GDPR export/erasure; coupons; content (articles, pages, FAQs, banners); the settings suite including team invites and the audit log; the supplement finder. Plus three carried deferrals: `/account/addresses`, the certifications registry and `/finder` |
-| M11 · Hardening and launch                   | 🟡    | The ops half is done (this table §1). Performance, security and soak passes need the real product first                                                                                                                                                                                                                                                                       |
+| M11 · Hardening and launch                   | 🟡    | **Engineering complete.** Static rendering restored (docs/13 §Q1), the docs/09 §5 security pass shipped as tests, CSP made enforceable, dependency audit clean, axe widened, runbooks written. What remains is owner-side and content-side — see §14                                                                                                                          |
 
 ## 3 · Compliance and legal — must clear before any real customer
 
@@ -373,3 +378,71 @@ The service-role caller list in docs/02 §6 gains two entries, both unavoidable 
 scrubbing a GoTrue identity during erasure, and creating or banning a staff account from
 Settings → Team. Neither grants anything else: the _role_ is still written through the SSR client,
 so `p_admin_update on profiles` and `prevent_role_escalation` both still apply.
+
+---
+
+## 14 · Launch checklist (docs/10 §9), item by item
+
+M11's acceptance is "every checklist item ticked with evidence". Here is each one with its
+evidence, or with the reason it cannot be ticked from a laptop.
+
+### Ready — evidence in the repo
+
+| Item                                       | Evidence                                                                                                                |
+| ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
+| Prod env vars validated                    | `env.server.ts` + `env.client.ts` fail the build on a missing required key; `tests/unit/env.test.ts`                    |
+| Migrations applied                         | 20 on `rszbpdgfvyofvmuishmn`; `pnpm check:sql` gates structure in CI                                                    |
+| Staff accounts with role rows              | Seven `@shneta.dev` accounts, roles verified. The password is not stored — `pnpm seed:users --reset-password` mints one |
+| Compliance disclaimer on required surfaces | Asserted on five surfaces in both locales by `e2e/compliance.spec.ts`. It had covered two                               |
+| Cookie consent live                        | Shipped M8, gates `lib/analytics.ts`                                                                                    |
+| Sitemap + hreflang                         | Reciprocal sq/en alternates on every URL, asserted by `e2e/compliance.spec.ts` — which found `/finder` missing entirely |
+| E2E suite green                            | **390/390** across desktop and 390 px, against the live database                                                        |
+| RLS matrix green                           | `tests/integration/rls.test.ts`, plus the attack suite in `security.test.ts` (docs/09 §5)                               |
+| Dependency audit                           | `pnpm audit` clean at `--audit-level moderate` — 3 high + 1 moderate cleared (docs/13 §Q5)                              |
+| Security headers + CSP                     | Asserted by `e2e/security.spec.ts`; enforcement is `CSP_ENFORCE=true` (docs/13 §Q3)                                     |
+| Admin surface refuses signed-out callers   | All 23 admin routes plus the export handler, asserted individually                                                      |
+| Performance budget                         | `pnpm check:bundle` — every route inside 170 kB; storefront served from the route cache (§Q1)                           |
+| Rollback plan                              | `vercel rollback` + `runbooks/incident.md`; migration recovery in `runbooks/restore.md`                                 |
+| Restore procedure documented               | `runbooks/restore.md` — written, **not yet drilled**                                                                    |
+
+### Blocked on the owner — not engineering work
+
+| Item                                 | Blocked on                                                                                      |
+| ------------------------------------ | ----------------------------------------------------------------------------------------------- |
+| Domain + DNS + www redirect + HTTPS  | No domain registered                                                                            |
+| Resend verified, test sends land     | No account. **Fourteen templates are inert** and a newsletter subscription cannot complete (§6) |
+| Sentry alerts firing test            | No DSN. The SDK is wired and inert without one                                                  |
+| Uptime monitor active                | `/api/health` answers; nothing is pointed at it                                                 |
+| Backup + restore drill done once     | Needs a scratch project. **Every step in the runbook is a guess until someone follows it**      |
+| Real test order with courier handoff | Needs a courier and a real delivery address                                                     |
+| Lighthouse ≥ 95 on prod              | Needs prod. Measuring on a laptop against a database in eu-west-1 proves very little            |
+| Search Console submission            | Needs the domain                                                                                |
+
+### Blocked on content
+
+| Item                  | State                                                                                                                                                               |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Legal pages final     | Seeded as `[LEGAL: review]` placeholders. Checkout makes customers accept them, so this is on the critical path — the content editor now flags it on the row itself |
+| Real catalogue loaded | 24 demo fixtures. `pnpm purge:demo` cannot run until real products exist (§7 step 2)                                                                                |
+| Health-goal intros    | 16 goals seeded `[CONTENT: replace]`; docs/05 §5 wants 150+ unique words each                                                                                       |
+| Brand assets          | Real brand names with placeholder logos — replace with authorised assets (docs/11 §5)                                                                               |
+
+### The one that is neither
+
+**Supabase staging + production projects.** §7 records the decision to run one project for all
+three roles. Every consequence of it is still live: the destructive suites are one `.env.local`
+edit away from customer data, PITR matters more because there is no second database to fall back
+on, and the auth quota is shared between the test suites and real customers (docs/13 §N10, §P3).
+
+Nothing in M11 changed that, and nothing in the code can.
+
+## 15 · What M11 deliberately left out
+
+| Item                             | Why it is not here                                                                                                                                                                                              | When                  |
+| -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------- |
+| A nonce-based CSP                | It forces every page dynamic and undoes the static rendering this milestone restored (docs/13 §Q3). The strict policy ships as report-only, so the day Next makes nonces cheap the reports are already clean    | When Next does        |
+| Partial Prerendering for the PLP | `/shop` and the other filtered pages read `searchParams` and are dynamic by definition. Next's PPR addresses exactly this and is experimental in 15 — not a launch-week dependency                              | Next 16+, with §E2    |
+| Visual regression screenshots    | docs/09 §1 asks for "lightweight, manual review, not pixel-diff". Artifacts nobody looks at are worse than none — the axe pass and the contrast unit tests caught what actually broke, twice (docs/13 §N7, §Q4) | If a visual bug ships |
+| Zero-result search logging       | docs/10 §6 marks it Phase 2, and it needs traffic to say anything                                                                                                                                               | Post-launch           |
+| Storage bucket backups           | docs/10 §7 accepts Phase 2. Worth knowing: **a database restore does not restore images**, and `restore.md` says so at the point it matters                                                                     | Post-launch           |
+| Load / soak testing              | docs/12 asks for a staging soak. There is no staging (§7), and soaking the production database is not a test                                                                                                    | With a second project |

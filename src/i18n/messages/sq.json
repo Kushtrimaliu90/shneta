@@ -864,7 +864,8 @@
     "errors": {
       "generic": "Diçka shkoi keq. Ju lutemi provoni përsëri.",
       "nothingToAdd": "Asgjë nuk u shtua — ato produkte mund të kenë mbaruar sapo.",
-      "someUnavailable": "Disa produkte nuk u shtuan. Kontrollo shportën."
+      "someUnavailable": "Disa produkte nuk u shtuan. Kontrollo shportën.",
+      "tooMany": "Shumë përpjekje tani. Prit disa minuta dhe provo përsëri."
     }
   }
 }

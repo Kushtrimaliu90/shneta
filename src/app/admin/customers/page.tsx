@@ -91,7 +91,12 @@ export default async function AdminCustomersPage({ searchParams }: Props) {
         </div>
       ) : (
         <>
-          <div className="mt-6 overflow-x-auto rounded-lg border border-line bg-surface">
+          <div
+            className="mt-6 overflow-x-auto rounded-lg border border-line bg-surface"
+            tabIndex={0}
+            role="region"
+            aria-label="Customers"
+          >
             <table className="w-full min-w-[52rem] border-collapse text-sm">
               <caption className="sr-only">Customers, newest first</caption>
               <thead>

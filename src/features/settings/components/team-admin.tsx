@@ -29,7 +29,13 @@ function feedback(state: SettingsState): { tone: 'success' | 'error'; text: stri
 }
 
 /** docs/06 §15 — the staff list, invite, role change and deactivate. */
-export function TeamAdmin({ members, currentUserId }: { members: TeamMember[]; currentUserId: string }) {
+export function TeamAdmin({
+  members,
+  currentUserId,
+}: {
+  members: TeamMember[];
+  currentUserId: string;
+}) {
   return (
     <div>
       <InviteForm />
@@ -105,9 +111,9 @@ function InviteForm() {
           Said plainly because it is the part that surprises people: no invitation email is sent,
           and none can be until Resend is configured (docs/14 §6).
         */}
-        No password is set and no email is sent. They sign in by using &ldquo;forgot
-        password&rdquo; with this address — which needs email to be configured. Until then, set a
-        password for them from the Supabase dashboard.
+        No password is set and no email is sent. They sign in by using &ldquo;forgot password&rdquo;
+        with this address — which needs email to be configured. Until then, set a password for them
+        from the Supabase dashboard.
       </p>
 
       <div className="mt-4 flex items-center gap-2">
@@ -138,7 +144,7 @@ function MemberRow({ member, isSelf }: { member: TeamMember; isSelf: boolean }) 
     <li
       className={cn(
         'rounded-lg border bg-surface p-4',
-        member.deactivated ? 'border-line opacity-70' : 'border-line',
+        member.deactivated ? 'border-line bg-cream' : 'border-line',
       )}
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
