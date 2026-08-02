@@ -52,7 +52,7 @@ export function AuditRowView({
         disabled={!hasDiff}
         className={cn(
           'flex w-full items-center gap-3 px-3 py-2.5 text-left text-sm',
-          hasDiff ? 'hover:bg-carbon-50' : 'cursor-default',
+          hasDiff ? 'hover:bg-forest-50' : 'cursor-default',
         )}
       >
         <ChevronRight
@@ -63,7 +63,7 @@ export function AuditRowView({
           )}
           aria-hidden="true"
         />
-        <span className="font-mono text-xs text-carbon-800">{action}</span>
+        <span className="font-mono text-xs text-forest-800">{action}</span>
         <span className="text-ink-600">{entityType.replace(/_/g, ' ')}</span>
         <span className="ml-auto text-xs text-ink-600">
           {/* A null actor is the cron, a webhook or the service role — named, not left blank. */}
@@ -110,7 +110,7 @@ function DiffPane({ label, json }: { label: string; json: string }) {
   return (
     <div>
       <p className="font-ui text-[11px] font-semibold text-ink-500 uppercase">{label}</p>
-      <pre className="mt-1 max-h-64 overflow-auto rounded-sm border border-line bg-bone p-2 font-mono text-[11px] text-ink-900">
+      <pre className="mt-1 max-h-64 overflow-auto rounded-sm border border-line bg-cream p-2 font-mono text-[11px] text-ink-900">
         {json === 'null' ? '—' : json}
       </pre>
     </div>

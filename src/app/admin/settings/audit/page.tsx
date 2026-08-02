@@ -50,7 +50,7 @@ export default async function AdminAuditPage({ searchParams }: Props) {
 
   return (
     <section>
-      <h2 className="font-display text-lg font-semibold text-carbon-900">Audit log</h2>
+      <h2 className="font-display text-lg font-semibold text-forest-900">Audit log</h2>
       <p className="mt-0.5 mb-4 max-w-2xl text-sm text-ink-600">
         Every change made from the panel: who, what, when, and what the values were before and
         after. Nothing here can be edited or removed.
@@ -67,8 +67,8 @@ export default async function AdminAuditPage({ searchParams }: Props) {
               className={cn(
                 'inline-flex min-h-8 items-center rounded-sm border px-2.5 text-xs transition-colors',
                 active
-                  ? 'border-carbon-800 bg-carbon-100 font-medium text-carbon-900'
-                  : 'border-line-strong text-ink-600 hover:bg-carbon-50',
+                  ? 'border-forest-800 bg-forest-100 font-medium text-forest-900'
+                  : 'border-line-strong text-ink-600 hover:bg-forest-50',
               )}
             >
               {value ? value.replace(/_/g, ' ') : 'All'}
@@ -117,14 +117,14 @@ export default async function AdminAuditPage({ searchParams }: Props) {
         </div>
         <button
           type="submit"
-          className="h-9 rounded-sm border border-line-strong px-3 text-sm text-ink-900 hover:bg-carbon-50"
+          className="h-9 rounded-sm border border-line-strong px-3 text-sm text-ink-900 hover:bg-forest-50"
         >
           Apply
         </button>
         {(actor || from || to) && (
           <Link
             href={href({ entity: entityType })}
-            className="h-9 px-2 py-1.5 text-sm text-carbon-800 underline underline-offset-4"
+            className="h-9 px-2 py-1.5 text-sm text-forest-800 underline underline-offset-4"
           >
             Clear
           </Link>
@@ -134,7 +134,7 @@ export default async function AdminAuditPage({ searchParams }: Props) {
       {rows.length === 0 ? (
         <div className="mt-6 rounded-lg border border-dashed border-line-strong bg-surface p-10 text-center">
           <ScrollText className="mx-auto size-6 text-ink-500" aria-hidden="true" />
-          <p className="mt-2 font-medium text-carbon-900">Nothing matches</p>
+          <p className="mt-2 font-medium text-forest-900">Nothing matches</p>
           <p className="mt-1.5 text-sm text-ink-600">
             {actor
               ? 'The “who” filter matches the visible page only — try clearing it and narrowing by date instead.'
@@ -169,7 +169,7 @@ export default async function AdminAuditPage({ searchParams }: Props) {
             <div className="mt-4 flex justify-center">
               <Link
                 href={href({ before: nextCursor })}
-                className="inline-flex h-9 items-center rounded-sm border border-line-strong px-4 text-sm text-ink-900 hover:bg-carbon-50"
+                className="inline-flex h-9 items-center rounded-sm border border-line-strong px-4 text-sm text-ink-900 hover:bg-forest-50"
               >
                 Older entries
               </Link>

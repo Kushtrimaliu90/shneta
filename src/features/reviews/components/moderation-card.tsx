@@ -65,7 +65,7 @@ export function ModerationCard({
               key={star}
               className={cn(
                 'size-3.5',
-                star <= review.rating ? 'fill-signal-500 text-signal-500' : 'text-line-strong',
+                star <= review.rating ? 'fill-lime-500 text-lime-500' : 'text-line-strong',
               )}
             />
           ))}
@@ -85,7 +85,7 @@ export function ModerationCard({
           href={`/en/product/${review.productSlug}`}
           target="_blank"
           rel="noreferrer"
-          className="rounded-sm text-xs text-carbon-800 underline underline-offset-4"
+          className="rounded-sm text-xs text-forest-800 underline underline-offset-4"
         >
           {review.productSlug} ↗
         </a>
@@ -109,7 +109,7 @@ export function ModerationCard({
       )}
 
       {review.adminReply && (
-        <div className="mt-2 rounded-sm border-l-2 border-carbon-800 bg-carbon-50 p-2.5 text-sm text-ink-600">
+        <div className="mt-2 rounded-sm border-l-2 border-forest-800 bg-forest-50 p-2.5 text-sm text-ink-600">
           {review.adminReply}
         </div>
       )}

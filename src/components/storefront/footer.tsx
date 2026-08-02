@@ -5,7 +5,7 @@ import { PRIMARY_NAV } from '@/components/storefront/nav-links';
 import { NewsletterStatus } from '@/components/storefront/newsletter-status';
 
 /**
- * docs/04 §6 — carbon-950 ground, bone text; five columns, newsletter, payment badges,
+ * docs/04 §6 — forest-950 ground, cream text; five columns, newsletter, payment badges,
  * legal row. The mandatory supplement disclaimer (docs/08 §7.3) sits above the legal row.
  *
  * The newsletter form posts to `/api/newsletter` so it degrades without JavaScript; the
@@ -50,7 +50,7 @@ export async function Footer() {
   ];
 
   return (
-    <footer className="mt-auto bg-carbon-950 text-bone" data-print="hide">
+    <footer className="mt-auto bg-forest-950 text-cream" data-print="hide">
       <div className="container-page py-14 lg:py-20">
         <div className="grid gap-10 lg:grid-cols-[1.4fr_repeat(4,1fr)]">
           <div className="max-w-xs">
@@ -73,7 +73,7 @@ export async function Footer() {
                   autoComplete="email"
                   placeholder={t('footer.newsletter.emailPlaceholder')}
                   aria-label={t('footer.newsletter.emailLabel')}
-                  className="h-11 min-w-0 flex-1 rounded-md border border-white/25 bg-white/5 px-3 text-sm text-white placeholder:text-bone/40"
+                  className="h-11 min-w-0 flex-1 rounded-md border border-white/25 bg-white/5 px-3 text-sm text-white placeholder:text-cream/40"
                 />
                 {/* docs/02 §9 — honeypot; real users never fill this. */}
                 <input
@@ -87,7 +87,7 @@ export async function Footer() {
                 <input type="hidden" name="locale" value={locale} />
                 <button
                   type="submit"
-                  className="h-11 shrink-0 rounded-md bg-signal-500 px-4 text-sm font-semibold text-signal-950 transition-colors hover:bg-signal-400"
+                  className="h-11 shrink-0 rounded-md bg-lime-500 px-4 text-sm font-semibold text-lime-950 transition-colors hover:bg-lime-400"
                 >
                   {t('footer.newsletter.submit')}
                 </button>

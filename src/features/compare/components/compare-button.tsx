@@ -43,13 +43,13 @@ export function CompareButton({
         'inline-flex items-center gap-1.5 rounded-md transition-colors',
         variant === 'icon'
           ? 'size-9 justify-center bg-surface/90 hover:bg-surface'
-          : 'h-11 px-3 text-sm font-medium hover:bg-carbon-50',
-        selected ? 'text-carbon-900' : 'text-carbon-800',
+          : 'h-11 px-3 text-sm font-medium hover:bg-forest-50',
+        selected ? 'text-forest-900' : 'text-forest-800',
         disabled && !selected && 'cursor-not-allowed opacity-40',
         className,
       )}
     >
-      <Scale className={cn('size-5', selected && 'fill-signal-500/30')} aria-hidden="true" />
+      <Scale className={cn('size-5', selected && 'fill-lime-500/30')} aria-hidden="true" />
       {variant === 'labelled' && <span>{selected ? t('added') : t('add')}</span>}
     </button>
   );

@@ -42,7 +42,7 @@ export async function FilterPanel({
   const option = (active: boolean) =>
     cn(
       'flex min-h-9 items-center gap-2 rounded-sm px-2 text-sm transition-colors',
-      active ? 'bg-carbon-100 font-medium text-carbon-900' : 'text-ink-600 hover:bg-carbon-50',
+      active ? 'bg-forest-100 font-medium text-forest-900' : 'text-ink-600 hover:bg-forest-50',
     );
 
   return (
@@ -53,7 +53,7 @@ export async function FilterPanel({
       {hasActiveFilters(filters) && (
         <Link
           href={basePath}
-          className="rounded-sm text-sm text-carbon-700 underline underline-offset-4"
+          className="rounded-sm text-sm text-forest-700 underline underline-offset-4"
         >
           {t('shop.clearFilters')}
         </Link>

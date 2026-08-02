@@ -37,7 +37,7 @@ export default async function CartPage({ params }: Props) {
 
   return (
     <div className="container-page py-8 lg:py-12">
-      <h1 className="font-display text-3xl font-semibold text-carbon-900 lg:text-4xl">
+      <h1 className="font-display text-3xl font-semibold text-forest-900 lg:text-4xl">
         {t('cart.title')}
       </h1>
 
@@ -69,7 +69,7 @@ export default async function CartPage({ params }: Props) {
           {/* docs/05 §12 — persistent order summary on the right at desktop widths. */}
           <aside className="lg:sticky lg:top-24 lg:self-start">
             <div className="rounded-lg border border-line bg-surface p-5">
-              <h2 className="font-display text-lg font-semibold text-carbon-900">
+              <h2 className="font-display text-lg font-semibold text-forest-900">
                 {t('cart.summary')}
               </h2>
 

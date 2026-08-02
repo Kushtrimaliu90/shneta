@@ -74,7 +74,7 @@ export function CheckoutForm({
 
         {/* 1 — Contact */}
         <fieldset className="rounded-lg border border-line bg-surface p-5">
-          <legend className="px-2 font-display text-lg font-semibold text-carbon-900">
+          <legend className="px-2 font-display text-lg font-semibold text-forest-900">
             {t('checkout.steps.contact')}
           </legend>
           <div className="mt-2 flex flex-col gap-4">
@@ -112,7 +112,7 @@ export function CheckoutForm({
 
         {/* 2 — Delivery */}
         <fieldset className="rounded-lg border border-line bg-surface p-5">
-          <legend className="px-2 font-display text-lg font-semibold text-carbon-900">
+          <legend className="px-2 font-display text-lg font-semibold text-forest-900">
             {t('checkout.steps.delivery')}
           </legend>
           <div className="mt-2 flex flex-col gap-4">
@@ -187,8 +187,8 @@ export function CheckoutForm({
                       className={cn(
                         'flex cursor-pointer items-start gap-3 rounded-md border p-3.5 transition-colors',
                         method.id === methodId
-                          ? 'border-carbon-800 bg-carbon-50'
-                          : 'border-line-strong hover:bg-carbon-50/50',
+                          ? 'border-forest-800 bg-forest-50'
+                          : 'border-line-strong hover:bg-forest-50/50',
                       )}
                     >
                       <input
@@ -212,7 +212,7 @@ export function CheckoutForm({
                           </span>
                         </span>
                         {/*
-                          ink-600, not ink-500: a selected card is filled with carbon-50,
+                          ink-600, not ink-500: a selected card is filled with forest-50,
                           and ink-500 on that tint measures 4.43:1 — under the 4.5:1 floor.
                           Asserted in tests/unit/contrast.test.ts so it cannot drift back.
                         */}
@@ -230,7 +230,7 @@ export function CheckoutForm({
 
         {/* 3 — Payment */}
         <fieldset className="rounded-lg border border-line bg-surface p-5">
-          <legend className="px-2 font-display text-lg font-semibold text-carbon-900">
+          <legend className="px-2 font-display text-lg font-semibold text-forest-900">
             {t('checkout.steps.payment')}
           </legend>
           <ul className="mt-2 flex flex-col gap-2">
@@ -238,7 +238,7 @@ export function CheckoutForm({
               <li key={provider}>
                 <label
                   htmlFor={`provider-${provider}`}
-                  className="flex cursor-pointer items-start gap-3 rounded-md border border-carbon-800 bg-carbon-50 p-3.5"
+                  className="flex cursor-pointer items-start gap-3 rounded-md border border-forest-800 bg-forest-50 p-3.5"
                 >
                   <input
                     id={`provider-${provider}`}
@@ -266,7 +266,7 @@ export function CheckoutForm({
 
         {/* 4 — Review */}
         <fieldset className="rounded-lg border border-line bg-surface p-5">
-          <legend className="px-2 font-display text-lg font-semibold text-carbon-900">
+          <legend className="px-2 font-display text-lg font-semibold text-forest-900">
             {t('checkout.steps.review')}
           </legend>
           <div className="mt-2 flex flex-col gap-4">
@@ -307,7 +307,7 @@ export function CheckoutForm({
       {/* Persistent summary (docs/05 §12) */}
       <aside className="lg:sticky lg:top-24 lg:self-start">
         <div className="rounded-lg border border-line bg-surface p-5">
-          <h2 className="font-display text-lg font-semibold text-carbon-900">
+          <h2 className="font-display text-lg font-semibold text-forest-900">
             {t('cart.summary')}
           </h2>
 

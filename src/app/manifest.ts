@@ -7,8 +7,8 @@ export default function manifest(): MetadataRoute.Manifest {
     description: 'Suplemente origjinale dhe njohuri për shëndetin.',
     start_url: '/',
     display: 'standalone',
-    background_color: '#F7F9FA',
-    theme_color: '#0D1620',
+    background_color: '#FAF9F5',
+    theme_color: '#0B241B',
     lang: 'sq',
     icons: [{ src: '/icon.svg', sizes: 'any', type: 'image/svg+xml' }],
   };

@@ -20,7 +20,7 @@ export async function CartLines({ lines }: { lines: CartLine[] }) {
 
         return (
           <li key={line.id} className="flex gap-4 py-4">
-            <div className="relative size-20 shrink-0 overflow-hidden rounded-md border border-line bg-bone">
+            <div className="relative size-20 shrink-0 overflow-hidden rounded-md border border-line bg-cream">
               <ProductImage
                 path={line.imagePath}
                 alt={name}
@@ -54,7 +54,7 @@ export async function CartLines({ lines }: { lines: CartLine[] }) {
                   quantity={line.quantity}
                   maxQuantity={line.maxQuantity}
                 />
-                <p className="text-sm font-semibold text-carbon-900" data-numeric>
+                <p className="text-sm font-semibold text-forest-900" data-numeric>
                   {formatPrice(line.unitPriceCents * line.quantity, locale)}
                 </p>
               </div>

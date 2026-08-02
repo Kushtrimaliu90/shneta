@@ -78,7 +78,7 @@ export default async function FaqPage({ params }: Props) {
       )}
 
       <header className="mb-8">
-        <h1 className="font-display text-3xl font-semibold text-carbon-900 lg:text-4xl">
+        <h1 className="font-display text-3xl font-semibold text-forest-900 lg:text-4xl">
           {t('title')}
         </h1>
         <p className="mt-2 max-w-2xl text-ink-600">{t('intro')}</p>
@@ -90,14 +90,14 @@ export default async function FaqPage({ params }: Props) {
         <div className="flex max-w-3xl flex-col gap-10">
           {sections.map((section) => (
             <section key={section.key}>
-              <h2 className="font-display text-xl font-semibold text-carbon-900">
+              <h2 className="font-display text-xl font-semibold text-forest-900">
                 {t(`categories.${section.key}`)}
               </h2>
               <ul className="mt-3 flex flex-col gap-2">
                 {section.entries.map((faq) => (
                   <li key={faq.id}>
                     <details className="group rounded-lg border border-line bg-surface">
-                      <summary className="flex cursor-pointer items-center justify-between gap-4 rounded-lg px-4 py-3 text-left font-medium text-ink-900 hover:bg-carbon-50">
+                      <summary className="flex cursor-pointer items-center justify-between gap-4 rounded-lg px-4 py-3 text-left font-medium text-ink-900 hover:bg-forest-50">
                         {pickLocale(faq.question, locale)}
                         <span
                           aria-hidden="true"

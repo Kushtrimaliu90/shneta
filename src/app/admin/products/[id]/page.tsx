@@ -57,7 +57,7 @@ export default async function AdminProductEditorPage({ params }: Props) {
     <div>
       <Link
         href="/admin/products"
-        className="inline-flex items-center gap-1.5 rounded-sm text-sm text-ink-600 hover:text-carbon-800"
+        className="inline-flex items-center gap-1.5 rounded-sm text-sm text-ink-600 hover:text-forest-800"
       >
         <ArrowLeft className="size-4" aria-hidden="true" />
         All products
@@ -65,14 +65,14 @@ export default async function AdminProductEditorPage({ params }: Props) {
 
       <div className="mt-3 flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0">
-          <h1 className="font-display text-2xl font-semibold text-carbon-900">{name}</h1>
+          <h1 className="font-display text-2xl font-semibold text-forest-900">{name}</h1>
           <p className="mt-1 flex flex-wrap items-center gap-2 text-sm text-ink-600">
             <span data-numeric>{product.slug}</span>
             {product.status === 'published' && (
               <Link
                 href={`/en/product/${product.slug}`}
                 target="_blank"
-                className="inline-flex items-center gap-1 rounded-sm text-carbon-800 underline underline-offset-4"
+                className="inline-flex items-center gap-1 rounded-sm text-forest-800 underline underline-offset-4"
               >
                 View on the site
                 <ExternalLink className="size-3.5" aria-hidden="true" />

@@ -38,7 +38,7 @@ export default async function AdminCustomersPage({ searchParams }: Props) {
 
   return (
     <div>
-      <h1 className="font-display text-2xl font-semibold text-carbon-900">Customers</h1>
+      <h1 className="font-display text-2xl font-semibold text-forest-900">Customers</h1>
       <p className="mt-1 max-w-2xl text-sm text-ink-600">
         Everyone with an account. Lifetime value counts delivered and in-flight orders — cancelled
         and refunded ones are excluded, so the number means what it says.
@@ -63,14 +63,14 @@ export default async function AdminCustomersPage({ searchParams }: Props) {
         </div>
         <button
           type="submit"
-          className="h-9 rounded-sm border border-line-strong px-3 text-sm text-ink-900 hover:bg-carbon-50"
+          className="h-9 rounded-sm border border-line-strong px-3 text-sm text-ink-900 hover:bg-forest-50"
         >
           Search
         </button>
         {search && (
           <Link
             href="/admin/customers"
-            className="text-sm text-carbon-800 underline underline-offset-4"
+            className="text-sm text-forest-800 underline underline-offset-4"
           >
             Clear
           </Link>
@@ -80,7 +80,7 @@ export default async function AdminCustomersPage({ searchParams }: Props) {
       {rows.length === 0 ? (
         <div className="mt-8 rounded-lg border border-dashed border-line-strong bg-surface p-10 text-center">
           <Users className="mx-auto size-6 text-ink-500" aria-hidden="true" />
-          <p className="mt-2 font-medium text-carbon-900">
+          <p className="mt-2 font-medium text-forest-900">
             {search ? 'Nobody matches that' : 'No customers yet'}
           </p>
           <p className="mt-1.5 text-sm text-ink-600">
@@ -100,7 +100,7 @@ export default async function AdminCustomersPage({ searchParams }: Props) {
             <table className="w-full min-w-[52rem] border-collapse text-sm">
               <caption className="sr-only">Customers, newest first</caption>
               <thead>
-                <tr className="border-b border-line bg-carbon-50 text-left">
+                <tr className="border-b border-line bg-forest-50 text-left">
                   {['Customer', 'Orders', 'Lifetime', 'Points', 'Subs', 'Joined'].map((heading) => (
                     <th
                       key={heading}
@@ -120,7 +120,7 @@ export default async function AdminCustomersPage({ searchParams }: Props) {
                       <td className="px-4 py-3">
                         <Link
                           href={`/admin/customers/${row.id}`}
-                          className="rounded-sm font-medium text-carbon-800 underline underline-offset-4"
+                          className="rounded-sm font-medium text-forest-800 underline underline-offset-4"
                         >
                           {row.fullName || row.email}
                         </Link>
@@ -131,7 +131,7 @@ export default async function AdminCustomersPage({ searchParams }: Props) {
                           </span>
                         )}
                         {row.role !== 'customer' && (
-                          <span className="mt-0.5 ml-1 inline-flex rounded-sm bg-carbon-100 px-1.5 py-0.5 font-ui text-[11px] font-semibold text-carbon-900">
+                          <span className="mt-0.5 ml-1 inline-flex rounded-sm bg-forest-100 px-1.5 py-0.5 font-ui text-[11px] font-semibold text-forest-900">
                             Staff
                           </span>
                         )}
@@ -165,7 +165,7 @@ export default async function AdminCustomersPage({ searchParams }: Props) {
               {page > 0 ? (
                 <Link
                   href={href(page - 1)}
-                  className="inline-flex h-9 items-center rounded-sm border border-line-strong px-4 text-sm text-ink-900 hover:bg-carbon-50"
+                  className="inline-flex h-9 items-center rounded-sm border border-line-strong px-4 text-sm text-ink-900 hover:bg-forest-50"
                 >
                   Previous
                 </Link>
@@ -179,7 +179,7 @@ export default async function AdminCustomersPage({ searchParams }: Props) {
               {hasMore ? (
                 <Link
                   href={href(page + 1)}
-                  className="inline-flex h-9 items-center rounded-sm border border-line-strong px-4 text-sm text-ink-900 hover:bg-carbon-50"
+                  className="inline-flex h-9 items-center rounded-sm border border-line-strong px-4 text-sm text-ink-900 hover:bg-forest-50"
                 >
                   Next
                 </Link>

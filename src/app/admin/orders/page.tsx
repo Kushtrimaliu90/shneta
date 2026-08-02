@@ -76,7 +76,7 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
     <div>
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="font-display text-2xl font-semibold text-carbon-900">Orders</h1>
+          <h1 className="font-display text-2xl font-semibold text-forest-900">Orders</h1>
           <p className="mt-1 text-sm text-ink-600">
             {counts.all ?? 0} order{(counts.all ?? 0) === 1 ? '' : 's'} in total
           </p>
@@ -100,7 +100,7 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
           </div>
           <button
             type="submit"
-            className="inline-flex h-10 items-center gap-1.5 rounded-sm bg-carbon-800 px-3.5 text-sm font-medium text-white hover:bg-carbon-700"
+            className="inline-flex h-10 items-center gap-1.5 rounded-sm bg-forest-800 px-3.5 text-sm font-medium text-white hover:bg-forest-700"
           >
             <Search className="size-4" aria-hidden="true" />
             Search
@@ -120,8 +120,8 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
               className={cn(
                 'inline-flex min-h-9 items-center gap-1.5 rounded-sm border px-3 text-sm transition-colors',
                 active
-                  ? 'border-carbon-800 bg-carbon-100 font-medium text-carbon-900'
-                  : 'border-line-strong text-ink-600 hover:bg-carbon-50',
+                  ? 'border-forest-800 bg-forest-100 font-medium text-forest-900'
+                  : 'border-line-strong text-ink-600 hover:bg-forest-50',
               )}
             >
               {tab.label}
@@ -135,7 +135,7 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
 
       {rows.length === 0 ? (
         <div className="mt-8 rounded-lg border border-dashed border-line-strong bg-surface p-10 text-center">
-          <p className="font-medium text-carbon-900">No orders match this view</p>
+          <p className="font-medium text-forest-900">No orders match this view</p>
           <p className="mt-1.5 text-sm text-ink-600">
             {search || statusParam
               ? 'Try a different status or clear the search.'
@@ -144,7 +144,7 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
           {(search || statusParam) && (
             <Link
               href="/admin/orders"
-              className="mt-4 inline-block rounded-sm text-sm text-carbon-800 underline underline-offset-4"
+              className="mt-4 inline-block rounded-sm text-sm text-forest-800 underline underline-offset-4"
             >
               Clear filters
             </Link>
@@ -168,7 +168,7 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
                 Orders{statusParam ? ` with status ${statusParam}` : ''}, newest first
               </caption>
               <thead>
-                <tr className="border-b border-line bg-carbon-50 text-left">
+                <tr className="border-b border-line bg-forest-50 text-left">
                   <th
                     scope="col"
                     className="px-4 py-2.5 font-ui text-xs font-semibold text-ink-600 uppercase"
@@ -213,7 +213,7 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
                   return (
                     <tr
                       key={row.id}
-                      className="border-b border-line last:border-0 hover:bg-carbon-50/60"
+                      className="border-b border-line last:border-0 hover:bg-forest-50/60"
                     >
                       <td className="px-4 py-3">
                         {/*
@@ -224,7 +224,7 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
                         */}
                         <Link
                           href={`/admin/orders/${row.id}`}
-                          className="rounded-sm font-medium text-carbon-800 underline underline-offset-4"
+                          className="rounded-sm font-medium text-forest-800 underline underline-offset-4"
                           data-numeric
                         >
                           {row.orderNumber}
@@ -272,7 +272,7 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
             {nextCursor && (
               <Link
                 href={href({ before: nextCursor })}
-                className="rounded-sm border border-line-strong px-3 py-1.5 hover:bg-carbon-50"
+                className="rounded-sm border border-line-strong px-3 py-1.5 hover:bg-forest-50"
               >
                 Older orders →
               </Link>

@@ -17,8 +17,8 @@ import type { OrderStatus } from '@/features/orders/types';
  */
 const TONES: Record<OrderStatus, string> = {
   pending: 'bg-warning text-white',
-  confirmed: 'bg-carbon-100 text-carbon-900',
-  processing: 'bg-carbon-800 text-white',
+  confirmed: 'bg-forest-100 text-forest-900',
+  processing: 'bg-forest-800 text-white',
   shipped: 'bg-info text-white',
   delivered: 'bg-success text-white',
   cancelled: 'bg-ink-600 text-white',

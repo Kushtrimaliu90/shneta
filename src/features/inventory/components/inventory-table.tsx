@@ -52,7 +52,7 @@ export function InventoryTable({ rows }: { rows: InventoryRow[] }) {
     return (
       <div className="mt-6 rounded-lg border border-dashed border-line-strong bg-surface p-10 text-center">
         <PackagePlus className="mx-auto size-6 text-ink-500" aria-hidden="true" />
-        <p className="mt-2 font-medium text-carbon-900">Nothing in this view</p>
+        <p className="mt-2 font-medium text-forest-900">Nothing in this view</p>
         <p className="mt-1.5 text-sm text-ink-600">
           Stock rows appear once a product has a variant. Receive stock to give it a count.
         </p>
@@ -70,7 +70,7 @@ export function InventoryTable({ rows }: { rows: InventoryRow[] }) {
       <table className="w-full min-w-[52rem] border-collapse text-sm">
         <caption className="sr-only">Stock levels, lowest first</caption>
         <thead>
-          <tr className="border-b border-line bg-carbon-50 text-left">
+          <tr className="border-b border-line bg-forest-50 text-left">
             {['Product', 'SKU', 'Warehouse', 'On hand', 'Low at', 'Status', ''].map((heading) => (
               <th
                 key={heading}
@@ -157,7 +157,7 @@ function InventoryRowView({ row }: { row: InventoryRow }) {
       </tr>
 
       {open && (
-        <tr className="border-b border-line bg-carbon-50/60">
+        <tr className="border-b border-line bg-forest-50/60">
           <td colSpan={7} className="px-4 py-4">
             {open === 'receive' && <ReceiveForm row={row} onDone={close} />}
             {open === 'adjust' && <AdjustForm row={row} onDone={close} />}

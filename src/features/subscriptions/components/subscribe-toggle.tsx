@@ -43,8 +43,8 @@ export function SubscribeToggle({ discountPct }: { discountPct: number }) {
                 className={cn(
                   'flex cursor-pointer items-center gap-2.5 rounded-sm border px-3 py-2.5 text-sm transition-colors',
                   active
-                    ? 'border-carbon-800 bg-carbon-50 font-medium text-carbon-900'
-                    : 'border-line-strong text-ink-900 hover:bg-carbon-50',
+                    ? 'border-forest-800 bg-forest-50 font-medium text-forest-900'
+                    : 'border-line-strong text-ink-900 hover:bg-forest-50',
                 )}
               >
                 <input

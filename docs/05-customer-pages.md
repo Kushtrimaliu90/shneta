@@ -7,7 +7,7 @@ Format per page: **Route · Access · Rendering · Sections · Data · Actions �
 Static+ISR. Sections in order:
 
 1. **Announcement bar** (banner `announcement`, dismissible per session).
-2. **Hero** (banner `home_hero`): Space Grotesk headline (e.g. "Shëndeti yt, i thjeshtuar." / "Your health, simplified."), subline, primary CTA → `/shop`, secondary → `/finder`; product visual right; signal ring draw-in.
+2. **Hero** (banner `home_hero`): Space Grotesk headline ("Biologjia jote ka një kod." / "Your biology has a code." — docs/01 §brand), subline, primary CTA → `/shop`, secondary → `/finder`; product visual right; vitality ring draw-in.
 3. **Trust strip:** 4 items — free delivery over threshold (from settings), COD available, authentic brands, easy returns.
 4. **Shop by goal:** 8 goal tiles (icon, name) → `/goals/[slug]`, "All goals" link.
 5. **Bestsellers:** 8 ProductCards (query: published, ordered by 90-day sales count with fallback `is_featured`), carousel on mobile.

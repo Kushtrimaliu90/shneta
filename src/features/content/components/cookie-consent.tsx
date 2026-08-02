@@ -73,7 +73,7 @@ export function CookieConsent() {
           {t('body')}{' '}
           <Link
             href="/legal/privacy"
-            className="rounded-sm text-carbon-800 underline underline-offset-4"
+            className="rounded-sm text-forest-800 underline underline-offset-4"
           >
             {t('privacyLink')}
           </Link>

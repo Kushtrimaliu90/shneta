@@ -58,7 +58,7 @@ export function RedeemButton({
         <p>{t('redeemedBody', { value: formatPrice(state.data.valueCents, locale) })}</p>
         <div className="mt-3 flex items-center gap-2">
           <code
-            className="rounded-sm border border-dashed border-carbon-800 bg-surface px-3 py-2 font-ui text-sm font-semibold tracking-wider text-carbon-900"
+            className="rounded-sm border border-dashed border-forest-800 bg-surface px-3 py-2 font-ui text-sm font-semibold tracking-wider text-forest-900"
             data-numeric
           >
             {code}
@@ -68,7 +68,7 @@ export function RedeemButton({
             onClick={copy}
             aria-label={`${t('copyCode')}: ${code}`}
             className={cn(
-              'inline-flex size-9 items-center justify-center rounded-sm border border-line-strong bg-surface hover:bg-carbon-50',
+              'inline-flex size-9 items-center justify-center rounded-sm border border-line-strong bg-surface hover:bg-forest-50',
               copied && 'border-success text-success',
             )}
           >
@@ -90,8 +90,8 @@ export function RedeemButton({
 
   return (
     <div className="rounded-lg border border-line bg-surface p-4">
-      <h2 className="flex items-center gap-2 font-display text-lg font-semibold text-carbon-900">
-        <Gift className="size-5 text-carbon-800" aria-hidden="true" />
+      <h2 className="flex items-center gap-2 font-display text-lg font-semibold text-forest-900">
+        <Gift className="size-5 text-forest-800" aria-hidden="true" />
         {t('redeemTitle')}
       </h2>
       <p className="mt-1 text-sm text-ink-600">

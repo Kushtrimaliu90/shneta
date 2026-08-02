@@ -29,7 +29,7 @@ export function ArticleCardTile({ article, className }: { article: Card; classNa
         className,
       )}
     >
-      <div className="relative aspect-[16/9] overflow-hidden bg-carbon-50">
+      <div className="relative aspect-[16/9] overflow-hidden bg-forest-50">
         {cover ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={cover} alt="" loading="lazy" className="size-full object-cover" />
@@ -39,14 +39,14 @@ export function ArticleCardTile({ article, className }: { article: Card; classNa
            * image or a grey box. `pnpm seed:images` is still outstanding (docs/14 §8), so this
            * is what every seeded article renders today, and it should not look like a fault.
            *
-           * `carbon-600`, not `carbon-800/40`. The opacity version looked right and resolved to
+           * `forest-600`, not `forest-800/40`. The opacity version looked right and resolved to
            * #9bb0a7 on #f0f7f3 — **2.1:1**, less than half the AA floor, and axe found 233
            * instances of it across the hub in one pass. An alpha on a text colour is a contrast
            * decision disguised as a style one; the solid token is 5.79:1 and pinned by
            * `tests/unit/contrast.test.ts`.
            */
           <div className="flex size-full items-center justify-center">
-            <span className="font-display text-lg font-semibold text-carbon-600">
+            <span className="font-display text-lg font-semibold text-forest-600">
               {t(`typeLabel.${article.type}`)}
             </span>
           </div>
@@ -64,7 +64,7 @@ export function ArticleCardTile({ article, className }: { article: Card; classNa
           )}
         </p>
 
-        <h3 className="font-display text-lg leading-snug font-semibold text-carbon-900">
+        <h3 className="font-display text-lg leading-snug font-semibold text-forest-900">
           <Link href={`/knowledge/${article.slug}`} className="after:absolute after:inset-0">
             {title}
           </Link>

@@ -39,13 +39,13 @@ export default async function AccountLoyaltyPage({ params }: Props) {
 
   return (
     <div>
-      <h2 className="font-display text-2xl font-semibold text-carbon-900">{t('title')}</h2>
+      <h2 className="font-display text-2xl font-semibold text-forest-900">{t('title')}</h2>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
         <div>
-          <div className="rounded-lg border border-line bg-carbon-50 p-5">
+          <div className="rounded-lg border border-line bg-forest-50 p-5">
             <p className="eyebrow">{t('ledgerTitle')}</p>
-            <p className="mt-1 font-display text-4xl font-semibold text-carbon-900" data-numeric>
+            <p className="mt-1 font-display text-4xl font-semibold text-forest-900" data-numeric>
               {loyalty.balance}
             </p>
             <p className="mt-1 text-sm text-ink-600" data-numeric>
@@ -60,7 +60,7 @@ export default async function AccountLoyaltyPage({ params }: Props) {
               <table className="w-full min-w-[28rem] border-collapse text-sm">
                 <caption className="sr-only">{t('ledgerTitle')}</caption>
                 <thead>
-                  <tr className="border-b border-line bg-carbon-50 text-left">
+                  <tr className="border-b border-line bg-forest-50 text-left">
                     <th scope="col" className="px-3 py-2 font-ui text-xs font-semibold text-ink-600 uppercase">
                       {t('ledgerActivity')}
                     </th>

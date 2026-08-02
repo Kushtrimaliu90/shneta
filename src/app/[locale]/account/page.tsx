@@ -5,7 +5,7 @@ import { Link } from '@/i18n/routing';
 import { resolveLocale } from '@/i18n/locale';
 import { Card, CardContent } from '@/components/ui/card';
 import { Alert } from '@/components/ui/alert';
-import { SignalRing } from '@/components/shared/signal-ring';
+import { VitalityRing } from '@/components/shared/vitality-ring';
 import { getProfile } from '@/features/auth/queries';
 import { buttonVariants } from '@/components/ui/button';
 
@@ -50,10 +50,10 @@ export default async function AccountOverviewPage({ params, searchParams }: Prop
       <div className="grid gap-4 sm:grid-cols-2">
         <Card>
           <CardContent className="flex items-center gap-4">
-            <SignalRing value={progress} size={56} strokeWidth={5} />
+            <VitalityRing value={progress} size={56} strokeWidth={5} />
             <div>
               <p className="eyebrow">{t('account.loyalty.title')}</p>
-              <p className="mt-1 font-display text-2xl font-semibold text-carbon-900" data-numeric>
+              <p className="mt-1 font-display text-2xl font-semibold text-forest-900" data-numeric>
                 {t('account.loyalty.points', { count: profile.loyaltyPoints })}
               </p>
               <p className="mt-1 text-sm text-ink-500">
@@ -83,14 +83,14 @@ export default async function AccountOverviewPage({ params, searchParams }: Prop
 
       <Card>
         <CardContent>
-          <h2 className="font-display text-lg font-semibold text-carbon-900">
+          <h2 className="font-display text-lg font-semibold text-forest-900">
             {t('account.overview.quickLinks')}
           </h2>
           <ul className="mt-4 grid gap-2 sm:grid-cols-2">
             <li>
               <Link
                 href="/account/settings"
-                className="flex min-h-11 items-center gap-2.5 rounded-md px-3 text-sm text-carbon-700 hover:bg-carbon-50"
+                className="flex min-h-11 items-center gap-2.5 rounded-md px-3 text-sm text-forest-700 hover:bg-forest-50"
               >
                 <Settings className="size-4" aria-hidden="true" />
                 {t('account.nav.settings')}
@@ -99,7 +99,7 @@ export default async function AccountOverviewPage({ params, searchParams }: Prop
             <li>
               <Link
                 href="/order-lookup"
-                className="flex min-h-11 items-center gap-2.5 rounded-md px-3 text-sm text-carbon-700 hover:bg-carbon-50"
+                className="flex min-h-11 items-center gap-2.5 rounded-md px-3 text-sm text-forest-700 hover:bg-forest-50"
               >
                 <Package className="size-4" aria-hidden="true" />
                 {t('footer.orderLookup')}
@@ -108,7 +108,7 @@ export default async function AccountOverviewPage({ params, searchParams }: Prop
             <li>
               <Link
                 href="/offers"
-                className="flex min-h-11 items-center gap-2.5 rounded-md px-3 text-sm text-carbon-700 hover:bg-carbon-50"
+                className="flex min-h-11 items-center gap-2.5 rounded-md px-3 text-sm text-forest-700 hover:bg-forest-50"
               >
                 <Ticket className="size-4" aria-hidden="true" />
                 {t('nav.offers')}

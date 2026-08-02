@@ -1,41 +1,41 @@
 import { cn } from '@/lib/utils';
 
 /**
- * The BIOCODE mark: a sequence tile plus the wordmark.
+ * The BIOCODE lockup: the Vitality Ring plus the wordmark.
  *
- * **The tile.** Four bars of unequal height on a carbon ground — a readout, a genome track, a
- * barcode. It says "this is measured" without a single literal reference to a leaf, a molecule
- * or a strand of DNA, all three of which every supplement brand already owns.
+ * **The geometry is the brand kit's, not an approximation.** These two arc paths are lifted
+ * verbatim from `public/brand/biocode-mark.svg` — same 100-unit radius, same 26-unit stroke, same
+ * sweep angles. A hand-redrawn navbar version is how a logo ends up subtly different in the one
+ * place every visitor sees it, and nobody notices until it is next to the real file.
  *
- * The bars are drawn, not lettered, for one practical reason: this has to survive at 16 px in a
- * browser tab and at 28 px here. Anything with interior detail turns to mud at that size, and a
- * mark you cannot use small is a mark you end up not using.
+ * The concept (brand kit `USAGE.md`): a near-complete forest ring whose lime segment is the last
+ * piece snapping into place — the daily dose completing the routine. The same ring is the loading
+ * spinner and the PDP rating arc (docs/04 §2), so the logo and the interface share one signature.
  *
- * **Static.** docs/04 §2 forbids animating the mark in the navbar. The accent does the attention
- * work; a moving logo only competes with the page.
+ * **Static.** docs/04 §2 forbids animating the mark in the navbar; `VitalityRing` is the animated
+ * one. The wordmark is Space Grotesk Medium via `font-display`, which the kit specifies and the
+ * site already loads — no new font licence.
  */
 export function BrandMark({ className }: { className?: string }) {
   return (
     <span className={cn('inline-flex items-center gap-2.5', className)}>
-      <svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true" className="shrink-0">
-        <rect width="28" height="28" rx="8" fill="var(--color-carbon-900)" />
-        {/*
-          Heights read low → high → mid → highest: a reading that resolves upward. Even bars
-          would read as a barcode and nothing else; uneven ones read as a change over time.
-        */}
-        <rect x="6" y="15" width="3" height="7" rx="1.5" fill="var(--color-signal-500)" />
-        <rect x="11" y="11" width="3" height="11" rx="1.5" fill="var(--color-signal-500)" />
-        <rect x="16" y="13" width="3" height="9" rx="1.5" fill="var(--color-signal-400)" />
-        <rect x="21" y="6" width="3" height="16" rx="1.5" fill="var(--color-signal-500)" />
+      <svg width="28" height="28" viewBox="0 0 254 254" aria-hidden="true" className="shrink-0">
+        <g transform="translate(127 127)" fill="none" strokeLinecap="round" strokeWidth="26">
+          <path d="M99.03 -13.92 A100 100 0 1 1 30.90 -95.11" stroke="var(--color-forest-800)" />
+          <path d="M65.61 -75.47 A100 100 0 0 1 85.72 -51.50" stroke="var(--color-lime-500)" />
+        </g>
       </svg>
 
       {/*
-        Tight tracking, one weight. The name is eight characters of one word, which is the whole
-        reason it works as a wordmark — it needs no lockup, no stacking and no abbreviation.
+        Space Grotesk **Medium** (500) at the font's **natural** tracking, and both halves were
+        measured off the kit rather than eyeballed: the letter origins in
+        `biocode-logo-primary.svg` sit ~67 units apart at a 100-unit em, which is Space Grotesk's
+        own advance width. The wordmark is not tracked out, so neither is this.
+
+        `text-forest-900` is `#123227` — the kit's wordmark colour, distinct from the `forest-800`
+        of the ring beside it. They are deliberately two different greens.
       */}
-      <span className="font-display text-xl leading-none font-semibold tracking-[-0.02em] text-carbon-900">
-        BIOCODE
-      </span>
+      <span className="font-display text-xl leading-none font-medium text-forest-900">BIOCODE</span>
     </span>
   );
 }

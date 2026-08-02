@@ -4,24 +4,6 @@
 
 BIOCODE is a multi-brand digital wellness marketplace for the Albanian-speaking world, launching in Kosovo and architected to expand to Albania, North Macedonia, Montenegro, the diaspora, and the wider EU. It combines a modern e-commerce experience with a wellness knowledge platform: customers buy supplements from multiple brands, understand ingredients, compare formulations, build routines, subscribe to repeat deliveries, and learn from evidence-informed content.
 
-**Brand line:** _Your biology has a code. Unlock your potential._
-**Campaign line:** _Unlock your biology._
-
-**The idea.** Every person's biology is a system — one that can be read, supported and improved
-with the right nutrition, supplementation and habits. BIOCODE sells the products, and just as
-importantly sells the _understanding_: what an ingredient does, at what dose, and why it is in
-your routine rather than somebody else's.
-
-That positioning has three consequences the rest of these documents inherit:
-
-1. **Transparency is the product, not a feature.** Full ingredient disclosure, %NRV, no
-   proprietary blends. A brand that claims biology is legible cannot hide what is in the bottle.
-2. **Personalisation is a readout, not a horoscope.** The finder's scoring is deterministic and
-   explains itself per product (docs/05 §10) — "for Better Sleep, the one you picked first",
-   never "our AI recommends".
-3. **Restraint in the voice.** Premium and clinical, never hype. Anything that reads as a health
-   claim is a compliance problem before it is a tone problem (docs/08 §7).
-
 **Vision:** become the most trusted online destination for health and wellness products in the Balkans through transparent product information, intelligent technology, outstanding customer experience, and evidence-informed education.
 
 **Mission:** empower customers to make better wellness decisions via trusted products, personalized recommendations, education, and a seamless shopping experience.
@@ -93,7 +75,7 @@ Enforcement is defense-in-depth: RLS policies (docs/03 §9) + admin layout guard
 
 ## 6. Brand snapshot (full system in docs/04)
 
-Name **BIOCODE** (from Albanian _shëndet_ — health). Personality: friendly, professional, modern, transparent, energetic, trustworthy, educational, innovative. Voice: simple, helpful, evidence-informed, never exaggerated or misleading, warm, positive, clear — in both sq and en. Visual: deep carbon green + warm white + charcoal + soft gray + accent signal; Inter / Manrope / Space Grotesk; 12–16 px radii; minimal, premium, Apple-level spacing, subtle motion.
+Name **BIOCODE** — every person's biology is a system that can be read, supported and optimised. Primary tagline: _"Your biology has a code. Unlock your potential."_ Campaign line: _"Unlock your biology."_ The identity is the **Vitality Ring** (docs/04 §2): a near-complete forest ring whose lime segment is the last piece snapping in — the daily dose completing the routine. Assets and rules in `public/brand/USAGE.md`. Personality: friendly, professional, modern, transparent, energetic, trustworthy, educational, innovative. Voice: simple, helpful, evidence-informed, never exaggerated or misleading, warm, positive, clear — in both sq and en. Visual: deep forest green + warm white + charcoal + soft gray + accent lime; Inter / Manrope / Space Grotesk; 12–16 px radii; minimal, premium, Apple-level spacing, subtle motion.
 
 ## 7. Guiding UX principle
 

@@ -107,7 +107,7 @@ export function TaxonomyAdmin({
         <table className="w-full min-w-[36rem] border-collapse text-sm">
           <caption className="sr-only">All {config.title.toLowerCase()}</caption>
           <thead>
-            <tr className="border-b border-line bg-carbon-50 text-left">
+            <tr className="border-b border-line bg-forest-50 text-left">
               {['Name', 'Slug', config.usageLabel, 'State'].map((heading) => (
                 <th
                   key={heading}
@@ -213,7 +213,7 @@ function TaxonomyListRow({
       </tr>
       {isOpen && (
         <tr>
-          <td colSpan={5} className="border-b border-line bg-carbon-50/40 p-3">
+          <td colSpan={5} className="border-b border-line bg-forest-50/40 p-3">
             <TaxonomyForm
               kind={kind}
               row={row}
@@ -259,7 +259,7 @@ function TaxonomyForm({
 
   return (
     <div className="rounded-lg border border-line-strong bg-surface p-4">
-      <h2 className="font-display text-sm font-semibold text-carbon-900">
+      <h2 className="font-display text-sm font-semibold text-forest-900">
         {row ? `Edit ${row.nameSq || row.slug}` : `New ${config.singular}`}
       </h2>
 

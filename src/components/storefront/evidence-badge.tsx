@@ -17,10 +17,10 @@ function isEvidenceLevel(value: unknown): value is EvidenceLevel {
  * different kind of claim, and colouring it as a warning would misrepresent it.
  */
 const TONE: Record<EvidenceLevel, string> = {
-  strong: 'border-carbon-500/40 bg-carbon-50 text-carbon-800',
-  moderate: 'border-carbon-500/30 bg-carbon-50/70 text-carbon-700',
-  emerging: 'border-line-strong bg-bone text-ink-600',
-  traditional: 'border-line-strong bg-bone text-ink-600',
+  strong: 'border-forest-500/40 bg-forest-50 text-forest-800',
+  moderate: 'border-forest-500/30 bg-forest-50/70 text-forest-700',
+  emerging: 'border-line-strong bg-cream text-ink-600',
+  traditional: 'border-line-strong bg-cream text-ink-600',
 };
 
 export function EvidenceBadge({

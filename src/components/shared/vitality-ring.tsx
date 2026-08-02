@@ -1,6 +1,6 @@
 import { cn } from '@/lib/utils';
 
-interface SignalRingProps {
+interface VitalityRingProps {
   /** 0–1. The arc fills proportionally. */
   value?: number;
   size?: number;
@@ -24,17 +24,17 @@ interface SignalRingProps {
  * appears above the fold on Home, PLP and PDP; animating it with Framer would put ~40 kB
  * of client JS on the critical path of every one of those routes and blow the 170 kB
  * budget in docs/09 §3 before any product markup exists. The draw-in is identical —
- * `@keyframes signal-draw` in globals.css, 400 ms, ease-out-quint — and the global
+ * `@keyframes vitality-draw` in globals.css, 400 ms, ease-out-quint — and the global
  * `prefers-reduced-motion` rule already neutralises it.
  */
-export function SignalRing({
+export function VitalityRing({
   value = 1,
   size = 48,
   strokeWidth = 4,
   className,
   label,
   animate = true,
-}: SignalRingProps) {
+}: VitalityRingProps) {
   const clamped = Math.min(1, Math.max(0, value));
   const radius = (size - strokeWidth) / 2;
   const center = size / 2;
@@ -56,7 +56,7 @@ export function SignalRing({
         cy={center}
         r={radius}
         fill="none"
-        stroke="var(--color-carbon-100)"
+        stroke="var(--color-forest-100)"
         strokeWidth={strokeWidth}
       />
       <circle
@@ -64,7 +64,7 @@ export function SignalRing({
         cy={center}
         r={radius}
         fill="none"
-        stroke="var(--color-signal-500)"
+        stroke="var(--color-lime-500)"
         strokeWidth={strokeWidth}
         strokeLinecap="round"
         transform={`rotate(-90 ${center} ${center})`}
@@ -75,7 +75,7 @@ export function SignalRing({
             ? {
                 ['--ring-circumference' as string]: `${circumference}`,
                 ['--ring-offset-target' as string]: `${targetOffset}`,
-                animation: 'signal-draw var(--duration-page) var(--ease-biocode) both',
+                animation: 'vitality-draw var(--duration-page) var(--ease-biocode) both',
               }
             : {}),
         }}

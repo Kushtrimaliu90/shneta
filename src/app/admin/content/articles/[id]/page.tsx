@@ -16,7 +16,7 @@ export default async function EditArticlePage({ params }: Props) {
 
   return (
     <section>
-      <h2 className="mb-4 font-display text-lg font-semibold text-carbon-900">
+      <h2 className="mb-4 font-display text-lg font-semibold text-forest-900">
         {article.title.sq || article.slug}
       </h2>
       <ArticleEditor article={article} options={options} />

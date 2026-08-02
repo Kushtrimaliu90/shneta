@@ -57,7 +57,7 @@ export function ShippingAdmin({ rows }: { rows: ShippingMethodRow[] }) {
       {rows.length === 0 ? (
         <div className="rounded-lg border border-dashed border-line-strong bg-surface p-10 text-center">
           <Truck className="mx-auto size-6 text-ink-500" aria-hidden="true" />
-          <p className="mt-2 font-medium text-carbon-900">No shipping methods</p>
+          <p className="mt-2 font-medium text-forest-900">No shipping methods</p>
           <p className="mt-1.5 text-sm text-ink-600">
             Checkout cannot be completed without one. Add the courier you use.
           </p>
@@ -102,7 +102,7 @@ export function ShippingAdmin({ rows }: { rows: ShippingMethodRow[] }) {
               </div>
 
               {editing !== 'new' && editing?.id === row.id && (
-                <div className={cn('border-t border-line bg-carbon-50/60 p-4')}>
+                <div className={cn('border-t border-line bg-forest-50/60 p-4')}>
                   <MethodForm
                     method={row}
                     nextPosition={row.position}

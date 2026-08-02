@@ -64,15 +64,15 @@ export function MarkdownBody({ markdown, className }: { markdown: string; classN
         // docs/04 §5 — prose styling lives here rather than in a plugin, so the rhythm matches
         // the rest of the site instead of Tailwind Typography's own scale.
         'flex flex-col gap-4 text-ink-900',
-        '[&_h2]:mt-8 [&_h2]:font-display [&_h2]:text-2xl [&_h2]:font-semibold [&_h2]:text-carbon-900',
-        '[&_h3]:mt-6 [&_h3]:font-display [&_h3]:text-xl [&_h3]:font-semibold [&_h3]:text-carbon-900',
-        '[&_h4]:mt-4 [&_h4]:font-medium [&_h4]:text-carbon-900',
+        '[&_h2]:mt-8 [&_h2]:font-display [&_h2]:text-2xl [&_h2]:font-semibold [&_h2]:text-forest-900',
+        '[&_h3]:mt-6 [&_h3]:font-display [&_h3]:text-xl [&_h3]:font-semibold [&_h3]:text-forest-900',
+        '[&_h4]:mt-4 [&_h4]:font-medium [&_h4]:text-forest-900',
         '[&_p]:leading-relaxed [&_p]:text-ink-600',
         '[&_ul]:flex [&_ul]:list-disc [&_ul]:flex-col [&_ul]:gap-1.5 [&_ul]:pl-5 [&_ul]:text-ink-600',
         '[&_ol]:flex [&_ol]:list-decimal [&_ol]:flex-col [&_ol]:gap-1.5 [&_ol]:pl-5 [&_ol]:text-ink-600',
-        '[&_a]:rounded-sm [&_a]:text-carbon-800 [&_a]:underline [&_a]:underline-offset-4',
+        '[&_a]:rounded-sm [&_a]:text-forest-800 [&_a]:underline [&_a]:underline-offset-4',
         '[&_strong]:font-semibold [&_strong]:text-ink-900',
-        '[&_blockquote]:border-l-2 [&_blockquote]:border-carbon-800 [&_blockquote]:bg-carbon-50 [&_blockquote]:px-4 [&_blockquote]:py-3 [&_blockquote]:text-ink-600',
+        '[&_blockquote]:border-l-2 [&_blockquote]:border-forest-800 [&_blockquote]:bg-forest-50 [&_blockquote]:px-4 [&_blockquote]:py-3 [&_blockquote]:text-ink-600',
         '[&_hr]:border-line',
         '[&_img]:rounded-lg [&_img]:border [&_img]:border-line',
         // Tables scroll rather than overflow the page on a 360 px screen (docs/04 §8).

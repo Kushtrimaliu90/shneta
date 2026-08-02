@@ -67,7 +67,7 @@ export default async function IngredientPage({ params }: Props) {
           <li>
             <Link
               href="/ingredients"
-              className="rounded-sm underline underline-offset-4 hover:text-carbon-700"
+              className="rounded-sm underline underline-offset-4 hover:text-forest-700"
             >
               {t('ingredients.title')}
             </Link>
@@ -82,7 +82,7 @@ export default async function IngredientPage({ params }: Props) {
       <div className="grid gap-12 lg:grid-cols-3">
         <div className="lg:col-span-2">
           <div className="flex flex-wrap items-center gap-3">
-            <h1 className="font-display text-3xl font-semibold text-carbon-900 lg:text-4xl">
+            <h1 className="font-display text-3xl font-semibold text-forest-900 lg:text-4xl">
               {name}
             </h1>
             <EvidenceBadge evidence={ingredient.evidence} />
@@ -102,7 +102,7 @@ export default async function IngredientPage({ params }: Props) {
 
           {pickLocale(ingredient.benefits, locale) && (
             <section className="mt-10">
-              <h2 className="font-display text-xl font-semibold text-carbon-900">
+              <h2 className="font-display text-xl font-semibold text-forest-900">
                 {t('ingredients.benefits')}
               </h2>
               <p className="mt-3 leading-relaxed text-ink-600">
@@ -113,7 +113,7 @@ export default async function IngredientPage({ params }: Props) {
 
           {pickLocale(ingredient.dosageNotes, locale) && (
             <section className="mt-10">
-              <h2 className="font-display text-xl font-semibold text-carbon-900">
+              <h2 className="font-display text-xl font-semibold text-forest-900">
                 {t('ingredients.dosage')}
               </h2>
               <p className="mt-3 leading-relaxed text-ink-600">
@@ -142,7 +142,7 @@ export default async function IngredientPage({ params }: Props) {
       </div>
 
       <section className="mt-16">
-        <h2 className="font-display text-2xl font-semibold text-carbon-900">
+        <h2 className="font-display text-2xl font-semibold text-forest-900">
           {t('ingredients.productsContaining', { name })}
         </h2>
 

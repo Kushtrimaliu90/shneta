@@ -43,14 +43,14 @@ export default async function AdminCustomerPage({ params }: Props) {
     <div className="max-w-4xl">
       <Link
         href="/admin/customers"
-        className="text-sm text-carbon-800 underline underline-offset-4"
+        className="text-sm text-forest-800 underline underline-offset-4"
       >
         ← All customers
       </Link>
 
       <div className="mt-3 flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="font-display text-2xl font-semibold text-carbon-900">
+          <h1 className="font-display text-2xl font-semibold text-forest-900">
             {customer.fullName || customer.email}
           </h1>
           <p className="mt-1 text-sm text-ink-600">
@@ -72,7 +72,7 @@ export default async function AdminCustomerPage({ params }: Props) {
         */}
         <a
           href={`/admin/customers/${customer.id}/export`}
-          className="inline-flex h-9 items-center gap-1.5 rounded-sm border border-line-strong px-3 text-sm text-ink-900 hover:bg-carbon-50"
+          className="inline-flex h-9 items-center gap-1.5 rounded-sm border border-line-strong px-3 text-sm text-ink-900 hover:bg-forest-50"
         >
           <Download className="size-4" aria-hidden="true" />
           Export data (JSON)
@@ -80,7 +80,7 @@ export default async function AdminCustomerPage({ params }: Props) {
       </div>
 
       {customer.deletedAt && (
-        <p className="mt-4 rounded-lg border border-line-strong bg-bone p-3 text-sm text-ink-900">
+        <p className="mt-4 rounded-lg border border-line-strong bg-cream p-3 text-sm text-ink-900">
           This customer&rsquo;s data was erased on{' '}
           <span data-numeric>{customer.deletedAt.slice(0, 10)}</span>. What is left is the
           commercial record.
@@ -96,7 +96,7 @@ export default async function AdminCustomerPage({ params }: Props) {
         ].map((stat) => (
           <div key={stat.label} className="rounded-lg border border-line bg-surface p-3">
             <dt className="font-ui text-xs text-ink-600 uppercase">{stat.label}</dt>
-            <dd className="mt-1 font-display text-xl font-semibold text-carbon-900" data-numeric>
+            <dd className="mt-1 font-display text-xl font-semibold text-forest-900" data-numeric>
               {stat.value}
             </dd>
           </div>
@@ -112,7 +112,7 @@ export default async function AdminCustomerPage({ params }: Props) {
               <li key={order.id} className="flex items-center justify-between gap-3 text-sm">
                 <Link
                   href={`/admin/orders/${order.id}`}
-                  className="rounded-sm text-carbon-800 underline underline-offset-4"
+                  className="rounded-sm text-forest-800 underline underline-offset-4"
                   data-numeric
                 >
                   {order.orderNumber}
@@ -142,7 +142,7 @@ export default async function AdminCustomerPage({ params }: Props) {
                 <p className="font-medium text-ink-900">
                   {address.recipientName}
                   {address.isDefaultShipping && (
-                    <span className="ml-2 rounded-sm bg-carbon-100 px-1.5 py-0.5 font-ui text-[11px] font-semibold text-carbon-900">
+                    <span className="ml-2 rounded-sm bg-forest-100 px-1.5 py-0.5 font-ui text-[11px] font-semibold text-forest-900">
                       Default
                     </span>
                   )}

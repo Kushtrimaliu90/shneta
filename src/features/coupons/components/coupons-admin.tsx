@@ -74,7 +74,7 @@ export function CouponsAdmin({ rows, canManage }: { rows: CouponRow[]; canManage
       {rows.length === 0 ? (
         <div className="mt-6 rounded-lg border border-dashed border-line-strong bg-surface p-10 text-center">
           <Ticket className="mx-auto size-6 text-ink-500" aria-hidden="true" />
-          <p className="mt-2 font-medium text-carbon-900">No coupons yet</p>
+          <p className="mt-2 font-medium text-forest-900">No coupons yet</p>
           <p className="mt-1.5 text-sm text-ink-600">
             Create one and it becomes claimable on the offers page — unless you leave it inactive.
           </p>
@@ -89,7 +89,7 @@ export function CouponsAdmin({ rows, canManage }: { rows: CouponRow[]; canManage
           <table className="w-full min-w-[52rem] border-collapse text-sm">
             <caption className="sr-only">Coupons</caption>
             <thead>
-              <tr className="border-b border-line bg-carbon-50 text-left">
+              <tr className="border-b border-line bg-forest-50 text-left">
                 {['Code', 'Discount', 'Conditions', 'Window', 'Used', 'Status', ''].map((h) => (
                   <th
                     key={h}
@@ -215,7 +215,7 @@ function CouponRowView({
       )}
 
       {isEditing && (
-        <tr className="border-b border-line bg-carbon-50/60">
+        <tr className="border-b border-line bg-forest-50/60">
           <td colSpan={7} className="px-4 py-4">
             <CouponForm coupon={row} onDone={onDone} />
           </td>

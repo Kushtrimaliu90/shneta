@@ -32,7 +32,7 @@ export default async function AddressesPage({ params }: Props) {
 
   return (
     <div>
-      <h2 className="font-display text-xl font-semibold text-carbon-900">{t('title')}</h2>
+      <h2 className="font-display text-xl font-semibold text-forest-900">{t('title')}</h2>
       <p className="mt-1 mb-5 text-sm text-ink-600">{t('intro')}</p>
 
       <AddressBook addresses={addresses} />

@@ -51,22 +51,22 @@ export default async function CheckoutSuccessPage({ params }: Props) {
       <div className="mx-auto max-w-2xl">
         <div className="text-center">
           <CheckCircle2 className="mx-auto size-12 text-success" aria-hidden="true" />
-          <h1 className="mt-5 font-display text-3xl font-semibold text-carbon-900">
+          <h1 className="mt-5 font-display text-3xl font-semibold text-forest-900">
             {t('order.successTitle')}
           </h1>
           <p className="mt-3 text-ink-600">{t('order.successBody')}</p>
 
           <p className="mt-6 inline-block rounded-md border border-line bg-surface px-4 py-2.5">
             <span className="block eyebrow">{t('order.orderNumber')}</span>
-            <span className="font-display text-lg font-semibold text-carbon-900" data-numeric>
+            <span className="font-display text-lg font-semibold text-forest-900" data-numeric>
               {order.orderNumber}
             </span>
           </p>
         </div>
 
         {/* docs/05 §12 — COD amount to prepare, stated plainly and early. */}
-        <div className="mt-8 rounded-lg bg-carbon-50 p-5 text-center">
-          <p className="font-medium text-carbon-900">{t('order.codHeading')}</p>
+        <div className="mt-8 rounded-lg bg-forest-50 p-5 text-center">
+          <p className="font-medium text-forest-900">{t('order.codHeading')}</p>
           <p className="mt-1 text-sm text-ink-600">
             {t('order.codBody', { amount: formatPrice(order.totalCents, locale) })}
           </p>

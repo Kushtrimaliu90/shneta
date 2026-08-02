@@ -85,8 +85,8 @@ export function AccountNav() {
                 className={cn(
                   'flex min-h-11 items-center gap-2.5 rounded-md px-3 text-sm whitespace-nowrap transition-colors',
                   isActive
-                    ? 'bg-carbon-100 font-medium text-carbon-900'
-                    : 'text-ink-600 hover:bg-carbon-50 hover:text-carbon-800',
+                    ? 'bg-forest-100 font-medium text-forest-900'
+                    : 'text-ink-600 hover:bg-forest-50 hover:text-forest-800',
                 )}
               >
                 <item.icon className="size-4 shrink-0" aria-hidden="true" />

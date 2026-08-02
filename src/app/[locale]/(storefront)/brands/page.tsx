@@ -41,7 +41,7 @@ export default async function BrandsPage({ params }: Props) {
 
   return (
     <div className="container-page py-8 lg:py-12">
-      <h1 className="font-display text-3xl font-semibold text-carbon-900 lg:text-4xl">
+      <h1 className="font-display text-3xl font-semibold text-forest-900 lg:text-4xl">
         {t('title')}
       </h1>
       <p className="mt-3 max-w-2xl text-ink-600">{t('intro')}</p>
@@ -54,7 +54,7 @@ export default async function BrandsPage({ params }: Props) {
             <section key={letter} aria-labelledby={`brand-group-${letter}`}>
               <h2
                 id={`brand-group-${letter}`}
-                className="border-b border-line pb-2 font-display text-xl font-semibold text-carbon-900"
+                className="border-b border-line pb-2 font-display text-xl font-semibold text-forest-900"
               >
                 {letter}
               </h2>
@@ -63,7 +63,7 @@ export default async function BrandsPage({ params }: Props) {
                   <li key={brand.slug}>
                     <Link
                       href={`/brands/${brand.slug}`}
-                      className="flex min-h-16 items-center justify-between gap-3 rounded-lg border border-line bg-surface px-4 transition-colors hover:border-carbon-500"
+                      className="flex min-h-16 items-center justify-between gap-3 rounded-lg border border-line bg-surface px-4 transition-colors hover:border-forest-500"
                     >
                       <span className="font-medium text-ink-900">{brand.name}</span>
                       {brand.country_code && (

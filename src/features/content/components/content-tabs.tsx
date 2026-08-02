@@ -33,8 +33,8 @@ export function ContentTabs() {
             className={cn(
               'inline-flex min-h-9 items-center rounded-sm border px-3 text-sm transition-colors',
               active
-                ? 'border-carbon-800 bg-carbon-100 font-medium text-carbon-900'
-                : 'border-line-strong text-ink-600 hover:bg-carbon-50',
+                ? 'border-forest-800 bg-forest-100 font-medium text-forest-900'
+                : 'border-line-strong text-ink-600 hover:bg-forest-50',
             )}
           >
             {tab.label}

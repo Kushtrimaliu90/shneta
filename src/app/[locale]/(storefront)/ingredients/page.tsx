@@ -44,7 +44,7 @@ export default async function IngredientsPage({ params }: Props) {
 
   return (
     <div className="container-page py-8 lg:py-12">
-      <h1 className="font-display text-3xl font-semibold text-carbon-900 lg:text-4xl">
+      <h1 className="font-display text-3xl font-semibold text-forest-900 lg:text-4xl">
         {t('title')}
       </h1>
       <p className="mt-3 max-w-2xl text-ink-600">{t('intro')}</p>
@@ -57,7 +57,7 @@ export default async function IngredientsPage({ params }: Props) {
             <section key={category} aria-labelledby={`ingredient-group-${category}`}>
               <h2
                 id={`ingredient-group-${category}`}
-                className="border-b border-line pb-2 font-display text-xl font-semibold text-carbon-900"
+                className="border-b border-line pb-2 font-display text-xl font-semibold text-forest-900"
               >
                 {t(`categories.${category}`)}
               </h2>
@@ -66,7 +66,7 @@ export default async function IngredientsPage({ params }: Props) {
                   <li key={ingredient.slug}>
                     <Link
                       href={`/ingredients/${ingredient.slug}`}
-                      className="flex flex-col gap-1.5 rounded-lg border border-line bg-surface p-4 transition-colors hover:border-carbon-500"
+                      className="flex flex-col gap-1.5 rounded-lg border border-line bg-surface p-4 transition-colors hover:border-forest-500"
                     >
                       <span className="flex flex-wrap items-center gap-2">
                         <span className="font-medium text-ink-900">

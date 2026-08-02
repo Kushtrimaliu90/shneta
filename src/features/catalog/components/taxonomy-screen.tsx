@@ -31,7 +31,7 @@ export async function TaxonomyScreen({
 
   return (
     <div>
-      <h1 className="font-display text-2xl font-semibold text-carbon-900">{config.title}</h1>
+      <h1 className="font-display text-2xl font-semibold text-forest-900">{config.title}</h1>
       <p className="mt-1 max-w-2xl text-sm text-ink-600">{config.intro}</p>
 
       <p className="mt-2 text-xs text-ink-600">

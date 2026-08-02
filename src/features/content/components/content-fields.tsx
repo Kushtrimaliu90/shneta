@@ -152,7 +152,7 @@ export function RelatedPicker({
   return (
     <fieldset className="mt-4">
       <legend className={labelClass}>{label}</legend>
-      <div className="mt-1 flex max-h-40 flex-wrap gap-x-4 gap-y-1.5 overflow-y-auto rounded-sm border border-line bg-bone p-2.5">
+      <div className="mt-1 flex max-h-40 flex-wrap gap-x-4 gap-y-1.5 overflow-y-auto rounded-sm border border-line bg-cream p-2.5">
         {options.map((option) => (
           <label key={option.id} className="flex items-center gap-1.5 text-sm text-ink-900">
             <input

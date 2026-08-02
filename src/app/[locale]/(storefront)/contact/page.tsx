@@ -32,7 +32,7 @@ export default async function ContactPage({ params }: Props) {
   return (
     <div className="container-page py-8 lg:py-12">
       <header className="mb-8">
-        <h1 className="font-display text-3xl font-semibold text-carbon-900 lg:text-4xl">
+        <h1 className="font-display text-3xl font-semibold text-forest-900 lg:text-4xl">
           {t('title')}
         </h1>
         <p className="mt-2 max-w-2xl text-ink-600">{t('intro')}</p>
@@ -50,10 +50,10 @@ export default async function ContactPage({ params }: Props) {
           <ul className="mt-3 flex flex-col gap-3 text-sm">
             {store.email && (
               <li className="flex items-center gap-2">
-                <Mail className="size-4 shrink-0 text-carbon-800" aria-hidden="true" />
+                <Mail className="size-4 shrink-0 text-forest-800" aria-hidden="true" />
                 <a
                   href={`mailto:${store.email}`}
-                  className="rounded-sm text-carbon-800 underline underline-offset-4"
+                  className="rounded-sm text-forest-800 underline underline-offset-4"
                 >
                   {store.email}
                 </a>
@@ -61,10 +61,10 @@ export default async function ContactPage({ params }: Props) {
             )}
             {store.phone && (
               <li className="flex items-center gap-2">
-                <Phone className="size-4 shrink-0 text-carbon-800" aria-hidden="true" />
+                <Phone className="size-4 shrink-0 text-forest-800" aria-hidden="true" />
                 <a
                   href={`tel:${store.phone.replace(/\s/g, '')}`}
-                  className="rounded-sm text-carbon-800 underline underline-offset-4"
+                  className="rounded-sm text-forest-800 underline underline-offset-4"
                   data-numeric
                 >
                   {store.phone}
@@ -72,7 +72,7 @@ export default async function ContactPage({ params }: Props) {
               </li>
             )}
             <li className="flex items-center gap-2 text-ink-600">
-              <Clock className="size-4 shrink-0 text-carbon-800" aria-hidden="true" />
+              <Clock className="size-4 shrink-0 text-forest-800" aria-hidden="true" />
               {t('hours')}
             </li>
           </ul>

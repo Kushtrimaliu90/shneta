@@ -26,7 +26,7 @@ export function ProductImage({
   if (!path) {
     return (
       <div
-        className={cn('flex items-center justify-center bg-carbon-50', className)}
+        className={cn('flex items-center justify-center bg-forest-50', className)}
         // Decorative: the product name is always adjacent in the card and on the PDP.
         aria-hidden="true"
       >
@@ -36,13 +36,13 @@ export function ProductImage({
             cy="24"
             r="18"
             fill="none"
-            stroke="var(--color-carbon-500)"
+            stroke="var(--color-forest-500)"
             strokeWidth="2.5"
             strokeDasharray="113"
             strokeDashoffset="34"
             transform="rotate(-90 24 24)"
           />
-          <circle cx="24" cy="24" r="7" fill="var(--color-carbon-500)" />
+          <circle cx="24" cy="24" r="7" fill="var(--color-forest-500)" />
         </svg>
       </div>
     );

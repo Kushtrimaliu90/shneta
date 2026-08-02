@@ -33,7 +33,7 @@ export default async function GoalsPage({ params }: Props) {
 
   return (
     <div className="container-page py-8 lg:py-12">
-      <h1 className="font-display text-3xl font-semibold text-carbon-900 lg:text-4xl">
+      <h1 className="font-display text-3xl font-semibold text-forest-900 lg:text-4xl">
         {t('title')}
       </h1>
       <p className="mt-3 max-w-2xl text-ink-600">{t('intro')}</p>
@@ -46,7 +46,7 @@ export default async function GoalsPage({ params }: Props) {
             <li key={goal.slug}>
               <Link
                 href={`/goals/${goal.slug}`}
-                className="flex min-h-28 flex-col justify-end rounded-lg border border-line bg-surface p-4 transition-colors hover:border-carbon-500"
+                className="flex min-h-28 flex-col justify-end rounded-lg border border-line bg-surface p-4 transition-colors hover:border-forest-500"
               >
                 <span className="font-medium text-ink-900">{pickLocale(goal.name, locale)}</span>
                 {pickLocale(goal.tagline, locale) && (

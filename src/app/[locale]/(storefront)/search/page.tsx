@@ -77,7 +77,7 @@ export default async function SearchPage({ params, searchParams }: Props) {
 
   return (
     <div className="container-page py-8 lg:py-12">
-      <h1 className="font-display text-3xl font-semibold text-carbon-900">
+      <h1 className="font-display text-3xl font-semibold text-forest-900">
         {t('resultsFor', { query: q })}
       </h1>
 
@@ -97,7 +97,7 @@ export default async function SearchPage({ params, searchParams }: Props) {
         <div className="mt-6 flex flex-col gap-10">
           {products.items.length > 0 && (
             <section>
-              <h2 className="font-display text-xl font-semibold text-carbon-900">
+              <h2 className="font-display text-xl font-semibold text-forest-900">
                 {t('tabs.products')}{' '}
                 <span className="font-ui text-sm font-normal text-ink-500" data-numeric>
                   {products.total}
@@ -130,7 +130,7 @@ export default async function SearchPage({ params, searchParams }: Props) {
 
           {ingredients.length > 0 && (
             <section>
-              <h2 className="font-display text-xl font-semibold text-carbon-900">
+              <h2 className="font-display text-xl font-semibold text-forest-900">
                 {t('tabs.ingredients')}{' '}
                 <span className="font-ui text-sm font-normal text-ink-500" data-numeric>
                   {ingredients.length}
@@ -141,7 +141,7 @@ export default async function SearchPage({ params, searchParams }: Props) {
                   <li key={ingredient.slug}>
                     <Link
                       href={`/ingredients/${ingredient.slug}`}
-                      className="inline-flex rounded-sm border border-line bg-surface px-3 py-1.5 text-sm text-ink-900 hover:bg-carbon-50"
+                      className="inline-flex rounded-sm border border-line bg-surface px-3 py-1.5 text-sm text-ink-900 hover:bg-forest-50"
                     >
                       {pickLocale(ingredient.name, locale)}
                     </Link>

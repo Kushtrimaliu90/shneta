@@ -72,8 +72,8 @@ export function WishlistButton({
       className={cn(
         'inline-flex items-center gap-1.5 rounded-md transition-colors',
         variant === 'icon'
-          ? 'size-9 justify-center bg-surface/90 text-carbon-800 hover:bg-surface'
-          : 'h-11 px-3 text-sm font-medium text-carbon-800 hover:bg-carbon-50',
+          ? 'size-9 justify-center bg-surface/90 text-forest-800 hover:bg-surface'
+          : 'h-11 px-3 text-sm font-medium text-forest-800 hover:bg-forest-50',
         className,
       )}
     >

@@ -1,85 +1,63 @@
 @import 'tailwindcss';
 
 /* ==========================================================================
-   BIOCODE design tokens — docs/04 §3–§5, with the AA corrections from
-   docs/13 §C, §Q4 and §Q6. Components use tokens only; no arbitrary hex, ever
-   (CLAUDE.md §9). Dark mode is explicitly out of scope for v1 (docs/04 §3).
-
-   Every value below was checked against `tests/unit/contrast.test.ts` before it
-   was written, not after. That suite is the specification for this file.
+   BIOCODE design tokens — docs/04 §3–§5, with the three AA corrections from
+   docs/13 §C. Components use tokens only; no arbitrary hex, ever (CLAUDE.md §9).
+   Dark mode is explicitly out of scope for v1 (docs/04 §3).
    ========================================================================== */
 
 @theme {
-  /*
-   * --- Carbon: the primary ramp -----------------------------------------
-   *
-   * Deep blue-graphite. Carbon is the backbone of every organic molecule, which
-   * is the one chemistry joke this brand is allowed, and the colour does the
-   * work the name implies: an instrument panel rather than a herb garden.
-   */
-  --color-carbon-950: #060b10;
-  --color-carbon-900: #0d1620;
-  --color-carbon-800: #16232f;
-  --color-carbon-700: #1f3040;
-  --color-carbon-600: #2c4257;
-  /* Graphics-only: 3.98:1 on carbon-50 clears SC 1.4.11 and misses AA text. */
-  --color-carbon-500: #607a96;
-  --color-carbon-100: #dce4eb;
-  --color-carbon-50: #eef3f7;
+  /* --- Forest: primary brand ramp ------------------------------------- */
+  --color-forest-950: #0b241b;
+  --color-forest-900: #123227;
+  --color-forest-800: #1c4636;
+  --color-forest-700: #245741;
+  --color-forest-600: #2e6b50;
+  --color-forest-500: #3b8465;
+  --color-forest-100: #dceee4;
+  --color-forest-50: #f0f7f3;
 
-  /*
-   * --- Signal: the accent. One per viewport (docs/04 §1) -----------------
-   *
-   * Electric aqua — a readout, a live reading, the thing your eye goes to on a
-   * dark instrument. It is a *fill*, never text on light: 1.50:1 on bone, which
-   * the contrast suite asserts so nobody tries.
-   */
-  --color-signal-500: #2ee6c5;
-  --color-signal-400: #7cf2dc;
-  --color-signal-950: #04231d;
+  /* --- Lime: the accent. One per viewport (docs/04 §1). ---------------- */
+  --color-lime-500: #a3e635;
+  --color-lime-400: #bef264;
+  --color-lime-950: #1a2e05;
 
   /* --- Neutrals -------------------------------------------------------- */
-  /* Cool paper, not warm cream. The whole ramp shifted blue with the brand. */
-  --color-bone: #f7f9fa;
+  --color-cream: #faf9f5;
   --color-surface: #ffffff;
-  --color-ink-900: #12181d;
-  --color-ink-600: #4f5960;
+  --color-ink-900: #1b1e1c;
+  --color-ink-600: #565e59;
 
   /*
-   * docs/13 §C — `ink-400` measures 2.46:1 on bone and cannot carry text.
-   * It is retained for decorative and disabled use only. `ink-500` (4.60:1)
-   * is the token for eyebrows, meta, captions and helper text — and per §Q4
-   * it must **not** be used on either tint. Tints take `ink-600`.
+   * docs/13 §C — `ink-400` measures 2.96:1 on cream and cannot carry text.
+   * It is retained for decorative and disabled use only. `ink-500` (4.58:1)
+   * is the token for eyebrows, meta, captions and helper text.
    */
-  --color-ink-500: #68737b;
-  --color-ink-400: #98a2a9;
+  --color-ink-500: #6b746f;
+  --color-ink-400: #8b948e;
 
   /*
    * `line` (1.17:1) is a decorative divider. Anything that is a control
    * boundary — inputs, checkboxes, radios, segmented controls — uses
-   * `line-strong` (3.89:1) to satisfy WCAG SC 1.4.11.
+   * `line-strong` (3.92:1) to satisfy WCAG SC 1.4.11.
    */
-  --color-line: #e3e8ec;
-  --color-line-strong: #737f87;
+  --color-line: #e6e8e4;
+  --color-line-strong: #767f79;
 
-  /*
-   * The focus ring carries contrast in carbon, never in signal: the accent is
-   * 1.50:1 on bone and would be an invisible focus indicator (docs/13 §C).
-   */
-  --color-focus: #1f3040;
+  /* Focus indicator carries contrast in forest, brand in lime (docs/13 §C). */
+  --color-focus: #245741;
 
   /* --- Semantic -------------------------------------------------------- */
-  /* Success shifted teal with the brand; the other three are unchanged. */
-  --color-success: #0e7c5a;
+  --color-success: #2e7d4f;
   --color-warning: #b45309;
   --color-error: #b3261e;
   --color-info: #1d4ed8;
 
   /* --- Aliases used by shadcn primitives -------------------------------- */
-  --color-background: var(--color-bone);
+  --color-background: var(--color-cream);
   --color-foreground: var(--color-ink-900);
   --color-card: var(--color-surface);
-  --color-muted: var(--color-carbon-50);
+  --color-muted: var(--color-forest-50);
   --color-muted-foreground: var(--color-ink-500);
   --color-border: var(--color-line);
   --color-input: var(--color-line-strong);
@@ -106,10 +84,9 @@
   --radius-lg: 16px;
   --radius-xl: 24px;
 
-  /* Shadow tint follows the ramp: a blue-cast shadow under a blue-cast palette. */
-  --shadow-sm: 0 1px 2px rgb(6 11 16 / 0.06);
-  --shadow-md: 0 6px 20px rgb(6 11 16 / 0.08);
-  --shadow-lg: 0 16px 40px rgb(6 11 16 / 0.12);
+  --shadow-sm: 0 1px 2px rgb(20 30 25 / 0.06);
+  --shadow-md: 0 6px 20px rgb(20 30 25 / 0.08);
+  --shadow-lg: 0 16px 40px rgb(20 30 25 / 0.12);
 
   /* --- Motion (docs/04 §8) ---------------------------------------------- */
   --ease-biocode: cubic-bezier(0.16, 1, 0.3, 1);
@@ -152,16 +129,16 @@
     font-weight: 500;
     line-height: 1.15;
     letter-spacing: -0.01em;
-    color: var(--color-carbon-900);
+    color: var(--color-forest-900);
     text-wrap: balance;
   }
 
   /*
-   * docs/04 §10 + docs/13 §C. A lone signal ring measures 1.50:1 on bone and is
+   * docs/04 §10 + docs/13 §C. A lone lime ring measures 1.43:1 on cream and is
    * effectively invisible. Composition, outward from the element edge:
-   *   0–2px  bone gap     (separates the ring from the control)
-   *   2–4px  carbon-700   (12.79:1 — this is what satisfies SC 1.4.11)
-   *   4–6px  signal-400   (brand)
+   *   0–2px  cream gap    (separates the ring from the control)
+   *   2–4px  forest-700   (7.92:1 — this is what satisfies SC 1.4.11)
+   *   4–6px  lime-400     (brand)
    * The transparent outline is what survives Windows High Contrast / forced-colors,
    * where box-shadow is discarded.
    */
@@ -171,7 +148,7 @@
     box-shadow:
       0 0 0 2px var(--color-background),
       0 0 0 4px var(--color-focus),
-      0 0 0 6px var(--color-signal-400);
+      0 0 0 6px var(--color-lime-400);
     border-radius: var(--radius-sm);
   }
 
@@ -185,8 +162,8 @@
   }
 
   ::selection {
-    background-color: var(--color-carbon-100);
-    color: var(--color-carbon-950);
+    background-color: var(--color-forest-100);
+    color: var(--color-forest-950);
   }
 }
 
@@ -232,7 +209,7 @@
   top: -100%;
   z-index: 100;
   border-radius: var(--radius-md);
-  background-color: var(--color-carbon-800);
+  background-color: var(--color-forest-800);
   padding: 0.75rem 1.25rem;
   color: white;
   transition: top var(--duration-micro) var(--ease-biocode);
@@ -261,8 +238,8 @@
   }
 }
 
-/* The Signal Ring draw-in (docs/04 §2) — 400ms, ease-out-quint, once. */
-@keyframes signal-draw {
+/* The Vitality Ring draw-in (docs/04 §2) — 400ms, ease-out-quint, once. */
+@keyframes vitality-draw {
   from {
     stroke-dashoffset: var(--ring-circumference, 264);
   }

@@ -34,7 +34,7 @@ export default async function AccountSubscriptionsPage({ params }: Props) {
   if (subscriptions.length === 0) {
     return (
       <div>
-        <h2 className="font-display text-2xl font-semibold text-carbon-900">{t('title')}</h2>
+        <h2 className="font-display text-2xl font-semibold text-forest-900">{t('title')}</h2>
         <EmptyState
           icon={Repeat}
           title={t('empty')}
@@ -52,7 +52,7 @@ export default async function AccountSubscriptionsPage({ params }: Props) {
 
   return (
     <div>
-      <h2 className="font-display text-2xl font-semibold text-carbon-900">{t('title')}</h2>
+      <h2 className="font-display text-2xl font-semibold text-forest-900">{t('title')}</h2>
 
       <ul className="mt-6 flex flex-col gap-5">
         {subscriptions.map((subscription) => (

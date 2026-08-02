@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils';
  */
 function Block({ className }: { className?: string }) {
   return (
-    <div className={cn('animate-pulse rounded-sm bg-carbon-50', className)} aria-hidden="true" />
+    <div className={cn('animate-pulse rounded-sm bg-forest-50', className)} aria-hidden="true" />
   );
 }
 

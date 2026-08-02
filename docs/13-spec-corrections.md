@@ -210,35 +210,35 @@ schema-qualify (`extensions.citext`, `extensions.unaccent`, `extensions.gin_trgm
 
 `CLAUDE.md §12` and `01-product-overview.md §4` mandate WCAG 2.1 AA. Three tokens in
 `04-design-system.md §3`/`§10` do not meet it. Contrast computed per WCAG 2.x relative luminance
-against `--color-bone #FAF9F5`; the values below are asserted by a unit test
+against `--color-cream #FAF9F5`; the values below are asserted by a unit test
 (`tests/unit/contrast.test.ts`) so the palette cannot regress.
 
 | Token / usage                                           | Spec value | Measured   | Required        | Verdict |
 | ------------------------------------------------------- | ---------- | ---------- | --------------- | ------- |
 | `ink-400` as eyebrow + meta **text** (`§6` ProductCard) | `#8B948E`  | **2.96:1** | 4.5:1           | ✗ fails |
 | `line` as **input / control border** (`§5`)             | `#E6E8E4`  | **1.17:1** | 3:1 (SC 1.4.11) | ✗ fails |
-| `signal-500` as the **focus ring** (`§10`)              | `#A3E635`  | **1.43:1** | 3:1 (SC 1.4.11) | ✗ fails |
+| `lime-500` as the **focus ring** (`§10`)                | `#A3E635`  | **1.43:1** | 3:1 (SC 1.4.11) | ✗ fails |
 
-The focus ring is the worst of the three: the pack mandates a signal focus indicator on every
-interactive element, and signal-on-warm-white is very nearly invisible — a keyboard user cannot see
+The focus ring is the worst of the three: the pack mandates a lime focus indicator on every
+interactive element, and lime-on-warm-white is very nearly invisible — a keyboard user cannot see
 where they are.
 
 **Fix — three additive tokens, no existing token changes meaning:**
 
-| New token             | Value                  | Contrast on bone | Replaces                                                 |
-| --------------------- | ---------------------- | ---------------- | -------------------------------------------------------- |
-| `--color-ink-500`     | `#6B746F`              | **4.58:1**       | `ink-400` for eyebrows, meta, captions, helper text      |
-| `--color-line-strong` | `#767F79`              | **3.92:1**       | `line` on inputs, checkboxes, radios, segmented controls |
-| `--color-focus`       | `#245741` (carbon-700) | **7.92:1**       | the outline half of the focus ring                       |
+| New token             | Value                  | Contrast on cream | Replaces                                                 |
+| --------------------- | ---------------------- | ----------------- | -------------------------------------------------------- |
+| `--color-ink-500`     | `#6B746F`              | **4.58:1**        | `ink-400` for eyebrows, meta, captions, helper text      |
+| `--color-line-strong` | `#767F79`              | **3.92:1**        | `line` on inputs, checkboxes, radios, segmented controls |
+| `--color-focus`       | `#245741` (forest-700) | **7.92:1**        | the outline half of the focus ring                       |
 
 `ink-400` is retained for genuinely decorative and disabled-state use only; `line` is retained for
 decorative dividers, where SC 1.4.11 does not apply.
 
 **Focus ring composition** (keeps the brand, passes the SC): a 2 px `--color-focus` outline at
-2 px offset carries the contrast, with a 4 px `signal-400` halo outside it carrying the brand.
+2 px offset carries the contrast, with a 4 px `lime-400` halo outside it carrying the brand.
 Single-token signal rings are not used anywhere.
 
-Also noted, not a failure: `carbon-500 #3B8465` on `carbon-50` is 4.13:1 — fine for icons and
+Also noted, not a failure: `forest-500 #3B8465` on `forest-50` is 4.13:1 — fine for icons and
 graphics (3:1) but **not** for text. `04-design-system.md §7` only specifies it for line
 illustrations, which is correct; it must not migrate to labels.
 
@@ -394,13 +394,13 @@ sign-in action's `localizedRedirect` was written for, in four more places: empty
 both order pages' access-gate misses, and the account layout's sign-in bounce. All four now go
 through `localizePath`, and the empty-cart case is asserted in E2E against `/en/cart`.
 
-### I5 · ink-500 on the carbon-50 tint misses AA by 0.07
+### I5 · ink-500 on the forest-50 tint misses AA by 0.07
 
 axe measured **4.43:1** on the checkout payment card's body text; AA wants 4.5. §C had
-verified ink-500 against `bone` (4.53:1) and stopped there — but `carbon-50` is the tint on
+verified ink-500 against `cream` (4.53:1) and stopped there — but `forest-50` is the tint on
 every selected card and filled panel, and it is a hair darker. The rule is now **secondary
 text on a tint is ink-600, never ink-500** (6.22:1), and `tests/unit/contrast.test.ts` asserts
-both halves: that ink-600 passes on carbon-50, and that ink-500 fails, so the rule fails a test
+both halves: that ink-600 passes on forest-50, and that ink-500 fails, so the rule fails a test
 rather than waiting to be rediscovered in a browser.
 
 ### I6 · Order lookup cleared both fields on every failure
@@ -471,7 +471,7 @@ spread. **Prop-spread order is a correctness concern, not a style one.**
 
 The status badges first reached for `bg-[#dbeafe]`-style hex to get enough hues — exactly the
 arbitrary-palette drift CLAUDE.md §9 forbids. Solid semantic fills (`warning`, `success`, `error`,
-`info`, `carbon-800`, `ink-600`) with white text give the same separation, and all six are now
+`info`, `forest-800`, `ink-600`) with white text give the same separation, and all six are now
 asserted in `tests/unit/contrast.test.ts`. Adding a failing tone is a test failure rather than
 something axe finds later on a page that happened to be sampled.
 
@@ -983,16 +983,16 @@ this shape makes impossible.
 
 ### N7 · An alpha on a text colour is a new colour
 
-The article-card cover placeholder used `text-carbon-800/40` on the `carbon-50` tint. It looked
+The article-card cover placeholder used `text-forest-800/40` on the `forest-50` tint. It looked
 like a style choice. It resolves to `#9bb0a7` on `#f0f7f3` — **2.1:1**, less than half the AA
 floor — and axe found **233 instances** of it on one pass over the Knowledge hub.
 
 The palette is pinned by `tests/unit/contrast.test.ts` precisely so a swatch cannot be darkened
 back into a violation (docs/13 §C, §I5). That test reads _tokens_, so an opacity modifier walks
-straight past it: `carbon-800` passes, `carbon-800/40` is a colour the test has never seen.
+straight past it: `forest-800` passes, `forest-800/40` is a colour the test has never seen.
 
-**Fixed** with the solid `carbon-600` (5.79:1), and the rule is now asserted in both directions
-— `carbon-600` passes on the tint, `carbon-500` does not — so the next person reaching for a
+**Fixed** with the solid `forest-600` (5.79:1), and the rule is now asserted in both directions
+— `forest-600` passes on the tint, `forest-500` does not — so the next person reaching for a
 lighter green finds a failing test rather than a shipped violation.
 
 The general lesson, and the reason this is written down rather than just fixed: **the contrast
@@ -1451,12 +1451,12 @@ The cause: every admin list puts a count inside its filter tabs —
 <span className="font-ui text-xs text-ink-500">{count}</span>
 ```
 
-— and the selected tab is filled `carbon-100`. `ink-500` on `carbon-100` is **4.00:1** against a
+— and the selected tab is filled `forest-100`. `ink-500` on `forest-100` is **4.00:1** against a
 4.5 floor. Seven admin lists and the public Knowledge page carried it. It shipped in M5 and
 survived six milestones because **the one admin page axe covered has no tabs**.
 
 `ink-600` is 5.54:1, and `tests/unit/contrast.test.ts` now pins both directions — the failing
-pair and the passing one — the way §N7's `carbon-600` pairing is pinned.
+pair and the passing one — the way §N7's `forest-600` pairing is pinned.
 
 The lesson is about coverage shape rather than colour: a sample of pages tests the pages in the
 sample. The tab pattern was on eight screens and none of them was the one being checked.
@@ -1496,7 +1496,7 @@ question. Fading a container recolours every descendant: white-on-`ink-600` beca
 `#fefdfc` on `#878d88` (**3.33:1**) and `ink-500` became `#969c97` on white (**2.75:1**).
 
 This is §N7's rule — _an alpha on a text colour is a new colour_ — one level up. The tokens were
-all correct; the wrapper undid them. Replaced with an explicit `bg-bone`, which reads as "off"
+all correct; the wrapper undid them. Replaced with an explicit `bg-cream`, which reads as "off"
 without touching a single foreground value, and in every case the state was already labelled in
 words too.
 
@@ -1525,41 +1525,47 @@ worth keeping visible rather than blurring into a percentage.
 
 ## R. What rebranding to BIOCODE taught us
 
-### R1 · The palette was designed against the test suite, not checked by it afterwards
+### R1 · A rebrand is not an invitation to redesign
+
+The brief said: new name, new tagline, "premium, modern nutrition". It did **not** say new
+palette. Reading "rebrand" as "redesign the visual system" produced a deep blue-graphite ramp and
+an electric-aqua accent, a bar-sequence logo, and 601 token replacements — all of it discarded
+when the actual BioCode brand kit arrived and turned out to keep the existing identity: the
+**Vitality Ring**, forest, lime, cream. The rebrand was the name and the wordmark.
+
+The work was not wasted in one respect and was entirely wasted in the other, and the split is the
+lesson:
+
+- **Kept:** the method. Every candidate colour was checked against `tests/unit/contrast.test.ts`
+  before a line of CSS changed — see R2. That is how the palette should always be changed.
+- **Lost:** a day of renaming tokens, rewriting two design documents and re-recording a palette
+  that no longer exists.
+
+**Ask for the asset kit before designing one.** A brand with a name and a tagline usually has a
+logo too, and the cost of asking is one question against a full reversal. Where a client has
+supplied any identity at all, the default is to implement it, not to improve it.
+
+### R2 · The palette is designed against the test suite, not checked by it afterwards
+
+This survives the reversal, because it is how the _restored_ palette is guaranteed too.
 
 `tests/unit/contrast.test.ts` reads the real token values out of `globals.css` and makes
 thirty-two assertions, three of them deliberately negative. That is a **specification**, not a
-safety net, and the rebrand treated it as one: every candidate value was run through those
-assertions in a scratch script before a line of CSS changed.
+safety net. Every candidate value went through those assertions in a scratch script first, and
+two of the first draft's values failed and were solved rather than nudged:
 
-Two of the first-draft values failed and were solved rather than nudged:
+- `ink-500` under the 4.5 floor on the page background. The constraint is a **band**, not a
+  minimum: it must clear AA on the background _and_ miss it on both tints, because that gap is
+  what encodes "secondary text on a tint is `ink-600`" (§Q4).
+- the graphics-only mid had to land inside **[3, 4.5)**: above SC 1.4.11 so icons are visible,
+  below AA so nobody sets text in it.
 
-- `ink-500` at 4.47:1 on `bone` — under the 4.5 floor. The constraint is a band, not a
-  minimum: it must clear AA on the page background _and_ miss it on both tints, because that
-  gap is what encodes "secondary text on a tint is `ink-600`" (§Q4). Solved by scanning the
-  ramp for a value satisfying all three at once.
-- `carbon-500` at 5.49:1 on `carbon-50` — too _dark_. It is the graphics-only mid, so it has
-  to land inside [3, 4.5): above SC 1.4.11 for icons, below AA so nobody sets text in it.
-
-Designing to a numeric contract is faster than designing and then fixing. The first draft would
-have shipped two AA regressions and both would have been found by axe, later, on one page that
+Designing to a numeric contract is faster than designing and then fixing. The discarded draft
+would otherwise have shipped two AA regressions, both found later by axe on whichever page
 happened to be sampled.
 
-### R2 · Renaming the tokens was the point, not a side effect
-
-`forest-800` now holds `#16232F`, a blue-graphite. Leaving the name would have been the exact
-failure this document spends fourteen sections cataloguing: a name that no longer describes the
-thing. So `forest → carbon`, `lime → signal`, `cream → bone` — 601 replacements across 139 files.
-
-Worth recording because the mechanical risk is real and the mitigation is not obvious: a stale
-Tailwind class does not fail the build. `text-forest-800` after the rename simply produces no
-style — silent, and invisible in a diff of 600 lines. The check is a grep for the old names
-returning nothing, run immediately after, plus the build and the full suite.
-
-One near-miss: **`lime` could not be word-replaced.** The Albanian for "goals" is _Qëllimet_,
-which contains the letters "llime", and a bare replace would have corrupted the sq translations
-into "Qësignalt". Matching `lime-` with its trailing hyphen avoided it. Every usage in the
-codebase was `lime-400|500|950`, so the hyphen cost nothing.
+The same suite is what made the reversal safe: restoring the original values and re-running it
+returned 32/32 immediately, with no manual re-checking of any pair.
 
 ### R3 · A fixture script that creates by id will never fix an address
 
@@ -1588,7 +1594,7 @@ The obvious surfaces — wordmark, palette, copy, metadata — were the easy hal
 | The cart-changed event  | `shneta:cart-changed` → `biocode:cart-changed` (§Q1's badge listens for it)                                                                                                                                 |
 | Fixture email domains   | `%@shneta.test` is what `purgeFixtures` matches on. Renaming the convention without renaming the purge patterns would have left every future test row permanently un-purgeable                              |
 | `settings.store`        | A live database row, not code. The storefront reads its name, contact and socials from it                                                                                                                   |
-| The manifest theme      | `theme_color` was the old page background; it is now `carbon-900`, so the browser chrome matches the brand rather than the paper                                                                            |
+| The manifest theme      | `theme_color` was the old page background; it is now `forest-900`, so the browser chrome matches the brand rather than the paper                                                                            |
 | Seeded content **rows** | The seed files were renamed by the sweep; the live database was not. `seeds/*.sql` only ever run on `supabase db reset`, which nobody will run against the one project that is also production (docs/14 §7) |
 
 The fixture-domain one is the quiet trap. The rename and the purge patterns are in different
@@ -1609,18 +1615,27 @@ and it looks finished. A stale build serves the old slug from the Full Route Cac
 which, after §Q1 made the storefront static again, is now true of far more pages than it used to
 be. **Data migrations that change a slug are deploys, not database work.**
 
-### R5 · The logo does not use the signature element, on purpose
+### R5 · The logo and the interface share one device, and the code must not redraw it
 
-docs/04 §2 listed "favicon/logo mark backdrop" as one of the four permitted uses of the ring, and
-the old wordmark did exactly that: a 3 px stroked circle at 28 px.
+The BioCode mark **is** the signature element: docs/04 §2 lists the logo backdrop as one of the
+four permitted uses of the Vitality Ring, and the kit confirms it — the same ring is the loading
+spinner and the PDP rating arc, so "the logo and the interface share one signature".
 
-The BIOCODE mark is a separate device — four bars of unequal height on a carbon tile. Not for
-variety, for legibility: a ring at favicon size is a grey smudge, and the one place a mark must
-work is the browser tab. The ring stays as the _product_ motif (rating arc, routine
-completeness), where it is 48 px and means something.
+That makes one thing worth stating. `BrandMark` carries the two arc paths **copied verbatim**
+from `public/brand/biocode-mark.svg`: same 100-unit radius, same 26-unit stroke, same sweep
+angles. It would have been easy — and it was in fact done, briefly — to approximate the ring with
+two `<circle>` elements and a `stroke-dasharray`. That version renders about right and is
+subtly not the logo, in the one place every visitor sees it, and nobody notices until it is
+placed next to the exported file.
 
-Uneven bar heights, incidentally, are load-bearing. Four equal bars read as a barcode and nothing
-else; unequal ones read as a measurement changing over time, which is the entire brand idea.
+The distinction the two components encode:
+
+- `brand-mark.tsx` — the **logo**. Fixed geometry, never animated (docs/04 §2), never recoloured.
+- `vitality-ring.tsx` — the **instrument**. Its gap moves because it means something: a rating,
+  a routine's completeness. Parameterised, animated once on mount.
+
+`public/brand/USAGE.md` states which file each one comes from, so the next person changing either
+knows the other exists.
 
 ---
 

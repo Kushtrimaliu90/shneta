@@ -13,8 +13,8 @@ import type { Locale } from '@/lib/constants';
  *
  * Colours are literal hex rather than tokens: `var()` does not resolve in most email clients,
  * and Gmail strips `<style>`. They mirror the palette in globals.css and must be updated
- * together — the values here are bone #FAF9F5, ink #1B1E1C, carbon-900 #123227,
- * carbon-800 #1C4636, ink-600 #565E59, ink-500 #6B746F, line #E6E8E4, carbon-50 #F0F7F3.
+ * together — the values here are cream #FAF9F5, ink #1B1E1C, forest-900 #123227,
+ * forest-800 #1C4636, ink-600 #565E59, ink-500 #6B746F, line #E6E8E4, forest-50 #F0F7F3.
  */
 
 export function escapeHtml(value: string): string {

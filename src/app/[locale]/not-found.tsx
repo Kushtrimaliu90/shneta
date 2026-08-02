@@ -29,8 +29,8 @@ export default async function NotFound() {
 
   return (
     <div className="container-page flex min-h-[60vh] flex-col items-center justify-center py-20 text-center">
-      <SearchX className="size-10 text-carbon-500" aria-hidden="true" />
-      <h1 className="mt-6 font-display text-3xl font-semibold text-carbon-900">{t('title')}</h1>
+      <SearchX className="size-10 text-forest-500" aria-hidden="true" />
+      <h1 className="mt-6 font-display text-3xl font-semibold text-forest-900">{t('title')}</h1>
       <p className="mt-3 max-w-md text-ink-600">{t('body')}</p>
 
       <form
@@ -60,7 +60,7 @@ export default async function NotFound() {
             <Link
               key={category.slug}
               href={`/shop/${category.slug}`}
-              className="inline-flex rounded-sm border border-line bg-surface px-3 py-1.5 text-sm text-ink-900 hover:bg-carbon-50"
+              className="inline-flex rounded-sm border border-line bg-surface px-3 py-1.5 text-sm text-ink-900 hover:bg-forest-50"
             >
               {pickLocale(category.name, locale as Locale)}
             </Link>

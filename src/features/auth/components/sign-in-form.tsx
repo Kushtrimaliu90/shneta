@@ -47,7 +47,7 @@ export function SignInForm({ next, linkError }: { next?: string; linkError?: boo
       <div className="flex justify-end">
         <Link
           href="/auth/forgot-password"
-          className="rounded-sm text-sm text-carbon-700 underline underline-offset-4"
+          className="rounded-sm text-sm text-forest-700 underline underline-offset-4"
         >
           {t('auth.signIn.forgot')}
         </Link>
@@ -61,7 +61,7 @@ export function SignInForm({ next, linkError }: { next?: string; linkError?: boo
         {t('auth.signIn.noAccount')}{' '}
         <Link
           href="/auth/sign-up"
-          className="rounded-sm font-medium text-carbon-700 underline underline-offset-4"
+          className="rounded-sm font-medium text-forest-700 underline underline-offset-4"
         >
           {t('auth.signIn.createAccount')}
         </Link>

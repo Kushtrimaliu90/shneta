@@ -51,7 +51,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
      */
     <html lang="en" className={fontVariables}>
       <body className="antialiased">
-        <div className="min-h-dvh bg-bone lg:grid lg:grid-cols-[15rem_1fr]">
+        <div className="min-h-dvh bg-cream lg:grid lg:grid-cols-[15rem_1fr]">
           <AdminSidebar sections={sections} />
 
           <div className="flex min-w-0 flex-col">

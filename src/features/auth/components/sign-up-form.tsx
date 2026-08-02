@@ -79,14 +79,14 @@ export function SignUpForm({ next }: { next?: string }) {
           <span className="text-ink-600">
             {t.rich('auth.signUp.terms', {
               terms: (chunks) => (
-                <Link href="/legal/terms" className="text-carbon-700 underline underline-offset-4">
+                <Link href="/legal/terms" className="text-forest-700 underline underline-offset-4">
                   {chunks}
                 </Link>
               ),
               privacy: (chunks) => (
                 <Link
                   href="/legal/privacy"
-                  className="text-carbon-700 underline underline-offset-4"
+                  className="text-forest-700 underline underline-offset-4"
                 >
                   {chunks}
                 </Link>
@@ -109,7 +109,7 @@ export function SignUpForm({ next }: { next?: string }) {
         {t('auth.signUp.haveAccount')}{' '}
         <Link
           href="/auth/sign-in"
-          className="rounded-sm font-medium text-carbon-700 underline underline-offset-4"
+          className="rounded-sm font-medium text-forest-700 underline underline-offset-4"
         >
           {t('auth.signIn.submit')}
         </Link>

@@ -69,7 +69,7 @@ export function MobileNav() {
         aria-expanded={open}
         aria-controls={panelId}
         aria-label={t('common.openMenu')}
-        className="inline-flex size-11 items-center justify-center rounded-md text-carbon-800 hover:bg-carbon-50 lg:hidden"
+        className="inline-flex size-11 items-center justify-center rounded-md text-forest-800 hover:bg-forest-50 lg:hidden"
       >
         <Menu className="size-5" aria-hidden="true" />
       </button>
@@ -81,7 +81,7 @@ export function MobileNav() {
         aria-modal="true"
         aria-label={t('nav.primary')}
         hidden={!open}
-        className="fixed inset-0 z-50 flex flex-col bg-bone lg:hidden"
+        className="fixed inset-0 z-50 flex flex-col bg-cream lg:hidden"
       >
         <div className="flex h-16 items-center justify-between border-b border-line px-5">
           <LocaleSwitcher />
@@ -89,7 +89,7 @@ export function MobileNav() {
             type="button"
             onClick={close}
             aria-label={t('common.closeMenu')}
-            className="inline-flex size-11 items-center justify-center rounded-md text-carbon-800 hover:bg-carbon-50"
+            className="inline-flex size-11 items-center justify-center rounded-md text-forest-800 hover:bg-forest-50"
           >
             <X className="size-5" aria-hidden="true" />
           </button>
@@ -102,7 +102,7 @@ export function MobileNav() {
                 <Link
                   href={link.href}
                   onClick={close}
-                  className="flex min-h-11 items-center rounded-md px-3 py-3 font-display text-2xl text-carbon-900 hover:bg-carbon-50"
+                  className="flex min-h-11 items-center rounded-md px-3 py-3 font-display text-2xl text-forest-900 hover:bg-forest-50"
                 >
                   {t(`nav.${link.key}`)}
                 </Link>

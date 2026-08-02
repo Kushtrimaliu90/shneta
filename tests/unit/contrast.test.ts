@@ -44,102 +44,102 @@ describe('contrast helper', () => {
 });
 
 describe('body and heading text on the page background', () => {
-  const bone = token('bone');
+  const cream = token('cream');
 
   it.each([
     ['ink-900', 'body text'],
     ['ink-600', 'secondary text'],
     ['ink-500', 'eyebrows, meta and helper text'],
-    ['carbon-900', 'headings'],
-    ['carbon-800', 'primary links'],
-    ['carbon-700', 'links'],
+    ['forest-900', 'headings'],
+    ['forest-800', 'primary links'],
+    ['forest-700', 'links'],
   ])('%s passes AA for %s', (name) => {
-    expect(ratio(token(name), bone)).toBeGreaterThanOrEqual(AA_TEXT);
+    expect(ratio(token(name), cream)).toBeGreaterThanOrEqual(AA_TEXT);
   });
 
   it('ink-400 is below AA and is therefore decorative-only (docs/13 §C)', () => {
     // Documents the constraint rather than the aspiration: if someone raises ink-400 to a
     // text-safe value this fails, prompting them to update the guidance instead of silently
     // widening where it may be used.
-    expect(ratio(token('ink-400'), bone)).toBeLessThan(AA_TEXT);
+    expect(ratio(token('ink-400'), cream)).toBeLessThan(AA_TEXT);
   });
 });
 
 describe('text on filled surfaces', () => {
   it('white on the primary button passes AA', () => {
-    expect(ratio('#ffffff', token('carbon-800'))).toBeGreaterThanOrEqual(AA_TEXT);
+    expect(ratio('#ffffff', token('forest-800'))).toBeGreaterThanOrEqual(AA_TEXT);
   });
 
   it('white on the hover fill still passes AA', () => {
-    expect(ratio('#ffffff', token('carbon-700'))).toBeGreaterThanOrEqual(AA_TEXT);
+    expect(ratio('#ffffff', token('forest-700'))).toBeGreaterThanOrEqual(AA_TEXT);
   });
 
-  it('signal fills use signal-950 text, never white (docs/04 §3)', () => {
-    expect(ratio(token('signal-950'), token('signal-500'))).toBeGreaterThanOrEqual(AA_TEXT);
-    expect(ratio('#ffffff', token('signal-500'))).toBeLessThan(AA_TEXT);
+  it('signal fills use lime-950 text, never white (docs/04 §3)', () => {
+    expect(ratio(token('lime-950'), token('lime-500'))).toBeGreaterThanOrEqual(AA_TEXT);
+    expect(ratio('#ffffff', token('lime-500'))).toBeLessThan(AA_TEXT);
   });
 
-  it('bone text on the footer ground passes AA', () => {
-    expect(ratio(token('bone'), token('carbon-950'))).toBeGreaterThanOrEqual(AA_TEXT);
+  it('cream text on the footer ground passes AA', () => {
+    expect(ratio(token('cream'), token('forest-950'))).toBeGreaterThanOrEqual(AA_TEXT);
   });
 
   it('semantic colours pass AA as text on the page background', () => {
     for (const name of ['success', 'warning', 'error', 'info']) {
-      expect(ratio(token(name), token('bone'))).toBeGreaterThanOrEqual(AA_TEXT);
+      expect(ratio(token(name), token('cream'))).toBeGreaterThanOrEqual(AA_TEXT);
     }
   });
 
   /**
-   * carbon-50 is the tint on every selected card and filled panel — the checkout delivery
+   * forest-50 is the tint on every selected card and filled panel — the checkout delivery
    * and payment options, the COD callout on the success page, the ingredient table head.
    *
-   * It is very slightly darker than bone, and that is enough to matter: ink-500 clears AA
-   * on bone at 4.53:1 and misses it on carbon-50 at 4.43:1. axe caught it on the payment
+   * It is very slightly darker than cream, and that is enough to matter: ink-500 clears AA
+   * on cream at 4.53:1 and misses it on forest-50 at 4.43:1. axe caught it on the payment
    * radio card, which is not a place to be sloppy about legibility. These two assertions
    * encode the resulting rule — **secondary text on a tint is ink-600, never ink-500** —
    * so it is a test failure rather than something to rediscover with a browser.
    */
-  it('ink-500 does NOT pass on the carbon-50 tint, which is why tints use ink-600', () => {
-    expect(ratio(token('ink-500'), token('carbon-50'))).toBeLessThan(AA_TEXT);
+  it('ink-500 does NOT pass on the forest-50 tint, which is why tints use ink-600', () => {
+    expect(ratio(token('ink-500'), token('forest-50'))).toBeLessThan(AA_TEXT);
   });
 
-  it('ink-600 passes comfortably on the carbon-50 tint', () => {
-    expect(ratio(token('ink-600'), token('carbon-50'))).toBeGreaterThanOrEqual(AA_TEXT);
+  it('ink-600 passes comfortably on the forest-50 tint', () => {
+    expect(ratio(token('ink-600'), token('forest-50'))).toBeGreaterThanOrEqual(AA_TEXT);
   });
 
   /**
-   * `carbon-100` is the **active filter tab** fill, and it is darker than `carbon-50` — so a
+   * `forest-100` is the **active filter tab** fill, and it is darker than `forest-50` — so a
    * colour that passes on one tint can still fail on the other (docs/13 §Q4).
    *
    * Seven admin lists and the public Knowledge page all put a count in `ink-500` inside a tab
-   * that turns `carbon-100` when selected: 4.00:1 against a 4.5 floor. It shipped in M5 and
+   * that turns `forest-100` when selected: 4.00:1 against a 4.5 floor. It shipped in M5 and
    * survived to M11, because the only page axe covered was the dashboard, which has no tabs.
    * Widening the axe pass is what found it; this is what stops it coming back.
    */
-  it('ink-500 does NOT pass on the carbon-100 tint either', () => {
-    expect(ratio(token('ink-500'), token('carbon-100'))).toBeLessThan(AA_TEXT);
+  it('ink-500 does NOT pass on the forest-100 tint either', () => {
+    expect(ratio(token('ink-500'), token('forest-100'))).toBeLessThan(AA_TEXT);
   });
 
-  it('ink-600 passes on the carbon-100 tint, which is why active tabs use it', () => {
-    expect(ratio(token('ink-600'), token('carbon-100'))).toBeGreaterThanOrEqual(AA_TEXT);
+  it('ink-600 passes on the forest-100 tint, which is why active tabs use it', () => {
+    expect(ratio(token('ink-600'), token('forest-100'))).toBeGreaterThanOrEqual(AA_TEXT);
   });
 
   /**
    * The article-card cover placeholder, and the general rule it cost us (docs/13 §N7).
    *
-   * The first version used `text-carbon-800/40` on the same tint — a token at 40% alpha, which
+   * The first version used `text-forest-800/40` on the same tint — a token at 40% alpha, which
    * *looks* like a style choice and is a contrast decision. It resolves to #9bb0a7 on #f0f7f3:
    * **2.1:1**, less than half the floor, and axe found 233 instances of it on one page.
    *
    * The rule this encodes: **an alpha on a text colour is not a design nit, it is a new colour**
    * — so placeholders use a solid token, and this asserts the one that replaced it.
    */
-  it('carbon-600 passes on the carbon-50 tint, which is why placeholders use it', () => {
-    expect(ratio(token('carbon-600'), token('carbon-50'))).toBeGreaterThanOrEqual(AA_TEXT);
+  it('forest-600 passes on the forest-50 tint, which is why placeholders use it', () => {
+    expect(ratio(token('forest-600'), token('forest-50'))).toBeGreaterThanOrEqual(AA_TEXT);
   });
 
-  it('carbon-500 does NOT pass on the carbon-50 tint, so it is not the fallback', () => {
-    expect(ratio(token('carbon-500'), token('carbon-50'))).toBeLessThan(AA_TEXT);
+  it('forest-500 does NOT pass on the forest-50 tint, so it is not the fallback', () => {
+    expect(ratio(token('forest-500'), token('forest-50'))).toBeLessThan(AA_TEXT);
   });
 
   /**
@@ -147,7 +147,7 @@ describe('text on filled surfaces', () => {
    * production one, so it must be legible before it is pretty.
    *
    * It shipped as `bg-warning/15` + `text-warning`, which axe measured at 4.08:1: a 15% tint
-   * over bone resolves to #f4e5da, and the amber on that misses AA. The lesson generalises
+   * over cream resolves to #f4e5da, and the amber on that misses AA. The lesson generalises
    * past this one badge — **a `/15` tint of a semantic colour is not a safe background for
    * that same colour as text.** Solid fill with white is the pattern to reach for.
    */
@@ -164,38 +164,38 @@ describe('text on filled surfaces', () => {
    * palette. This asserts the whole set at once, so adding a badge tone that fails is a test
    * failure rather than something axe finds later on one page that happened to be sampled.
    */
-  it.each(['warning', 'success', 'error', 'info', 'carbon-800', 'ink-600'])(
+  it.each(['warning', 'success', 'error', 'info', 'forest-800', 'ink-600'])(
     'white text on a solid %s fill passes AA',
     (name) => {
       expect(ratio('#ffffff', token(name))).toBeGreaterThanOrEqual(AA_TEXT);
     },
   );
 
-  it('the pale carbon badge uses carbon-900 text and passes', () => {
-    expect(ratio(token('carbon-900'), token('carbon-100'))).toBeGreaterThanOrEqual(AA_TEXT);
+  it('the pale forest badge uses forest-900 text and passes', () => {
+    expect(ratio(token('forest-900'), token('forest-100'))).toBeGreaterThanOrEqual(AA_TEXT);
   });
 });
 
 describe('non-text contrast — WCAG SC 1.4.11', () => {
-  const bone = token('bone');
+  const cream = token('cream');
 
   it('the focus indicator is visible against the page (docs/13 §C)', () => {
-    expect(ratio(token('focus'), bone)).toBeGreaterThanOrEqual(AA_LARGE_AND_UI);
+    expect(ratio(token('focus'), cream)).toBeGreaterThanOrEqual(AA_LARGE_AND_UI);
   });
 
   it('a lone signal ring would NOT have been visible — this is why focus is two-tone', () => {
-    expect(ratio(token('signal-500'), bone)).toBeLessThan(AA_LARGE_AND_UI);
+    expect(ratio(token('lime-500'), cream)).toBeLessThan(AA_LARGE_AND_UI);
   });
 
   it('control borders use line-strong, which passes', () => {
-    expect(ratio(token('line-strong'), bone)).toBeGreaterThanOrEqual(AA_LARGE_AND_UI);
+    expect(ratio(token('line-strong'), cream)).toBeGreaterThanOrEqual(AA_LARGE_AND_UI);
   });
 
   it('the decorative divider is documented as failing and must not bound a control', () => {
-    expect(ratio(token('line'), bone)).toBeLessThan(AA_LARGE_AND_UI);
+    expect(ratio(token('line'), cream)).toBeLessThan(AA_LARGE_AND_UI);
   });
 
   it('goal-tile icons pass the graphics threshold on their tint', () => {
-    expect(ratio(token('carbon-500'), token('carbon-50'))).toBeGreaterThanOrEqual(AA_LARGE_AND_UI);
+    expect(ratio(token('forest-500'), token('forest-50'))).toBeGreaterThanOrEqual(AA_LARGE_AND_UI);
   });
 });

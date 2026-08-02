@@ -24,8 +24,8 @@ export default async function VerifyPage({ params }: Props) {
   return (
     <Card>
       <CardContent className="flex flex-col items-center gap-4 py-10 text-center">
-        <MailCheck className="size-9 text-carbon-500" aria-hidden="true" />
-        <h1 className="font-display text-xl font-semibold text-carbon-900">{t('title')}</h1>
+        <MailCheck className="size-9 text-forest-500" aria-hidden="true" />
+        <h1 className="font-display text-xl font-semibold text-forest-900">{t('title')}</h1>
         <p className="max-w-sm text-sm text-ink-600">{t('body')}</p>
         <Link href="/auth/sign-in" className={`${buttonVariants({ variant: 'secondary' })} mt-2`}>
           {t('backToSignIn')}

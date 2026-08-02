@@ -16,7 +16,7 @@ export default async function AdminTeamPage() {
 
   return (
     <section>
-      <h2 className="font-display text-lg font-semibold text-carbon-900">Team</h2>
+      <h2 className="font-display text-lg font-semibold text-forest-900">Team</h2>
       <p className="mt-0.5 mb-4 max-w-2xl text-sm text-ink-600">
         Who can sign into the panel, and what each of them can reach. Roles come from the permission
         matrix in docs/01 §3 — a role is a set of screens, not a job title.

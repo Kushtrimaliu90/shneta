@@ -57,7 +57,7 @@ export default async function BrandPage({ params, searchParams }: Props) {
           <li>
             <Link
               href="/brands"
-              className="rounded-sm underline underline-offset-4 hover:text-carbon-700"
+              className="rounded-sm underline underline-offset-4 hover:text-forest-700"
             >
               {t('brands.title')}
             </Link>

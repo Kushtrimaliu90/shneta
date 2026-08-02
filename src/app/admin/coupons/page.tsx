@@ -25,7 +25,7 @@ export default async function AdminCouponsPage() {
 
   return (
     <div>
-      <h1 className="font-display text-2xl font-semibold text-carbon-900">Coupons</h1>
+      <h1 className="font-display text-2xl font-semibold text-forest-900">Coupons</h1>
       <p className="mt-1 max-w-2xl text-sm text-ink-600">
         Discount codes and how often they have been used.{' '}
         {canManage

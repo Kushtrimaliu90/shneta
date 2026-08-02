@@ -148,7 +148,7 @@ export default async function ProductPage({ params }: Props) {
               ) : (
                 <Link
                   href={entry.path}
-                  className="rounded-sm underline underline-offset-4 hover:text-carbon-700"
+                  className="rounded-sm underline underline-offset-4 hover:text-forest-700"
                 >
                   {entry.name}
                 </Link>
@@ -161,7 +161,7 @@ export default async function ProductPage({ params }: Props) {
       <div className="container-page py-8 lg:py-12">
         <div className="grid gap-10 lg:grid-cols-2 lg:gap-16">
           {/* Gallery */}
-          <div className="relative aspect-square overflow-hidden rounded-xl border border-line bg-bone">
+          <div className="relative aspect-square overflow-hidden rounded-xl border border-line bg-cream">
             <ProductImage
               path={product.images[0]?.path ?? null}
               alt={pickLocale(product.images[0]?.alt, locale) || name}
@@ -175,12 +175,12 @@ export default async function ProductPage({ params }: Props) {
           <div>
             <Link
               href={`/brands/${product.brand.slug}`}
-              className="rounded-sm eyebrow hover:text-carbon-700"
+              className="rounded-sm eyebrow hover:text-forest-700"
             >
               {product.brand.name}
             </Link>
 
-            <h1 className="mt-3 font-display text-3xl font-semibold text-carbon-900 lg:text-4xl">
+            <h1 className="mt-3 font-display text-3xl font-semibold text-forest-900 lg:text-4xl">
               {name}
             </h1>
 
@@ -214,15 +214,15 @@ export default async function ProductPage({ params }: Props) {
             {/* Trust row (docs/04 §1.5 — microcopy near money) */}
             <ul className="mt-6 flex flex-col gap-2 text-sm text-ink-600">
               <li className="flex items-center gap-2">
-                <Truck className="size-4 text-carbon-500" aria-hidden="true" />
+                <Truck className="size-4 text-forest-500" aria-hidden="true" />
                 {t('home.trust.cod.title')}
               </li>
               <li className="flex items-center gap-2">
-                <RotateCcw className="size-4 text-carbon-500" aria-hidden="true" />
+                <RotateCcw className="size-4 text-forest-500" aria-hidden="true" />
                 {t('home.trust.returns.body')}
               </li>
               <li className="flex items-center gap-2">
-                <BadgeCheck className="size-4 text-carbon-500" aria-hidden="true" />
+                <BadgeCheck className="size-4 text-forest-500" aria-hidden="true" />
                 {t('home.trust.authentic.body')}
               </li>
             </ul>
@@ -234,7 +234,7 @@ export default async function ProductPage({ params }: Props) {
           <div className="lg:col-span-2">
             {description && (
               <section>
-                <h2 className="font-display text-2xl font-semibold text-carbon-900">
+                <h2 className="font-display text-2xl font-semibold text-forest-900">
                   {t('product.description')}
                 </h2>
                 <p className="mt-4 leading-relaxed text-ink-600">{description}</p>
@@ -244,7 +244,7 @@ export default async function ProductPage({ params }: Props) {
             {/* docs/05 §3 — label-style table with amounts and %NRV. */}
             {product.ingredients.length > 0 && (
               <section className="mt-12">
-                <h2 className="font-display text-2xl font-semibold text-carbon-900">
+                <h2 className="font-display text-2xl font-semibold text-forest-900">
                   {t('product.ingredients')}
                 </h2>
                 {product.servingSize && (
@@ -255,7 +255,7 @@ export default async function ProductPage({ params }: Props) {
                 <div className="mt-4 overflow-x-auto rounded-lg border border-line">
                   <table className="w-full text-sm">
                     <caption className="sr-only">{t('product.ingredientsTableCaption')}</caption>
-                    <thead className="bg-carbon-50 text-ink-600">
+                    <thead className="bg-forest-50 text-ink-600">
                       <tr>
                         <th scope="col" className="px-4 py-2.5 text-left font-medium">
                           {t('product.ingredient')}
@@ -274,7 +274,7 @@ export default async function ProductPage({ params }: Props) {
                           <th scope="row" className="px-4 py-2.5 text-left font-normal">
                             <Link
                               href={`/ingredients/${row.slug}`}
-                              className="rounded-sm text-carbon-700 underline underline-offset-4"
+                              className="rounded-sm text-forest-700 underline underline-offset-4"
                             >
                               {pickLocale(row.name, locale)}
                             </Link>
@@ -296,7 +296,7 @@ export default async function ProductPage({ params }: Props) {
 
             {howToUse && (
               <section className="mt-12">
-                <h2 className="font-display text-2xl font-semibold text-carbon-900">
+                <h2 className="font-display text-2xl font-semibold text-forest-900">
                   {t('product.howToUse')}
                 </h2>
                 <p className="mt-4 leading-relaxed text-ink-600">{howToUse}</p>
@@ -356,7 +356,7 @@ export default async function ProductPage({ params }: Props) {
                     <li key={goal.slug}>
                       <Link
                         href={`/goals/${goal.slug}`}
-                        className="inline-flex min-h-9 items-center rounded-sm bg-carbon-50 px-2.5 text-sm text-carbon-800 hover:bg-carbon-100"
+                        className="inline-flex min-h-9 items-center rounded-sm bg-forest-50 px-2.5 text-sm text-forest-800 hover:bg-forest-100"
                       >
                         {pickLocale(goal.name, locale)}
                       </Link>

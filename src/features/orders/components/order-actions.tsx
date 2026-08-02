@@ -105,7 +105,7 @@ export function ShipmentForm({ orderId }: { orderId: string }) {
   return (
     <form action={formAction} className="rounded-md border border-line-strong bg-surface p-4">
       <input type="hidden" name="orderId" value={orderId} />
-      <h3 className="font-display text-sm font-semibold text-carbon-900">Shipment details</h3>
+      <h3 className="font-display text-sm font-semibold text-forest-900">Shipment details</h3>
 
       <div className="mt-3 flex flex-col gap-3">
         <div>
@@ -184,7 +184,7 @@ export function CancelOrderForm({ orderId }: { orderId: string }) {
   return (
     <form action={formAction} className="rounded-md border border-error/40 bg-surface p-4">
       <input type="hidden" name="orderId" value={orderId} />
-      <h3 className="font-display text-sm font-semibold text-carbon-900">Cancel this order</h3>
+      <h3 className="font-display text-sm font-semibold text-forest-900">Cancel this order</h3>
       <p className="mt-1 text-xs text-ink-600">
         Stock goes back automatically. This cannot be undone.
       </p>
@@ -266,7 +266,7 @@ export function RefundForm({
   return (
     <form action={formAction} className="rounded-md border border-line-strong bg-surface p-4">
       <input type="hidden" name="orderId" value={orderId} />
-      <h3 className="font-display text-sm font-semibold text-carbon-900">Issue a refund</h3>
+      <h3 className="font-display text-sm font-semibold text-forest-900">Issue a refund</h3>
       <p className="mt-1 text-xs text-ink-600">
         Up to {formatPrice(remaining, 'en')} remaining
         {refundedCents > 0 ? ` — ${formatPrice(refundedCents, 'en')} already refunded` : ''}.

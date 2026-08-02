@@ -81,7 +81,7 @@ export function CompareTable({ products }: { products: CompareProduct[] }) {
     const isDifferent = highlight && differs(values);
 
     return (
-      <tr className={cn('border-b border-line', isDifferent && 'bg-signal-500/10')}>
+      <tr className={cn('border-b border-line', isDifferent && 'bg-lime-500/10')}>
         <th
           scope="row"
           className="sticky left-0 z-10 bg-surface px-3 py-3 text-left align-top text-sm font-medium text-ink-900"
@@ -138,7 +138,7 @@ export function CompareTable({ products }: { products: CompareProduct[] }) {
                         <X className="size-4" aria-hidden="true" />
                       </button>
 
-                      <div className="size-20 overflow-hidden rounded-sm bg-bone">
+                      <div className="size-20 overflow-hidden rounded-sm bg-cream">
                         <ProductImage
                           path={product.imagePath}
                           alt={name}
@@ -150,7 +150,7 @@ export function CompareTable({ products }: { products: CompareProduct[] }) {
                       {product.brandName && <p className="mt-2 eyebrow">{product.brandName}</p>}
                       <Link
                         href={`/product/${product.slug}`}
-                        className="mt-0.5 block rounded-sm text-sm font-medium text-ink-900 hover:text-carbon-800"
+                        className="mt-0.5 block rounded-sm text-sm font-medium text-ink-900 hover:text-forest-800"
                       >
                         {name}
                       </Link>

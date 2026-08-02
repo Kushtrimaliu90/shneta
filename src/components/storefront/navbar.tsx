@@ -9,7 +9,7 @@ import { CartBadge } from '@/features/cart/components/cart-badge';
 import { SearchOverlay } from '@/features/search/components/search-overlay';
 
 /**
- * docs/04 §6 — bone, hairline bottom border, sticky; logo left, nav centre, actions right.
+ * docs/04 §6 — cream, hairline bottom border, sticky; logo left, nav centre, actions right.
  *
  * The header reads **nothing request-scoped**. That is deliberate and load-bearing: this
  * component is rendered by the storefront layout, so one `cookies()` call here opts every
@@ -21,7 +21,7 @@ export async function Navbar() {
   const t = await getTranslations();
 
   return (
-    <header className="sticky top-0 z-40 border-b border-line bg-bone/95 backdrop-blur-sm">
+    <header className="sticky top-0 z-40 border-b border-line bg-cream/95 backdrop-blur-sm">
       <div className="container-page flex h-16 items-center gap-4 lg:h-20">
         <MobileNav />
 
@@ -35,7 +35,7 @@ export async function Navbar() {
               <li key={link.key}>
                 <Link
                   href={link.href}
-                  className="inline-flex h-11 items-center rounded-md px-3.5 text-[15px] font-medium text-ink-900 transition-colors hover:bg-carbon-50 hover:text-carbon-800"
+                  className="inline-flex h-11 items-center rounded-md px-3.5 text-[15px] font-medium text-ink-900 transition-colors hover:bg-forest-50 hover:text-forest-800"
                 >
                   {t(`nav.${link.key}`)}
                 </Link>
@@ -53,7 +53,7 @@ export async function Navbar() {
           <Link
             href="/account"
             aria-label={t('common.account')}
-            className="hidden size-11 items-center justify-center rounded-md text-carbon-800 transition-colors hover:bg-carbon-50 sm:inline-flex"
+            className="hidden size-11 items-center justify-center rounded-md text-forest-800 transition-colors hover:bg-forest-50 sm:inline-flex"
           >
             <User className="size-5" aria-hidden="true" />
           </Link>

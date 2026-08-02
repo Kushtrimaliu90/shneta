@@ -29,7 +29,7 @@ Footer + home block → `subscribeNewsletter` (rate-limited, honeypot) → row +
 
 ## 6. Transactional email (Resend + react-email)
 
-Shared layout: logo, carbon header rule, content, footer (contact, address, unsubscribe where applicable). All bilingual — template renders in `order.locale` / `profile.preferred_locale`. From: `BIOCODE <porosite@biocode.com>` (env `EMAIL_FROM`; verify domain, SPF/DKIM per docs/10). Every send via `lib/email/send.ts` → logs to `email_log`.
+Shared layout: logo, forest header rule, content, footer (contact, address, unsubscribe where applicable). All bilingual — template renders in `order.locale` / `profile.preferred_locale`. From: `BIOCODE <porosite@biocode.com>` (env `EMAIL_FROM`; verify domain, SPF/DKIM per docs/10). Every send via `lib/email/send.ts` → logs to `email_log`.
 
 | Template                                            | Trigger                                      | Key content                                                                            |
 | --------------------------------------------------- | -------------------------------------------- | -------------------------------------------------------------------------------------- |

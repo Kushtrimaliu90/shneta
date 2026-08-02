@@ -35,7 +35,7 @@ export default async function AdminDashboardPage() {
 
   return (
     <div>
-      <h1 className="font-display text-2xl font-semibold text-carbon-900">Dashboard</h1>
+      <h1 className="font-display text-2xl font-semibold text-forest-900">Dashboard</h1>
       <p className="mt-1 text-sm text-ink-600">Last 30 days · times shown in Europe/Belgrade</p>
 
       {/* ── KPIs ─────────────────────────────────────────────────────────────── */}
@@ -71,7 +71,7 @@ export default async function AdminDashboardPage() {
                       <div
                         key={point.day}
                         title={`${point.day}: ${formatPrice(point.revenueCents, 'en')}`}
-                        className="min-w-0 flex-1 rounded-t-[2px] bg-carbon-500"
+                        className="min-w-0 flex-1 rounded-t-[2px] bg-forest-500"
                         /*
                          * An inline height is the one place a computed value has to reach the DOM
                          * directly — Tailwind cannot express "this row's share of the peak", and
@@ -98,7 +98,7 @@ export default async function AdminDashboardPage() {
                       <table className="w-full border-collapse text-sm">
                         <caption className="sr-only">Revenue and order count per day</caption>
                         <thead>
-                          <tr className="border-b border-line bg-carbon-50 text-left">
+                          <tr className="border-b border-line bg-forest-50 text-left">
                             <th
                               scope="col"
                               className="px-3 py-2 text-xs font-semibold text-ink-600"
@@ -155,7 +155,7 @@ export default async function AdminDashboardPage() {
                 </h2>
                 <Link
                   href="/admin/orders?status=pending"
-                  className="rounded-sm text-xs text-carbon-800 underline underline-offset-4"
+                  className="rounded-sm text-xs text-forest-800 underline underline-offset-4"
                 >
                   See all pending
                 </Link>
@@ -177,7 +177,7 @@ export default async function AdminDashboardPage() {
                         <div className="min-w-0">
                           <Link
                             href={`/admin/orders/${order.id}`}
-                            className="rounded-sm text-sm font-medium text-carbon-800 underline underline-offset-4"
+                            className="rounded-sm text-sm font-medium text-forest-800 underline underline-offset-4"
                             data-numeric
                           >
                             {order.orderNumber}
@@ -218,7 +218,7 @@ export default async function AdminDashboardPage() {
                     <li key={status} className="flex items-center justify-between gap-3 px-3 py-2">
                       <Link
                         href={`/admin/orders?status=${status}`}
-                        className="rounded-sm text-ink-900 hover:text-carbon-800"
+                        className="rounded-sm text-ink-900 hover:text-forest-800"
                       >
                         {ORDER_STATUS_LABELS[status] ?? status}
                       </Link>
@@ -293,7 +293,7 @@ function Kpi({
       <p className="font-ui text-xs font-semibold tracking-[0.08em] text-ink-500 uppercase">
         {label}
       </p>
-      <p className="mt-2 font-display text-2xl font-semibold text-carbon-900" data-numeric>
+      <p className="mt-2 font-display text-2xl font-semibold text-forest-900" data-numeric>
         {showRevenue ? formatPrice(data.revenueCents, 'en') : data.orders}
       </p>
       <p className="mt-0.5 text-xs text-ink-600" data-numeric>

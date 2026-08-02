@@ -459,18 +459,19 @@ ledger that quietly changes its subject's name is not a ledger.
 
 ### What changed
 
-| Layer      | Before                          | After                                                                   |
-| ---------- | ------------------------------- | ----------------------------------------------------------------------- |
-| Name       | SHNETA                          | BIOCODE                                                                 |
-| Primary    | `forest` — herbal green         | `carbon` — deep blue-graphite (`#0D1620` → `#EEF3F7`)                   |
-| Accent     | `lime` `#A3E635`                | `signal` `#2EE6C5` — electric aqua                                      |
-| Background | `cream` `#FAF9F5` (warm)        | `bone` `#F7F9FA` (cool)                                                 |
-| Mark       | The ring, stroked               | Four bars on a carbon tile — legible at 16 px (docs/13 §R5)             |
-| Motif      | "Vitality Ring"                 | "Signal Ring" — same geometry, product-only, never the logo             |
-| Type       | Space Grotesk / Inter / Manrope | unchanged — it already read technical, which is what the rebrand wanted |
+| Layer    | Before                          | After                                                                |
+| -------- | ------------------------------- | -------------------------------------------------------------------- |
+| Name     | SHNETA                          | BIOCODE                                                              |
+| Wordmark | SHNETA, Space Grotesk           | BIOCODE, Space Grotesk Medium — from the brand kit                   |
+| Mark     | Ring approximated with circles  | The kit's Vitality Ring, arc paths copied verbatim (docs/13 §R5)     |
+| Palette  | forest / lime / cream           | **unchanged** — the kit keeps it                                     |
+| Type     | Space Grotesk / Inter / Manrope | **unchanged**                                                        |
+| Copy     | "Your health, simplified."      | "Your biology has a code. Unlock your potential."                    |
+| Assets   | none in-repo                    | `public/brand/` — five SVGs + `USAGE.md`; favicon and app icon wired |
 
-Every token was designed **against** `tests/unit/contrast.test.ts` rather than checked after
-(docs/13 §R1). All 32 assertions pass unchanged; the suite needed only its token _names_ updated.
+**The visual system did not change.** An earlier pass invented a blue-graphite palette and a
+bar-sequence mark before the brand kit arrived; it was reverted in full once the kit showed the
+identity was being kept. docs/13 §R1 records why, and it is the more useful half of this entry.
 
 ### What it is safe to forget, and is not
 
@@ -489,8 +490,8 @@ Every token was designed **against** `tests/unit/contrast.test.ts` rather than c
 
 Nothing in §14 changed status. Two items gained a line of scope:
 
-- **Brand assets** — the placeholder logos are now placeholder logos for a _different_ brand.
-  The BIOCODE mark itself is real and shipped; what is still missing is the third-party brand
-  imagery for the products being resold.
+- **Brand assets** — the BIOCODE kit is in `public/brand/` and wired: header lockup, favicon,
+  app icon. What is still missing is unrelated to the rebrand — the third-party _product_ brand
+  imagery for the goods being resold, and `pnpm seed:images` (§8).
 - **Domain** — `biocode.com` and the social handles in `settings.store` are placeholders written
   to look right. Nobody has registered them.

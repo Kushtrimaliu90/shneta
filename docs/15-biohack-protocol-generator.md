@@ -296,9 +296,9 @@ The rebrand ran ahead of this prompt. Recorded in `docs/13 §R` and `docs/14 §1
 | Wordmark                | `BIOCODE` in `components/storefront/brand-mark.tsx`, with a new sequence-tile mark                                         |
 | `i18n/messages/*`       | Both locales, including new taglines and hero                                                                              |
 | `settings.store.name`   | Seed **and** the live row                                                                                                  |
-| Manifest, OG defaults   | Name, short name, `theme_color` now `carbon-900`                                                                           |
+| Manifest, OG defaults   | Name, short name, `theme_color` = the kit's deep panel `#0B241B`                                                           |
 | README, CLAUDE.md, docs | All 15 documents                                                                                                           |
-| Palette                 | `forest → carbon`, `lime → signal`, `cream → bone` — renamed, not just re-pointed                                          |
+| Palette                 | **Unchanged** — the brand kit keeps forest / lime / cream (docs/13 §R1)                                                    |
 | Seeded content rows     | Article and product slugs migrated in the live database, then rebuilt (docs/13 §R4)                                        |
 
 ### Not done — decisions needed before this milestone starts

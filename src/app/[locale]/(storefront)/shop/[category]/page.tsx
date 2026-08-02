@@ -64,7 +64,7 @@ export default async function CategoryPage({ params, searchParams }: Props) {
           <li>
             <Link
               href="/shop"
-              className="rounded-sm underline underline-offset-4 hover:text-carbon-700"
+              className="rounded-sm underline underline-offset-4 hover:text-forest-700"
             >
               {t('shop.title')}
             </Link>

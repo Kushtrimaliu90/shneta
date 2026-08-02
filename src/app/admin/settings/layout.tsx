@@ -17,10 +17,10 @@ export default async function SettingsLayout({ children }: { children: React.Rea
 
   return (
     <div className="max-w-4xl">
-      <h1 className="font-display text-2xl font-semibold text-carbon-900">Settings</h1>
+      <h1 className="font-display text-2xl font-semibold text-forest-900">Settings</h1>
       <p className="mt-1 text-sm text-ink-600">
         Configuration that changes the shop. Everything here is audited —{' '}
-        <Link href="/admin/settings/audit" className="text-carbon-800 underline underline-offset-4">
+        <Link href="/admin/settings/audit" className="text-forest-800 underline underline-offset-4">
           see the log
         </Link>
         .

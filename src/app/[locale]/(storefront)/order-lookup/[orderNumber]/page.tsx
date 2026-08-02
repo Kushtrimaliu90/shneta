@@ -43,7 +43,7 @@ export default async function OrderLookupResultPage({ params }: Props) {
     <div className="container-page py-12 lg:py-16">
       <div className="mx-auto max-w-2xl">
         <p className="eyebrow">{t('order.orderNumber')}</p>
-        <h1 className="mt-1 font-display text-3xl font-semibold text-carbon-900" data-numeric>
+        <h1 className="mt-1 font-display text-3xl font-semibold text-forest-900" data-numeric>
           {order.orderNumber}
         </h1>
         <p className="mt-2 text-sm text-ink-500">

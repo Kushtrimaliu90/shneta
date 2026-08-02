@@ -109,7 +109,7 @@ export default async function ArticlePage({ params }: Props) {
       <div className="container-page py-8 lg:py-12">
         <Link
           href="/knowledge"
-          className="inline-flex items-center gap-1.5 rounded-sm text-sm text-carbon-800 hover:underline"
+          className="inline-flex items-center gap-1.5 rounded-sm text-sm text-forest-800 hover:underline"
         >
           <ArrowLeft className="size-4" aria-hidden="true" />
           {t('knowledge.backToKnowledge')}
@@ -137,7 +137,7 @@ export default async function ArticlePage({ params }: Props) {
               )}
             </p>
 
-            <h1 className="mt-3 font-display text-3xl font-semibold text-carbon-900 lg:text-4xl">
+            <h1 className="mt-3 font-display text-3xl font-semibold text-forest-900 lg:text-4xl">
               {title}
             </h1>
 
@@ -149,8 +149,8 @@ export default async function ArticlePage({ params }: Props) {
             )}
 
             {isFallback && (
-              <p className="mt-6 flex items-center gap-2 rounded-sm border border-line bg-carbon-50 px-3 py-2 text-sm text-ink-600">
-                <Info className="size-4 shrink-0 text-carbon-800" aria-hidden="true" />
+              <p className="mt-6 flex items-center gap-2 rounded-sm border border-line bg-forest-50 px-3 py-2 text-sm text-ink-600">
+                <Info className="size-4 shrink-0 text-forest-800" aria-hidden="true" />
                 {t('knowledge.onlyAlbanian')}
               </p>
             )}
@@ -170,7 +170,7 @@ export default async function ArticlePage({ params }: Props) {
           <aside className="flex flex-col gap-8 lg:sticky lg:top-24 lg:self-start">
             {article.products.length > 0 && (
               <section>
-                <h2 className="font-display text-lg font-semibold text-carbon-900">
+                <h2 className="font-display text-lg font-semibold text-forest-900">
                   {t('knowledge.shopThisArticle')}
                 </h2>
                 <ul className="mt-3 flex flex-col gap-3">
@@ -182,7 +182,7 @@ export default async function ArticlePage({ params }: Props) {
                           href={`/product/${product.slug}`}
                           className="flex items-center gap-3 rounded-lg border border-line bg-surface p-2.5 transition-shadow hover:shadow-md"
                         >
-                          <div className="size-14 shrink-0 overflow-hidden rounded-sm bg-bone">
+                          <div className="size-14 shrink-0 overflow-hidden rounded-sm bg-cream">
                             <ProductImage
                               path={product.imagePath}
                               alt={name}
@@ -217,7 +217,7 @@ export default async function ArticlePage({ params }: Props) {
                     <li key={ingredient.slug}>
                       <Link
                         href={`/ingredients/${ingredient.slug}`}
-                        className="inline-flex rounded-sm border border-line px-2.5 py-1 text-sm text-ink-900 hover:bg-carbon-50"
+                        className="inline-flex rounded-sm border border-line px-2.5 py-1 text-sm text-ink-900 hover:bg-forest-50"
                       >
                         {pickLocale(ingredient.name, locale)}
                       </Link>
@@ -231,7 +231,7 @@ export default async function ArticlePage({ params }: Props) {
 
         {related.length > 0 && (
           <section className="mt-16 border-t border-line pt-10">
-            <h2 className="font-display text-2xl font-semibold text-carbon-900">
+            <h2 className="font-display text-2xl font-semibold text-forest-900">
               {t('knowledge.relatedArticles')}
             </h2>
             <ol className="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">

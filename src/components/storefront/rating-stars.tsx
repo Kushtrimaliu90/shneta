@@ -38,7 +38,7 @@ export function RatingStars({
             key={star}
             className={cn(
               starSize,
-              star <= rounded ? 'fill-signal-500 text-signal-500' : 'text-line-strong',
+              star <= rounded ? 'fill-lime-500 text-lime-500' : 'text-line-strong',
             )}
           />
         ))}

@@ -32,7 +32,7 @@ export function ReviewSummaryPanel({
   return (
     <div className="flex flex-col gap-5 rounded-lg border border-line bg-surface p-5 sm:flex-row sm:items-center sm:gap-8">
       <div className="shrink-0 text-center sm:text-left">
-        <p className="font-display text-4xl font-semibold text-carbon-900" data-numeric>
+        <p className="font-display text-4xl font-semibold text-forest-900" data-numeric>
           {summary.average.toFixed(1)}
         </p>
         <span className="mt-1 flex justify-center sm:justify-start" aria-hidden="true">
@@ -42,7 +42,7 @@ export function ReviewSummaryPanel({
               className={cn(
                 'size-4',
                 star <= Math.round(summary.average)
-                  ? 'fill-signal-500 text-signal-500'
+                  ? 'fill-lime-500 text-lime-500'
                   : 'text-line-strong',
               )}
             />
@@ -68,8 +68,8 @@ export function ReviewSummaryPanel({
                 onClick={() => onSelectRating(isActive ? null : star)}
                 className={cn(
                   'flex w-full items-center gap-2 rounded-sm px-1 py-0.5 text-left text-sm transition-colors',
-                  count === 0 ? 'cursor-default opacity-60' : 'hover:bg-carbon-50',
-                  isActive && 'bg-carbon-100',
+                  count === 0 ? 'cursor-default opacity-60' : 'hover:bg-forest-50',
+                  isActive && 'bg-forest-100',
                 )}
               >
                 <span className="w-14 shrink-0 text-ink-600" data-numeric>
@@ -77,10 +77,10 @@ export function ReviewSummaryPanel({
                 </span>
                 <span
                   aria-hidden="true"
-                  className="h-2 flex-1 overflow-hidden rounded-full bg-carbon-50"
+                  className="h-2 flex-1 overflow-hidden rounded-full bg-forest-50"
                 >
                   <span
-                    className="block h-full rounded-full bg-signal-500"
+                    className="block h-full rounded-full bg-lime-500"
                     style={{ width: `${percent}%` }}
                   />
                 </span>

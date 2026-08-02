@@ -57,7 +57,7 @@ export const megaMenu: Variants = {
   exit: { opacity: 0, scale: 0.98, transition: { duration: DURATION.micro, ease: EASE_BIOCODE } },
 };
 
-/** docs/04 §2 — the Signal Ring draws in once, 400ms, ease-out-quint. */
+/** docs/04 §2 — the Vitality Ring draws in once, 400ms, ease-out-quint. */
 export const signalRing: Variants = {
   hidden: { pathLength: 0, opacity: 0 },
   visible: {

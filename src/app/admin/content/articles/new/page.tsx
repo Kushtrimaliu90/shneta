@@ -10,7 +10,7 @@ export default async function NewArticlePage() {
 
   return (
     <section>
-      <h2 className="mb-4 font-display text-lg font-semibold text-carbon-900">New article</h2>
+      <h2 className="mb-4 font-display text-lg font-semibold text-forest-900">New article</h2>
       <ArticleEditor article={null} options={options} />
     </section>
   );

@@ -39,7 +39,7 @@ export function CouponCard({ coupon }: { coupon: PublicCoupon }) {
 
   return (
     <li className="flex flex-col gap-3 rounded-lg border border-line bg-surface p-4">
-      <p className="font-display text-xl font-semibold text-carbon-900">{headline}</p>
+      <p className="font-display text-xl font-semibold text-forest-900">{headline}</p>
 
       <div className="flex flex-col gap-0.5 text-sm text-ink-600">
         {coupon.minSubtotalCents !== null && coupon.minSubtotalCents > 0 && (
@@ -52,7 +52,7 @@ export function CouponCard({ coupon }: { coupon: PublicCoupon }) {
 
       <div className="mt-auto flex items-center gap-2">
         <code
-          className="flex-1 rounded-sm border border-dashed border-carbon-800 bg-carbon-50 px-3 py-2 text-center font-ui text-sm font-semibold tracking-wider text-carbon-900"
+          className="flex-1 rounded-sm border border-dashed border-forest-800 bg-forest-50 px-3 py-2 text-center font-ui text-sm font-semibold tracking-wider text-forest-900"
           data-numeric
         >
           {coupon.code}
@@ -62,7 +62,7 @@ export function CouponCard({ coupon }: { coupon: PublicCoupon }) {
           onClick={copy}
           aria-label={`${t('copyCode')}: ${coupon.code}`}
           className={cn(
-            'inline-flex size-10 shrink-0 items-center justify-center rounded-sm border border-line-strong transition-colors hover:bg-carbon-50',
+            'inline-flex size-10 shrink-0 items-center justify-center rounded-sm border border-line-strong transition-colors hover:bg-forest-50',
             copied && 'border-success text-success',
           )}
         >
