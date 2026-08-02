@@ -35,4 +35,53 @@ describe('parseClientEnv', () => {
       /NEXT_PUBLIC_SUPABASE_ANON_KEY/,
     );
   });
+
+  /**
+   * The message is the product here, not just the throw.
+   *
+   * A Vercel build failed on a missing `NEXT_PUBLIC_SITE_URL`, and the log said "check these
+   * variables against .env.example" — advice that is useless to the person reading it, who is in
+   * a browser on a settings page with no repository open. These assertions pin the three things
+   * that turn the failure into a fix.
+   */
+  describe('the failure message', () => {
+    it('distinguishes "not set" from "set to the wrong shape"', () => {
+      expect(() => parseClientEnv({ ...VALID, NEXT_PUBLIC_SITE_URL: undefined })).toThrow(
+        /NEXT_PUBLIC_SITE_URL — not set/,
+      );
+
+      // A bare host is the mistake people actually make; it must not read as "not set".
+      let message = '';
+      try {
+        parseClientEnv({ ...VALID, NEXT_PUBLIC_SITE_URL: 'www.shtrejt.com' });
+      } catch (error) {
+        message = error instanceof Error ? error.message : String(error);
+      }
+      expect(message).toMatch(/NEXT_PUBLIC_SITE_URL/);
+      expect(message).not.toMatch(/NEXT_PUBLIC_SITE_URL — not set/);
+    });
+
+    it('shows what a valid value looks like', () => {
+      expect(() => parseClientEnv({})).toThrow(/the scheme is required/);
+    });
+
+    it('says the variables are read at build time', () => {
+      expect(() => parseClientEnv({})).toThrow(/BUILD time/);
+    });
+
+    /**
+     * Names and reasons, never values. Build logs get pasted into chats and screenshots far more
+     * casually than a `.env` file does; these three are public by design, but that is not the
+     * same as being worth reprinting.
+     */
+    it('never echoes the offending value', () => {
+      let message = '';
+      try {
+        parseClientEnv({ ...VALID, NEXT_PUBLIC_SUPABASE_ANON_KEY: 'leaky-value-should-not-appear' });
+      } catch (error) {
+        message = error instanceof Error ? error.message : String(error);
+      }
+      expect(message).not.toContain('leaky-value-should-not-appear');
+    });
+  });
 });

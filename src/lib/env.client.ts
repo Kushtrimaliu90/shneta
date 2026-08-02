@@ -15,12 +15,41 @@ const clientSchema = z.object({
 
 export type ClientEnv = z.infer<typeof clientSchema>;
 
+/**
+ * An example of a valid value per variable, shown when one fails.
+ *
+ * The message used to say "check these against .env.example", which is fine on a laptop and
+ * useless in a Vercel build log — the person reading it is in a browser, on a settings page, with
+ * no repository in front of them. A build that fails on configuration should say what the
+ * configuration ought to look like.
+ */
+const EXAMPLES: Record<keyof ClientEnv, string> = {
+  NEXT_PUBLIC_SITE_URL: 'https://www.example.com (the scheme is required — a bare host is rejected)',
+  NEXT_PUBLIC_SUPABASE_URL: 'https://<project-ref>.supabase.co',
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: 'the anon key from Supabase → Settings → API',
+};
+
 export function parseClientEnv(source: Record<string, string | undefined>): ClientEnv {
   const parsed = clientSchema.safeParse(source);
   if (!parsed.success) {
-    const missing = parsed.error.issues.map((issue) => issue.path.join('.')).join(', ');
+    /*
+     * Names and reasons, never values. This text lands in build logs, which are shared in
+     * screenshots and issue threads far more casually than a `.env` file ever is — and while
+     * these three are public by design, "public" and "worth pasting into a chat" are different
+     * things. Saying a variable is absent or malformed is enough to fix it.
+     */
+    const detail = parsed.error.issues
+      .map((issue) => {
+        const name = issue.path.join('.') as keyof ClientEnv;
+        const reason = source[name] === undefined || source[name] === '' ? 'not set' : issue.message;
+        return `  · ${name} — ${reason}\n    expected: ${EXAMPLES[name] ?? 'see .env.example'}`;
+      })
+      .join('\n');
+
     throw new Error(
-      `Invalid public environment. Check these variables against .env.example: ${missing}`,
+      `Invalid public environment:\n${detail}\n\n` +
+        'These are read at BUILD time, so setting them in a hosting dashboard takes effect on ' +
+        'the next deploy, not the current one.',
     );
   }
   return parsed.data;
