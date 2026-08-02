@@ -41,6 +41,20 @@ export async function Navbar() {
                 </Link>
               </li>
             ))}
+            {/*
+              BioHack sits outside `PRIMARY_NAV` and is styled apart from it.
+              `PRIMARY_NAV` is the catalogue taxonomy — the footer renders the same list under
+              "Shop" — and the generator is not a category. It is the one link here that starts
+              something rather than listing something, which is also why it carries the accent.
+            */}
+            <li>
+              <Link
+                href="/biohack"
+                className="ml-1 inline-flex h-11 items-center rounded-md border border-lime-500/60 bg-lime-500/10 px-3.5 text-[15px] font-semibold text-forest-800 transition-colors hover:bg-lime-500/20"
+              >
+                {t('nav.biohack')}
+              </Link>
+            </li>
           </ul>
         </nav>
 

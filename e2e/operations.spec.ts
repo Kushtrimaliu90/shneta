@@ -6,12 +6,11 @@ import { db, deleteCreatedUsers, ipAllocator, signIn, staffUser } from './helper
 /**
  * docs/12 M10 — the operations milestone in a browser.
  *
- * Four acceptance criteria, three of which only a browser can show:
+ * Three acceptance criteria, two of which only a browser can show:
  *
  *   · the ledger invariant through receive and adjust (also proved in SQL, in
  *     `tests/integration/admin-ops.test.ts` — here it is proved through the screen an operator
  *     actually uses, which is where a form that posts the wrong field would show up)
- *   · the finder completes and never returns nothing
  *   · a team invite creates an account that can sign in
  *   · a settings change reaches the storefront
  */
@@ -115,93 +114,6 @@ test.describe('inventory operations (docs/06 §8)', () => {
      * named error, so the operator was told nothing about what they had done wrong.
      */
     await expect(page.getByText(/take stock below zero/)).toBeVisible({ timeout: ACTION_TIMEOUT });
-  });
-});
-
-test.describe('the supplement finder (docs/05 §10)', () => {
-  test('completes in five steps and always returns a routine', async ({ page }) => {
-    const started = Date.now();
-
-    await page.goto('/en/finder');
-
-    // 1 · primary goal
-    await expect(page.getByRole('heading', { name: /matters most/ })).toBeVisible({
-      timeout: ACTION_TIMEOUT,
-    });
-    await page.getByRole('radio', { name: 'Better Sleep' }).check();
-    await page.getByRole('button', { name: 'Continue' }).click();
-
-    // 2 · secondary goals
-    await expect(page.getByRole('heading', { name: /Anything else/ })).toBeVisible();
-    await page.getByRole('checkbox', { name: 'Stress' }).check();
-    await page.getByRole('button', { name: 'Continue' }).click();
-
-    // 3 · lifestyle
-    await expect(page.getByRole('heading', { name: /about your days/ })).toBeVisible();
-    await page.getByRole('radio', { name: 'Badly' }).check();
-    await page.getByRole('button', { name: 'Continue' }).click();
-
-    // 4 · constraints
-    await expect(page.getByRole('heading', { name: /to avoid/ })).toBeVisible();
-    await page.getByRole('checkbox', { name: 'Gluten free' }).check();
-    await page.getByRole('button', { name: 'Continue' }).click();
-
-    // 5 · email, optional
-    await expect(page.getByRole('heading', { name: /Where should we send/ })).toBeVisible();
-    await page.getByRole('button', { name: 'See my routine' }).click();
-
-    // Results
-    await expect(page.getByRole('heading', { name: 'Your routine' })).toBeVisible({
-      timeout: ACTION_TIMEOUT,
-    });
-
-    const cards = page.locator('main ul li a[href*="/product/"]');
-    expect(
-      await cards.count(),
-      'docs/05 §10 — results are never empty, with a fallback if nothing matches',
-    ).toBeGreaterThan(0);
-
-    // docs/05 §10 acceptance — "finishing < 60 s".
-    const elapsed = Date.now() - started;
-    expect(elapsed, `the whole quiz took ${Math.round(elapsed / 1000)}s`).toBeLessThan(60_000);
-
-    // Every product carries a reason, which is the difference between a routine and a grid.
-    await expect(page.getByText(/For Better Sleep|Also helps with|Well rated|popular choice/).first()).toBeVisible();
-  });
-
-  test('back navigation preserves the answers (docs/05 §10 acceptance)', async ({ page }) => {
-    await page.goto('/en/finder');
-
-    await page.getByRole('radio', { name: 'Immunity' }).check();
-    await page.getByRole('button', { name: 'Continue' }).click();
-
-    await expect(page.getByRole('heading', { name: /Anything else/ })).toBeVisible();
-    await page.getByRole('checkbox', { name: 'Energy' }).check();
-    await page.getByRole('button', { name: 'Continue' }).click();
-
-    await expect(page.getByRole('heading', { name: /about your days/ })).toBeVisible();
-
-    // Two steps back with the browser's own button — the answers live in the URL.
-    await page.goBack();
-    await expect(page.getByRole('checkbox', { name: 'Energy' })).toBeChecked();
-
-    await page.goBack();
-    await expect(page.getByRole('radio', { name: 'Immunity' })).toBeChecked();
-  });
-
-  test('adds the whole routine to the cart', async ({ page }) => {
-    await page.goto('/en/finder?step=6&primary=imuniteti');
-
-    await expect(page.getByRole('heading', { name: 'Your routine' })).toBeVisible({
-      timeout: ACTION_TIMEOUT,
-    });
-
-    await page.getByRole('button', { name: 'Add all to cart' }).click();
-    await expect(page.getByText('Added to your cart.')).toBeVisible({ timeout: ACTION_TIMEOUT });
-
-    await page.goto('/en/cart');
-    const lines = page.locator('main li', { has: page.locator('a[href*="/product/"]') });
-    expect(await lines.count()).toBeGreaterThan(0);
   });
 });
 
@@ -324,18 +236,13 @@ test.describe('settings (docs/06 §15)', () => {
  * docs/09 §1 journey 12 — the axe pass, extended to everything M10 added.
  *
  * The existing sweep covers home, the shop, a PDP, cart, checkout, auth, account orders and the
- * admin dashboard. M10 added six admin areas and the finder, and a screen with no axe assertion
- * is a screen where the next contrast slip ships (docs/13 §N7 is what that looks like).
+ * admin dashboard. M10 added six admin areas, and a screen with no axe assertion is a screen
+ * where the next contrast slip ships (docs/13 §N7 is what that looks like).
+ *
+ * The storefront half of this sweep used to be the Finder's two screens. It moved to
+ * `e2e/biohack.spec.ts` along with the feature that replaced them.
  */
 test.describe('accessibility on the M10 surface (docs/09 §1 journey 12)', () => {
-  const STOREFRONT = ['/en/finder', '/en/finder?step=6&primary=imuniteti'];
-
-  for (const path of STOREFRONT) {
-    test(`axe finds no serious or critical violations on ${path}`, async ({ page }) => {
-      await page.goto(path);
-      await assertNoBlockingViolations(page, path);
-    });
-  }
 
   const ADMIN = [
     '/admin/inventory',

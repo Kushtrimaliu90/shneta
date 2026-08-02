@@ -550,6 +550,75 @@ describe('the budget (docs/15 §3.6)', () => {
     expect(keys(result).some((k) => k.startsWith('habit:'))).toBe(true);
   });
 
+  /**
+   * docs/15 §0 — ported from the Finder, which bought this rule with a real bug (docs/13 §P7).
+   *
+   * The first Finder trimmed the routine to fit the budget and then topped it back up to the
+   * minimum item count, quietly undoing the trim: the customer set a limit, the code respected it
+   * for one statement, and the result came back over it anyway.
+   *
+   * The engine may still exceed a budget — the per-goal guarantee outranks it, and a protocol
+   * below `min_items` is not a protocol — but only *deliberately*, and only in ways the trace
+   * records. This asserts the shape of that: what comes back over budget is there because a rule
+   * put it there, and there is a trace entry naming the rule.
+   */
+  it('never exceeds the budget silently: an over-budget item is always explained', () => {
+    const c = config({
+      blocks: ['a', 'b', 'c', 'd'].map((s) =>
+        block({ goalSlug: 'gjumi', ingredientSlug: s, weight: 50 }),
+      ),
+    });
+    const result = generateProtocol(
+      c,
+      ['a', 'b', 'c', 'd'].map((s) =>
+        product({ slug: s, ingredientSlugs: [s], priceCents: 3000 }),
+      ),
+      answers({ budgetCents: 4000 }),
+    );
+
+    if (result.monthlyTotalCents > 4000) {
+      const explained = result.trace.some(
+        (entry) => entry.detail === 'over_budget' || entry.kind === 'budget_cut',
+      );
+      expect(explained, 'over budget without a trace entry is the §P7 bug').toBe(true);
+    }
+
+    // And the cut itself is recorded rather than the items simply vanishing.
+    expect(result.trace.some((entry) => entry.kind === 'budget_cut')).toBe(true);
+  });
+
+  /**
+   * The Finder's other hard-won rule (docs/05 §10 acceptance, docs/15 §0): a result is never
+   * empty, and a degenerate one says so rather than passing itself off as a match.
+   *
+   * Here the whole catalogue is out of stock. The engine still returns the ingredients — they are
+   * the right answer — but marks every one "së shpejti", keeps them out of the total, and puts
+   * the reason in the trace. An empty page would tell the customer nothing; a page of unbuyable
+   * items presented as buyable would be worse.
+   */
+  it('nothing in stock still returns a protocol, marked and costed at zero', () => {
+    const c = config({
+      blocks: [
+        block({ goalSlug: 'gjumi', ingredientSlug: 'a', weight: 90, isCore: true }),
+        block({ goalSlug: 'gjumi', ingredientSlug: 'b', weight: 60 }),
+      ],
+    });
+    const result = generateProtocol(
+      c,
+      [
+        product({ slug: 'a', ingredientSlugs: ['a'], inStock: false }),
+        product({ slug: 'b', ingredientSlugs: ['b'], inStock: false }),
+      ],
+      answers(),
+    );
+
+    expect(result.items.length, 'never empty').toBeGreaterThan(0);
+    expect(result.items.every((item) => item.comingSoon)).toBe(true);
+    expect(result.items.every((item) => item.product === null)).toBe(true);
+    expect(result.monthlyTotalCents, 'unbuyable items cost nothing').toBe(0);
+    expect(result.trace.filter((entry) => entry.kind === 'no_stock')).toHaveLength(2);
+  });
+
   it('a budget of null is no limit, not zero', () => {
     const c = config({
       blocks: [block({ goalSlug: 'gjumi', ingredientSlug: 'x', weight: 50 })],

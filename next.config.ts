@@ -115,6 +115,23 @@ const nextConfig: NextConfig = {
   async headers() {
     return [{ source: '/:path*', headers: securityHeaders }];
   },
+  /**
+   * docs/15 §1 — the BioHack generator supersedes the Finder.
+   *
+   * **308, permanent.** `/finder` has been in the sitemap and the footer since M0, so there are
+   * links to it in the wild; a permanent redirect passes their weight to the page that replaced
+   * it. 308 rather than 301 because it preserves the method — a stale bookmark is a GET either
+   * way, but a 301 would let an intermediary rewrite a POST, and the Finder had one.
+   *
+   * Both locales listed explicitly. The middleware only rewrites paths it recognises, and
+   * `/en/finder` stops being one the moment the route is deleted.
+   */
+  async redirects() {
+    return [
+      { source: '/finder', destination: '/biohack', permanent: true },
+      { source: '/en/finder', destination: '/en/biohack', permanent: true },
+    ];
+  },
 };
 
 /**

@@ -69,10 +69,29 @@ test.describe('what search engines are told (docs/08 §4)', () => {
   test('the sitemap includes the pages added after M8', async ({ request }) => {
     const xml = await (await request.get('/sitemap.xml')).text();
 
-    // /finder shipped in M10 and has been linked from the footer since M0.
-    expect(xml, '/finder is missing from the sitemap').toContain('/finder');
     expect(xml).toContain('/knowledge');
     expect(xml).toContain('/offers');
+  });
+
+  /**
+   * docs/15 §1 — the Finder's supersession, from the crawler's side.
+   *
+   * Two halves of one change that are easy to do independently and wrong to ship apart: the
+   * redirect without the sitemap edit leaves a listed URL that 308s, and the sitemap edit without
+   * the redirect breaks every link in the wild.
+   */
+  test('/finder permanently redirects to /biohack and has left the sitemap', async ({
+    request,
+  }) => {
+    const xml = await (await request.get('/sitemap.xml')).text();
+    expect(xml, '/finder must no longer be advertised').not.toContain('/finder');
+    expect(xml, 'the generator is noindex, so it is not advertised either').not.toContain(
+      '/biohack',
+    );
+
+    const response = await request.get('/finder', { maxRedirects: 0 });
+    expect(response.status()).toBe(308);
+    expect(response.headers().location).toContain('/biohack');
   });
 
   test('private pages are absent from the sitemap', async ({ request }) => {

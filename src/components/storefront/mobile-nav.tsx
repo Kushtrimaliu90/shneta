@@ -108,6 +108,16 @@ export function MobileNav() {
                 </Link>
               </li>
             ))}
+            {/* Outside `PRIMARY_NAV` for the reason the desktop bar gives: it is not a category. */}
+            <li>
+              <Link
+                href="/biohack"
+                onClick={close}
+                className="mt-2 flex min-h-11 items-center rounded-md border border-lime-500/60 bg-lime-500/10 px-3 py-3 font-display text-2xl text-forest-800 hover:bg-lime-500/20"
+              >
+                {t('nav.biohack')}
+              </Link>
+            </li>
           </ul>
         </nav>
       </div>

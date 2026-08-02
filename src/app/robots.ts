@@ -22,10 +22,14 @@ export default function robots(): MetadataRoute.Robots {
           // Not indexed per docs/08 §4: query-driven, per-user result surfaces.
           '/search',
           '/compare',
-          '/finder',
           '/en/search',
           '/en/compare',
-          '/en/finder',
+          // docs/15 §1 — the generator is a form, and `/p/` is one person's protocol behind a
+          // capability URL. Neither belongs in an index.
+          '/biohack',
+          '/en/biohack',
+          '/p/',
+          '/en/p/',
         ],
       },
     ],

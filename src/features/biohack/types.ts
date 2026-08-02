@@ -213,6 +213,17 @@ export interface ProtocolResult {
   durationDays: number;
   phased: boolean;
   items: ProtocolItem[];
+  /**
+   * Ranked, resolved candidates that did not make the cut — the pool "Ndërro" swaps from.
+   *
+   * A flat pool rather than a list hanging off each item, because most alternates serve more than
+   * one of the chosen goals and per-item lists would ship the same object several times. The UI
+   * picks the best alternate sharing a goal with the item being replaced.
+   *
+   * Carried in the payload so a swap costs no round trip and a stored protocol can still be
+   * modified when it is reopened.
+   */
+  alternates: ProtocolItem[];
   /** Metric templates for the chosen goals, deduplicated, in goal order. */
   metrics: { sq: string[]; en: string[] };
   monthlyTotalCents: number;

@@ -68,11 +68,17 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
               <Link href="/shop" className={cn(buttonVariants({ size: 'lg' }), 'sm:w-auto')}>
                 {t('home.hero.ctaPrimary')}
               </Link>
+              {/*
+                The secondary CTA is the generator, not the goal index.
+                Both answer "where do I start", and only one of them ends with the customer
+                holding something. The goal index is still a click away in the nav and has its
+                own section further down this page.
+              */}
               <Link
-                href="/goals"
+                href="/biohack"
                 className={cn(buttonVariants({ variant: 'secondary', size: 'lg' }), 'sm:w-auto')}
               >
-                {t('home.sections.goals')}
+                {t('biohack.title')}
               </Link>
             </div>
           </div>

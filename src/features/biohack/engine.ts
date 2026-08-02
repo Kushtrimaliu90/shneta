@@ -27,6 +27,9 @@ import {
  * resolution — moving any of them changes what a customer is told and why.
  */
 
+/** How many swap options travel with a result. Six is more than the five items it can replace. */
+const MAX_ALTERNATES = 6;
+
 /** A habit has no slug, so it is keyed on its Albanian text, normalised. */
 function habitKey(text: string): string {
   return `habit:${text.trim().toLowerCase().replace(/\s+/g, '-').slice(0, 60)}`;
@@ -66,6 +69,7 @@ export function generateProtocol(
     durationDays: config.settings.durationDays,
     phased: false,
     items: [],
+    alternates: [],
     metrics: { sq: [], en: [] },
     monthlyTotalCents: 0,
     trace,
@@ -175,10 +179,30 @@ export function generateProtocol(
   // 6b · Budget, greedy by score-per-euro, never dropping a per-goal core.
   const withinBudget = applyBudget(resolved, config, goals, inputs.budgetCents, trace);
 
+  /*
+   * The swap pool.
+   *
+   * Everything that survived the filters and did not make the final list, resolved against the
+   * catalogue so a swap can show a real price immediately. Two deliberate exclusions: a
+   * supplement with nothing purchasable behind it, because swapping to "së shpejti" is not an
+   * alternative, and anything already on the list.
+   *
+   * Resolution runs against a throwaway trace. These are decisions about items the customer is
+   * not being shown, and "no stock for X" in the explanation of a protocol that never mentioned X
+   * reads as a defect.
+   */
+  const shown = new Set(withinBudget.map((item) => item.key));
+  const alternates = candidates
+    .filter((candidate) => !shown.has(candidate.key))
+    .sort(bestFirst)
+    .map((candidate) => resolve(candidate, catalog, inputs, []))
+    .filter((item) => item.kind === 'habit' || !item.comingSoon)
+    .slice(0, MAX_ALTERNATES);
+
   // 7 · Phasing.
   const phased = inputs.level === 'fillestar' && withinBudget.some((item) => item.phase === 2);
   if (inputs.level === 'i_avancuar') {
-    for (const item of withinBudget) item.phase = 1;
+    for (const item of [...withinBudget, ...alternates]) item.phase = 1;
   } else {
     for (const item of withinBudget) {
       if (item.phase === 2) trace.push({ kind: 'phase_deferred', subject: item.key });
@@ -191,6 +215,7 @@ export function generateProtocol(
     durationDays: config.settings.durationDays,
     phased,
     items: withinBudget,
+    alternates,
     metrics: collectMetrics(config, goals),
     monthlyTotalCents: withinBudget.reduce((sum, i) => sum + (i.product?.priceCents ?? 0), 0),
     trace,

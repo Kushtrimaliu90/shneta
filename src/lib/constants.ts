@@ -81,5 +81,7 @@ export const RATE_LIMITS = {
   reviewCreate: [5, 24 * 60 * 60],
   newsletter: [3, 60 * 60],
   finderSubmit: [10, 60 * 60],
+  /** docs/15 §3 — generation is an unauthenticated write plus five reads. */
+  protocolBuild: [10, 60 * 60],
   orderLookup: [10, 60 * 60],
 } as const satisfies Record<string, readonly [number, number]>;

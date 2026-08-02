@@ -30,7 +30,7 @@ export async function Footer() {
       links: [
         { href: '/knowledge', label: t('nav.knowledge') },
         { href: '/ingredients', label: t('nav.ingredients') },
-        { href: '/finder', label: t('home.hero.ctaSecondary') },
+        { href: '/biohack', label: t('nav.biohack') },
       ],
     },
     {

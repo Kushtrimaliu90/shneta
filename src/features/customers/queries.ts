@@ -245,6 +245,18 @@ export async function exportCustomer(id: string): Promise<Record<string, unknown
       supabase.from('wishlist_items').select('*').eq('user_id', id),
     ]);
 
+  /*
+   * docs/15 §2 — a saved protocol is personal data and belongs in the export.
+   *
+   * `inputs` holds the answers about medication and life stage, which is about as personal as
+   * anything this table has. Added when the generator superseded the Finder: `quiz_submissions`
+   * stays for the historical rows, but every new one lands here instead.
+   */
+  const protocols = await supabase
+    .from('generated_protocols')
+    .select('share_code, config_version, inputs, result, created_at')
+    .eq('user_id', id);
+
   if (!profile.data) return null;
 
   const email = (profile.data as { email: string }).email;
@@ -260,6 +272,7 @@ export async function exportCustomer(id: string): Promise<Record<string, unknown
     loyalty_transactions: ledger.data ?? [],
     reviews: reviews.data ?? [],
     quiz_submissions: messages.data ?? [],
+    biohack_protocols: protocols.data ?? [],
     wishlist: wishlist.data ?? [],
     contact_messages: contact.data ?? [],
     newsletter: newsletter.data ?? [],
