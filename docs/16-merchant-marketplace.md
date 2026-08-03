@@ -137,12 +137,80 @@ Not yet built. §12's order is deliberate and step 1 gates the rest.
 
 ---
 
-## Business decisions still open
+## 8 · Money — settled decisions
 
-- **Shipping cost on merchant fulfilments.** `settings.marketplace.shipping_cost_absorbed` defaults
-  to `true` — BioCode charges the customer one shipping fee and keeps the cost. Deducting a
-  per-fulfilment rate from the merchant's due is the alternative and needs a number nobody has given.
-- **Marketplace terms.** Not written. Must cover commission, payout cycle, authenticity and import
-  legality, prohibited claims, the handling-time SLA, return liability, suspension grounds, and the
-  merchant's position as a **processor** for the shipping data it receives, purpose-limited to
-  fulfilment. `[LEGAL: review]` — no binding text invented.
+### Commission
+
+Set **per merchant** during review of the application and stored on `merchants.commission_pct`.
+Calculated on the **item subtotal**, never on shipping — a merchant shipping its own parcels would
+otherwise pay commission on postage.
+
+> €10.00 item at 10% → BioCode retains €1.00, the merchant receives €9.00.
+
+Verified against the live function: 1000c at 10% returns `commission 100 / due 900`, and 999c returns
+`100 / 899` — the two summing back to the subtotal, so no cent is created or lost by rounding.
+
+### Shipping cost — three options, per merchant
+
+`merchants.shipping_borne_by`, with `null` meaning the marketplace default in
+`settings.marketplace.shipping_borne_by`. Per-merchant because it is negotiated exactly as the
+commission is; a single global switch would treat the merchant who agreed to absorb shipping and the
+one who did not identically.
+
+| Option     | Ledger effect                          | Merchant due                          |
+| ---------- | -------------------------------------- | ------------------------------------- |
+| `biocode`  | none                                   | subtotal − commission                 |
+| `merchant` | a `shipping` row for −cost             | subtotal − commission − shipping      |
+| `customer` | none, recorded as customer-covered     | subtotal − commission                 |
+
+**`customer` does not add a checkout surcharge, and cannot in v1.** The customer is charged one
+shipping fee before routing happens — admin picks the merchant *after* the order exists (§6) — so
+there is no per-merchant shipping line to add at the moment money is taken. Charging one would mean
+routing before checkout or a second charge afterwards. `customer` therefore means "covered by the
+delivery fee already collected", and is a distinct value from `biocode` for attribution rather than
+for arithmetic.
+
+`merchant_settlement(merchant_id, subtotal_cents)` is the only place this arithmetic lives, and it
+returns the three numbers together because they must agree: `due = subtotal − commission − shipping`.
+Computing them in separate places is how a statement stops reconciling.
+
+### Terms
+
+Written and live at `/legal/marketplace-terms`, ~1,340 words per locale, version `1.0` in
+`src/features/merchants/terms.ts`. Thirteen clauses covering the party structure (the sale is
+BioCode↔customer; the merchant is a supplier, which is *why* it never contacts the customer),
+the canonical-catalogue rule, authenticity and lawful import, prohibited health claims, commission
+with the worked example, all three shipping options, COD in both directions, the fortnightly cycle
+with a 14-day dispute window, the 24-hour acceptance SLA, return liability split by cause, the
+merchant's position as a **processor** purpose-limited to fulfilment, suspension grounds, and 30
+days' notice on any change.
+
+Two things to know about it:
+
+- **Written by engineering, not by a lawyer.** Accurate about what the software does, and not a
+  substitute for review by someone qualified in Kosovo commercial and data protection law. The
+  trader identification block carries `[BIZNESI: plotëso]`.
+- **Clause 5 names the prohibited verbs**, so a claim-lint over `pages` will flag this page. That is
+  correct: a document that prohibits "cures, treats, prevents or heals" has to be able to say them.
+  Do not "fix" it by making the prohibition vague.
+
+---
+
+## Step 2 progress
+
+Groundwork done; the screens are not.
+
+- `merchant` added to `USER_ROLES`, and `STAFF_ROLES` rewritten as an **explicit non-staff list**.
+  It used to be `USER_ROLES.filter(r => r !== 'customer')`, so adding the role would silently have
+  made every merchant staff and opened `/admin` — the same trap as `is_staff()` in SQL, one layer up.
+- Five marketplace capabilities. `merchants.manage` and `payouts.manage` are admin-only: approving a
+  merchant sets a commission and a shipping arrangement, which is a commercial decision.
+- Middleware protects `/merchant/**` with `/merchant/apply` exempted by exact match.
+- A merchant reaching `/admin` gets **404**, not a redirect — a redirect confirms the surface exists
+  behind an authorisation check. Customers still get the redirect; they arrive by mistyping.
+- **Route collision resolved.** §5 puts the portal at `/merchant/**` and §9 the public seller page at
+  `/merchant/[slug]`; those cannot both resolve. The portal keeps fixed segments and the public page
+  moves to `/seller/[slug]`, so no dynamic segment ever sits beside a portal route.
+
+Still to build in step 2: the `/merchant/apply` multi-step form, document upload to a private bucket,
+the applicant invite, and `/admin/merchants/applications`.

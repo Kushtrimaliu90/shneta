@@ -15,6 +15,7 @@ import type { NavIconName } from '@/features/admin/components/nav-icon';
 
 export const USER_ROLES = [
   'customer',
+  'merchant',
   'support',
   'product_manager',
   'content_manager',
@@ -25,11 +26,33 @@ export const USER_ROLES = [
 
 export type UserRole = (typeof USER_ROLES)[number];
 
-/** Everyone who may see `/admin` at all. `customer` is deliberately absent. */
-export const STAFF_ROLES = USER_ROLES.filter((role) => role !== 'customer');
+/**
+ * Everyone who may see `/admin` at all.
+ *
+ * **An explicit exclusion list, not "everyone except customer".** That is the whole point of this
+ * edit: `STAFF_ROLES` used to be `USER_ROLES.filter(role => role !== 'customer')`, so adding
+ * `merchant` to the enum above would silently have made every merchant staff — the same trap as
+ * adding `merchant` to `is_staff()` in SQL (docs/16 §2), and here it would have opened `/admin`.
+ *
+ * Naming who is *not* staff means the next role added has to be considered rather than admitted.
+ */
+const NON_STAFF: readonly UserRole[] = ['customer', 'merchant'];
+
+export const STAFF_ROLES = USER_ROLES.filter((role) => !NON_STAFF.includes(role));
 
 export function toUserRole(value: string | null | undefined): UserRole {
   return (USER_ROLES as readonly string[]).includes(value ?? '') ? (value as UserRole) : 'customer';
+}
+
+/**
+ * True for the marketplace role, which is deliberately **not** staff.
+ *
+ * A merchant is a counterparty, not a colleague: `STAFF_ROLES` gates `/admin` and most staff RLS
+ * policies read `using (is_staff())`, so admitting `merchant` there would hand every merchant the
+ * catalogue, the order queue and the audit log in one line (docs/16 §2).
+ */
+export function isMerchant(role: string | null | undefined): boolean {
+  return role === 'merchant';
 }
 
 export function isStaff(role: string | null | undefined): boolean {
@@ -61,7 +84,14 @@ export type Capability =
   | 'coupons.manage'
   | 'subscriptions.view'
   | 'settings.manage'
-  | 'audit.view';
+  | 'audit.view'
+  // docs/16 §11 — marketplace. Applications and commission are admin; routing is support's daily
+  // driver; offers and proposals belong to whoever already owns the catalogue.
+  | 'merchants.view'
+  | 'merchants.manage'
+  | 'offers.review'
+  | 'routing.manage'
+  | 'payouts.manage';
 
 /**
  * Who holds each capability. `admin` is omitted from every list and granted unconditionally
@@ -96,6 +126,12 @@ const CAPABILITIES: Record<Capability, readonly UserRole[]> = {
   'subscriptions.view': ['support'],
   'settings.manage': [],
   'audit.view': [],
+  'merchants.view': ['support', 'product_manager'],
+  // Approving a merchant sets a commission and a shipping arrangement — a commercial decision.
+  'merchants.manage': [],
+  'offers.review': ['product_manager'],
+  'routing.manage': ['support', 'warehouse_manager'],
+  'payouts.manage': [],
 };
 
 /**

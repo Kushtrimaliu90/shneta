@@ -1,8 +1,8 @@
-import { redirect } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import type { Metadata } from 'next';
 import { fontVariables } from '@/lib/fonts';
 import { getProfile } from '@/features/auth/queries';
-import { isStaff, roleLabel, visibleNav } from '@/features/admin/roles';
+import { isMerchant, isStaff, roleLabel, visibleNav } from '@/features/admin/roles';
 import { AdminSidebar } from '@/features/admin/components/admin-sidebar';
 import { AdminTopbar } from '@/features/admin/components/admin-topbar';
 import '@/styles/globals.css';
@@ -33,6 +33,19 @@ export const dynamic = 'force-dynamic';
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const profile = await getProfile();
+
+  /*
+   * docs/16 §5 — a merchant gets **404**, not a redirect and not a 403.
+   *
+   * A merchant is a commercial counterparty with a login, and the difference matters: a redirect to
+   * the storefront confirms that `/admin` is a real surface behind an authorisation check, which is
+   * the first thing worth knowing if you intend to probe it. `notFound()` says the same thing to
+   * them as to a stranger typing URLs.
+   *
+   * Customers still get the redirect. They reach `/admin` by mistyping, not by curiosity, and
+   * landing on the shop is more useful to them than a dead end.
+   */
+  if (profile && isMerchant(profile.role) && !isStaff(profile.role)) notFound();
 
   if (!profile || !isStaff(profile.role)) redirect('/');
 

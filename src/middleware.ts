@@ -17,7 +17,22 @@ const intlMiddleware = createIntlMiddleware(routing);
 const UNLOCALIZED = ['/admin', '/api'];
 
 /** Storefront areas that require a session, matched after the locale prefix is stripped. */
-const PROTECTED_STOREFRONT = ['/account'];
+const PROTECTED_STOREFRONT = ['/account', '/merchant'];
+
+/**
+ * Public exceptions inside an otherwise protected area (docs/16 §4).
+ *
+ * `/merchant/apply` is the onboarding form and has to be reachable by somebody who does not yet
+ * have an account — that is the entire point of it. Matched exactly rather than by prefix, so a
+ * future `/merchant/apply/secret` cannot inherit the exemption.
+ *
+ * Note what is **not** here: the public seller page lives at `/seller/[slug]`, not under
+ * `/merchant`. docs/16 §5 and §9 put the portal and the public page in the same namespace, which
+ * collides — `/merchant/orders` and `/merchant/some-slug` cannot both resolve. Keeping the portal to
+ * fixed segments and moving the public page out means no dynamic segment ever sits beside a portal
+ * route, so no future page name can be mistaken for a merchant slug.
+ */
+const PUBLIC_EXCEPTIONS = ['/merchant/apply'];
 
 function stripLocale(pathname: string): string {
   for (const locale of routing.locales) {
@@ -74,9 +89,11 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
   }
 
   const routePath = stripLocale(pathname);
-  const needsSession = PROTECTED_STOREFRONT.some(
-    (prefix) => routePath === prefix || routePath.startsWith(`${prefix}/`),
-  );
+  const needsSession =
+    !PUBLIC_EXCEPTIONS.includes(routePath) &&
+    PROTECTED_STOREFRONT.some(
+      (prefix) => routePath === prefix || routePath.startsWith(`${prefix}/`),
+    );
 
   if (needsSession && !user) {
     const signIn = new URL(`${localePrefix(pathname)}/auth/sign-in`, request.url);
