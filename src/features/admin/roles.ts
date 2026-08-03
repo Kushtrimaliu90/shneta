@@ -288,6 +288,12 @@ const NAV: NavSection[] = [
         icon: 'orders',
         capability: 'routing.manage',
       },
+      {
+        href: '/admin/payouts',
+        label: 'Payouts',
+        icon: 'coupons',
+        capability: 'payouts.manage',
+      },
     ],
   },
   {
@@ -334,6 +340,7 @@ const IMPLEMENTED = new Set([
   '/admin/merchants/applications',
   '/admin/merchants/offers',
   '/admin/routing',
+  '/admin/payouts',
 ]);
 
 /** The sections and items this role may see, with empty sections dropped. */

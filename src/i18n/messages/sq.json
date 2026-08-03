@@ -1085,7 +1085,8 @@
         "documents": "Dokumentet",
         "settings": "Cilësimet",
         "lockedHint": "Hapet pasi aplikimi miratohet.",
-        "orders": "Porositë"
+        "orders": "Porositë",
+        "payouts": "Shlyerjet"
       },
       "status": {
         "pendingTitle": "Aplikimi është në shqyrtim",
@@ -1131,7 +1132,9 @@
         "addOffer": "Shto ofertë",
         "openOrders": "Porosi për punë",
         "openOrdersHint": "Porosi që pranojnë, paketojnë ose dërgojnë.",
-        "attentionOrders": "{count} porosi presin përgjigjen tënde. Afati është 24 orë."
+        "attentionOrders": "{count} porosi presin përgjigjen tënde. Afati është 24 orë.",
+        "balance": "Bilanci i pashlyer",
+        "balanceHint": "Përfshihet në shlyerjen e radhës."
       }
     },
     "offers": {
@@ -1337,6 +1340,57 @@
         "wrongState": "Kjo porosi ka ndryshuar gjendje. Rifresko faqen.",
         "trackingRequired": "Kurieri dhe numri i gjurmimit janë të detyrueshëm."
       }
+    },
+    "payouts": {
+      "title": "Shlyerjet",
+      "intro": "Të hyrat për porositë e dorëzuara, pa komisionin {pct}%. Shlyerja bëhet çdo dy javë, me pasqyrë për çdo periudhë.",
+      "balanceTitle": "Bilanci",
+      "owedToYou": "Të pashlyera për ty",
+      "owedByYou": "Ti i detyrohesh BioCode-it",
+      "settled": "Nuk ka asgjë të pashlyer.",
+      "nextRun": "Përfshihet në shlyerjen e radhës.",
+      "sales": "Shitjet",
+      "commission": "Komisioni",
+      "shipping": "Transporti",
+      "codHeld": "Para në dorë",
+      "paidOut": "Paguar deri tani",
+      "statementsTitle": "Pasqyrat",
+      "noStatements": "Nuk ka ende pasqyra. Shfaqen pas shlyerjes së parë.",
+      "paidOn": "Paguar më {date}",
+      "status": {
+        "pending": "Në pritje",
+        "approved": "Aprovuar",
+        "paid": "Paguar",
+        "on_hold": "Në pauzë"
+      },
+      "accountTitle": "Llogaria",
+      "accountIntro": "Çdo rrjedhë e llogarisë tënde. Nuk fshihet dhe nuk redaktohet — një korrigjim është rresht i re.",
+      "accountCaption": "Rreshtat e llogarisë: data, lloji dhe vlera.",
+      "noEntries": "Nuk ka rreshta ende.",
+      "date": "Data",
+      "kind": "Lloji",
+      "amount": "Vlera",
+      "kinds": {
+        "sale": "Shitje",
+        "commission": "Komision",
+        "shipping": "Transport",
+        "cod_collected": "Para të mbledhura",
+        "refund": "Kthim",
+        "adjustment": "Korrigjim",
+        "payout": "Shlyerje"
+      },
+      "breadcrumb": "Kthehu",
+      "statementEyebrow": "Pasqyrë shlyerjeje",
+      "commissionAt": "komision {pct}%",
+      "net": "Neto",
+      "gross": "Bruto",
+      "paidTo": "Paguar në",
+      "noIban": "Nuk ka IBAN",
+      "reference": "Referenca bankare:",
+      "linesTitle": "Rreshtat",
+      "linesCaption": "Rreshtat e kësaj pasqyre, me porosinë përkatëse.",
+      "order": "Porosia",
+      "disputeWindow": "Nëse një rresht nuk përputhet me librat e tua, shkruaji BioCode-it brenda 14 ditëve nga data e pasqyrës."
     }
   }
 }

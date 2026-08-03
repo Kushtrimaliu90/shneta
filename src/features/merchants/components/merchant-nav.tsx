@@ -1,7 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { FileText, LayoutDashboard, Package, Settings, Truck } from 'lucide-react';
+import { Banknote, FileText, LayoutDashboard, Package, Settings, Truck } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { Link, usePathname } from '@/i18n/routing';
 import { cn } from '@/lib/utils';
@@ -18,7 +18,7 @@ import { cn } from '@/lib/utils';
  * thing a pending merchant must be able to do, and it is what unblocks their own approval.
  */
 interface Item {
-  key: 'overview' | 'orders' | 'offers' | 'documents' | 'settings';
+  key: 'overview' | 'orders' | 'offers' | 'payouts' | 'documents' | 'settings';
   href: string;
   icon: LucideIcon;
   needsApproval?: boolean;
@@ -28,6 +28,7 @@ const ITEMS: readonly Item[] = [
   { key: 'overview', href: '/merchant', icon: LayoutDashboard },
   { key: 'orders', href: '/merchant/orders', icon: Truck, needsApproval: true },
   { key: 'offers', href: '/merchant/offers', icon: Package, needsApproval: true },
+  { key: 'payouts', href: '/merchant/payouts', icon: Banknote },
   { key: 'documents', href: '/merchant/documents', icon: FileText },
   { key: 'settings', href: '/merchant/settings', icon: Settings },
 ];

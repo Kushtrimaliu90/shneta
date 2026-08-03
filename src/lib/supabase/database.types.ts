@@ -4078,6 +4078,18 @@ export type Database = {
         Args: { p_fulfilment_id: string; p_merchant_id: string }
         Returns: Json
       }
+      build_all_merchant_payouts: {
+        Args: { p_period_end: string; p_period_start: string }
+        Returns: Json
+      }
+      build_merchant_payout: {
+        Args: {
+          p_merchant_id: string
+          p_period_end: string
+          p_period_start: string
+        }
+        Returns: Json
+      }
       check_rate_limit: {
         Args: { p_key: string; p_max: number; p_window: string }
         Returns: boolean
@@ -4169,6 +4181,11 @@ export type Database = {
         }
         Returns: undefined
       }
+      mark_payout_paid: {
+        Args: { p_payout_id: string; p_reference: string }
+        Returns: undefined
+      }
+      merchant_balance: { Args: { p_merchant_id: string }; Returns: Json }
       merchant_fulfilment_counts: { Args: never; Returns: Json }
       merchant_fulfilment_list: { Args: { p_status?: string }; Returns: Json }
       merchant_fulfilment_view: {
@@ -4186,12 +4203,21 @@ export type Database = {
           unit_price_cents: number
         }[]
       }
+      merchant_statement: { Args: { p_payout_id: string }; Returns: Json }
       newsletter_confirm: { Args: { p_token: string }; Returns: Json }
       newsletter_subscribe: {
         Args: { p_email: string; p_locale?: string; p_source?: string }
         Returns: Json
       }
       newsletter_unsubscribe: { Args: { p_token: string }; Returns: boolean }
+      post_fulfilment_to_ledger: {
+        Args: { p_fulfilment_id: string }
+        Returns: number
+      }
+      post_refund_to_ledger: {
+        Args: { p_note?: string; p_order_id: string; p_refund_cents: number }
+        Returns: number
+      }
       record_subscription_failure: {
         Args: { p_subscription_id: string }
         Returns: number

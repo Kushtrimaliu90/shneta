@@ -12,6 +12,7 @@ import {
   myWinningOfferIds,
 } from '@/features/merchants/queries';
 import { myFulfilmentCounts } from '@/features/merchants/fulfilment-queries';
+import { merchantBalance } from '@/features/merchants/payout-queries';
 
 export const metadata: Metadata = { title: 'Portali i shitësit' };
 export const dynamic = 'force-dynamic';
@@ -40,6 +41,8 @@ export default async function MerchantDashboard({ params }: Props) {
     listMyOffers(),
     myFulfilmentCounts(),
   ]);
+
+  const balance = merchant ? await merchantBalance(merchant.id) : null;
 
   if (!merchant) return null;
 
@@ -148,6 +151,11 @@ export default async function MerchantDashboard({ params }: Props) {
             icon={winning.size > 0}
           />
           <Stat label={t('dashboard.awaitingReview')} value={String(counts.pending_review)} />
+          <Stat
+            label={t('dashboard.balance')}
+            value={formatPrice(balance?.balanceCents ?? 0, locale)}
+            hint={t('dashboard.balanceHint')}
+          />
           <Stat
             label={t('dashboard.duePerUnit')}
             value={formatPrice(dueIfEachSold, locale)}

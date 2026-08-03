@@ -1085,7 +1085,8 @@
         "documents": "Documents",
         "settings": "Settings",
         "lockedHint": "Opens once your application is approved.",
-        "orders": "Orders"
+        "orders": "Orders",
+        "payouts": "Payouts"
       },
       "status": {
         "pendingTitle": "Your application is under review",
@@ -1131,7 +1132,9 @@
         "addOffer": "Add an offer",
         "openOrders": "Orders to work on",
         "openOrdersHint": "Orders to accept, pack or ship.",
-        "attentionOrders": "{count} orders are waiting on your answer. The window is 24 hours."
+        "attentionOrders": "{count} orders are waiting on your answer. The window is 24 hours.",
+        "balance": "Unsettled balance",
+        "balanceHint": "Included in the next settlement run."
       }
     },
     "offers": {
@@ -1337,6 +1340,57 @@
         "wrongState": "This order changed state. Reload the page.",
         "trackingRequired": "The carrier and the tracking code are both required."
       }
+    },
+    "payouts": {
+      "title": "Payouts",
+      "intro": "What you earn on delivered orders, less the {pct}% commission. Settlement runs fortnightly, with a statement for each period.",
+      "balanceTitle": "Balance",
+      "owedToYou": "Unsettled, owed to you",
+      "owedByYou": "You owe BioCode",
+      "settled": "Nothing unsettled.",
+      "nextRun": "Included in the next settlement run.",
+      "sales": "Sales",
+      "commission": "Commission",
+      "shipping": "Shipping",
+      "codHeld": "Cash in hand",
+      "paidOut": "Paid out so far",
+      "statementsTitle": "Statements",
+      "noStatements": "No statements yet. They appear after the first settlement.",
+      "paidOn": "Paid {date}",
+      "status": {
+        "pending": "Pending",
+        "approved": "Approved",
+        "paid": "Paid",
+        "on_hold": "On hold"
+      },
+      "accountTitle": "Account",
+      "accountIntro": "Every entry on your account. Nothing is deleted or edited — a correction is a new line.",
+      "accountCaption": "Account entries: date, kind and amount.",
+      "noEntries": "No entries yet.",
+      "date": "Date",
+      "kind": "Kind",
+      "amount": "Amount",
+      "kinds": {
+        "sale": "Sale",
+        "commission": "Commission",
+        "shipping": "Shipping",
+        "cod_collected": "Cash collected",
+        "refund": "Refund",
+        "adjustment": "Adjustment",
+        "payout": "Payout"
+      },
+      "breadcrumb": "Back",
+      "statementEyebrow": "Settlement statement",
+      "commissionAt": "{pct}% commission",
+      "net": "Net",
+      "gross": "Gross",
+      "paidTo": "Paid to",
+      "noIban": "No IBAN on file",
+      "reference": "Bank reference:",
+      "linesTitle": "Lines",
+      "linesCaption": "The lines behind this statement, each with its order.",
+      "order": "Order",
+      "disputeWindow": "If a line does not match your own books, tell BioCode within 14 days of the statement date."
     }
   }
 }
