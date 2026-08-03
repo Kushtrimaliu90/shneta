@@ -1,0 +1,101 @@
+'use client';
+
+import { useActionState } from 'react';
+import { useTranslations } from 'next-intl';
+import { Alert } from '@/components/ui/alert';
+import { Field } from '@/components/ui/field';
+import { Input } from '@/components/ui/input';
+import { SubmitButton } from '@/components/ui/submit-button';
+import { submitProposal, type ProposalState } from '@/features/merchants/proposal-actions';
+
+const LEAVES = ['generic', 'invalid', 'notMerchant', 'tooMany'] as const;
+type Leaf = (typeof LEAVES)[number];
+
+function leaf(error: string): Leaf {
+  const last = error.split('.').pop() ?? 'generic';
+  return (LEAVES as readonly string[]).includes(last) ? (last as Leaf) : 'generic';
+}
+
+/**
+ * docs/16 §4 — proposing a product.
+ *
+ * The fields are chosen to answer a reviewer's question, which is not "what would the product page say?"
+ * but **"is this worth listing, and can we verify it?"** So the form asks for a barcode and a source link
+ * — the two things that let somebody check the product is real and legally importable — and for the stock
+ * and asking price, which decide whether the margin works before anybody writes SEO copy.
+ *
+ * It does not ask for a description, ingredients or images. Those belong to the canonical product BioCode
+ * writes if it agrees, and asking a merchant to draft them would be asking it to write a listing.
+ */
+export function ProposalForm() {
+  const t = useTranslations('merchant.proposals');
+  const [state, action] = useActionState<ProposalState, FormData>(
+    async (previous, formData) => submitProposal(previous, formData),
+    null,
+  );
+
+  return (
+    <form action={action} className="flex flex-col gap-5 rounded-lg border border-line bg-surface p-5">
+      <p className="text-sm text-ink-600">{t('formIntro')}</p>
+
+      <div className="grid gap-5 sm:grid-cols-2">
+        <Field id="productName" label={t('productName')} required>
+          {(field) => <Input {...field} name="productName" autoComplete="off" />}
+        </Field>
+
+        <Field id="brandName" label={t('brandName')} required>
+          {(field) => <Input {...field} name="brandName" autoComplete="off" />}
+        </Field>
+
+        <Field id="form" label={t('form')} hint={t('formHint')}>
+          {(field) => <Input {...field} name="form" autoComplete="off" />}
+        </Field>
+
+        <Field id="variantName" label={t('variantName')} hint={t('variantNameHint')}>
+          {(field) => <Input {...field} name="variantName" autoComplete="off" />}
+        </Field>
+
+        <Field id="barcode" label={t('barcode')} hint={t('barcodeHint')}>
+          {(field) => <Input {...field} name="barcode" autoComplete="off" inputMode="numeric" />}
+        </Field>
+
+        <Field id="sourceUrl" label={t('sourceUrl')} hint={t('sourceUrlHint')}>
+          {(field) => <Input {...field} name="sourceUrl" type="url" autoComplete="off" />}
+        </Field>
+
+        <Field id="stockOnHand" label={t('stock')} hint={t('stockHint')} required>
+          {(field) => <Input {...field} name="stockOnHand" type="number" min={0} step={1} defaultValue={0} />}
+        </Field>
+
+        <Field id="askingPriceEuro" label={t('asking2')} hint={t('askingHint')} required>
+          {(field) => (
+            <Input {...field} name="askingPriceEuro" type="text" inputMode="decimal" autoComplete="off" />
+          )}
+        </Field>
+      </div>
+
+      <Field id="note" label={t('note')} hint={t('noteHint')} required>
+        {(field) => (
+          <textarea
+            {...field}
+            name="note"
+            rows={3}
+            minLength={10}
+            className="rounded-sm border border-line-strong bg-surface p-2.5 text-sm"
+          />
+        )}
+      </Field>
+
+      {state?.ok && (
+        <p role="status" aria-live="polite" className="text-sm font-medium text-success">
+          {t('sent')}
+        </p>
+      )}
+      {state && !state.ok && <Alert tone="error">{t(`errors.${leaf(state.error)}`)}</Alert>}
+
+      <div>
+        <SubmitButton>{t('submit')}</SubmitButton>
+      </div>
+    </form>
+  );
+}

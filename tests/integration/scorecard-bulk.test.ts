@@ -1,0 +1,789 @@
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import {
+  createProduct,
+  createUser,
+  deleteUser,
+  serviceClient,
+  type ProductFixture,
+  type TestUser,
+} from './helpers';
+
+/**
+ * docs/16 §6 — the scorecard, the rating it feeds, and the bulk update.
+ *
+ * The rating matters because it is a **buy-box tie-break** (§1): it decides which of two equally-priced
+ * merchants gets the sale. So the assertions here are about the two directions that decision can go
+ * wrong — a merchant with no history winning a tie it has not earned, and a merchant that declines
+ * everything keeping a rating it no longer deserves.
+ */
+
+const merchantIds: string[] = [];
+const userIds: string[] = [];
+const products: ProductFixture[] = [];
+const orderIds: string[] = [];
+
+let admin: TestUser;
+
+async function createMerchant(name: string): Promise<string> {
+  const db = serviceClient();
+  const stamp = `${Date.now()}-${merchantIds.length}`;
+
+  const { data, error } = await db
+    .from('merchants')
+    .insert({
+      slug: `card-${stamp}`,
+      legal_name: `${name} SH.P.K.`,
+      display_name: name,
+      business_no: `ARBK-SC-${stamp}`,
+      contact_name: 'Probe',
+      contact_email: `card-${stamp}@biocode.test`,
+      contact_phone: '+383 44 000 000',
+      address: { city: 'Prishtinë', country_code: 'XK' },
+      status: 'approved',
+      commission_pct: 20,
+    })
+    .select('id')
+    .single();
+
+  if (error || !data) throw new Error(`merchant insert failed: ${error?.message}`);
+  const id = (data as { id: string }).id;
+  merchantIds.push(id);
+  return id;
+}
+
+async function createOffer(
+  merchantId: string,
+  variantId: string,
+  fields: { price: number; stock: number; sku?: string; handling?: number },
+): Promise<string> {
+  const { data, error } = await serviceClient()
+    .from('merchant_offers')
+    .insert({
+      merchant_id: merchantId,
+      variant_id: variantId,
+      price_cents: fields.price,
+      stock_on_hand: fields.stock,
+      merchant_sku: fields.sku ?? null,
+      handling_days: fields.handling ?? 1,
+      status: 'approved',
+    })
+    .select('id')
+    .single();
+
+  if (error || !data) throw new Error(`offer insert failed: ${error?.message}`);
+  return (data as { id: string }).id;
+}
+
+/**
+ * A fulfilment with hand-set timestamps, so acceptance and dispatch speed can be asserted.
+ *
+ * The timestamps are written through the service client rather than by walking the state machine: this
+ * suite is about how the scorecard *reads* history, and manufacturing a two-hour dispatch by waiting two
+ * hours is not a test anybody runs.
+ */
+async function fulfilmentHistory(
+  merchantId: string,
+  entries: {
+    assignedHoursAgo: number;
+    acceptedHoursAfterAssign?: number;
+    shippedHoursAfterAccept?: number;
+    status: string;
+    handlingDays?: number;
+  }[],
+): Promise<void> {
+  const db = serviceClient();
+
+  for (const entry of entries) {
+    const product = await createProduct({ stock: 0, priceCents: 2000 });
+    products.push(product);
+    const offer = await createOffer(merchantId, product.variantId, {
+      price: 1200,
+      stock: 10,
+      handling: entry.handlingDays ?? 1,
+    });
+
+    const { data: order } = await db
+      .from('orders')
+      .insert({
+        email: `card-buyer-${Date.now()}-${orderIds.length}@biocode.test`,
+        phone: '+38344000000',
+        status: 'pending',
+        payment_status: 'pending',
+        currency: 'EUR',
+        subtotal_cents: 2000,
+        discount_cents: 0,
+        shipping_cents: 0,
+        tax_cents: 0,
+        total_cents: 2000,
+        shipping_address: { city: 'Prishtinë', country_code: 'XK' },
+        billing_address: { city: 'Prishtinë', country_code: 'XK' },
+        locale: 'sq',
+      })
+      .select('id')
+      .single();
+
+    const orderId = (order as { id: string }).id;
+    orderIds.push(orderId);
+
+    const hour = 60 * 60 * 1000;
+    const assignedAt = new Date(Date.now() - entry.assignedHoursAgo * hour);
+    const acceptedAt =
+      entry.acceptedHoursAfterAssign === undefined
+        ? null
+        : new Date(assignedAt.getTime() + entry.acceptedHoursAfterAssign * hour);
+    const shippedAt =
+      acceptedAt && entry.shippedHoursAfterAccept !== undefined
+        ? new Date(acceptedAt.getTime() + entry.shippedHoursAfterAccept * hour)
+        : null;
+
+    const { data: fulfilment } = await db
+      .from('order_fulfilments')
+      .insert({
+        order_id: orderId,
+        fulfiller_kind: 'merchant',
+        merchant_id: merchantId,
+        status: entry.status,
+        items_subtotal_cents: 2000,
+        assigned_at: assignedAt.toISOString(),
+        accepted_at: acceptedAt?.toISOString() ?? null,
+        shipped_at: shippedAt?.toISOString() ?? null,
+      })
+      .select('id')
+      .single();
+
+    const fulfilmentId = (fulfilment as { id: string }).id;
+
+    await db.from('order_items').insert({
+      order_id: orderId,
+      product_id: product.productId,
+      variant_id: product.variantId,
+      fulfilment_id: fulfilmentId,
+      merchant_offer_id: offer,
+      name_snapshot: 'Probe',
+      sku: product.sku,
+      quantity: 1,
+      unit_price_cents: 2000,
+      total_cents: 2000,
+    });
+  }
+}
+
+async function scorecard(merchantId: string): Promise<Record<string, number | null>> {
+  const { data, error } = await serviceClient().rpc('merchant_scorecard', {
+    p_merchant_id: merchantId,
+  });
+  if (error) throw new Error(`merchant_scorecard failed: ${error.message}`);
+  return data as Record<string, number | null>;
+}
+
+beforeAll(async () => {
+  admin = await createUser('admin');
+  userIds.push(admin.id);
+});
+
+afterAll(async () => {
+  const db = serviceClient();
+  for (const id of orderIds) {
+    await db.from('order_items').delete().eq('order_id', id);
+    await db.from('order_fulfilments').delete().eq('order_id', id);
+    await db.from('order_events').delete().eq('order_id', id);
+    await db.from('orders').delete().eq('id', id);
+  }
+  for (const id of merchantIds) {
+    await db.from('merchant_ledger').delete().eq('merchant_id', id);
+    await db.from('merchant_offers').delete().eq('merchant_id', id);
+    await db.from('product_proposals').delete().eq('merchant_id', id);
+    await db.from('merchants').delete().eq('id', id);
+  }
+  for (const id of userIds) await deleteUser(id);
+  for (const fixture of products) {
+    await db.from('stock_movements').delete().eq('variant_id', fixture.variantId);
+    await db.from('inventory_levels').delete().eq('variant_id', fixture.variantId);
+    await db.from('product_variants').delete().eq('id', fixture.variantId);
+    await db.from('products').delete().eq('id', fixture.productId);
+    await db.from('brands').delete().eq('id', fixture.brandId);
+  }
+});
+
+describe('the scorecard (docs/16 §6)', () => {
+  /**
+   * Rates are **null**, not zero, when there is nothing to judge.
+   *
+   * Zero would tell a brand-new merchant it had failed at something, and — worse — would place it below
+   * every established merchant in a buy-box tie-break before it had shipped anything.
+   */
+  it('a merchant with no history has null rates, not zero', async () => {
+    const merchant = await createMerchant('Fresh');
+    const card = await scorecard(merchant);
+
+    expect(card.assigned).toBe(0);
+    expect(card.acceptance_rate).toBeNull();
+    expect(card.cancellation_rate).toBeNull();
+    expect(card.avg_accept_hours).toBeNull();
+  });
+
+  it('counts what was assigned, accepted and delivered', async () => {
+    const merchant = await createMerchant('Counted');
+    await fulfilmentHistory(merchant, [
+      { assignedHoursAgo: 48, acceptedHoursAfterAssign: 2, shippedHoursAfterAccept: 4, status: 'delivered' },
+      { assignedHoursAgo: 30, acceptedHoursAfterAssign: 3, shippedHoursAfterAccept: 5, status: 'shipped' },
+      { assignedHoursAgo: 10, status: 'assigned' },
+    ]);
+
+    const card = await scorecard(merchant);
+    expect(card.assigned).toBe(3);
+    expect(card.accepted).toBe(2);
+    expect(card.shipped).toBe(2);
+    expect(card.delivered).toBe(1);
+  });
+
+  it('averages the hours to accept and to dispatch', async () => {
+    const merchant = await createMerchant('Timed');
+    await fulfilmentHistory(merchant, [
+      { assignedHoursAgo: 50, acceptedHoursAfterAssign: 2, shippedHoursAfterAccept: 6, status: 'shipped' },
+      { assignedHoursAgo: 40, acceptedHoursAfterAssign: 4, shippedHoursAfterAccept: 10, status: 'shipped' },
+    ]);
+
+    const card = await scorecard(merchant);
+    expect(card.avg_accept_hours).toBe(3);
+    expect(card.avg_dispatch_hours).toBe(8);
+  });
+
+  /**
+   * Late dispatch is measured against the **offer's own** handling promise, not a marketplace default. A
+   * merchant that said three days and took three days is on time; one that said one day and took three
+   * is not. Anything else would punish honesty about a slower shelf.
+   */
+  it('lateness is judged against what the merchant promised', async () => {
+    const honest = await createMerchant('Honest Three Days');
+    await fulfilmentHistory(honest, [
+      {
+        assignedHoursAgo: 100,
+        acceptedHoursAfterAssign: 1,
+        shippedHoursAfterAccept: 60,
+        status: 'shipped',
+        handlingDays: 3,
+      },
+    ]);
+
+    const optimistic = await createMerchant('Promised One Day');
+    await fulfilmentHistory(optimistic, [
+      {
+        assignedHoursAgo: 100,
+        acceptedHoursAfterAssign: 1,
+        shippedHoursAfterAccept: 60,
+        status: 'shipped',
+        handlingDays: 1,
+      },
+    ]);
+
+    expect((await scorecard(honest)).late_dispatch, 'three days promised, sixty hours taken').toBe(0);
+    expect((await scorecard(optimistic)).late_dispatch, 'one day promised, sixty hours taken').toBe(1);
+  });
+
+  it('counts a cancellation after acceptance, which is what the customer feels', async () => {
+    const merchant = await createMerchant('Cancelled Late');
+    await fulfilmentHistory(merchant, [
+      { assignedHoursAgo: 40, acceptedHoursAfterAssign: 1, status: 'cancelled' },
+      { assignedHoursAgo: 30, acceptedHoursAfterAssign: 1, shippedHoursAfterAccept: 2, status: 'shipped' },
+    ]);
+
+    const card = await scorecard(merchant);
+    expect(card.cancelled_after_accept).toBe(1);
+    expect(card.cancellation_rate).toBe(0.5);
+  });
+
+  it('a merchant reads its own scorecard', async () => {
+    const merchant = await createMerchant('Self Aware');
+    const owner = await createUser('merchant');
+    userIds.push(owner.id);
+    await serviceClient()
+      .from('merchant_users')
+      .insert({ merchant_id: merchant, user_id: owner.id });
+
+    const { data, error } = await owner.client.rpc('merchant_scorecard', {
+      p_merchant_id: merchant,
+    });
+
+    expect(error).toBeNull();
+    expect(data).not.toBeNull();
+  });
+
+  /** A rival's scorecard is operational data about a competitor, which §3 exists to prevent. */
+  it('a merchant cannot read a rival’s scorecard', async () => {
+    const mine = await createMerchant('Mine SC');
+    const theirs = await createMerchant('Theirs SC');
+
+    const owner = await createUser('merchant');
+    userIds.push(owner.id);
+    await serviceClient().from('merchant_users').insert({ merchant_id: mine, user_id: owner.id });
+
+    const { error } = await owner.client.rpc('merchant_scorecard', { p_merchant_id: theirs });
+    expect(error?.message ?? '').toContain('FORBIDDEN');
+  });
+});
+
+describe('the rating the buy box reads (docs/16 §6)', () => {
+  async function rating(merchantId: string): Promise<number> {
+    const { data } = await serviceClient()
+      .from('merchants')
+      .select('rating_avg, rating_count')
+      .eq('id', merchantId)
+      .single();
+    return Number((data as { rating_avg: number }).rating_avg);
+  }
+
+  /**
+   * No history means **0**, which loses every tie-break rather than winning one it has not earned.
+   * `rating_count` is what stops that being mistaken for a bad review.
+   */
+  it('a merchant that has shipped nothing scores zero', async () => {
+    const merchant = await createMerchant('Unproven');
+    const { data } = await admin.client.rpc('recompute_merchant_rating', {
+      p_merchant_id: merchant,
+    });
+
+    expect(Number(data)).toBe(0);
+    expect(await rating(merchant)).toBe(0);
+
+    const { data: row } = await serviceClient()
+      .from('merchants')
+      .select('rating_count')
+      .eq('id', merchant)
+      .single();
+    expect((row as { rating_count: number }).rating_count).toBe(0);
+  });
+
+  it('accepting everything quickly and shipping on time scores near the top', async () => {
+    const merchant = await createMerchant('Exemplary');
+    await fulfilmentHistory(merchant, [
+      { assignedHoursAgo: 40, acceptedHoursAfterAssign: 1, shippedHoursAfterAccept: 3, status: 'delivered' },
+      { assignedHoursAgo: 30, acceptedHoursAfterAssign: 1, shippedHoursAfterAccept: 4, status: 'delivered' },
+    ]);
+
+    const { data } = await admin.client.rpc('recompute_merchant_rating', {
+      p_merchant_id: merchant,
+    });
+
+    expect(Number(data)).toBeGreaterThan(4.5);
+  });
+
+  /** Cancelling after acceptance costs two points, because it is the failure a customer experiences. */
+  it('cancelling after acceptance drops the rating hard', async () => {
+    const good = await createMerchant('Reliable');
+    await fulfilmentHistory(good, [
+      { assignedHoursAgo: 40, acceptedHoursAfterAssign: 1, shippedHoursAfterAccept: 3, status: 'delivered' },
+      { assignedHoursAgo: 35, acceptedHoursAfterAssign: 1, shippedHoursAfterAccept: 3, status: 'delivered' },
+    ]);
+
+    const flaky = await createMerchant('Flaky');
+    await fulfilmentHistory(flaky, [
+      { assignedHoursAgo: 40, acceptedHoursAfterAssign: 1, shippedHoursAfterAccept: 3, status: 'delivered' },
+      { assignedHoursAgo: 35, acceptedHoursAfterAssign: 1, shippedHoursAfterAccept: 3, status: 'cancelled' },
+    ]);
+
+    const goodRating = Number(
+      (await admin.client.rpc('recompute_merchant_rating', { p_merchant_id: good })).data,
+    );
+    const flakyRating = Number(
+      (await admin.client.rpc('recompute_merchant_rating', { p_merchant_id: flaky })).data,
+    );
+
+    expect(flakyRating).toBeLessThan(goodRating);
+  });
+
+  it('is clamped to the 0–5 range', async () => {
+    const merchant = await createMerchant('Clamped');
+    await fulfilmentHistory(merchant, [
+      { assignedHoursAgo: 20, acceptedHoursAfterAssign: 0, shippedHoursAfterAccept: 1, status: 'delivered' },
+    ]);
+
+    const value = Number(
+      (await admin.client.rpc('recompute_merchant_rating', { p_merchant_id: merchant })).data,
+    );
+
+    expect(value).toBeGreaterThanOrEqual(0);
+    expect(value).toBeLessThanOrEqual(5);
+  });
+
+  it('a merchant cannot set its own rating', async () => {
+    const merchant = await createMerchant('No Self Rating');
+    const owner = await createUser('merchant');
+    userIds.push(owner.id);
+    await serviceClient()
+      .from('merchant_users')
+      .insert({ merchant_id: merchant, user_id: owner.id });
+
+    const { error } = await owner.client.rpc('recompute_merchant_rating', {
+      p_merchant_id: merchant,
+    });
+    expect(error?.message ?? '').toContain('FORBIDDEN');
+
+    // And not by writing the column either — the self-update guard refuses it.
+    const direct = await owner.client
+      .from('merchants')
+      .update({ rating_avg: 5 })
+      .eq('id', merchant)
+      .select('id');
+    expect(direct.error ?? direct.data ?? []).toBeTruthy();
+    const { data } = await serviceClient()
+      .from('merchants')
+      .select('rating_avg')
+      .eq('id', merchant)
+      .single();
+    expect(Number((data as { rating_avg: number }).rating_avg)).not.toBe(5);
+  });
+});
+
+describe('bulk stock and price (docs/16 §6)', () => {
+  it('applies stock and price by BioCode SKU', async () => {
+    const merchant = await createMerchant('Bulk One');
+    const product = await createProduct({ stock: 0, priceCents: 3000 });
+    products.push(product);
+    const offer = await createOffer(merchant, product.variantId, { price: 1500, stock: 2 });
+
+    const { data, error } = await serviceClient().rpc('merchant_bulk_update_offers', {
+      p_merchant_id: merchant,
+      p_rows: [{ sku: product.sku, stock: 20, price_cents: 1800 }],
+    });
+
+    expect(error).toBeNull();
+    expect((data as { applied: number }).applied).toBe(1);
+
+    const { data: row } = await serviceClient()
+      .from('merchant_offers')
+      .select('stock_on_hand, price_cents')
+      .eq('id', offer)
+      .single();
+
+    const updated = row as { stock_on_hand: number; price_cents: number };
+    expect(updated.stock_on_hand).toBe(20);
+    expect(updated.price_cents).toBe(1800);
+  });
+
+  /** The merchant's own code wins, because that is what its export and its spreadsheet contain. */
+  it('matches the merchant’s own SKU in preference to BioCode’s', async () => {
+    const merchant = await createMerchant('Bulk Own Sku');
+    const a = await createProduct({ stock: 0, priceCents: 3000 });
+    const b = await createProduct({ stock: 0, priceCents: 3000 });
+    products.push(a, b);
+
+    // The merchant's code for offer B collides with BioCode's code for offer A.
+    const offerA = await createOffer(merchant, a.variantId, { price: 1500, stock: 1 });
+    const offerB = await createOffer(merchant, b.variantId, {
+      price: 1500,
+      stock: 1,
+      sku: a.sku,
+    });
+
+    await serviceClient().rpc('merchant_bulk_update_offers', {
+      p_merchant_id: merchant,
+      p_rows: [{ sku: a.sku, stock: 50 }],
+    });
+
+    const { data: rows } = await serviceClient()
+      .from('merchant_offers')
+      .select('id, stock_on_hand')
+      .in('id', [offerA, offerB]);
+
+    const byId = new Map(
+      ((rows ?? []) as { id: string; stock_on_hand: number }[]).map((row) => [row.id, row.stock_on_hand]),
+    );
+
+    expect(byId.get(offerB), 'the merchant’s own code wins').toBe(50);
+    expect(byId.get(offerA), 'BioCode’s code loses the tie').toBe(1);
+  });
+
+  it('a stock-only row leaves the price alone', async () => {
+    const merchant = await createMerchant('Bulk Stock Only');
+    const product = await createProduct({ stock: 0, priceCents: 3000 });
+    products.push(product);
+    const offer = await createOffer(merchant, product.variantId, { price: 1500, stock: 2 });
+
+    await serviceClient().rpc('merchant_bulk_update_offers', {
+      p_merchant_id: merchant,
+      p_rows: [{ sku: product.sku, stock: 9 }],
+    });
+
+    const { data } = await serviceClient()
+      .from('merchant_offers')
+      .select('stock_on_hand, price_cents')
+      .eq('id', offer)
+      .single();
+
+    const row = data as { stock_on_hand: number; price_cents: number };
+    expect(row.stock_on_hand).toBe(9);
+    expect(row.price_cents).toBe(1500);
+  });
+
+  it('reports a SKU it cannot match, and applies the rest', async () => {
+    const merchant = await createMerchant('Bulk Partial');
+    const product = await createProduct({ stock: 0, priceCents: 3000 });
+    products.push(product);
+    await createOffer(merchant, product.variantId, { price: 1500, stock: 1 });
+
+    const { data } = await serviceClient().rpc('merchant_bulk_update_offers', {
+      p_merchant_id: merchant,
+      p_rows: [
+        { sku: product.sku, stock: 4 },
+        { sku: 'NOT-A-SKU', stock: 4 },
+      ],
+    });
+
+    const result = data as { applied: number; skipped: { sku: string; reason: string }[] };
+    expect(result.applied).toBe(1);
+    expect(result.skipped).toEqual([{ sku: 'NOT-A-SKU', reason: 'no_matching_offer' }]);
+  });
+
+  /** An offer mid-review must not move: a price that changed under a reviewer is a stale review. */
+  it('does not touch an offer awaiting review', async () => {
+    const merchant = await createMerchant('Bulk Pending');
+    const product = await createProduct({ stock: 0, priceCents: 3000 });
+    products.push(product);
+
+    const { data: created } = await serviceClient()
+      .from('merchant_offers')
+      .insert({
+        merchant_id: merchant,
+        variant_id: product.variantId,
+        price_cents: 1500,
+        stock_on_hand: 1,
+        status: 'pending_review',
+      })
+      .select('id')
+      .single();
+
+    const { data } = await serviceClient().rpc('merchant_bulk_update_offers', {
+      p_merchant_id: merchant,
+      p_rows: [{ sku: product.sku, stock: 99 }],
+    });
+
+    expect((data as { applied: number }).applied).toBe(0);
+
+    const { data: row } = await serviceClient()
+      .from('merchant_offers')
+      .select('stock_on_hand')
+      .eq('id', (created as { id: string }).id)
+      .single();
+    expect((row as { stock_on_hand: number }).stock_on_hand).toBe(1);
+  });
+
+  it('a merchant cannot bulk-update another merchant’s offers', async () => {
+    const mine = await createMerchant('Bulk Mine');
+    const theirs = await createMerchant('Bulk Theirs');
+
+    const owner = await createUser('merchant');
+    userIds.push(owner.id);
+    await serviceClient().from('merchant_users').insert({ merchant_id: mine, user_id: owner.id });
+
+    const { error } = await owner.client.rpc('merchant_bulk_update_offers', {
+      p_merchant_id: theirs,
+      p_rows: [{ sku: 'ANY', stock: 999 }],
+    });
+
+    expect(error?.message ?? '').toContain('FORBIDDEN');
+  });
+
+  it('the export round-trips the SKUs the upload matches on', async () => {
+    const merchant = await createMerchant('Round Trip');
+    const product = await createProduct({ stock: 0, priceCents: 3000 });
+    products.push(product);
+    await createOffer(merchant, product.variantId, { price: 1500, stock: 3, sku: 'MY-1' });
+
+    const { data, error } = await serviceClient().rpc('merchant_offers_export', {
+      p_merchant_id: merchant,
+    });
+
+    expect(error).toBeNull();
+    const rows = (data ?? []) as { sku: string; merchant_sku: string; price_cents: number }[];
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.sku).toBe(product.sku);
+    expect(rows[0]?.merchant_sku).toBe('MY-1');
+
+    // And the exported SKU matches on the way back in, which is the point of the export.
+    const applied = await serviceClient().rpc('merchant_bulk_update_offers', {
+      p_merchant_id: merchant,
+      p_rows: [{ sku: rows[0]?.merchant_sku ?? '', stock: 11 }],
+    });
+    expect((applied.data as { applied: number }).applied).toBe(1);
+  });
+});
+
+describe('proposals (docs/16 §4)', () => {
+  it('a merchant submits one and reads its own', async () => {
+    const merchant = await createMerchant('Proposer');
+    const owner = await createUser('merchant');
+    userIds.push(owner.id);
+    await serviceClient()
+      .from('merchant_users')
+      .insert({ merchant_id: merchant, user_id: owner.id });
+
+    const { error } = await owner.client.from('product_proposals').insert({
+      merchant_id: merchant,
+      status: 'pending',
+      payload: { product_name: 'Magnesium Bisglycinate', brand_name: 'Probe Labs' },
+    });
+
+    expect(error).toBeNull();
+
+    const { data } = await owner.client.from('product_proposals').select('id, status');
+    expect(data ?? []).toHaveLength(1);
+    expect((data as { status: string }[])[0]?.status).toBe('pending');
+  });
+
+  /** The insert policy pins the status: a merchant cannot submit something already approved. */
+  it('a merchant cannot submit a pre-approved proposal', async () => {
+    const merchant = await createMerchant('Sneaky Proposer');
+    const owner = await createUser('merchant');
+    userIds.push(owner.id);
+    await serviceClient()
+      .from('merchant_users')
+      .insert({ merchant_id: merchant, user_id: owner.id });
+
+    const { error } = await owner.client.from('product_proposals').insert({
+      merchant_id: merchant,
+      status: 'approved',
+      payload: { product_name: 'Self approved' },
+    });
+
+    expect(error, 'the insert policy requires status = pending').not.toBeNull();
+  });
+
+  /**
+   * `needs_info` is the one status a merchant may edit from, which is the whole point of asking for more.
+   * A `pending` proposal is mid-review and must not move under the reviewer.
+   */
+  it('a merchant may edit a proposal returned for more information, but not a pending one', async () => {
+    const db = serviceClient();
+    const merchant = await createMerchant('Editor');
+    const owner = await createUser('merchant');
+    userIds.push(owner.id);
+    await db.from('merchant_users').insert({ merchant_id: merchant, user_id: owner.id });
+
+    const { data: needsInfo } = await db
+      .from('product_proposals')
+      .insert({
+        merchant_id: merchant,
+        status: 'needs_info',
+        payload: { product_name: 'Needs more' },
+      })
+      .select('id')
+      .single();
+
+    const { data: pending } = await db
+      .from('product_proposals')
+      .insert({
+        merchant_id: merchant,
+        status: 'pending',
+        payload: { product_name: 'Under review' },
+      })
+      .select('id')
+      .single();
+
+    const editable = await owner.client
+      .from('product_proposals')
+      .update({ payload: { product_name: 'Needs more, revised' } })
+      .eq('id', (needsInfo as { id: string }).id)
+      .select('id');
+    expect(editable.data ?? [], 'needs_info is editable').toHaveLength(1);
+
+    const locked = await owner.client
+      .from('product_proposals')
+      .update({ payload: { product_name: 'Tampered' } })
+      .eq('id', (pending as { id: string }).id)
+      .select('id');
+    expect(locked.data ?? [], 'pending is not').toHaveLength(0);
+  });
+
+  it('a merchant cannot see a rival’s proposal', async () => {
+    const db = serviceClient();
+    const mine = await createMerchant('Prop Mine');
+    const theirs = await createMerchant('Prop Theirs');
+
+    const owner = await createUser('merchant');
+    userIds.push(owner.id);
+    await db.from('merchant_users').insert({ merchant_id: mine, user_id: owner.id });
+
+    await db.from('product_proposals').insert({
+      merchant_id: theirs,
+      status: 'pending',
+      payload: { product_name: 'Their idea' },
+    });
+
+    const { data } = await owner.client.from('product_proposals').select('merchant_id');
+    const ids = new Set((data ?? []).map((row) => (row as { merchant_id: string }).merchant_id));
+    expect(ids.has(theirs)).toBe(false);
+  });
+
+  it('a product manager decides one', async () => {
+    const db = serviceClient();
+    const merchant = await createMerchant('Decided');
+    const staff = await createUser('product_manager');
+    userIds.push(staff.id);
+
+    const { data: created } = await db
+      .from('product_proposals')
+      .insert({
+        merchant_id: merchant,
+        status: 'pending',
+        payload: { product_name: 'Worth listing' },
+      })
+      .select('id')
+      .single();
+
+    const { data, error } = await staff.client
+      .from('product_proposals')
+      .update({
+        status: 'approved',
+        reviewer_note: 'Listed as SKU BIO-1234.',
+        reviewed_by: staff.id,
+        reviewed_at: new Date().toISOString(),
+      })
+      .eq('id', (created as { id: string }).id)
+      .select('status, reviewer_note')
+      .maybeSingle();
+
+    expect(error).toBeNull();
+    const row = data as { status: string; reviewer_note: string };
+    expect(row.status).toBe('approved');
+    expect(row.reviewer_note).toContain('BIO-1234');
+  });
+
+  /**
+   * Approving records a decision and creates **no product**. Anything else would be merchant-created
+   * listings with a delay, which is what §1 exists to prevent.
+   */
+  it('approving creates no product', async () => {
+    const db = serviceClient();
+    const merchant = await createMerchant('No Auto Product');
+
+    const { data: created } = await db
+      .from('product_proposals')
+      .insert({
+        merchant_id: merchant,
+        status: 'pending',
+        payload: { product_name: 'Definitely not auto-created' },
+      })
+      .select('id')
+      .single();
+
+    await db
+      .from('product_proposals')
+      .update({ status: 'approved' })
+      .eq('id', (created as { id: string }).id);
+
+    const { data } = await db
+      .from('product_proposals')
+      .select('created_product_id')
+      .eq('id', (created as { id: string }).id)
+      .single();
+
+    expect((data as { created_product_id: string | null }).created_product_id).toBeNull();
+
+    const { data: products_ } = await db
+      .from('products')
+      .select('id')
+      .ilike('slug', '%definitely-not-auto-created%');
+    expect(products_ ?? []).toHaveLength(0);
+  });
+});

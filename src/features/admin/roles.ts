@@ -277,6 +277,12 @@ const NAV: NavSection[] = [
         capability: 'merchants.view',
       },
       {
+        href: '/admin/merchants/proposals',
+        label: 'Proposals',
+        icon: 'goals',
+        capability: 'offers.review',
+      },
+      {
         href: '/admin/merchants/offers',
         label: 'Merchant offers',
         icon: 'products',
@@ -339,6 +345,7 @@ const IMPLEMENTED = new Set([
   '/admin/content',
   '/admin/merchants/applications',
   '/admin/merchants/offers',
+  '/admin/merchants/proposals',
   '/admin/routing',
   '/admin/payouts',
 ]);

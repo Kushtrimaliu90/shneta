@@ -1086,7 +1086,9 @@
         "settings": "Settings",
         "lockedHint": "Opens once your application is approved.",
         "orders": "Orders",
-        "payouts": "Payouts"
+        "payouts": "Payouts",
+        "proposals": "Proposals",
+        "bulk": "Bulk"
       },
       "status": {
         "pendingTitle": "Your application is under review",
@@ -1391,6 +1393,104 @@
       "linesCaption": "The lines behind this statement, each with its order.",
       "order": "Order",
       "disputeWindow": "If a line does not match your own books, tell BioCode within 14 days of the statement date."
+    },
+    "proposals": {
+      "title": "Proposals",
+      "intro": "If you hold stock of something BioCode does not list, propose it. BioCode creates the product page — you then add an offer on it.",
+      "yours": "Your proposals",
+      "empty": "You have no proposals. The first request goes below.",
+      "asking": "asking {amount}",
+      "reviewerNote": "Note from BioCode:",
+      "status": {
+        "pending": "In review",
+        "approved": "Approved",
+        "rejected": "Rejected",
+        "needs_info": "More needed"
+      },
+      "newTitle": "New proposal",
+      "tooManyOpen": "You have 20 open proposals. Wait for those before sending more.",
+      "formIntro": "The more verifiable the request, the faster we review it. A barcode and a manufacturer link help more than any description.",
+      "productName": "Product name",
+      "brandName": "Brand",
+      "form": "Form",
+      "formHint": "Capsules, powder, drops…",
+      "variantName": "Variant",
+      "variantNameHint": "How many units or how many grams, if it matters.",
+      "barcode": "Barcode (EAN/UPC)",
+      "barcodeHint": "Optional, but it helps us verify.",
+      "sourceUrl": "Manufacturer link",
+      "sourceUrlHint": "The official product page, if there is one.",
+      "stock": "Stock you hold",
+      "stockHint": "How many units you have now.",
+      "asking2": "Your asking price (€)",
+      "askingHint": "Per unit. It helps us judge the margin.",
+      "note": "Why we should list it",
+      "noteHint": "Customer demand, exclusivity, price — whatever makes it worth listing.",
+      "submit": "Send the proposal",
+      "sent": "Proposal sent. You will get an answer here in the portal.",
+      "errors": {
+        "generic": "Something went wrong. Try again shortly.",
+        "invalid": "Check the highlighted fields.",
+        "notMerchant": "Proposals open once your application is approved.",
+        "tooMany": "You have too many open proposals. Wait for an answer on those."
+      }
+    },
+    "bulk": {
+      "title": "Bulk update",
+      "pageIntro": "Download your offers, change stock or price in Excel, and paste the rows back here.",
+      "exportTitle": "Download",
+      "exportIntro": "You have {count} offer(s). The sheet uses semicolons, which is what Excel reads here.",
+      "noOffers": "You have no offers to download.",
+      "addOne": "Add one",
+      "download": "Download CSV",
+      "uploadTitle": "Paste the rows",
+      "intro": "Paste rows with a SKU and stock, price, or both. The first row must contain the column names.",
+      "headerExample": "sku;stock;price",
+      "paste": "Rows",
+      "pasteHint": "Semicolon, comma or tab. A price may be written 9,90 or 9.90.",
+      "submit": "Apply",
+      "applied": "Applied {count} row(s).",
+      "malformedTitle": "Rows that could not be read",
+      "skippedTitle": "Rows that were skipped",
+      "lineIs": "line {line}",
+      "reasons": {
+        "no_sku": "no SKU",
+        "no_matching_offer": "no matching offer of yours",
+        "nothing_to_change": "nothing to change",
+        "negative_stock": "negative stock",
+        "invalid_price": "unacceptable price",
+        "bad_stock": "stock is not a whole number",
+        "bad_price": "price is not a number"
+      },
+      "locale": "Sheet language: {locale}.",
+      "errors": {
+        "generic": "Something went wrong. Try again shortly.",
+        "notMerchant": "This opens once your application is approved.",
+        "empty": "Paste at least one row.",
+        "tooMany": "Too many rows at once. The limit is 2000.",
+        "noHeader": "The first row must contain the column names — at least a SKU column and either stock or price."
+      }
+    },
+    "scorecard": {
+      "title": "Your record",
+      "intro": "Measured from your own orders: how much you accept, how fast you answer and dispatch, and how much you cancel. The rating decides who wins the buy box when prices tie.",
+      "rating": "Rating",
+      "ratingHint": "Out of 5. Acceptance and speed raise it; cancellation lowers it.",
+      "ratingNoHistory": "No orders to measure yet. The rating starts after your first shipment.",
+      "noData": "—",
+      "hoursValue": "{hours} h",
+      "acceptance": "Acceptance",
+      "acceptanceHint": "Of the orders assigned to you.",
+      "acceptSpeed": "Answer time",
+      "acceptSpeedHint": "Average time to accept. The window is 24 hours.",
+      "dispatchSpeed": "Dispatch",
+      "dispatchSpeedHint": "{late} later than the handling time you promised.",
+      "cancellation": "Cancellations",
+      "cancellationHint": "After accepting — this is what the customer feels.",
+      "assigned": "Assigned",
+      "accepted": "Accepted",
+      "declined": "Declined",
+      "delivered": "Delivered"
     }
   }
 }

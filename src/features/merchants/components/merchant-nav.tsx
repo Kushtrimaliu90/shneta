@@ -1,7 +1,16 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { Banknote, FileText, LayoutDashboard, Package, Settings, Truck } from 'lucide-react';
+import {
+  Banknote,
+  FileText,
+  LayoutDashboard,
+  Lightbulb,
+  Package,
+  Settings,
+  Truck,
+  Upload,
+} from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { Link, usePathname } from '@/i18n/routing';
 import { cn } from '@/lib/utils';
@@ -18,7 +27,15 @@ import { cn } from '@/lib/utils';
  * thing a pending merchant must be able to do, and it is what unblocks their own approval.
  */
 interface Item {
-  key: 'overview' | 'orders' | 'offers' | 'payouts' | 'documents' | 'settings';
+  key:
+    | 'overview'
+    | 'orders'
+    | 'offers'
+    | 'bulk'
+    | 'proposals'
+    | 'payouts'
+    | 'documents'
+    | 'settings';
   href: string;
   icon: LucideIcon;
   needsApproval?: boolean;
@@ -28,6 +45,8 @@ const ITEMS: readonly Item[] = [
   { key: 'overview', href: '/merchant', icon: LayoutDashboard },
   { key: 'orders', href: '/merchant/orders', icon: Truck, needsApproval: true },
   { key: 'offers', href: '/merchant/offers', icon: Package, needsApproval: true },
+  { key: 'bulk', href: '/merchant/bulk', icon: Upload, needsApproval: true },
+  { key: 'proposals', href: '/merchant/proposals', icon: Lightbulb, needsApproval: true },
   { key: 'payouts', href: '/merchant/payouts', icon: Banknote },
   { key: 'documents', href: '/merchant/documents', icon: FileText },
   { key: 'settings', href: '/merchant/settings', icon: Settings },

@@ -11,6 +11,7 @@ import { findReviewRequestTargets, sendReviewRequest } from '@/features/reviews/
  *   · cancel card orders left unpaid for more than 24 h (docs/07 §6.2)
  *   · purge rate_limits buckets older than 2 days
  *   · ask for a review seven days after delivery (docs/12 M7)
+ *   · recompute merchant ratings, the buy-box tie-break (docs/16 §6)
  *
  * Service-role by design — cron jobs are one of the six sanctioned uses (docs/02 §6).
  * Idempotent: every step is bounded by a timestamp predicate, so re-running it the same
@@ -46,6 +47,7 @@ export async function GET(request: NextRequest) {
     ordersCancelled: 0,
     rateLimitsPurged: 0,
     reviewRequestsSent: 0,
+    ratingsChanged: 0,
   };
   const failures: string[] = [];
 
@@ -118,6 +120,27 @@ export async function GET(request: NextRequest) {
     for (const target of targets) {
       await sendReviewRequest(target);
       summary.reviewRequestsSent += 1;
+    }
+  }
+
+  /*
+   * 5 · Recompute merchant ratings (docs/16 §6).
+   *
+   * `merchants.rating_avg` is the buy-box tie-break, read on every product page and recomputed from a
+   * ninety-day window of fulfilment history. A nightly job rather than a trigger on every fulfilment
+   * update: the inputs move a handful of times a day and the value is read hundreds, so it is cached —
+   * and a job that fails is visible here, where a trigger that made every shipment write slower would
+   * not be.
+   *
+   * Its own block with its own failure entry, so a rating recalculation that breaks does not stop the
+   * cart-abandonment sweep above it from having happened.
+   */
+  {
+    const { data, error } = await supabase.rpc('recompute_all_merchant_ratings');
+    if (error) failures.push(`ratings: ${error.message}`);
+    else {
+      const result = (data ?? {}) as { changed?: unknown[] };
+      summary.ratingsChanged = result.changed?.length ?? 0;
     }
   }
 

@@ -1086,7 +1086,9 @@
         "settings": "Cilësimet",
         "lockedHint": "Hapet pasi aplikimi miratohet.",
         "orders": "Porositë",
-        "payouts": "Shlyerjet"
+        "payouts": "Shlyerjet",
+        "proposals": "Propozimet",
+        "bulk": "Masivi"
       },
       "status": {
         "pendingTitle": "Aplikimi është në shqyrtim",
@@ -1391,6 +1393,104 @@
       "linesCaption": "Rreshtat e kësaj pasqyre, me porosinë përkatëse.",
       "order": "Porosia",
       "disputeWindow": "Nëse një rresht nuk përputhet me librat e tua, shkruaji BioCode-it brenda 14 ditëve nga data e pasqyrës."
+    },
+    "proposals": {
+      "title": "Propozimet",
+      "intro": "Nëse ke stok të një produkti që BioCode nuk e listën, propozoje. Faqen e produktit e krijon BioCode — ti më pas shton ofertën.",
+      "yours": "Propozimet e tua",
+      "empty": "Nuk ke propozime. Kërkesa e parë shkon më poshtë.",
+      "asking": "kërkon {amount}",
+      "reviewerNote": "Shënim nga BioCode:",
+      "status": {
+        "pending": "Në shqyrtim",
+        "approved": "Miratuar",
+        "rejected": "Refuzuar",
+        "needs_info": "Kërkohen të dhëna"
+      },
+      "newTitle": "Propozim i re",
+      "tooManyOpen": "Ke 20 propozime të hapura. Prit përgjigjen për ato para se të dërgosh të tjera.",
+      "formIntro": "Sa më e verifikueshme kërkesa, aq më shpejt e shqyrtojmë. Barkodi dhe një lidhje e prodhuesit ndihmojnë më shumë se çdo përshkrim.",
+      "productName": "Emri i produktit",
+      "brandName": "Marka",
+      "form": "Forma",
+      "formHint": "Kapsula, pluhur, pika…",
+      "variantName": "Varianti",
+      "variantNameHint": "Sa njësi ose sa gram, nëse ka.",
+      "barcode": "Barkodi (EAN/UPC)",
+      "barcodeHint": "Opsional, por ndihmon verifikimin.",
+      "sourceUrl": "Lidhje e prodhuesit",
+      "sourceUrlHint": "Faqja zyrtare e produktit, nëse ka.",
+      "stock": "Stoku që ke",
+      "stockHint": "Sa njësi ke tani.",
+      "asking2": "Çmimi që kërkon (€)",
+      "askingHint": "Për një njësi. Ndihmon të vlerësojmë marzhin.",
+      "note": "Pse duhet ta listojmë",
+      "noteHint": "Kërkesa e klientëve, ekskluzivitet, çmim, çfarëdo që e bën të vlefshme.",
+      "submit": "Dërgo propozimin",
+      "sent": "Propozimi u dërgua. Do të marrësh përgjigje në portal.",
+      "errors": {
+        "generic": "Diçka shkoi keq. Provo sërish pas pak.",
+        "invalid": "Kontrollo fushat e shënuara.",
+        "notMerchant": "Propozimet hapen pasi aplikimi miratohet.",
+        "tooMany": "Ke shumë propozime të hapura. Prit përgjigjen për ato."
+      }
+    },
+    "bulk": {
+      "title": "Përditësim masiv",
+      "pageIntro": "Shkarko ofertat e tua, ndrysho stokun ose çmimin në Excel, dhe kopjoji rreshtat sërish këtu.",
+      "exportTitle": "Shkarko",
+      "exportIntro": "Ke {count} oferta. Fleta shkarkohet me pikëpresje, siç e lexon Excel-i.",
+      "noOffers": "Nuk ke oferta për të shkarkuar.",
+      "addOne": "Shto një",
+      "download": "Shkarko CSV",
+      "uploadTitle": "Kopjo rreshtat",
+      "intro": "Ngjit rreshtat me SKU dhe stok, çmim ose të dyja. Rreshti i pare duhet të përmbajë emrat e kolonave.",
+      "headerExample": "sku;stok;çmimi",
+      "paste": "Rreshtat",
+      "pasteHint": "Pikëpresje, presje ose tab. Çmimi mund të shkruhet 9,90 ose 9.90.",
+      "submit": "Zbato",
+      "applied": "U zbatuan {count} rreshta.",
+      "malformedTitle": "Rreshta që nuk u lexuan",
+      "skippedTitle": "Rreshta që u kapërcyen",
+      "lineIs": "rreshti {line}",
+      "reasons": {
+        "no_sku": "pa SKU",
+        "no_matching_offer": "nuk përputhet me asnjë ofertë tënde",
+        "nothing_to_change": "nuk ka asgjë për të ndryshuar",
+        "negative_stock": "stok negativ",
+        "invalid_price": "çmim i papranueshëm",
+        "bad_stock": "stoku nuk është numër i plotë",
+        "bad_price": "çmimi nuk është numër"
+      },
+      "locale": "Gjuha e fletës: {locale}.",
+      "errors": {
+        "generic": "Diçka shkoi keq. Provo sërish pas pak.",
+        "notMerchant": "Kjo hapet pasi aplikimi miratohet.",
+        "empty": "Ngjit së paku një rresht.",
+        "tooMany": "Shumë rreshta njëherësh. Maksimumi 2000.",
+        "noHeader": "Rreshti i parë duhet të përmbajë emrat e kolonave — të paktën një kolonë SKU dhe stok ose çmim."
+      }
+    },
+    "scorecard": {
+      "title": "Vlerësimi",
+      "intro": "Matet nga porositë e tua: sa pranon, sa shpejt përgjigjesh dhe dërgon, dhe sa anulon. Vlerësimi vendos kush fiton kutinë e blerjes kur çmimet janë të njëjta.",
+      "rating": "Vlerësimi",
+      "ratingHint": "Nga 5. Pranimi dhe shpejtësia e ngrenë; anulimi e ul.",
+      "ratingNoHistory": "Nuk ka ende porosi për të matur. Vlerësimi nis pas dërgesës së parë.",
+      "noData": "—",
+      "hoursValue": "{hours} orë",
+      "acceptance": "Pranimi",
+      "acceptanceHint": "Nga porositë e caktuara.",
+      "acceptSpeed": "Përgjigjja",
+      "acceptSpeedHint": "Mesatarja deri në pranim. Afati është 24 orë.",
+      "dispatchSpeed": "Dërgesa",
+      "dispatchSpeedHint": "{late} me vonesë ndaj afatit që ke deklaruar.",
+      "cancellation": "Anulimet",
+      "cancellationHint": "Pas pranimit — kjo është ajo që klienti ndjen.",
+      "assigned": "Caktuar",
+      "accepted": "Pranuar",
+      "declined": "Refuzuar",
+      "delivered": "Dorëzuar"
     }
   }
 }

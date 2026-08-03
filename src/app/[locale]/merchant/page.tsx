@@ -13,6 +13,8 @@ import {
 } from '@/features/merchants/queries';
 import { myFulfilmentCounts } from '@/features/merchants/fulfilment-queries';
 import { merchantBalance } from '@/features/merchants/payout-queries';
+import { merchantScorecard } from '@/features/merchants/proposal-queries';
+import { ScorecardPanel } from '@/features/merchants/components/scorecard-panel';
 
 export const metadata: Metadata = { title: 'Portali i shitësit' };
 export const dynamic = 'force-dynamic';
@@ -42,7 +44,9 @@ export default async function MerchantDashboard({ params }: Props) {
     myFulfilmentCounts(),
   ]);
 
-  const balance = merchant ? await merchantBalance(merchant.id) : null;
+  const [balance, scorecard] = merchant
+    ? await Promise.all([merchantBalance(merchant.id), merchantScorecard(merchant.id)])
+    : [null, null];
 
   if (!merchant) return null;
 
@@ -163,6 +167,10 @@ export default async function MerchantDashboard({ params }: Props) {
           />
         </dl>
       </section>
+
+      {scorecard && (
+        <ScorecardPanel scorecard={scorecard} ratingAvg={merchant.ratingAvg} />
+      )}
 
       <section aria-labelledby="terms" className="flex flex-col gap-3">
         <h2 id="terms" className="font-display text-lg font-semibold text-forest-900">

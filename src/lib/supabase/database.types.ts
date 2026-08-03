@@ -4186,10 +4186,31 @@ export type Database = {
         Returns: undefined
       }
       merchant_balance: { Args: { p_merchant_id: string }; Returns: Json }
+      merchant_bulk_update_offers: {
+        Args: { p_merchant_id: string; p_rows: Json }
+        Returns: Json
+      }
       merchant_fulfilment_counts: { Args: never; Returns: Json }
       merchant_fulfilment_list: { Args: { p_status?: string }; Returns: Json }
       merchant_fulfilment_view: {
         Args: { p_fulfilment_id: string }
+        Returns: Json
+      }
+      merchant_offers_export: {
+        Args: { p_merchant_id: string }
+        Returns: {
+          merchant_sku: string
+          price_cents: number
+          product_name: string
+          retail_price_cents: number
+          sku: string
+          status: string
+          stock_on_hand: number
+          variant_name: string
+        }[]
+      }
+      merchant_scorecard: {
+        Args: { p_merchant_id: string; p_since?: string }
         Returns: Json
       }
       merchant_settlement: {
@@ -4216,6 +4237,11 @@ export type Database = {
       }
       post_refund_to_ledger: {
         Args: { p_note?: string; p_order_id: string; p_refund_cents: number }
+        Returns: number
+      }
+      recompute_all_merchant_ratings: { Args: never; Returns: Json }
+      recompute_merchant_rating: {
+        Args: { p_merchant_id: string }
         Returns: number
       }
       record_subscription_failure: {
