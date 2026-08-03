@@ -1,11 +1,17 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { logger } from '@/lib/logger';
-import type {
-  EngineSettings,
-  ProtocolBlock,
-  ProtocolConfig,
-  ProtocolConflict,
-  TimingSlot,
+import {
+  ACTIVITY_BANDS,
+  AGE_BANDS,
+  HEIGHT_BANDS,
+  SEX_BANDS,
+  WEIGHT_BANDS,
+  type EngineSettings,
+  type ProfileRule,
+  type ProtocolBlock,
+  type ProtocolConfig,
+  type ProtocolConflict,
+  type TimingSlot,
 } from '@/features/biohack/types';
 
 /**
@@ -48,6 +54,17 @@ function pair(value: unknown): { sq: string; en: string } | null {
 
 function stringList(value: unknown): string[] {
   return Array.isArray(value) ? value.filter((v): v is string => typeof v === 'string') : [];
+}
+
+/**
+ * Keeps only the members of a known enum.
+ *
+ * `when_profile` is jsonb, so nothing at the database level stops someone writing a band the code
+ * has never heard of. Dropping it is the right failure: a rule naming an unknown band would match
+ * nobody while still reading as active in the admin, which is a rule that lies about itself.
+ */
+function only<T extends string>(values: string[], allowed: readonly T[]): T[] {
+  return values.filter((v): v is T => (allowed as readonly string[]).includes(v));
 }
 
 function readSettings(value: unknown): EngineSettings {
@@ -98,7 +115,7 @@ export async function loadConfig(
 
   const row = configRow as { id: string; version: number; status: string };
 
-  const [blocks, conflicts, goals, ingredients, settings] = await Promise.all([
+  const [blocks, conflicts, profileRules, goals, ingredients, settings] = await Promise.all([
     db
       .from('protocol_blocks')
       .select(
@@ -109,8 +126,14 @@ export async function loadConfig(
       .from('protocol_conflicts')
       .select('id, a_ingredient, b_ingredient, b_goal, kind, rule, note_i18n')
       .eq('config_id', row.id),
+    db
+      .from('protocol_profile_rules')
+      .select('id, ingredient_id, when_profile, effect, reason_i18n, caution_i18n, active, sort_order')
+      .eq('config_id', row.id),
     db.from('health_goals').select('id, slug, metrics_i18n'),
-    db.from('ingredients').select('id, slug, name, med_sensitive, contains_caffeine'),
+    db
+      .from('ingredients')
+      .select('id, slug, name, med_sensitive, contains_caffeine, scales_with_body_weight'),
     db.from('settings').select('value').eq('key', 'biohack_engine').maybeSingle(),
   ]);
 
@@ -121,6 +144,7 @@ export async function loadConfig(
     name: unknown;
     med_sensitive: boolean;
     contains_caffeine: boolean;
+    scales_with_body_weight: boolean;
   };
 
   const goalById = new Map((goals.data ?? []).map((g) => [g.id, g as GoalRow]));
@@ -190,6 +214,61 @@ export async function loadConfig(
       };
     });
 
+  /**
+   * docs/15 §9 — profile rules.
+   *
+   * Every list in `when_profile` is read through `stringList` and then narrowed against the enum
+   * constants, so an unknown band written by hand into the jsonb is dropped rather than carried
+   * into the engine. A rule that mentions a band the code does not know would otherwise match
+   * nobody while looking active in the admin, which is the worst of both.
+   */
+  type RawRule = {
+    id: string;
+    ingredient_id: string | null;
+    when_profile: unknown;
+    effect: unknown;
+    reason_i18n: unknown;
+    caution_i18n: unknown;
+    active: boolean;
+    sort_order: number;
+  };
+
+  const mappedRules: ProfileRule[] = ((profileRules.data ?? []) as unknown as RawRule[]).map((r) => {
+    const when = (r.when_profile ?? {}) as Record<string, unknown>;
+    const effect = (r.effect ?? {}) as Record<string, unknown>;
+    const ingredient = r.ingredient_id ? ingredientById.get(r.ingredient_id) : undefined;
+
+    const delta = effect.weight_delta;
+
+    return {
+      id: r.id,
+      ingredientSlug: ingredient?.slug ?? null,
+      ingredientName: ingredient ? pair(ingredient.name) : null,
+      when: {
+        ageBands: only(stringList(when.age_bands), AGE_BANDS),
+        sexes: only(stringList(when.sexes), SEX_BANDS),
+        weightBands: only(stringList(when.weight_bands), WEIGHT_BANDS),
+        heightBands: only(stringList(when.height_bands), HEIGHT_BANDS),
+        activity: only(stringList(when.activity), ACTIVITY_BANDS),
+        goals: stringList(when.goals),
+      },
+      effect: {
+        // Rounded and clamped: the column is jsonb, so nothing stops `1e9` or `"20"` being
+        // written into it, and a score is a small integer.
+        ...(typeof delta === 'number' && Number.isFinite(delta) && delta !== 0
+          ? { weightDelta: Math.max(-100, Math.min(100, Math.round(delta))) }
+          : {}),
+        ...(effect.exclude === true ? { exclude: true } : {}),
+        ...(effect.require === true ? { require: true } : {}),
+        ...(effect.servings_hint === true ? { servingsHint: true } : {}),
+      },
+      reason: pair(r.reason_i18n) ?? { sq: '', en: '' },
+      caution: pair(r.caution_i18n),
+      active: r.active,
+      sortOrder: r.sort_order,
+    };
+  });
+
   const metrics: ProtocolConfig['metrics'] = {};
   for (const goal of goalById.values()) {
     const raw = goal.metrics_i18n;
@@ -202,6 +281,7 @@ export async function loadConfig(
     version: row.version,
     blocks: mappedBlocks,
     conflicts: mappedConflicts,
+    profileRules: mappedRules,
     settings: readSettings((settings.data as { value: unknown } | null)?.value),
     metrics,
   };

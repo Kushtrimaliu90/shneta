@@ -1,9 +1,11 @@
 import {
+  SERVINGS_BY_WEIGHT,
   SLOT_DAY_PART,
   type CatalogProduct,
   type ProtocolBlock,
   type ProtocolConfig,
   type ProtocolInputs,
+  type ProfileRule,
   type ProtocolItem,
   type ProtocolResult,
   type TimingSlot,
@@ -53,6 +55,12 @@ interface Candidate {
   isCore: boolean;
   timing: TimingSlot[];
   phase: 1 | 2;
+  /** Reasons a profile rule gave for touching this candidate, in the order they applied. */
+  profileReasons: { sq: string; en: string }[];
+  /** Set by a `require` rule: selected ahead of the global score fill. */
+  profileRequired: boolean;
+  /** Set by a `servingsHint` rule; resolved to a number once a weight band is known. */
+  wantsServingsHint: boolean;
 }
 
 export function generateProtocol(
@@ -114,6 +122,9 @@ export function generateProtocol(
         isCore: block.isCore,
         timing: [...block.timing],
         phase: block.phase,
+        profileReasons: [],
+        profileRequired: false,
+        wantsServingsHint: false,
       });
       trace.push({ kind: 'candidate', subject: key, object: block.goalSlug, score: block.weight });
       continue;
@@ -153,6 +164,16 @@ export function generateProtocol(
     }
     return true;
   });
+
+  /*
+   * 4b · Profile (docs/15 §9).
+   *
+   * After the absolute filters and **before** conflicts and selection, which is the only position
+   * that works. Before the filters, a rule could boost something medication is about to remove
+   * and the trace would explain a promotion that never happened. After selection, a boost cannot
+   * change what was selected, which is the entire purpose.
+   */
+  candidates = applyProfile(candidates, config, inputs, goals, trace);
 
   // 5 · Conflicts.
   candidates = applyConflicts(candidates, config, inputs, goals, trace);
@@ -238,6 +259,150 @@ function byBlockOrder(a: ProtocolBlock, b: ProtocolBlock): number {
 function bestFirst(a: { score: number; key: string }, b: { score: number; key: string }): number {
   if (b.score !== a.score) return b.score - a.score;
   return a.key.localeCompare(b.key);
+}
+
+/**
+ * 4b · Personalisation (docs/15 §9).
+ *
+ * Reads rules and applies them. It knows nothing about nutrition — not that B12 absorption falls
+ * after fifty, not that menstruating women lose iron. All of that lives in
+ * `protocol_profile_rules`, where the product manager who understands it can read it, change it
+ * and send it for approval. This function is the interpreter, and keeping it free of domain
+ * knowledge is what makes that possible.
+ *
+ * Order within the step is fixed and matters: **exclude, then require, then weight, then
+ * caution.** An excluded candidate must not first collect a boost and a reason the customer would
+ * then read about something they were never shown.
+ */
+function applyProfile(
+  candidates: Candidate[],
+  config: ProtocolConfig,
+  inputs: ProtocolInputs,
+  goals: string[],
+  trace: TraceEntry[],
+): Candidate[] {
+  const active = config.profileRules
+    .filter((rule) => rule.active && matchesProfile(rule, inputs, goals))
+    // `sortOrder` then `id`: the admin controls the order, and ties resolve the same way twice.
+    .sort((a, b) => a.sortOrder - b.sortOrder || a.id.localeCompare(b.id));
+
+  if (active.length === 0) return candidates;
+
+  /** A rule with no ingredient applies to every candidate. */
+  const applies = (rule: ProfileRule, candidate: Candidate): boolean =>
+    rule.ingredientSlug === null || rule.ingredientSlug === candidate.ingredientSlug;
+
+  const dropped = new Set<string>();
+  for (const rule of active) {
+    if (!rule.effect.exclude) continue;
+    for (const candidate of candidates) {
+      if (!applies(rule, candidate) || dropped.has(candidate.key)) continue;
+      dropped.add(candidate.key);
+      trace.push({
+        kind: 'profile_excluded',
+        subject: candidate.key,
+        detail: describeWhen(rule),
+      });
+    }
+  }
+
+  const surviving = candidates.filter((candidate) => !dropped.has(candidate.key));
+
+  for (const rule of active) {
+    for (const candidate of surviving) {
+      if (!applies(rule, candidate)) continue;
+
+      if (rule.effect.require && !candidate.profileRequired) {
+        candidate.profileRequired = true;
+        trace.push({
+          kind: 'profile_required',
+          subject: candidate.key,
+          detail: describeWhen(rule),
+        });
+      }
+
+      if (rule.effect.weightDelta) {
+        /*
+         * Clamped at 1 rather than allowed to go negative. A score is a ranking position, and a
+         * negative one would sort *below* an ingredient nothing recommends — which is a way of
+         * excluding something while claiming to have merely demoted it. An admin who means
+         * "remove this" has `exclude`.
+         */
+        const before = candidate.score;
+        candidate.score = Math.max(1, candidate.score + rule.effect.weightDelta);
+
+        trace.push({
+          kind: rule.effect.weightDelta > 0 ? 'profile_boost' : 'profile_demote',
+          subject: candidate.key,
+          score: candidate.score,
+          detail: `${describeWhen(rule)}:${before}→${candidate.score}`,
+        });
+      }
+
+      if (rule.effect.servingsHint) candidate.wantsServingsHint = true;
+
+      if (rule.caution) candidate.lead = { ...candidate.lead, caution: rule.caution };
+
+      /*
+       * The reason is recorded once per rule per candidate, and only when the rule actually did
+       * something. A rule whose every effect was a no-op has not personalised anything, and
+       * telling the customer it did would be the kind of theatre this feature is meant to avoid.
+       */
+      const didSomething =
+        Boolean(rule.effect.weightDelta) ||
+        Boolean(rule.effect.require) ||
+        Boolean(rule.effect.servingsHint) ||
+        rule.caution !== null;
+
+      if (didSomething && !candidate.profileReasons.some((r) => r.sq === rule.reason.sq)) {
+        candidate.profileReasons.push(rule.reason);
+      }
+    }
+  }
+
+  return surviving;
+}
+
+/** Every dimension the rule names must contain the customer's answer. Empty means "don't care". */
+function matchesProfile(rule: ProfileRule, inputs: ProtocolInputs, goals: string[]): boolean {
+  const { when } = rule;
+
+  /*
+   * An unanswered band matches nothing. Declining to give a band and being outside every listed
+   * band are the same thing as far as a rule is concerned, and both resolve to "do not apply" —
+   * the conservative direction, and the only one that keeps `pa_percaktuar` honest.
+   */
+  const dimension = <T extends string>(listed: T[], answer: T | undefined): boolean =>
+    listed.length === 0 || (answer !== undefined && listed.includes(answer));
+
+  return (
+    dimension(when.ageBands, inputs.ageBand) &&
+    dimension(when.sexes, inputs.sex) &&
+    dimension(when.weightBands, inputs.weightBand) &&
+    dimension(when.heightBands, inputs.heightBand) &&
+    dimension(when.activity, inputs.activity) &&
+    (when.goals.length === 0 || when.goals.some((goal) => goals.includes(goal)))
+  );
+}
+
+/**
+ * A compact, stable description of what made a rule fire — for the trace, not for the customer.
+ *
+ * The customer reads `rule.reason`, which is written prose. This is the debugging view the admin
+ * simulator shows verbatim, so it has to name the dimensions rather than summarise them.
+ */
+function describeWhen(rule: ProfileRule): string {
+  const parts: string[] = [];
+  const { when } = rule;
+
+  if (when.ageBands.length > 0) parts.push(`age:${when.ageBands.join('|')}`);
+  if (when.sexes.length > 0) parts.push(`sex:${when.sexes.join('|')}`);
+  if (when.weightBands.length > 0) parts.push(`weight:${when.weightBands.join('|')}`);
+  if (when.heightBands.length > 0) parts.push(`height:${when.heightBands.join('|')}`);
+  if (when.activity.length > 0) parts.push(`activity:${when.activity.join('|')}`);
+  if (when.goals.length > 0) parts.push(`goal:${when.goals.join('|')}`);
+
+  return parts.length > 0 ? parts.join(' ') : 'everyone';
 }
 
 /**
@@ -350,6 +515,23 @@ function select(
   const chosen: Candidate[] = [];
   const taken = new Set<string>();
 
+  /*
+   * A profile `require` is honoured before the per-goal core guarantee, which makes it the
+   * strongest claim on a slot in the engine.
+   *
+   * That ordering is deliberate. The core guarantee answers "did we cover what they asked for";
+   * a require rule answers "is there something their profile means they should not be without" —
+   * the seeded example is B12 for a vegan, where the goal they picked may have nothing to do with
+   * it. Both are guarantees, and the more specific one goes first.
+   */
+  for (const candidate of ranked) {
+    if (!candidate.profileRequired || taken.has(candidate.key)) continue;
+    if (chosen.length >= config.settings.maxItems) break;
+    chosen.push(candidate);
+    taken.add(candidate.key);
+    trace.push({ kind: 'profile_required', subject: candidate.key, detail: 'selected' });
+  }
+
   if (config.settings.perGoalCoreGuarantee) {
     for (const goal of goals) {
       const core = ranked.find(
@@ -400,6 +582,17 @@ function resolve(
     score: candidate.score,
     product: null,
     comingSoon: false,
+    profileReasons: candidate.profileReasons,
+    /*
+     * Resolved here rather than in the profile step, because it needs the weight band and the
+     * step that reads rules should not also be deciding what a number means. Null when no rule
+     * asked, and null when a rule asked but no weight band was given — a serving multiplier with
+     * nothing to multiply against would be a guess presented as arithmetic.
+     */
+    servingsHint:
+      candidate.wantsServingsHint && inputs.weightBand
+        ? SERVINGS_BY_WEIGHT[inputs.weightBand]
+        : null,
   };
 
   if (candidate.kind === 'habit' || !candidate.ingredientSlug) return base;

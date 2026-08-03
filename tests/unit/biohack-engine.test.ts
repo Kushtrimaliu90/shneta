@@ -61,6 +61,7 @@ function config(over: Partial<ProtocolConfig> = {}): ProtocolConfig {
     version: 1,
     blocks: [],
     conflicts: [],
+    profileRules: [],
     metrics: {},
     settings: {
       maxItems: 5,

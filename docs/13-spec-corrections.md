@@ -2014,6 +2014,41 @@ Inbox placement is still unproven and cannot be proven from here — whether a m
 inbox or in spam depends on the receiving provider. That half needs a human with a Gmail account,
 which is why `pnpm email:test` prints a checklist rather than a pass.
 
+### V3 · A warm build cache hid a broken cold build, on Windows only
+
+`pnpm build` had been passing all session. Deleting `.next` and building from scratch failed:
+
+    [TypeError: Cannot read properties of null (reading 'useRef')]
+    Error occurred prerendering page "/404"
+
+…preceded by 560 warnings about "multiple modules with names that only differ in casing".
+
+`useRef` of null means two copies of React, and the casing warnings say why. The cause was one
+line in `node_modules/.modules.yaml`:
+
+    virtualStoreDir: C:\Users\Administrator\projects\shneta\node_modules\.pnpm
+
+Lowercase `projects`, where the project actually lives at `Projects`. Somebody had run
+`pnpm install` from a shell whose working directory was cased differently — harmless on Windows,
+which does not care, right up until webpack does. It resolved Next's loaders through the lowercase
+path and the modules they loaded through the correct one, so every shared module existed twice and
+React's hook dispatcher was null in one of them.
+
+`pnpm install` from the correctly-cased directory rewrites the line and the cold build is clean.
+No lockfile change, no code change.
+
+Three things worth keeping:
+
+- **It was invisible with a warm cache.** Every green build this session was genuine and none of
+  them could have caught this, because the cached module graph already had one consistent casing.
+  A cold build is a different test, and the only ones that run cold are CI and Vercel.
+- **CI was never affected.** Vercel clones into `/vercel/path0` — one casing, fresh every time —
+  and its log for the same commit reads `✓ Compiled successfully in 46s`. This was purely local.
+- **The failure named the wrong thing.** "Cannot read properties of null (reading 'useRef')" while
+  prerendering `/404` points at a React component; the actual fault was a path in a package
+  manager's metadata. When a hooks error appears on a page with no hooks worth suspecting, count
+  the copies of React before reading the component.
+
 ---
 
 ## E. Stack decisions taken at M0

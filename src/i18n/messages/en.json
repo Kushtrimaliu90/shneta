@@ -984,6 +984,12 @@
     "errorTooMany": "Too many requests from this connection. Wait a moment and try again.",
     "errorAddToCart": "The products were not added. Try again.",
     "errorSave": "Saving failed. Try again.",
-    "errorSubscribe": "The subscription was not created. Try again."
+    "errorSubscribe": "The subscription was not created. Try again.",
+    "traceProfileBoost": "{subject} was weighted higher for your profile — the score moved to {score}.",
+    "traceProfileDemote": "{subject} was weighted lower for your profile — the score moved to {score}.",
+    "traceProfileExcluded": "{subject} was removed based on your profile.",
+    "traceProfileRequired": "{subject} was kept because your profile calls for it.",
+    "profileWhy": "FOR YOU",
+    "servingsHint": "At your weight: {count} label servings a day."
   }
 }

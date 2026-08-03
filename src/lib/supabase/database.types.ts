@@ -953,6 +953,7 @@ export type Database = {
           name: Json
           other_names: string[]
           safety_notes: Json
+          scales_with_body_weight: boolean
           seo: Json
           slug: string
           summary: Json
@@ -971,6 +972,7 @@ export type Database = {
           name: Json
           other_names?: string[]
           safety_notes?: Json
+          scales_with_body_weight?: boolean
           seo?: Json
           slug: string
           summary?: Json
@@ -989,6 +991,7 @@ export type Database = {
           name?: Json
           other_names?: string[]
           safety_notes?: Json
+          scales_with_body_weight?: boolean
           seo?: Json
           slug?: string
           summary?: Json
@@ -2333,6 +2336,63 @@ export type Database = {
           },
         ]
       }
+      protocol_profile_rules: {
+        Row: {
+          active: boolean
+          caution_i18n: Json | null
+          config_id: string
+          created_at: string
+          effect: Json
+          id: string
+          ingredient_id: string | null
+          reason_i18n: Json
+          sort_order: number
+          updated_at: string
+          when_profile: Json
+        }
+        Insert: {
+          active?: boolean
+          caution_i18n?: Json | null
+          config_id: string
+          created_at?: string
+          effect: Json
+          id?: string
+          ingredient_id?: string | null
+          reason_i18n: Json
+          sort_order?: number
+          updated_at?: string
+          when_profile?: Json
+        }
+        Update: {
+          active?: boolean
+          caution_i18n?: Json | null
+          config_id?: string
+          created_at?: string
+          effect?: Json
+          id?: string
+          ingredient_id?: string | null
+          reason_i18n?: Json
+          sort_order?: number
+          updated_at?: string
+          when_profile?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "protocol_profile_rules_config_id_fkey"
+            columns: ["config_id"]
+            isOneToOne: false
+            referencedRelation: "protocol_configs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "protocol_profile_rules_ingredient_id_fkey"
+            columns: ["ingredient_id"]
+            isOneToOne: false
+            referencedRelation: "ingredients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       quiz_submissions: {
         Row: {
           answers: Json
@@ -3389,12 +3449,15 @@ export type Database = {
       tables_without_rls: { Args: never; Returns: string[] }
     }
     Enums: {
+      activity_band: "ulur" | "i_lehte" | "i_rregullt" | "intensiv"
+      age_band: "nen_18" | "18_29" | "30_39" | "40_49" | "50_64" | "65_plus"
       article_status: "draft" | "in_review" | "published" | "archived"
       article_type: "article" | "guide" | "recipe" | "research" | "news"
       cart_status: "active" | "converted" | "abandoned"
       conflict_kind: "exclude" | "caution" | "timing_rule"
       discount_type: "percentage" | "fixed" | "free_shipping"
       evidence_level: "strong" | "moderate" | "emerging" | "traditional"
+      height_band: "nen_160" | "160_169" | "170_179" | "180_189" | "190_plus"
       order_status:
         | "pending"
         | "confirmed"
@@ -3423,6 +3486,7 @@ export type Database = {
         | "other"
       product_status: "draft" | "pending_review" | "published" | "archived"
       review_status: "pending" | "approved" | "rejected"
+      sex_band: "femer" | "mashkull" | "pa_percaktuar"
       stock_movement_type:
         | "received"
         | "sale"
@@ -3445,6 +3509,7 @@ export type Database = {
         | "warehouse_manager"
         | "compliance_manager"
         | "admin"
+      weight_band: "nen_60" | "60_74" | "75_89" | "90_104" | "105_plus"
     }
     CompositeTypes: {
       checkout_line: {
@@ -3583,12 +3648,15 @@ export const Constants = {
   },
   public: {
     Enums: {
+      activity_band: ["ulur", "i_lehte", "i_rregullt", "intensiv"],
+      age_band: ["nen_18", "18_29", "30_39", "40_49", "50_64", "65_plus"],
       article_status: ["draft", "in_review", "published", "archived"],
       article_type: ["article", "guide", "recipe", "research", "news"],
       cart_status: ["active", "converted", "abandoned"],
       conflict_kind: ["exclude", "caution", "timing_rule"],
       discount_type: ["percentage", "fixed", "free_shipping"],
       evidence_level: ["strong", "moderate", "emerging", "traditional"],
+      height_band: ["nen_160", "160_169", "170_179", "180_189", "190_plus"],
       order_status: [
         "pending",
         "confirmed",
@@ -3620,6 +3688,7 @@ export const Constants = {
       ],
       product_status: ["draft", "pending_review", "published", "archived"],
       review_status: ["pending", "approved", "rejected"],
+      sex_band: ["femer", "mashkull", "pa_percaktuar"],
       stock_movement_type: [
         "received",
         "sale",
@@ -3645,6 +3714,7 @@ export const Constants = {
         "compliance_manager",
         "admin",
       ],
+      weight_band: ["nen_60", "60_74", "75_89", "90_104", "105_plus"],
     },
   },
 } as const

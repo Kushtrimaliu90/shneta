@@ -24,6 +24,10 @@ import type { TraceEntry, TraceKind } from '@/features/biohack/types';
 const MESSAGE = {
   candidate: 'traceCandidate',
   synergy: 'traceSynergy',
+  profile_boost: 'traceProfileBoost',
+  profile_demote: 'traceProfileDemote',
+  profile_excluded: 'traceProfileExcluded',
+  profile_required: 'traceProfileRequired',
   excluded_medication: 'traceExcludedMedication',
   excluded_caffeine: 'traceExcludedCaffeine',
   excluded_diet: 'traceExcludedDiet',

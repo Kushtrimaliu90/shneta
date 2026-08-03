@@ -984,6 +984,12 @@
     "errorTooMany": "Shumë kërkesa nga kjo lidhje. Prit pak dhe provo sërish.",
     "errorAddToCart": "Produktet nuk u shtuan. Provo sërish.",
     "errorSave": "Ruajtja dështoi. Provo sërish.",
-    "errorSubscribe": "Abonimi nuk u krijua. Provo sërish."
+    "errorSubscribe": "Abonimi nuk u krijua. Provo sërish.",
+    "traceProfileBoost": "{subject} u peshua më shumë për profilin tënd — pikët shkuan në {score}.",
+    "traceProfileDemote": "{subject} u peshua më pak për profilin tënd — pikët shkuan në {score}.",
+    "traceProfileExcluded": "{subject} u hoq sipas profilit tënd.",
+    "traceProfileRequired": "{subject} u mbajt sepse profili yt e kërkon.",
+    "profileWhy": "PËR TY",
+    "servingsHint": "Sipas peshës tënde: {count} porcione në ditë, sipas etiketës."
   }
 }

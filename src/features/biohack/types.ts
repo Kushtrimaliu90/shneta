@@ -54,6 +54,73 @@ export type Caffeine = (typeof CAFFEINE)[number];
 export const LEVELS = ['fillestar', 'i_avancuar'] as const;
 export type Level = (typeof LEVELS)[number];
 
+// ── Who the customer is (docs/15 §9) ─────────────────────────────────────────
+
+/**
+ * Bands, never exact values.
+ *
+ * They answer every question a rule needs to ask, they are five taps rather than five keyboards
+ * — which is what keeps the flow inside the sixty seconds docs/15 §1 asks for — and a shop that
+ * sells magnesium has no business storing somebody's exact weight and date of birth.
+ */
+export type AgeBand = Database['public']['Enums']['age_band'];
+export type SexBand = Database['public']['Enums']['sex_band'];
+export type WeightBand = Database['public']['Enums']['weight_band'];
+export type HeightBand = Database['public']['Enums']['height_band'];
+export type ActivityBand = Database['public']['Enums']['activity_band'];
+
+export const AGE_BANDS = [
+  'nen_18',
+  '18_29',
+  '30_39',
+  '40_49',
+  '50_64',
+  '65_plus',
+] as const satisfies readonly AgeBand[];
+
+export const SEX_BANDS = ['femer', 'mashkull', 'pa_percaktuar'] as const satisfies readonly SexBand[];
+
+export const WEIGHT_BANDS = [
+  'nen_60',
+  '60_74',
+  '75_89',
+  '90_104',
+  '105_plus',
+] as const satisfies readonly WeightBand[];
+
+export const HEIGHT_BANDS = [
+  'nen_160',
+  '160_169',
+  '170_179',
+  '180_189',
+  '190_plus',
+] as const satisfies readonly HeightBand[];
+
+export const ACTIVITY_BANDS = [
+  'ulur',
+  'i_lehte',
+  'i_rregullt',
+  'intensiv',
+] as const satisfies readonly ActivityBand[];
+
+/**
+ * How many label servings a body-weight-scaled ingredient suggests.
+ *
+ * A **multiplier on the manufacturer's serving**, never a dose in grams. Protein and creatine are
+ * the two ingredients in this catalogue whose sensible intake tracks body mass, and the honest
+ * way to reflect that is "at your weight, two of the servings on the label" — the label stays the
+ * authority, which is where docs/08 §7 requires it to stay.
+ *
+ * Ordered by band so the table reads as the ramp it is.
+ */
+export const SERVINGS_BY_WEIGHT: Record<WeightBand, number> = {
+  nen_60: 1,
+  '60_74': 1,
+  '75_89': 2,
+  '90_104': 2,
+  '105_plus': 3,
+};
+
 /** docs/15 §2 — `budget_tiers` in cents. `null` is "no limit", not "cheapest". */
 export type BudgetCents = number | null;
 
@@ -62,11 +129,29 @@ export interface ProtocolInputs {
   goals: string[];
   diet: Diet;
   caffeine: Caffeine;
-  /** The hard gate: pregnant, nursing, or under 18 (docs/15 §1 step 2). */
+  /**
+   * The hard gate: pregnant or nursing.
+   *
+   * Under-18 used to live in this same boolean and now comes from `ageBand`. Three unrelated
+   * questions behind one yes/no meant the one that mattered most was the easiest to answer
+   * carelessly — and age is asked anyway, so reading the gate off it is both shorter and harder
+   * to get wrong (docs/15 §9).
+   */
   restrictedLifeStage: boolean;
   medication: boolean;
   level: Level;
   budgetCents: BudgetCents;
+
+  /**
+   * Who the customer is. Optional so a stored protocol from before this existed still replays:
+   * `generated_protocols` keeps the inputs verbatim, and those rows have none of these fields.
+   * A missing band matches no rule, which is the same conservative direction as declining to say.
+   */
+  ageBand?: AgeBand;
+  sex?: SexBand;
+  weightBand?: WeightBand;
+  heightBand?: HeightBand;
+  activity?: ActivityBand;
 }
 
 // ── The ruleset, flattened ───────────────────────────────────────────────────
@@ -108,6 +193,45 @@ export interface ProtocolConflict {
   note: { sq: string; en: string } | null;
 }
 
+/**
+ * docs/15 §9 — one personalisation rule, as the engine sees it.
+ *
+ * The engine knows how to *evaluate* these and knows none of them. That split is the whole point:
+ * "over 50 needs more B12" is nutrition knowledge belonging to the product manager, and a rule in
+ * a table is something they can read, change and send for approval. The same rule as an `if` in
+ * this file would be invisible to them forever.
+ */
+export interface ProfileRule {
+  id: string;
+  /** Null applies the rule to every candidate — only sensible with a narrow `when`. */
+  ingredientSlug: string | null;
+  ingredientName: { sq: string; en: string } | null;
+  /** Every listed dimension must match. An empty list for a dimension means "don't care". */
+  when: {
+    ageBands: AgeBand[];
+    sexes: SexBand[];
+    weightBands: WeightBand[];
+    heightBands: HeightBand[];
+    activity: ActivityBand[];
+    /** Only fire when one of these goals was chosen. */
+    goals: string[];
+  };
+  effect: {
+    /** Added to the candidate's score. Negative demotes without removing. */
+    weightDelta?: number;
+    exclude?: boolean;
+    /** Guarantee a place in the result, ahead of the global score fill. */
+    require?: boolean;
+    /** Ask the result page for a body-weight serving note (see `SERVINGS_BY_WEIGHT`). */
+    servingsHint?: boolean;
+  };
+  /** The sentence the customer reads when this rule changed their protocol. */
+  reason: { sq: string; en: string };
+  caution: { sq: string; en: string } | null;
+  active: boolean;
+  sortOrder: number;
+}
+
 export interface EngineSettings {
   maxItems: number;
   minItems: number;
@@ -122,6 +246,7 @@ export interface ProtocolConfig {
   version: number;
   blocks: ProtocolBlock[];
   conflicts: ProtocolConflict[];
+  profileRules: ProfileRule[];
   settings: EngineSettings;
   /** Metric templates per goal slug, for the "what to measure" card. */
   metrics: Record<string, { sq: string[]; en: string[] }>;
@@ -154,6 +279,10 @@ export interface CatalogProduct {
 export type TraceKind =
   | 'candidate'
   | 'synergy'
+  | 'profile_boost'
+  | 'profile_demote'
+  | 'profile_excluded'
+  | 'profile_required'
   | 'excluded_medication'
   | 'excluded_caffeine'
   | 'excluded_diet'
@@ -205,6 +334,21 @@ export interface ProtocolItem {
   } | null;
   /** True when the ingredient is right but nothing is in stock (docs/15 §3.8). */
   comingSoon: boolean;
+
+  /**
+   * The personalisation reasons that touched this item, in the order they applied.
+   *
+   * Shown on the card beneath the PSE line, which is the difference between a protocol that is
+   * personalised and one that merely *is* personalised without saying so. Empty for an item no
+   * profile rule affected.
+   */
+  profileReasons: { sq: string; en: string }[];
+
+  /**
+   * Label servings a body-weight-scaled ingredient suggests — a multiplier on the manufacturer's
+   * serving, never a dose. Null unless a rule asked for it and a weight band was given.
+   */
+  servingsHint: number | null;
 }
 
 export interface ProtocolResult {
