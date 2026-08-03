@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/server';
 import { logger, describeError } from '@/lib/logger';
 import { fail, ok, type ActionResult } from '@/lib/result';
 import { audit, requireCapability } from '@/features/admin/audit';
+import { sendFulfilmentAssigned } from '@/features/merchants/email';
 import type { Json } from '@/lib/supabase/database.types';
 
 /**
@@ -89,6 +90,12 @@ export async function assignFulfilment(
       lines_moved: result.lines_moved ?? 0,
       merchant_due_cents: result.merchant_due_cents ?? 0,
     } as unknown as Json);
+
+    /*
+     * The merchant learns it has work from this email, and only from this email: it has no reason to sit
+     * on the portal waiting. The 24-hour acceptance window in the terms starts here.
+     */
+    await sendFulfilmentAssigned(fulfilmentId);
 
     revalidatePath('/admin/routing');
     revalidatePath('/merchant/orders');

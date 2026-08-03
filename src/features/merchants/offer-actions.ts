@@ -15,6 +15,7 @@ import {
   offerUpdateSchema,
 } from '@/features/merchants/offer-schemas';
 import { getMyMerchant } from '@/features/merchants/queries';
+import { sendOfferDecided } from '@/features/merchants/email';
 import type { Json } from '@/lib/supabase/database.types';
 
 /**
@@ -439,6 +440,8 @@ export async function decideOffer(_previous: OfferState, formData: FormData): Pr
      * cached supply is wrong either way.
      */
     await purgeIfLive('approved', previous.variant_id);
+
+    await sendOfferDecided(previous.merchant_id, input.offerId, approving, input.note ?? null);
 
     revalidatePath('/admin/merchants/offers');
     return ok({ offerId: input.offerId });

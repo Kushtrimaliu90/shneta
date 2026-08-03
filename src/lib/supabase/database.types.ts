@@ -4078,6 +4078,7 @@ export type Database = {
         Args: { p_fulfilment_id: string; p_merchant_id: string }
         Returns: Json
       }
+      auto_route_fulfilments: { Args: never; Returns: Json }
       build_all_merchant_payouts: {
         Args: { p_period_end: string; p_period_start: string }
         Returns: Json
@@ -4320,6 +4321,7 @@ export type Database = {
           variant_id: string
         }[]
       }
+      set_auto_routing: { Args: { p_enabled: boolean }; Returns: boolean }
       skip_subscription_cycle: {
         Args: { p_subscription_id: string }
         Returns: boolean

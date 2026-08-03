@@ -7,6 +7,7 @@ import { logger, describeError } from '@/lib/logger';
 import { fail, ok, type ActionResult } from '@/lib/result';
 import { audit, requireCapability } from '@/features/admin/audit';
 import { periodToSettle } from '@/features/merchants/payout-period';
+import { sendPayoutReady } from '@/features/merchants/email';
 import type { Json } from '@/lib/supabase/database.types';
 
 /**
@@ -90,6 +91,15 @@ export async function buildPayoutRun(
       built: payouts.length,
       total_net_cents: payouts.reduce((sum, entry) => sum + entry.net_cents, 0),
     } as unknown as Json);
+
+    /*
+     * Sequential, not `Promise.all`: a run over thirty merchants would otherwise post thirty sends at
+     * once and hit the provider's rate limit as a batch. Nothing here is time-critical enough for that.
+     */
+    for (const entry of payouts) {
+      const id = (entry as { payout_id?: string }).payout_id;
+      if (id) await sendPayoutReady(id);
+    }
 
     revalidatePath('/admin/payouts');
     revalidatePath('/merchant/payouts');

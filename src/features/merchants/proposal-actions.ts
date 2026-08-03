@@ -7,6 +7,7 @@ import { logger, describeError } from '@/lib/logger';
 import { fail, ok, type ActionResult } from '@/lib/result';
 import { audit, requireCapability } from '@/features/admin/audit';
 import { getMyMerchant } from '@/features/merchants/queries';
+import { sendProposalDecided } from '@/features/merchants/email';
 import type { Json } from '@/lib/supabase/database.types';
 
 /**
@@ -185,7 +186,7 @@ export async function decideProposal(
       .eq('id', input.proposalId)
       // Only an open proposal can be decided; a stale tab must not re-decide a closed one.
       .in('status', ['pending', 'needs_info'])
-      .select('id, merchant_id')
+      .select('id, merchant_id, payload')
       .maybeSingle();
 
     if (error) {
@@ -198,6 +199,21 @@ export async function decideProposal(
       note: input.note ?? null,
       merchant_id: (data as { merchant_id: string }).merchant_id,
     } as unknown as Json);
+
+    /*
+     * The product name comes back off the row rather than from the form: the reviewer never typed it,
+     * and the email's subject line has to name the thing the merchant proposed.
+     */
+    const decided = data as { merchant_id: string; payload: Record<string, unknown> | null };
+    const proposedName =
+      typeof decided.payload?.product_name === 'string' ? decided.payload.product_name : '';
+
+    await sendProposalDecided(
+      decided.merchant_id,
+      proposedName,
+      status,
+      input.note ?? null,
+    );
 
     revalidatePath('/admin/merchants/proposals');
     revalidatePath('/merchant/proposals');

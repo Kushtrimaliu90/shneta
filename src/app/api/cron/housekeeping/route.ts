@@ -3,6 +3,11 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { requireEnv } from '@/lib/env.server';
 import { logger } from '@/lib/logger';
 import { findReviewRequestTargets, sendReviewRequest } from '@/features/reviews/email';
+import { findLateFulfilments, sendFulfilmentAssigned } from '@/features/merchants/email';
+import {
+  findPartiallyShippedOrders,
+  sendPartialShipmentNotice,
+} from '@/features/merchants/partial-shipment-email';
 
 /**
  * docs/10 §5 — nightly housekeeping, 03:30 UTC.
@@ -12,6 +17,9 @@ import { findReviewRequestTargets, sendReviewRequest } from '@/features/reviews/
  *   · purge rate_limits buckets older than 2 days
  *   · ask for a review seven days after delivery (docs/12 M7)
  *   · recompute merchant ratings, the buy-box tie-break (docs/16 §6)
+ *   · chase merchants sitting on an unanswered order (docs/16 §7)
+ *   · tell customers whose order is arriving in more than one parcel (docs/16 §7)
+ *   · auto-route unassigned merchant fulfilments, if that setting is on (docs/16 §6)
  *
  * Service-role by design — cron jobs are one of the six sanctioned uses (docs/02 §6).
  * Idempotent: every step is bounded by a timestamp predicate, so re-running it the same
@@ -48,6 +56,9 @@ export async function GET(request: NextRequest) {
     rateLimitsPurged: 0,
     reviewRequestsSent: 0,
     ratingsChanged: 0,
+    fulfilmentReminders: 0,
+    partialShipmentNotices: 0,
+    autoRouted: 0,
   };
   const failures: string[] = [];
 
@@ -141,6 +152,57 @@ export async function GET(request: NextRequest) {
     else {
       const result = (data ?? {}) as { changed?: unknown[] };
       summary.ratingsChanged = result.changed?.length ?? 0;
+    }
+  }
+
+  /*
+   * 6 · Chase merchants sitting on an unanswered order (docs/16 §7).
+   *
+   * The acceptance window is `settings.marketplace.auto_accept_hours`, the same number auto-routing uses,
+   * so the reminder and any eventual escalation agree about what "late" means. One per merchant per day,
+   * checked against `email_log` — a merchant reminded hourly stops reading the reminders.
+   */
+  {
+    const late = await findLateFulfilments(new Date());
+    for (const fulfilmentId of late) {
+      await sendFulfilmentAssigned(fulfilmentId, { reminder: true });
+      summary.fulfilmentReminders += 1;
+    }
+  }
+
+  /*
+   * 7 · Tell customers whose order is arriving in more than one parcel (docs/16 §7).
+   *
+   * A sweep rather than a call from the shipping action, because the `partially_shipped` transition is made
+   * by a database trigger fired by whichever party shipped — a merchant in the portal, the warehouse, or a
+   * courier webhook. There is no one code path to hang the send on, and the send is idempotent so an
+   * overlapping run is harmless.
+   */
+  {
+    const partial = await findPartiallyShippedOrders();
+    for (const orderId of partial) {
+      await sendPartialShipmentNotice(orderId);
+      summary.partialShipmentNotices += 1;
+    }
+  }
+
+  /*
+   * 8 · Auto-route, if it is switched on (docs/16 §6).
+   *
+   * `settings.marketplace.auto_route` is `false` and stays false until somebody has watched the routing
+   * screen work by hand for a while: the scorecard the automation picks candidates by needs weeks of real
+   * fulfilments before its numbers mean anything, and manual routing is where an operator learns which
+   * merchants actually answer.
+   *
+   * The function reports `enabled: false` rather than doing nothing quietly, because a cron that
+   * "succeeded" while routing nothing is indistinguishable from a broken one.
+   */
+  {
+    const { data, error } = await supabase.rpc('auto_route_fulfilments');
+    if (error) failures.push(`auto_route: ${error.message}`);
+    else {
+      const result = (data ?? {}) as { enabled?: boolean; routed?: unknown[] };
+      summary.autoRouted = result.enabled ? (result.routed?.length ?? 0) : 0;
     }
   }
 

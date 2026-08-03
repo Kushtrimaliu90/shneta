@@ -35,7 +35,27 @@ function loadEnvLocal(): Record<string, string> {
 }
 
 export default defineConfig({
-  resolve: { tsconfigPaths: true },
+  resolve: {
+    tsconfigPaths: true,
+    /*
+     * `import 'server-only'` neutralised, for this suite only.
+     *
+     * The package ships two entry points: a no-op for the server and a module that throws for the
+     * browser. Vitest's node environment resolves the **browser** one — its `exports` map keys on
+     * conditions Next sets and Vitest does not — so importing any `server-only` module from a test dies
+     * with "This module cannot be imported from a Client Component module."
+     *
+     * The guarantee `server-only` exists for is about the **client bundle**: it stops a module holding a
+     * service-role key from being shipped to a browser, and `next build` is what enforces that. A node
+     * test runner is not a browser, so stubbing it here removes nothing real — and the alternative is
+     * being unable to test the email senders at all, which is how an email nobody can exercise ships
+     * addressed to the wrong person.
+     *
+     * The unit config deliberately does **not** have this alias: nothing there touches the database, and
+     * a unit test reaching for a server-only module is a sign the module boundary is wrong.
+     */
+    alias: { 'server-only': new URL('./tests/integration/server-only-stub.ts', import.meta.url).pathname },
+  },
   test: {
     environment: 'node',
     globals: true,

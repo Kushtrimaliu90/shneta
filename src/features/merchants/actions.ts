@@ -16,6 +16,12 @@ import {
   slugFromName,
 } from '@/features/merchants/schemas';
 import { MARKETPLACE_TERMS_VERSION } from '@/features/merchants/terms';
+import {
+  sendApplicationReceived,
+  sendMerchantApproved,
+  sendMerchantInfoRequested,
+  sendMerchantRejected,
+} from '@/features/merchants/email';
 import type { Json } from '@/lib/supabase/database.types';
 
 /**
@@ -183,6 +189,13 @@ export async function submitMerchantApplication(
       after: { business_no: input.businessNo, display_name: input.displayName } as unknown as Json,
     });
 
+    /*
+     * Awaited rather than fired off, because a server action's process may be torn down the moment it
+     * returns — an unawaited promise is one nobody can prove ran. `sendApplicationReceived` swallows its
+     * own failures, so awaiting it cannot fail the application (docs/16 §7).
+     */
+    await sendApplicationReceived(merchant.id);
+
     revalidatePath('/admin/merchants/applications');
     return ok({ merchantId: merchant.id, slug: merchant.slug });
   } catch (error) {
@@ -306,6 +319,11 @@ export async function approveMerchant(
       collects_cash: Boolean(input.collectsCash),
     });
 
+    await sendMerchantApproved(input.merchantId, {
+      commissionPct: input.commissionPct,
+      shippingBorneBy: input.shippingBorneBy,
+    });
+
     revalidatePath('/admin/merchants/applications');
     revalidatePath('/admin/merchants');
     return ok({ merchantId: input.merchantId, slug: (data as { slug: string }).slug });
@@ -341,6 +359,8 @@ export async function rejectMerchant(
     await audit('merchant.rejected', 'merchant', parsed.data.merchantId, null, {
       reason: parsed.data.reason,
     });
+
+    await sendMerchantRejected(parsed.data.merchantId, parsed.data.reason);
 
     revalidatePath('/admin/merchants/applications');
     return ok({ merchantId: parsed.data.merchantId });
@@ -384,6 +404,8 @@ export async function requestMerchantInfo(
     await audit('merchant.info_requested', 'merchant', parsed.data.merchantId, null, {
       note: parsed.data.note,
     });
+
+    await sendMerchantInfoRequested(parsed.data.merchantId, parsed.data.note);
 
     revalidatePath('/admin/merchants/applications');
     return ok({ merchantId: parsed.data.merchantId });
