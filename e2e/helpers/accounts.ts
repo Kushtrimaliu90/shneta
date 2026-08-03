@@ -46,6 +46,13 @@ export type StaffRole =
   | 'content_manager'
   | 'compliance_manager'
   | 'admin'
+  /*
+   * Not staff, and deliberately in the same union: this helper's job is "a confirmed user with a
+   * role", and `customer` was already here for the same reason. `merchant` is what the marketplace
+   * portal journeys need (docs/16 §5), and `STAFF_ROLES` in `roles.ts` is what actually decides who
+   * is staff.
+   */
+  | 'merchant'
   | 'customer';
 
 /** Every user this process created, so `afterAll` can remove them. */
@@ -115,6 +122,17 @@ export async function signIn(page: Page, email: string, password: string): Promi
  *   · 233.252.1                — account.spec.ts
  *   · 233.252.2                — reviews.spec.ts
  *   · 233.252.3                — discovery.spec.ts
+ *   · 233.252.4                — content.spec.ts
+ *   · 233.252.5                — subscriptions.spec.ts
+ *   · 233.252.6                — operations.spec.ts
+ *   · 233.252.7                — security.spec.ts
+ *   · 233.252.8                — biohack.spec.ts
+ *   · 233.252.9                — marketplace.spec.ts
+ *
+ * biohack.spec.ts and content.spec.ts both had 233.252.4 until the marketplace journeys were
+ * added, which is the collision this list exists to prevent — two files sharing a block means the
+ * sixth sign-in across *either* of them fails on the rate limiter, for a reason that has nothing to
+ * do with what is being tested. Recorded here because the list is only useful if it is kept.
  *
  * 233.252.x is MCAST-TEST-NET: reserved, never routable, and therefore as safe as TEST-NET for a
  * value that only ever appears in an `x-forwarded-for` header.

@@ -2051,6 +2051,129 @@ Three things worth keeping:
 
 ---
 
+## W. What building the merchant portal taught us
+
+### W1 · A tool that only ever saw the first CTE in a chain
+
+`pnpm check:sql` refused migration 32 with three problems, all of the same shape:
+
+    SQL function public.variant_buy_box() reads "biocode", which is created nowhere in the migrations
+
+`biocode`, `live_offers` and `winner` are CTEs in that function's `with` clause. The checker already
+had CTE detection, and it matched exactly one of the four — `wanted`, the first.
+
+The pattern was `\b(?:with|,)\s+([a-z_]\w*)\s+as\s*\(`. A chained CTE is written
+
+    … ), biocode as (
+
+where the character before the comma is `)`. Both `)` and `,` are non-word characters, so there is **no
+word boundary between them**, and `\b` made the comma branch unmatchable in the one position it exists
+to handle. Any function with two or more CTEs would have been reported as reading tables that do not
+exist.
+
+Two things worth taking from it. The check was **right to exist and right to fire loudly** — a
+`language sql` body really is validated at CREATE time, and the migration really would fail on apply if
+those were tables. And the fix was verified in both directions: the four CTEs are now recognised, and a
+throwaway migration reading a genuinely absent table is still caught. A relaxed matcher that stopped
+catching anything would have looked identical from the terminal.
+
+### W2 · `pnpm db:types` deleted the types it was meant to write
+
+The script was
+
+    supabase gen types typescript --local > src/lib/supabase/database.types.ts
+
+and there is no local stack running on this machine. A shell truncates the redirect target **before**
+the command runs, so one invocation removed 4,376 lines and reported a failure that looked like it had
+changed nothing. `pnpm typecheck` then produced several hundred errors in files nobody had touched.
+
+It is now `tsx scripts/gen-types.ts`, which generates into memory and writes only on success — so a
+failed run leaves the file alone, which is what a failed command should do. It also refuses a
+*successful* run whose output has no `public:` schema in it, because the CLI prints a valid-but-empty
+`Database` type when it cannot introspect, and writing that is worse than writing nothing: it
+typechecks.
+
+One Windows detail, recorded because it will come up again: the Supabase CLI is a `.CMD` shim, and
+since Node 20 closed CVE-2024-27980 spawning one without a shell fails with `EINVAL`. Passing an
+argument array *with* `shell: true` then earns `DEP0190`. A single literal command string through
+`execSync` is the honest form of what actually happens.
+
+### W3 · The router that forgets which language you are working in
+
+The E2E journey created an offer at `/en/merchant/offers/new` and then asserted the list showed "In
+review". It found "Në shqyrtim".
+
+`useRouter` from `next/navigation` pushes the path verbatim, so `router.push('/merchant/offers')` sent
+an English-speaking merchant to the unprefixed — Albanian — route the moment their offer saved. The fix
+is next-intl's `useRouter` from `@/i18n/routing`, which carries the active locale.
+
+This is the same defect the account layout's `localizedRedirect` note describes, one layer up, and it
+has a property that makes it worth its own entry: **it is invisible to anyone developing in the default
+locale.** Every manual check of this form passed. Only a test that deliberately worked in `en` could
+see it, which is an argument for E2E journeys that do not all run in the default language.
+
+`document-upload.tsx` deliberately keeps the plain router: it only calls `refresh()`, which takes no
+path and therefore has no locale to get wrong.
+
+### W4 · Two E2E files sharing one rate-limit block
+
+`e2e/helpers/accounts.ts` carries an allocation table for the `x-forwarded-for` blocks each spec file
+uses, and a comment explaining that two specs sharing a block is "the same bug one step removed".
+`biohack.spec.ts` and `content.spec.ts` were both on `233.252.4`.
+
+Nothing was failing, because neither file signs in often enough to reach five attempts per fifteen
+minutes on its own. It would have started failing when one of them grew, and the failure would have
+been a sign-in refusal in a test about something else entirely.
+
+The list is now complete rather than partial — every block through `233.252.9` is named, including the
+two that collided. A convention that is only written down for the first few cases is a convention that
+stops being followed.
+
+### W5 · A bundle budget earning its keep
+
+The documents screen uploads to Storage from the browser, which needs `@supabase/ssr` and
+`supabase-js`: about 80 kB. A static import put them in that page's first load and `pnpm check:bundle`
+failed at **215 kB against a 170 kB budget**.
+
+Importing the client inside the click handler moved it to a lazily fetched chunk and the page is 133 kB.
+Nobody needs those bytes until they have chosen a file, so nobody downloads them until then.
+
+Worth recording because the budget check is the only thing in the pipeline that would have noticed. The
+page rendered correctly, every test passed, and the cost was invisible in every other signal.
+
+### W6 · The pricing decision, and why the buy box does not set a price
+
+Recorded here rather than only in docs/16 §5, because it is the kind of decision that gets quietly
+reversed by somebody who did not know it was one.
+
+**The canonical variant price is the only customer-facing price.** A merchant offer is supply, and its
+`price_cents` is what the merchant asks BioCode. The alternative — the winning offer prices the line —
+fails on a fact about the ordering of events: routing happens *after* the order exists, so the merchant
+who priced the line need not be the merchant who ships it, and the customer would have paid a price
+belonging to a supplier who never touched the parcel. It would also have put a different price on the
+PLP and the PDP the moment BioCode ran out of something.
+
+The consequence to accept knowingly: a merchant asking more than settlement pays is a real possibility,
+and BioCode absorbs the difference on any order routed there. That is why the asking price is on the
+review screen in cents, next to what settlement pays, with the gap named.
+
+### W7 · A buy box that cannot be bought from is not a lie unless you render it
+
+Step 3 in the §12 build order is "portal shell + offers CRUD + admin offer approval + **buy box on
+PDP**", and step 4 is routing. But `checkout_create_order` requires BioCode `inventory_levels` stock,
+so merchant supply is not purchasable until step 4 extends it — and extending checkout without routing
+would create orders nobody could accept, ship, or settle.
+
+So the selection is complete, tested and live, and the PDP renders the seller line **only on a variant
+that can actually be bought**. Nothing on the page states something the system cannot honour, and the
+E2E suite asserts the merchant-only case renders as out of stock — so when step 4 changes that, the test
+changes with it deliberately rather than by accident.
+
+The general form: when a slice would require a UI to promise something the next slice implements, render
+less rather than promising it.
+
+---
+
 ## E. Stack decisions taken at M0
 
 | Item          | Spec                  | Built as            | Why                                                                                               |

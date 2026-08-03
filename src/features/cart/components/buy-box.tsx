@@ -8,6 +8,7 @@ import type { Locale } from '@/lib/constants';
 import { Alert } from '@/components/ui/alert';
 import { notifyCartChanged } from '@/features/cart/cart-events';
 import { PriceTag } from '@/components/storefront/price-tag';
+import { SellerLine } from '@/components/storefront/seller-line';
 import { SubmitButton } from '@/components/ui/submit-button';
 import { addToCart, type CartResult } from '@/features/cart/actions';
 import { SubscribeToggle } from '@/features/subscriptions/components/subscribe-toggle';
@@ -155,6 +156,9 @@ export function BuyBox({
           <span className="font-medium text-success">{t('product.inStockLine')}</span>
         )}
       </p>
+
+      {/* docs/16 §1 — who the customer is buying from, on the panel where they decide to. */}
+      {!soldOut && <SellerLine supply={selected.supply} />}
 
       <div className="flex flex-col gap-3">
         <SubmitButton size="lg" block disabled={soldOut} loadingLabel={t('cart.adding')}>

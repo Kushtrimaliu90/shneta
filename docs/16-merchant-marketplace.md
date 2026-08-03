@@ -241,18 +241,143 @@ Two things to know about it:
   Do not "fix" it by making the prohibition vague.
 
 ---
-## 5–7, 9–11 · Portal, routing, admin surfaces
+## 5 · Portal, offers and the buy box — done
 
-Not yet built. §12 order below; step 3 is next.
+### The pricing decision everything else follows from
+
+**The canonical variant price is the only customer-facing price.** A merchant offer is _supply_, not a
+listing: `merchant_offers.price_cents` is what the merchant asks BioCode for the unit, and it never
+reaches the storefront. One product, one page, one price, whoever happens to hold the stock.
+
+The alternative — the winning offer prices the line — was considered and rejected, because routing
+happens **after** the order exists (§6). The merchant who priced it need not be the merchant who ships
+it, so the customer would have paid a price belonging to a supplier who never touched the parcel. It
+would also have made the PLP and the PDP disagree the moment BioCode ran out of something.
+
+What the asking price is _for_, then, is real and specific: it sorts the buy box, and it is the number
+a reviewer weighs against what settlement would pay.
+
+### `variant_buy_box(uuid[])`
+
+Security-definer, anon-executable, one row per variant asked for. BioCode stock wins; otherwise the
+cheapest approved in-stock offer from an approved merchant, tie-broken by merchant rating and then by
+the oldest offer — every term deterministic, so two calls a second apart cannot name different sellers
+on an unchanged page.
+
+It returns **bucketed stock and no prices at all**. It reads `inventory_levels` (staff-only) and
+`merchant_offers` (merchant-scoped), so it is a window rather than a door, and the reasoning that
+bucketed `v_product_stock` in docs/13 §B7 applies twice over here: a per-merchant unit count would let
+a competitor sit on the endpoint and infer both parties' sales velocity.
+
+### `v_merchant_offer_detail`
+
+One view, `security_invoker = on`, serving both audiences: a merchant sees its own offers and staff see
+every merchant's, because RLS runs as the caller. Two near-identical queries would drift, and the
+column that drifted would be `merchant_due_cents` — the one a merchant would notice on a statement.
+
+`merchant_due_cents` is computed from the **retail** price, not the asking price, because that is what
+settlement actually pays. Showing a merchant that number beside its own asking price is the
+transparency the terms promise; for a reviewer it is the signal that decides the offer.
+
+### What is on the storefront, and what is not
+
+The PDP names the seller: "Sold and shipped by BioCode", or the merchant when a merchant supplies it.
+On a hybrid marketplace that is a disclosure, not decoration — the sale is always BioCode↔customer and
+the merchant is a supplier (terms, clause 1), and a shopper who cannot tell who is behind a listing
+cannot tell who to hold to a promise about it.
+
+**Merchant supply is not purchasable yet, and that is deliberate.** `checkout_create_order` requires
+BioCode `inventory_levels` stock and decrements it, so a merchant-only variant still renders as out of
+stock. Making it buyable belongs with step 4, where the order can actually be routed, accepted and
+shipped — an order nobody can fulfil is worse for the customer than a product marked out of stock. The
+seller line therefore renders only on a variant that can be bought, so nothing on the page is a claim
+the system cannot honour. The E2E suite asserts the out-of-stock case explicitly, so the day this
+changes, the test changes with it on purpose rather than by accident.
+
+### The portal
+
+`/merchant` is a sibling of `/account`, not part of the storefront group: it takes the navbar and
+footer, and none of the wishlist, compare, consent and bottom-stack machinery a shopper needs.
+`/merchant/apply` stays in the storefront group with the full chrome, which is why a route group and a
+plain segment share the name `merchant` — the resolved paths never collide.
+
+It is **bilingual**, unlike `/admin`. Admin is English-only because BioCode staffs it; a merchant is a
+Kosovo business that did not choose BioCode's internal language.
+
+Screens: a dashboard (what needs doing, the numbers, your terms), offers with status filters, an offer
+form, documents, and settings. Three decisions worth keeping:
+
+- **Buy-box wins are on the dashboard**, computed from `variant_buy_box`. "Approved" is not the same as
+  "selling" — an approved, in-stock offer still loses to BioCode's stock and to a cheaper rival — so a
+  portal that showed only the status would let a merchant believe it was live for weeks.
+- **Two fields are editable inline**: stock, which is the daily edit, and pause/resume, which is what a
+  merchant reaches for when they sell the last one at the counter. A table where six fields are
+  editable is a table where somebody changes a price by mistake.
+- **The IBAN is never prefilled**, even for the merchant. The portal holds only the last four digits, so
+  an empty field that means "unchanged" is the only version that cannot be saved back over a real payout
+  destination by somebody fixing a phone number.
+
+The offer actions are thin on purpose: they validate, name the merchant, and let the database enforce
+the rest through the SSR client on the merchant's own session. **No service client appears anywhere in
+the portal**, and none should — a service-role write would step over exactly the guard that makes "a
+merchant cannot approve its own offer" true.
+
+### Documents
+
+The upload finally lands here, and it is two steps: the **browser** puts the file in Storage, then a
+server action records the row. A server action's body is capped at 1 MB by default and a scanned
+registration certificate is routinely 3–5 MB, so posting the bytes through an action would reject
+precisely the documents the screen exists to collect. The path is therefore **verified, not trusted** —
+the action refuses anything outside `merchants/<own-id>/`.
+
+The Supabase browser client is imported inside the click handler. A static import put 80 kB in that
+page's first load and `pnpm check:bundle` failed at 215 kB against a 170 kB budget; it is 133 kB now.
+
+### Admin
+
+`/admin/merchants/offers`, behind `offers.review` rather than `merchants.manage`. Approving a _merchant_
+sets a commission and a shipping arrangement, which is commercial and admin-only; approving an _offer_
+is a judgement about whether a third party may sell against a BioCode product page, which belongs to
+whoever owns the catalogue.
+
+The screen shows retail, what settlement pays, what the merchant asks, and the gap. When asking exceeds
+due, every unit routed there costs BioCode the difference — flagged in cents, not left for a reviewer
+to work out.
+
+### Tests
+
+- **19 integration** on the buy box: BioCode beats a cheaper offer; cheapest wins; ties break by rating
+  then by age, twice in a row; draft, pending, paused, zero-stock and suspended-merchant offers all stay
+  out; and the payload carries no unit count and no price, asserted both by searching the serialised row
+  for distinctive quantities and by checking the key names.
+- **24 integration** on the offer lifecycle, every write through the merchant's own session: it can
+  create, edit, submit, pause, resume and delete a draft, and cannot approve, reject, drop an approved
+  offer to draft, delete an approved one, or touch a rival's. Both shapes of refusal are asserted
+  separately — the trigger _errors_, a policy matches _zero rows and no error_.
+- **22 unit** on the schemas: euro to cents, a comma decimal separator, rounding rather than truncation,
+  and the finite check that `Number('')` would otherwise slip through.
+- **26 E2E** on both viewports, driving the offer through the screens: create it, approve it as a
+  product manager in a second session, then confirm the merchant's own portal says it is in the buy box.
+  Plus the boundary — a merchant gets 404 at `/admin` — and the seller line in both locales.
+
+Not covered by a test, and worth stating: no component-render unit tests exist in this project, so
+`SellerLine` is asserted only through E2E.
 
 ---
+
+## 6–7, 9–11 · Routing, money, admin surfaces
+
+Not yet built. §12 order below; step 4 is next.
+
+---
+
 
 
 ## 12 · Build order
 
 1. ~~Migration + `current_merchant_ids()` + full RLS isolation suite~~ — **done, 42 green**
 2. ~~Merchant onboarding + admin application review + role/membership middleware~~ — **done, 15 green**
-3. Portal shell + offers CRUD + admin offer approval + buy box on PDP
+3. ~~Portal shell + offers CRUD + admin offer approval + buy box on PDP~~ — **done, 65 green**
 4. `route_order` + fulfilment model + `/admin/routing` + accept/decline/ship + partial shipments
 5. Ledger + payouts + statements
 6. Proposals; CSV bulk stock/price; scorecard

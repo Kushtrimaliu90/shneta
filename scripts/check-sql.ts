@@ -221,8 +221,19 @@ function sqlFunctionBodies(sql: string): { name: string; body: string }[] {
 
 /** Table names a function body reads from, minus CTEs and non-application schemas. */
 function referencedTables(body: string): string[] {
+  /*
+   * CTE names, so a `with` clause is not mistaken for a table that does not exist.
+   *
+   * The pattern used to be `\b(?:with|,)\s+…`, and the `\b` was wrong for the comma branch: a
+   * chained CTE is written `… ), biocode as (`, where the character before the comma is `)`. Both
+   * `)` and `,` are non-word characters, so there is no boundary between them and the alternative
+   * never matched — only the **first** CTE in a chain was recognised, and every later one was
+   * reported as a missing table. `variant_buy_box` (migration 32) has four, and three were flagged.
+   *
+   * `\s*` rather than `\s+` after the comma for the same reason: `,biocode as (` is legal SQL.
+   */
   const ctes = new Set(
-    [...body.matchAll(/\b(?:with|,)\s+([a-z_]\w*)\s+as\s*\(/gi)].map((m) =>
+    [...body.matchAll(/(?:\bwith\b(?:\s+recursive\b)?|,)\s*([a-z_]\w*)\s+as\s*\(/gi)].map((m) =>
       (m[1] ?? '').toLowerCase(),
     ),
   );

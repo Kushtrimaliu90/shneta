@@ -276,6 +276,12 @@ const NAV: NavSection[] = [
         icon: 'customers',
         capability: 'merchants.view',
       },
+      {
+        href: '/admin/merchants/offers',
+        label: 'Merchant offers',
+        icon: 'products',
+        capability: 'offers.review',
+      },
     ],
   },
   {
@@ -320,6 +326,7 @@ const IMPLEMENTED = new Set([
   '/admin/settings',
   '/admin/content',
   '/admin/merchants/applications',
+  '/admin/merchants/offers',
 ]);
 
 /** The sections and items this role may see, with empty sections dropped. */

@@ -418,6 +418,36 @@ export async function purgeFixtures(
   }
 
   /*
+   * --- merchants (docs/16) ---------------------------------------------------
+   *
+   * Matched on the fixture contact email, which is the one field every merchant fixture sets to
+   * `…@biocode.test`. Slugs are not usable here: a merchant slug is generated from its display
+   * name, so a fixture called "Alpha Supplements" produces `alpha-supplements`, which is
+   * indistinguishable from a real merchant's.
+   *
+   * `merchant_users`, `merchant_offers` and `merchant_documents` all cascade from `merchants`, so
+   * one delete takes the tree. It has to run **before** the auth-user sweep below: `merchant_users`
+   * cascades from `profiles` too, but `merchants.approved_by` references `profiles` without a
+   * cascade, and a fixture merchant approved by a fixture admin would block that user's deletion.
+   */
+  const { data: fixtureMerchants } = await db
+    .from('merchants')
+    .select('id')
+    .like('contact_email', '%@biocode.test');
+
+  const merchantIds = (fixtureMerchants ?? []).map((row) => row.id);
+  if (merchantIds.length > 0) {
+    record(
+      'merchant_offers',
+      (await db.from('merchant_offers').delete().in('merchant_id', merchantIds).select('id')).data,
+    );
+    record(
+      'merchants',
+      (await db.from('merchants').delete().in('id', merchantIds).select('id')).data,
+    );
+  }
+
+  /*
    * --- auth users (profiles, carts, addresses, reviews and wishlists cascade) -------------
    *
    * The M7 journeys review and save **seeded** products, not fixture ones, so the

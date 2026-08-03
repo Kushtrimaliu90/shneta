@@ -13,7 +13,7 @@ import { deleteCreatedUsers, ipAllocator, signIn, staffUser } from './helpers/ac
  * Its own reserved IP block, per docs/13 §N10: generation is rate limited at 10/h per IP and a
  * block shared with another spec would exhaust the budget mid-run.
  */
-const ips = ipAllocator('233.252.4');
+const ips = ipAllocator('233.252.8');
 
 test.afterAll(deleteCreatedUsers);
 test.beforeAll(() => ips.reset());

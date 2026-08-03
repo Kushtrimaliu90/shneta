@@ -13,7 +13,9 @@ import {
   type ProductListItem,
   type ProductListResult,
   type StockStatus,
+  type VariantSupply,
 } from '@/features/catalog/types';
+import { variantSupply } from '@/features/catalog/supply';
 
 /**
  * Catalog reads (docs/02 §7 — reads live in `queries.ts`).
@@ -243,16 +245,26 @@ async function fetchProduct(slug: string): Promise<ProductDetail | null> {
   // staff-only (docs/13 §B7).
   const variantIds = record.product_variants.filter((v) => v.is_active).map((v) => v.id);
   const stockByVariant = new Map<string, StockStatus>();
+  let supplyByVariant = new Map<string, VariantSupply>();
 
   if (variantIds.length > 0) {
-    const { data: stock } = await supabase
-      .from('v_product_stock')
-      .select('variant_id, stock_status')
-      .in('variant_id', variantIds);
+    /*
+     * Two reads, in parallel, because they answer different questions and neither depends on the
+     * other: the view says whether BioCode can ship it, and `variant_buy_box` says who is selling
+     * it (docs/16 §1). Awaiting them in sequence would add a round trip to every PDP for nothing.
+     */
+    const [stockResult, supply] = await Promise.all([
+      supabase.from('v_product_stock').select('variant_id, stock_status').in('variant_id', variantIds),
+      variantSupply(variantIds),
+    ]);
 
-    for (const entry of (stock ?? []) as { variant_id: string; stock_status: string }[]) {
+    for (const entry of (stockResult.data ?? []) as {
+      variant_id: string;
+      stock_status: string;
+    }[]) {
       stockByVariant.set(entry.variant_id, entry.stock_status as StockStatus);
     }
+    supplyByVariant = supply;
   }
 
   const primary = record.product_categories.find((link) => link.is_primary)?.categories ?? null;
@@ -285,6 +297,7 @@ async function fetchProduct(slug: string): Promise<ProductDetail | null> {
         compareAtPriceCents: variant.compare_at_price_cents,
         isDefault: variant.is_default,
         stockStatus: stockByVariant.get(variant.id) ?? 'out_of_stock',
+        supply: supplyByVariant.get(variant.id) ?? null,
       })),
     /*
      * `flatMap` with an early `[]` rather than `filter(...).map(x => x.rel!.slug)`:

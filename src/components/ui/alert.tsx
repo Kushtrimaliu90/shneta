@@ -1,11 +1,18 @@
 import { AlertTriangle, CheckCircle2, Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-type Tone = 'error' | 'success' | 'info';
+type Tone = 'error' | 'success' | 'warning' | 'info';
 
 const TONE = {
   error: { icon: AlertTriangle, className: 'border-error/30 bg-error/5 text-ink-900' },
   success: { icon: CheckCircle2, className: 'border-success/30 bg-success/5 text-ink-900' },
+  /*
+   * `warning` is not `error`: it marks something the user may well have meant, where `error` marks
+   * something that failed. The merchant offer form is what asked for it — asking more than settlement
+   * pays is a legitimate thing to submit and a bad thing to submit silently — and reaching for `error`
+   * would have told a merchant their form was broken when it was not.
+   */
+  warning: { icon: AlertTriangle, className: 'border-warning/40 bg-warning/5 text-ink-900' },
   info: { icon: Info, className: 'border-forest-500/30 bg-forest-50 text-ink-900' },
 } as const;
 

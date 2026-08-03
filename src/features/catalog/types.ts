@@ -8,6 +8,31 @@ import type { LocalizedField } from '@/lib/i18n';
 
 export type StockStatus = 'in_stock' | 'low' | 'out_of_stock';
 
+/**
+ * docs/16 §1 — who supplies a variant, as `variant_buy_box` decided it.
+ *
+ * Lives here rather than beside its query so the display types stay one import away from each other
+ * and `supply.ts` does not have to import back out of `types.ts` into itself.
+ *
+ * There is no price on it, and that is the marketplace's central pricing rule made structural: the
+ * canonical variant price is the only customer-facing price, whoever holds the stock. A merchant
+ * offer's `price_cents` is what the merchant asks BioCode, and it never leaves the server.
+ */
+export interface VariantSupply {
+  variantId: string;
+  /** `none` means nobody has it. */
+  source: 'biocode' | 'merchant' | 'none';
+  stockStatus: StockStatus;
+  merchantId: string | null;
+  merchantSlug: string | null;
+  merchantName: string | null;
+  offerId: string | null;
+  /** Days the merchant takes to hand the parcel over; null when BioCode ships it. */
+  handlingDays: number | null;
+  /** How many suppliers could serve this variant, BioCode included. */
+  supplierCount: number;
+}
+
 /** A row from `search_products`, ready for a ProductCard. */
 export interface ProductListItem {
   id: string;
@@ -38,6 +63,18 @@ export interface ProductVariantDetail {
   compareAtPriceCents: number | null;
   isDefault: boolean;
   stockStatus: StockStatus;
+  /**
+   * docs/16 §1 — who is selling this one.
+   *
+   * Deliberately separate from `stockStatus`, which stays BioCode's own bucket. The marketplace is
+   * a **supply** question and the stock line is an availability one; collapsing them would mean the
+   * PDP claiming a variant is buyable at the moment `variant_buy_box` finds a merchant with stock,
+   * which checkout cannot honour until routing exists (docs/16 §12 step 4).
+   *
+   * `null` when the lookup failed — the page renders as it did before the marketplace, which is the
+   * only safe direction for a read that decides what a shopper is told.
+   */
+  supply: VariantSupply | null;
 }
 
 export interface IngredientRow {

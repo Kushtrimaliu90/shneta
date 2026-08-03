@@ -207,6 +207,13 @@ export type Database = {
             referencedRelation: "v_low_stock"
             referencedColumns: ["product_id"]
           },
+          {
+            foreignKeyName: "article_products_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "v_merchant_offer_detail"
+            referencedColumns: ["product_id"]
+          },
         ]
       }
       articles: {
@@ -1094,6 +1101,13 @@ export type Database = {
             referencedRelation: "v_low_stock"
             referencedColumns: ["product_id"]
           },
+          {
+            foreignKeyName: "lab_reports_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "v_merchant_offer_detail"
+            referencedColumns: ["product_id"]
+          },
         ]
       }
       loyalty_transactions: {
@@ -1820,6 +1834,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "order_items_merchant_offer_id_fkey"
+            columns: ["merchant_offer_id"]
+            isOneToOne: false
+            referencedRelation: "v_merchant_offer_detail"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "order_items_order_id_fkey"
             columns: ["order_id"]
             isOneToOne: false
@@ -1845,6 +1866,13 @@ export type Database = {
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "v_low_stock"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "order_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "v_merchant_offer_detail"
             referencedColumns: ["product_id"]
           },
           {
@@ -2123,6 +2151,13 @@ export type Database = {
             referencedRelation: "v_low_stock"
             referencedColumns: ["product_id"]
           },
+          {
+            foreignKeyName: "product_categories_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "v_merchant_offer_detail"
+            referencedColumns: ["product_id"]
+          },
         ]
       }
       product_certifications: {
@@ -2167,6 +2202,13 @@ export type Database = {
             referencedRelation: "v_low_stock"
             referencedColumns: ["product_id"]
           },
+          {
+            foreignKeyName: "product_certifications_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "v_merchant_offer_detail"
+            referencedColumns: ["product_id"]
+          },
         ]
       }
       product_health_goals: {
@@ -2209,6 +2251,13 @@ export type Database = {
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "v_low_stock"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "product_health_goals_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "v_merchant_offer_detail"
             referencedColumns: ["product_id"]
           },
         ]
@@ -2258,6 +2307,13 @@ export type Database = {
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "v_low_stock"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "product_images_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "v_merchant_offer_detail"
             referencedColumns: ["product_id"]
           },
         ]
@@ -2317,6 +2373,13 @@ export type Database = {
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "v_low_stock"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "product_ingredients_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "v_merchant_offer_detail"
             referencedColumns: ["product_id"]
           },
         ]
@@ -2381,6 +2444,13 @@ export type Database = {
             referencedColumns: ["product_id"]
           },
           {
+            foreignKeyName: "product_proposals_created_product_id_fkey"
+            columns: ["created_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_merchant_offer_detail"
+            referencedColumns: ["product_id"]
+          },
+          {
             foreignKeyName: "product_proposals_merchant_id_fkey"
             columns: ["merchant_id"]
             isOneToOne: false
@@ -2442,6 +2512,13 @@ export type Database = {
             referencedColumns: ["product_id"]
           },
           {
+            foreignKeyName: "product_relations_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "v_merchant_offer_detail"
+            referencedColumns: ["product_id"]
+          },
+          {
             foreignKeyName: "product_relations_related_product_id_fkey"
             columns: ["related_product_id"]
             isOneToOne: false
@@ -2460,6 +2537,13 @@ export type Database = {
             columns: ["related_product_id"]
             isOneToOne: false
             referencedRelation: "v_low_stock"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "product_relations_related_product_id_fkey"
+            columns: ["related_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_merchant_offer_detail"
             referencedColumns: ["product_id"]
           },
         ]
@@ -2585,6 +2669,13 @@ export type Database = {
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "v_low_stock"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "product_variants_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "v_merchant_offer_detail"
             referencedColumns: ["product_id"]
           },
         ]
@@ -3235,6 +3326,13 @@ export type Database = {
             referencedColumns: ["product_id"]
           },
           {
+            foreignKeyName: "reviews_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "v_merchant_offer_detail"
+            referencedColumns: ["product_id"]
+          },
+          {
             foreignKeyName: "reviews_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
@@ -3682,6 +3780,13 @@ export type Database = {
             referencedColumns: ["product_id"]
           },
           {
+            foreignKeyName: "wishlist_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "v_merchant_offer_detail"
+            referencedColumns: ["product_id"]
+          },
+          {
             foreignKeyName: "wishlist_items_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
@@ -3802,6 +3907,53 @@ export type Database = {
             columns: ["warehouse_id"]
             isOneToOne: false
             referencedRelation: "warehouses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v_merchant_offer_detail: {
+        Row: {
+          approved_at: string | null
+          asking_price_cents: number | null
+          commission_pct: number | null
+          created_at: string | null
+          handling_days: number | null
+          id: string | null
+          low_stock_threshold: number | null
+          merchant_due_cents: number | null
+          merchant_id: string | null
+          merchant_name: string | null
+          merchant_sku: string | null
+          merchant_slug: string | null
+          merchant_status: Database["public"]["Enums"]["merchant_status"] | null
+          product_id: string | null
+          product_name: Json | null
+          product_slug: string | null
+          product_status: Database["public"]["Enums"]["product_status"] | null
+          rejection_note: string | null
+          retail_price_cents: number | null
+          sku: string | null
+          status: Database["public"]["Enums"]["offer_status"] | null
+          stock_on_hand: number | null
+          updated_at: string | null
+          variant_active: boolean | null
+          variant_id: string | null
+          variant_name: Json | null
+          variant_options: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "merchant_offers_merchant_id_fkey"
+            columns: ["merchant_id"]
+            isOneToOne: false
+            referencedRelation: "merchants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "merchant_offers_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "product_variants"
             referencedColumns: ["id"]
           },
         ]
@@ -3995,6 +4147,13 @@ export type Database = {
         Args: { p_items_subtotal_cents: number; p_merchant_id: string }
         Returns: Json
       }
+      merchant_settlement_units: {
+        Args: { p_merchant_id: string; p_unit_prices: number[] }
+        Returns: {
+          merchant_due_cents: number
+          unit_price_cents: number
+        }[]
+      }
       newsletter_confirm: { Args: { p_token: string }; Returns: Json }
       newsletter_subscribe: {
         Args: { p_email: string; p_locale?: string; p_source?: string }
@@ -4061,6 +4220,20 @@ export type Database = {
       }
       subscription_apply_token: { Args: { p_token: string }; Returns: Json }
       tables_without_rls: { Args: never; Returns: string[] }
+      variant_buy_box: {
+        Args: { p_variant_ids: string[] }
+        Returns: {
+          handling_days: number
+          merchant_id: string
+          merchant_name: string
+          merchant_slug: string
+          offer_id: string
+          source: string
+          stock_status: string
+          supplier_count: number
+          variant_id: string
+        }[]
+      }
     }
     Enums: {
       activity_band: "ulur" | "i_lehte" | "i_rregullt" | "intensiv"
