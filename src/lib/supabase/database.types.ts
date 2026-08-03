@@ -4074,6 +4074,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      assign_fulfilment: {
+        Args: { p_fulfilment_id: string; p_merchant_id: string }
+        Returns: Json
+      }
       check_rate_limit: {
         Args: { p_key: string; p_max: number; p_window: string }
         Returns: boolean
@@ -4107,6 +4111,32 @@ export type Database = {
         Returns: string
       }
       current_merchant_ids: { Args: never; Returns: string[] }
+      fulfilment_candidates: {
+        Args: { p_fulfilment_id: string }
+        Returns: {
+          asking_total_cents: number
+          commission_pct: number
+          is_current: boolean
+          max_handling_days: number
+          merchant_due_cents: number
+          merchant_id: string
+          merchant_name: string
+          merchant_slug: string
+          rating_avg: number
+        }[]
+      }
+      fulfilment_lines: {
+        Args: { p_fulfilment_id: string }
+        Returns: {
+          item_id: string
+          name_snapshot: string
+          offer_id: string
+          quantity: number
+          sku: string
+          total_cents: number
+          unit_price_cents: number
+        }[]
+      }
       generate_access_token: { Args: never; Returns: string }
       generate_order_number: { Args: never; Returns: string }
       get_shared_protocol: { Args: { p_code: string }; Returns: Json }
@@ -4139,6 +4169,8 @@ export type Database = {
         }
         Returns: undefined
       }
+      merchant_fulfilment_counts: { Args: never; Returns: Json }
+      merchant_fulfilment_list: { Args: { p_status?: string }; Returns: Json }
       merchant_fulfilment_view: {
         Args: { p_fulfilment_id: string }
         Returns: Json
@@ -4169,9 +4201,31 @@ export type Database = {
         Returns: undefined
       }
       redeem_loyalty_points: { Args: never; Returns: Json }
+      release_fulfilment: {
+        Args: { p_fulfilment_id: string; p_reason?: string }
+        Returns: undefined
+      }
       resume_subscription: {
         Args: { p_subscription_id: string }
         Returns: boolean
+      }
+      route_order: { Args: { p_order_id: string }; Returns: number }
+      routing_queue: {
+        Args: { p_include_assigned?: boolean }
+        Returns: {
+          fulfilment_id: string
+          is_cod: boolean
+          items_subtotal_cents: number
+          line_count: number
+          order_id: string
+          order_number: string
+          placed_at: string
+          proposed_merchant_id: string
+          proposed_merchant_name: string
+          status: Database["public"]["Enums"]["fulfilment_status"]
+          unit_count: number
+          waiting_hours: number
+        }[]
       }
       search_products: {
         Args: {
@@ -4219,6 +4273,10 @@ export type Database = {
         Returns: boolean
       }
       subscription_apply_token: { Args: { p_token: string }; Returns: Json }
+      sync_order_status_from_fulfilments: {
+        Args: { p_order_id: string }
+        Returns: undefined
+      }
       tables_without_rls: { Args: never; Returns: string[] }
       variant_buy_box: {
         Args: { p_variant_ids: string[] }
@@ -4327,6 +4385,7 @@ export type Database = {
         sku: string | null
         name_snapshot: string | null
         image_path: string | null
+        merchant_offer_id: string | null
       }
     }
   }

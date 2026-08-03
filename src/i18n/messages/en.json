@@ -1084,7 +1084,8 @@
         "offers": "Offers",
         "documents": "Documents",
         "settings": "Settings",
-        "lockedHint": "Opens once your application is approved."
+        "lockedHint": "Opens once your application is approved.",
+        "orders": "Orders"
       },
       "status": {
         "pendingTitle": "Your application is under review",
@@ -1127,7 +1128,10 @@
         "termsVersion": "Terms version",
         "termsLinkIntro": "The full marketplace terms:",
         "termsLink": "BioCode Marketplace Terms",
-        "addOffer": "Add an offer"
+        "addOffer": "Add an offer",
+        "openOrders": "Orders to work on",
+        "openOrdersHint": "Orders to accept, pack or ship.",
+        "attentionOrders": "{count} orders are waiting on your answer. The window is 24 hours."
       }
     },
     "offers": {
@@ -1274,6 +1278,64 @@
         "invalid": "Check the highlighted fields.",
         "notMerchant": "This account is not linked to a seller.",
         "locked": "That field cannot be changed from the portal."
+      }
+    },
+    "fulfilments": {
+      "title": "Orders",
+      "intro": "Orders BioCode has routed to you. Accept, pack and ship — the address opens once you accept.",
+      "filterLabel": "Filter by status",
+      "open": "Needs work",
+      "empty": "Nothing to work on. When BioCode routes an order to you, it appears here.",
+      "emptyFiltered": "No orders with this status.",
+      "breadcrumb": "Back",
+      "placed": "Placed {date}",
+      "units": "{count} unit(s)",
+      "due": "You get",
+      "collectCod": "Collect on delivery",
+      "tracking": "Tracking",
+      "needsAnswer": "Waiting on your answer — the window is 24 hours.",
+      "status": {
+        "unassigned": "Awaiting routing",
+        "assigned": "Needs your answer",
+        "accepted": "Accepted",
+        "packed": "Packed",
+        "shipped": "Shipped",
+        "delivered": "Delivered",
+        "cancelled": "Cancelled",
+        "returned": "Returned"
+      },
+      "decide": "This order is waiting on your answer",
+      "decideHint": "Accept it if you can ship it. If you cannot, decline quickly so BioCode can route it elsewhere.",
+      "accept": "Accept",
+      "decline": "Decline",
+      "declineReason": "Why you cannot ship it",
+      "declineReasonHint": "BioCode reads this and keeps it against your seller record.",
+      "confirmDecline": "Confirm the decline",
+      "nextPack": "Accepted. Mark it packed once the parcel is ready.",
+      "markPacked": "Mark as packed",
+      "nextShip": "Ship the parcel",
+      "shipHint": "Give the carrier and the tracking code — the customer sees both.",
+      "carrier": "Carrier",
+      "trackingCode": "Tracking code",
+      "markShipped": "Mark as shipped",
+      "notYetAssigned": "This order is not assigned yet. BioCode is deciding.",
+      "nothingToDo": "Nothing to do on this order.",
+      "whatToSend": "What to send",
+      "linesCaption": "The items in this order and their quantities.",
+      "product": "Product",
+      "quantity": "Quantity",
+      "shipTo": "Ship to",
+      "addressAfterAssignment": "The address opens once the order is assigned and you accept it.",
+      "money": "What you receive",
+      "linesSubtotal": "Item subtotal",
+      "codNotice": "This order is paid on delivery. Collect {amount}; settlement squares it against the commission.",
+      "errors": {
+        "generic": "Something went wrong. Try again shortly.",
+        "invalid": "Check the fields — one of the values is not acceptable.",
+        "notMerchant": "This account is not linked to an approved seller.",
+        "notYours": "That order is not yours.",
+        "wrongState": "This order changed state. Reload the page.",
+        "trackingRequired": "The carrier and the tracking code are both required."
       }
     }
   }

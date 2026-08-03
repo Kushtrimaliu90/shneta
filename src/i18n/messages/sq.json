@@ -1084,7 +1084,8 @@
         "offers": "Ofertat",
         "documents": "Dokumentet",
         "settings": "Cilësimet",
-        "lockedHint": "Hapet pasi aplikimi miratohet."
+        "lockedHint": "Hapet pasi aplikimi miratohet.",
+        "orders": "Porositë"
       },
       "status": {
         "pendingTitle": "Aplikimi është në shqyrtim",
@@ -1127,7 +1128,10 @@
         "termsVersion": "Versioni i kushteve",
         "termsLinkIntro": "Kushtet e plota të tregut:",
         "termsLink": "Kushtet e Tregut BioCode",
-        "addOffer": "Shto ofertë"
+        "addOffer": "Shto ofertë",
+        "openOrders": "Porosi për punë",
+        "openOrdersHint": "Porosi që pranojnë, paketojnë ose dërgojnë.",
+        "attentionOrders": "{count} porosi presin përgjigjen tënde. Afati është 24 orë."
       }
     },
     "offers": {
@@ -1274,6 +1278,64 @@
         "invalid": "Kontrollo fushat e shënuara.",
         "notMerchant": "Kjo llogari nuk lidhet me një shitës.",
         "locked": "Kjo fushë nuk mund të ndryshohet nga portali."
+      }
+    },
+    "fulfilments": {
+      "title": "Porositë",
+      "intro": "Porositë që BioCode ka drejtuar te ti. Pranoje, paketoje dhe dërgoje — adresa hapet pasi e pranon.",
+      "filterLabel": "Filtro sipas statusit",
+      "open": "Për punë",
+      "empty": "Nuk ke porosi për punë. Kur BioCode drejton një porosi te ti, shfaqet këtu.",
+      "emptyFiltered": "Nuk ka porosi me këtë status.",
+      "breadcrumb": "Kthehu",
+      "placed": "Porositur më {date}",
+      "units": "{count} njësi",
+      "due": "Merr",
+      "collectCod": "Mbledh në dorëzim",
+      "tracking": "Gjurmimi",
+      "needsAnswer": "Pret përgjigjen tënde — afati është 24 orë.",
+      "status": {
+        "unassigned": "Në pritje",
+        "assigned": "Për konfirmim",
+        "accepted": "Pranuar",
+        "packed": "Paketuar",
+        "shipped": "Dërguar",
+        "delivered": "Dorëzuar",
+        "cancelled": "Anuluar",
+        "returned": "Kthyer"
+      },
+      "decide": "Kjo porosi pret përgjigjen tënde",
+      "decideHint": "Pranoje nëse mund ta dërgosh. Nëse jo, refuzoje sa më shpejt që BioCode t’ia kalojë një shitësi tjetër.",
+      "accept": "Prano",
+      "decline": "Refuzo",
+      "declineReason": "Pse nuk mund ta dërgosh",
+      "declineReasonHint": "BioCode e lexon këtë dhe e ruan për vlerësimin e shitësit.",
+      "confirmDecline": "Konfirmo refuzimin",
+      "nextPack": "E pranove. Kur pakoja është gati, shënoje si të paketuar.",
+      "markPacked": "Shëno si paketuar",
+      "nextShip": "Dërgo pakon",
+      "shipHint": "Shëno kurierin dhe numrin e gjurmimit — klienti i shikon.",
+      "carrier": "Kurieri",
+      "trackingCode": "Numri i gjurmimit",
+      "markShipped": "Shëno si dërguar",
+      "notYetAssigned": "Kjo porosi nuk është caktuar ende. BioCode po vendos.",
+      "nothingToDo": "Nuk ka veprim për të bërë në këtë porosi.",
+      "whatToSend": "Çfarë duhet dërguar",
+      "linesCaption": "Artikujt e kësaj porosie dhe sasitë.",
+      "product": "Produkti",
+      "quantity": "Sasia",
+      "shipTo": "Adresa e dërgesës",
+      "addressAfterAssignment": "Adresa hapet pasi porosia caktohet dhe e pranon.",
+      "money": "Të hyrat",
+      "linesSubtotal": "Nëntotali i artikujve",
+      "codNotice": "Kjo porosi paguhet në dorëzim. Mbledh {amount} dhe shlyerja e rregullon me komisionin.",
+      "errors": {
+        "generic": "Diçka shkoi keq. Provo sërish pas pak.",
+        "invalid": "Kontrollo fushat — një vlerë nuk është e pranueshme.",
+        "notMerchant": "Kjo llogari nuk lidhet me një shitës të miratuar.",
+        "notYours": "Kjo porosi nuk është e tua.",
+        "wrongState": "Kjo porosi ka ndryshuar gjendje. Rifresko faqen.",
+        "trackingRequired": "Kurieri dhe numri i gjurmimit janë të detyrueshëm."
       }
     }
   }

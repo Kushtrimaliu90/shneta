@@ -17,6 +17,7 @@ import {
   ShipmentForm,
 } from '@/features/orders/components/order-actions';
 import { OrderTimeline } from '@/features/orders/components/order-timeline';
+import { orderFulfilments } from '@/features/merchants/routing-queries';
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -44,6 +45,8 @@ export default async function AdminOrderDetailPage({ params }: Props) {
 
   const order = await getOrder(id);
   if (!order) notFound();
+
+  const fulfilments = await orderFulfilments(order.id);
 
   const placed = formatAdminDateTime(order.placedAt);
   const money = (cents: number) => formatPrice(cents, 'en');
@@ -227,6 +230,67 @@ export default async function AdminOrderDetailPage({ params }: Props) {
               <p className="mt-2 rounded-md bg-forest-50 p-3 text-sm text-ink-900">
                 {order.customerNote}
               </p>
+            </section>
+          )}
+
+          {/*
+            docs/16 §7 — who is shipping which half.
+
+            Rendered only when there is more than one fulfiller or a merchant is involved: on a
+            first-party order this panel would say "BioCode ships all of it", which is what every
+            order said before the marketplace existed and is not worth a section.
+          */}
+          {fulfilments.some((entry) => entry.fulfillerKind === 'merchant') && (
+            <section aria-labelledby="fulfilments-heading" className="mt-8">
+              <h2
+                id="fulfilments-heading"
+                className="font-ui text-xs font-semibold tracking-[0.08em] text-ink-500 uppercase"
+              >
+                Fulfilment
+              </h2>
+
+              <ul className="mt-2 flex flex-col gap-2">
+                {fulfilments.map((entry) => (
+                  <li
+                    key={entry.id}
+                    className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-md border border-line p-3 text-sm"
+                  >
+                    <span className="font-medium text-ink-900">
+                      {entry.fulfillerKind === 'biocode'
+                        ? 'BioCode'
+                        : (entry.merchantName ?? 'Merchant')}
+                    </span>
+                    <span className="rounded-sm bg-ink-100 px-1.5 py-0.5 font-ui text-[11px] font-semibold text-ink-900">
+                      {entry.status.replace('_', ' ')}
+                    </span>
+                    <span className="text-ink-600" data-numeric>
+                      {formatPrice(entry.itemsSubtotalCents, 'en')}
+                    </span>
+                    {entry.fulfillerKind === 'merchant' && (
+                      <span className="text-ink-500" data-numeric>
+                        due {formatPrice(entry.merchantDueCents, 'en')}
+                      </span>
+                    )}
+                    {entry.trackingCode && (
+                      <span className="text-ink-600">
+                        {entry.carrier} {entry.trackingCode}
+                      </span>
+                    )}
+                    {entry.cancelReason && (
+                      <span className="text-warning">{entry.cancelReason}</span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+
+              {fulfilments.some((entry) => entry.status === 'unassigned') && (
+                <Link
+                  href="/admin/routing"
+                  className={`${buttonVariants({ variant: 'secondary', size: 'sm' })} mt-3`}
+                >
+                  Route it
+                </Link>
+              )}
             </section>
           )}
 

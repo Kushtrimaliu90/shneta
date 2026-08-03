@@ -1,6 +1,6 @@
 import { getTranslations } from 'next-intl/server';
 import type { Metadata } from 'next';
-import { AlertTriangle, PackageX, Trophy } from 'lucide-react';
+import { AlertTriangle, PackageX, Trophy, Truck } from 'lucide-react';
 import { Link } from '@/i18n/routing';
 import { resolveLocale } from '@/i18n/locale';
 import { formatPrice } from '@/lib/money';
@@ -11,6 +11,7 @@ import {
   myOfferCounts,
   myWinningOfferIds,
 } from '@/features/merchants/queries';
+import { myFulfilmentCounts } from '@/features/merchants/fulfilment-queries';
 
 export const metadata: Metadata = { title: 'Portali i shitësit' };
 export const dynamic = 'force-dynamic';
@@ -33,13 +34,24 @@ export default async function MerchantDashboard({ params }: Props) {
   const locale = resolveLocale((await params).locale);
   const t = await getTranslations('merchant.portal');
 
-  const [merchant, counts, offers] = await Promise.all([
+  const [merchant, counts, offers, fulfilmentCounts] = await Promise.all([
     getMyMerchant(),
     myOfferCounts(),
     listMyOffers(),
+    myFulfilmentCounts(),
   ]);
 
   if (!merchant) return null;
+
+  /*
+   * Orders needing an answer come first on this screen, above stock.
+   *
+   * A merchant with an unanswered assignment and a low-stock offer has one problem with a deadline and
+   * one without: the acceptance window is 24 hours in the terms, and a dashboard that listed them in
+   * schema order would bury it.
+   */
+  const openOrders =
+    fulfilmentCounts.assigned + fulfilmentCounts.accepted + fulfilmentCounts.packed;
 
   const winning = await myWinningOfferIds(offers);
   const live = offers.filter((offer) => offer.status === 'approved');
@@ -51,6 +63,14 @@ export default async function MerchantDashboard({ params }: Props) {
   const dueIfEachSold = live.reduce((total, offer) => total + offer.merchantDueCents, 0);
 
   const needsAttention = [
+    fulfilmentCounts.assigned > 0
+      ? {
+          key: 'orders' as const,
+          count: fulfilmentCounts.assigned,
+          href: '/merchant/orders',
+          icon: Truck,
+        }
+      : null,
     counts.outOfStock > 0
       ? {
           key: 'outOfStock' as const,
@@ -98,7 +118,9 @@ export default async function MerchantDashboard({ params }: Props) {
                 >
                   <item.icon className="size-4 shrink-0 text-warning" aria-hidden="true" />
                   <span className="text-ink-900">
-                    {t(`dashboard.attention.${item.key}`, { count: item.count })}
+                    {item.key === 'orders'
+                      ? t('dashboard.attentionOrders', { count: item.count })
+                      : t(`dashboard.attention.${item.key}`, { count: item.count })}
                   </span>
                 </Link>
               </li>
@@ -113,6 +135,11 @@ export default async function MerchantDashboard({ params }: Props) {
         </h2>
 
         <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <Stat
+            label={t('dashboard.openOrders')}
+            value={String(openOrders)}
+            hint={t('dashboard.openOrdersHint')}
+          />
           <Stat label={t('dashboard.liveOffers')} value={String(counts.approved)} />
           <Stat
             label={t('dashboard.inBuyBox')}
