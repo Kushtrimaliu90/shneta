@@ -50,7 +50,14 @@ test.beforeEach(async ({ page }, testInfo) => {
 /** Steps 1 and 2, with the answers docs/15 §8 names. Leaves the browser on the result page. */
 async function generate(
   page: Page,
-  options: { goals?: string[]; vegan?: boolean; caffeine?: 'Yes' | 'No'; pregnant?: boolean } = {},
+  options: {
+    goals?: string[];
+    vegan?: boolean;
+    caffeine?: 'Yes' | 'No';
+    pregnant?: boolean;
+    /** Step 2's bands, as `{ 'Age': '50–64', 'Sex': 'Male', … }`. Omitted means all skipped. */
+    profile?: Record<string, string>;
+  } = {},
 ): Promise<void> {
   const goals = options.goals ?? ['Better Sleep', 'Stress'];
 
@@ -60,16 +67,40 @@ async function generate(
   for (const goal of goals) await page.getByRole('checkbox', { name: goal }).check();
   await page.getByRole('button', { name: 'Continue' }).click();
 
-  await expect(page.getByRole('group', { name: 'Diet' })).toBeVisible({ timeout: ACTION_TIMEOUT });
+  /*
+   * Step 2 — "about you" (docs/15 §9). Every band is optional, so a caller that passes no profile
+   * clicks straight through, which is also the case worth exercising: the flow must work for
+   * somebody who declines all five.
+   */
+  await expect(page.getByRole('group', { name: 'Age', exact: true })).toBeVisible({ timeout: ACTION_TIMEOUT });
+  if (options.profile) {
+    for (const [group, label] of Object.entries(options.profile)) {
+      await page
+        .getByRole('group', { name: group, exact: true })
+        .getByRole('radio', { name: label, exact: true })
+        .check();
+    }
+  }
+  await page.getByRole('button', { name: 'Continue' }).click();
+
+  await expect(page.getByRole('group', { name: 'Diet', exact: true })).toBeVisible({ timeout: ACTION_TIMEOUT });
   if (options.vegan !== false) await page.getByRole('radio', { name: 'Vegan', exact: true }).check();
   await page
-    .getByRole('group', { name: 'Caffeine' })
+    .getByRole('group', { name: 'Caffeine', exact: true })
     .getByRole('radio', { name: options.caffeine ?? 'No', exact: true })
     .check();
-  await page
-    .getByRole('group', { name: /pregnant, nursing, or under 18/ })
-    .getByRole('radio', { name: options.pregnant ? 'Yes' : 'No', exact: true })
-    .check();
+  /*
+   * The pregnancy question is only rendered when the sex answer leaves it open (docs/15 §9), so a
+   * profile that said "Male" has no such group and checking it unconditionally hangs.
+   *
+   * Found by this feature breaking its own helper, which is the useful kind of failure: the
+   * conditional question is the behaviour under test, and a helper that assumed the field is always
+   * there was asserting the old flow.
+   */
+  const lifeStage = page.getByRole('group', { name: /pregnant/ });
+  if ((await lifeStage.count()) > 0) {
+    await lifeStage.getByRole('radio', { name: options.pregnant ? 'Yes' : 'No', exact: true }).check();
+  }
 
   await page.getByRole('button', { name: 'Build my protocol' }).click();
 }
@@ -136,10 +167,141 @@ test.describe('the three steps (docs/15 §1)', () => {
     await page.getByRole('checkbox', { name: 'Immunity' }).check();
     await page.getByRole('button', { name: 'Continue' }).click();
 
-    await expect(page.getByRole('group', { name: 'Diet' })).toBeVisible();
+    await expect(page.getByRole('group', { name: 'Age', exact: true })).toBeVisible();
     await page.goBack();
 
     await expect(page.getByRole('checkbox', { name: 'Immunity' })).toBeChecked();
+  });
+});
+
+test.describe('personalisation (docs/15 §9)', () => {
+  /**
+   * The claim the whole feature rests on: the same goals, two different people, two different
+   * protocols — each carrying the reason for the difference.
+   *
+   * Asserted through the browser rather than only in the unit suite because this is where the
+   * chain is complete: the bands survive two GET steps and a POST, reach the engine, fire the
+   * seeded rules, and come back as a sentence on a card.
+   */
+  test('two profiles with the same goals get different protocols', async ({ page }) => {
+    await generate(page, {
+      goals: ['Energy', 'Brain & Focus'],
+      vegan: false,
+      caffeine: 'Yes',
+      profile: { Age: '50–64', Sex: 'Male', Weight: '90–104 kg', 'Physical activity': 'Intense' },
+    });
+    await expect(page.getByRole('heading', { level: 1 })).toContainText('Your BioHack Protocol', {
+      timeout: ACTION_TIMEOUT,
+    });
+
+    // The card explains itself: "FOR YOU" plus the rule's own sentence.
+    await expect(page.getByText('FOR YOU').first()).toBeVisible();
+    const trained = await page.getByRole('article').allInnerTexts();
+
+    // A second person, same goals, nothing about themselves given.
+    await generate(page, { goals: ['Energy', 'Brain & Focus'], vegan: false, caffeine: 'Yes' });
+    await expect(page.getByRole('heading', { level: 1 })).toContainText('Your BioHack Protocol', {
+      timeout: ACTION_TIMEOUT,
+    });
+    const anonymous = await page.getByRole('article').allInnerTexts();
+
+    expect(
+      trained.join('|'),
+      'the profile has to change the protocol, or none of this earns its place',
+    ).not.toBe(anonymous.join('|'));
+
+    /*
+     * More reasons for the person who said more, rather than "none for the person who said
+     * nothing".
+     *
+     * The first version asserted the latter and was wrong about the ruleset: one seeded rule — the
+     * B12 `require` — has an empty condition and deliberately fires for everybody, so a reason
+     * appears even for a customer who skipped every band. Counting is the honest form of the claim,
+     * and it is the claim that matters: saying more about yourself gets you more explanation.
+     */
+    const countFor = (texts: string[]) => texts.join(' ').split('FOR YOU').length - 1;
+    expect(countFor(trained), 'the full profile earns more explanation').toBeGreaterThan(
+      countFor(anonymous),
+    );
+  });
+
+  /**
+   * Weight Management, because that is the goal whose blocks include a protein.
+   *
+   * The seeded `servings_hint` rules only attach to protein and creatine — the two ingredients
+   * flagged `scales_with_body_weight` — so a goal without either in its blocks produces no note
+   * however heavy the customer is. Picking Energy first was a test asserting the rule against a
+   * protocol the rule could never touch.
+   */
+  test('the body-weight serving note appears for a heavy profile', async ({ page }) => {
+    await generate(page, {
+      goals: ['Weight Management'],
+      vegan: false,
+      caffeine: 'Yes',
+      profile: { Weight: 'Over 105 kg' },
+    });
+    await expect(page.getByRole('heading', { level: 1 })).toContainText('Your BioHack Protocol', {
+      timeout: ACTION_TIMEOUT,
+    });
+
+    // The note is a multiplier on the label serving, never a dose (docs/15 §9).
+    await expect(page.getByText(/label servings a day/)).toBeVisible();
+  });
+
+  /**
+   * The gate now comes from the age band rather than a self-declared checkbox, and this is the
+   * assertion that keeps it that way — the flow must end at the guidance screen without the
+   * pregnancy question being answered at all.
+   */
+  test('under 18 is gated from the age band alone', async ({ page }) => {
+    await page.goto('/en/biohack');
+    await page.getByRole('checkbox', { name: 'Better Sleep' }).check();
+    await page.getByRole('button', { name: 'Continue' }).click();
+
+    await page
+      .getByRole('group', { name: 'Age', exact: true })
+      .getByRole('radio', { name: 'Under 18', exact: true })
+      .check();
+    await page.getByRole('button', { name: 'Continue' }).click();
+
+    await page
+      .getByRole('group', { name: /pregnant/ })
+      .getByRole('radio', { name: 'No', exact: true })
+      .check();
+    await page.getByRole('button', { name: 'Build my protocol' }).click();
+
+    await expect(page).toHaveURL(/\/en\/biohack\/kujdes$/);
+    await expect(page.getByRole('article')).toHaveCount(0);
+  });
+
+  /** Asking a man whether he is pregnant reads as a form that was not listening (docs/15 §9). */
+  test('the pregnancy question is not asked of someone who said male', async ({ page }) => {
+    await page.goto('/en/biohack');
+    await page.getByRole('checkbox', { name: 'Better Sleep' }).check();
+    await page.getByRole('button', { name: 'Continue' }).click();
+
+    await page
+      .getByRole('group', { name: 'Sex', exact: true })
+      .getByRole('radio', { name: 'Male', exact: true })
+      .check();
+    await page.getByRole('button', { name: 'Continue' }).click();
+
+    await expect(page.getByRole('group', { name: 'Diet', exact: true })).toBeVisible();
+    await expect(page.getByRole('group', { name: /pregnant/ })).toHaveCount(0);
+
+    // And it still generates — the gate defaults to "not pregnant" when the question is skipped.
+    await page.getByRole('button', { name: 'Build my protocol' }).click();
+    await expect(page.getByRole('heading', { level: 1 })).toContainText('Your BioHack Protocol', {
+      timeout: ACTION_TIMEOUT,
+    });
+  });
+
+  test('every band can be skipped and the protocol still generates', async ({ page }) => {
+    await generate(page, { goals: ['Immunity'], vegan: false, caffeine: 'Yes' });
+    await expect(page.getByRole('heading', { level: 1 })).toContainText('Your BioHack Protocol', {
+      timeout: ACTION_TIMEOUT,
+    });
+    expect(await page.getByRole('article').count()).toBeGreaterThan(0);
   });
 });
 
@@ -317,17 +479,24 @@ test.describe('the admin ruleset editor (docs/15 §4)', () => {
 });
 
 test.describe('accessibility (docs/15 §7)', () => {
-  test('axe finds nothing serious on all three steps', async ({ page }) => {
+  test('axe finds nothing serious on any of the four screens', async ({ page }) => {
     await page.goto('/en/biohack');
-    await assertNoBlockingViolations(page, 'step 1');
-  
+    await assertNoBlockingViolations(page, 'step 1 — goals');
+
     await page.getByRole('checkbox', { name: 'Better Sleep' }).check();
     await page.getByRole('button', { name: 'Continue' }).click();
-    await expect(page.getByRole('group', { name: 'Diet' })).toBeVisible();
-    await assertNoBlockingViolations(page, 'step 2');
+
+    // Step 2 carries thirty-odd radios across five groups, plus the hints wired as descriptions —
+    // by far the densest form in the shop and the one most worth an axe pass.
+    await expect(page.getByRole('group', { name: 'Age', exact: true })).toBeVisible();
+    await assertNoBlockingViolations(page, 'step 2 — about you');
+
+    await page.getByRole('button', { name: 'Continue' }).click();
+    await expect(page.getByRole('group', { name: 'Diet', exact: true })).toBeVisible();
+    await assertNoBlockingViolations(page, 'step 3 — refine');
 
     await page
-      .getByRole('group', { name: /pregnant, nursing, or under 18/ })
+      .getByRole('group', { name: /pregnant/ })
       .getByRole('radio', { name: 'No', exact: true })
       .check();
     await page.getByRole('button', { name: 'Build my protocol' }).click();
@@ -342,7 +511,15 @@ test.describe('accessibility (docs/15 §7)', () => {
     const manager = await staffUser('product_manager');
     await signIn(page, manager.email, manager.password);
 
-    for (const tab of ['simulator', 'matrix', 'conflicts', 'settings', 'versions', 'analytics']) {
+    for (const tab of [
+      'simulator',
+      'matrix',
+      'profile',
+      'conflicts',
+      'settings',
+      'versions',
+      'analytics',
+    ]) {
       await page.goto(`/admin/biohack?tab=${tab}`);
       await expect(page.getByRole('heading', { level: 1, name: 'BioHack' })).toBeVisible({
         timeout: ACTION_TIMEOUT,

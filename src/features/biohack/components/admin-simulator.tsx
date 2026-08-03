@@ -6,12 +6,22 @@ import { formatPrice } from '@/lib/money';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import {
+  ACTIVITY_BANDS,
+  AGE_BANDS,
   CAFFEINE,
+  HEIGHT_BANDS,
+  SEX_BANDS,
+  WEIGHT_BANDS,
   DIETS,
   LEVELS,
   SLOT_DAY_PART,
   type CatalogProduct,
+  type ActivityBand,
+  type AgeBand,
   type Caffeine,
+  type HeightBand,
+  type SexBand,
+  type WeightBand,
   type Diet,
   type Level,
   type ProtocolConfig,
@@ -51,6 +61,20 @@ export function AdminSimulator({
   const [medication, setMedication] = useState(false);
   const [budget, setBudget] = useState<number | null>(null);
 
+  /*
+   * docs/15 §9 — the profile, as "unset" plus the five bands.
+   *
+   * `''` rather than a default band, because "not answered" is a state the engine treats
+   * differently from every band and the simulator has to be able to reproduce it. An admin
+   * checking why a rule did not fire needs to be able to leave a dimension blank exactly as a
+   * customer can.
+   */
+  const [ageBand, setAgeBand] = useState<AgeBand | ''>('');
+  const [sex, setSex] = useState<SexBand | ''>('');
+  const [weightBand, setWeightBand] = useState<WeightBand | ''>('');
+  const [heightBand, setHeightBand] = useState<HeightBand | ''>('');
+  const [activity, setActivity] = useState<ActivityBand | ''>('');
+
   const result = useMemo(
     () =>
       generateProtocol(config, catalog, {
@@ -61,9 +85,31 @@ export function AdminSimulator({
         medication,
         level,
         budgetCents: budget,
+        ...(ageBand ? { ageBand } : {}),
+        ...(sex ? { sex } : {}),
+        ...(weightBand ? { weightBand } : {}),
+        ...(heightBand ? { heightBand } : {}),
+        ...(activity ? { activity } : {}),
       }),
-    [config, catalog, selected, diet, caffeine, medication, level, budget],
+    [
+      config,
+      catalog,
+      selected,
+      diet,
+      caffeine,
+      medication,
+      level,
+      budget,
+      ageBand,
+      sex,
+      weightBand,
+      heightBand,
+      activity,
+    ],
   );
+
+  /** How many rules the current profile actually fired — the number an editor is checking. */
+  const rulesFired = result.trace.filter((entry) => entry.kind.startsWith('profile_')).length;
 
   const goalName = (slug: string) => goals.find((g) => g.slug === slug)?.name ?? slug;
 
@@ -114,9 +160,25 @@ export function AdminSimulator({
           </div>
         </fieldset>
 
-        <Choice label="Diet" value={diet} onChange={setDiet} options={DIETS} />
-        <Choice label="Caffeine" value={caffeine} onChange={setCaffeine} options={CAFFEINE} />
-        <Choice label="Level" value={level} onChange={setLevel} options={LEVELS} />
+        <Choice label="Diet" value={diet} onChange={(v) => v !== '' && setDiet(v)} options={DIETS} />
+        <Choice
+          label="Caffeine"
+          value={caffeine}
+          onChange={(v) => v !== '' && setCaffeine(v)}
+          options={CAFFEINE}
+        />
+        <Choice label="Level" value={level} onChange={(v) => v !== '' && setLevel(v)} options={LEVELS} />
+
+        {/*
+          The profile, with `unset` as a real option on every dimension. Leaving one blank is how a
+          customer who skipped the question is reproduced, and the difference is visible in the
+          rules-fired count above the results.
+        */}
+        <Choice label="Age" value={ageBand} onChange={setAgeBand} options={AGE_BANDS} unset />
+        <Choice label="Sex" value={sex} onChange={setSex} options={SEX_BANDS} unset />
+        <Choice label="Weight" value={weightBand} onChange={setWeightBand} options={WEIGHT_BANDS} unset />
+        <Choice label="Height" value={heightBand} onChange={setHeightBand} options={HEIGHT_BANDS} unset />
+        <Choice label="Activity" value={activity} onChange={setActivity} options={ACTIVITY_BANDS} unset />
 
         <label className="flex items-center gap-2 text-sm text-ink-900">
           <input
@@ -160,6 +222,7 @@ export function AdminSimulator({
           <Stat label="Phased" value={result.phased ? 'yes' : 'no'} />
           <Stat label="Alternates" value={String(result.alternates.length)} />
           <Stat label="Trace" value={String(result.trace.length)} />
+          <Stat label="Profile rules" value={String(rulesFired)} />
         </div>
 
         {result.items.length === 0 && (
@@ -234,34 +297,44 @@ function Stat({ label, value }: { label: string; value: string }) {
   );
 }
 
-/** A one-line radio row. Typed on the option tuple so the setter stays narrow. */
+/**
+ * A one-line button row. Typed on the option tuple so the setter stays narrow.
+ *
+ * `unset` prepends an "—" option whose value is the empty string, for the dimensions where "not
+ * answered" is meaningfully different from any band.
+ */
 function Choice<T extends string>({
   label,
   value,
   onChange,
   options,
+  unset = false,
 }: {
   label: string;
-  value: T;
-  onChange: (value: T) => void;
+  value: T | '';
+  onChange: (value: T | '') => void;
   options: readonly T[];
+  unset?: boolean;
 }) {
+  const all: (T | '')[] = unset ? ['', ...options] : [...options];
+
   return (
     <fieldset>
       <legend className="text-xs font-semibold tracking-wide text-ink-500 uppercase">
         {label}
       </legend>
       <div className="mt-2 flex flex-wrap gap-1.5">
-        {options.map((option) => (
+        {all.map((option) => (
           <Button
-            key={option}
+            key={option || 'unset'}
             type="button"
             size="sm"
             variant={value === option ? 'primary' : 'secondary'}
             onClick={() => onChange(option)}
             className="h-8 px-2.5 text-xs"
+            aria-label={option === '' ? `${label}: not answered` : undefined}
           >
-            {option}
+            {option === '' ? '—' : option}
           </Button>
         ))}
       </div>

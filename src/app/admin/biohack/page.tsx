@@ -11,6 +11,7 @@ import {
   listBlocks,
   listConfigs,
   listConflicts,
+  listProfileRules,
   listGoalOptions,
   listIngredientOptions,
   protocolAnalytics,
@@ -18,6 +19,7 @@ import {
 } from '@/features/biohack/admin-queries';
 import { AdminSimulator } from '@/features/biohack/components/admin-simulator';
 import { AdminMatrix } from '@/features/biohack/components/admin-matrix';
+import { AdminProfileRules } from '@/features/biohack/components/admin-profile-rules';
 import {
   AdminConflicts,
   AdminEngineSettings,
@@ -26,7 +28,15 @@ import {
 
 export const metadata: Metadata = { title: 'BioHack' };
 
-const TABS = ['simulator', 'matrix', 'conflicts', 'settings', 'versions', 'analytics'] as const;
+const TABS = [
+  'simulator',
+  'matrix',
+  'profile',
+  'conflicts',
+  'settings',
+  'versions',
+  'analytics',
+] as const;
 type Tab = (typeof TABS)[number];
 
 type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
@@ -110,6 +120,7 @@ export default async function AdminBioHackPage({ searchParams }: Props) {
       {tab === 'matrix' && (
         <MatrixTab configId={configId} editable={canEditThis} params={params} />
       )}
+      {tab === 'profile' && <ProfileTab configId={configId} editable={canEditThis} />}
       {tab === 'conflicts' && <ConflictsTab configId={configId} editable={canEditThis} />}
       {tab === 'settings' && <SettingsTab configId={configId} editable={editable} />}
       {tab === 'versions' && (
@@ -188,6 +199,24 @@ async function MatrixTab({
         blocks={blocks}
       />
     </div>
+  );
+}
+
+async function ProfileTab({ configId, editable }: { configId: string; editable: boolean }) {
+  const [rules, ingredients, goals] = await Promise.all([
+    listProfileRules(configId),
+    listIngredientOptions(),
+    listGoalOptions(),
+  ]);
+
+  return (
+    <AdminProfileRules
+      configId={configId}
+      editable={editable}
+      rules={rules}
+      ingredients={ingredients}
+      goals={goals}
+    />
   );
 }
 

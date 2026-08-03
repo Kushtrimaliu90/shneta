@@ -228,6 +228,62 @@ export async function listConflicts(configId: string): Promise<ConflictRow[]> {
 
 // ── Pickers ──────────────────────────────────────────────────────────────────
 
+export interface ProfileRuleRow {
+  id: string;
+  ingredientName: string | null;
+  when: Record<string, unknown>;
+  effect: Record<string, unknown>;
+  reason: { sq: string; en: string } | null;
+  caution: { sq: string; en: string } | null;
+  active: boolean;
+  sortOrder: number;
+}
+
+/**
+ * docs/15 §9 — the Profile tab's list.
+ *
+ * Returns `when` and `effect` as the raw jsonb rather than the engine's narrowed shape, on purpose:
+ * this screen exists so an admin can see **what is actually stored**, including a key the engine
+ * would silently drop. A rule that looks active here and matches nobody at runtime is exactly the
+ * kind of thing the tab has to be able to show.
+ */
+export async function listProfileRules(configId: string): Promise<ProfileRuleRow[]> {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from('protocol_profile_rules')
+    .select('id, when_profile, effect, reason_i18n, caution_i18n, active, sort_order, ingredients ( name )')
+    .eq('config_id', configId)
+    .order('sort_order');
+
+  if (error) {
+    logger.error('listProfileRules failed', { cause: error.message });
+    return [];
+  }
+
+  type Raw = {
+    id: string;
+    when_profile: unknown;
+    effect: unknown;
+    reason_i18n: unknown;
+    caution_i18n: unknown;
+    active: boolean;
+    sort_order: number;
+    ingredients: { name: unknown } | null;
+  };
+
+  return ((data ?? []) as unknown as Raw[]).map((row) => ({
+    id: row.id,
+    ingredientName: row.ingredients ? pickLocale(asLocalizedField(row.ingredients.name), 'en') : null,
+    when: (row.when_profile ?? {}) as Record<string, unknown>,
+    effect: (row.effect ?? {}) as Record<string, unknown>,
+    reason: pair(row.reason_i18n),
+    caution: pair(row.caution_i18n),
+    active: row.active,
+    sortOrder: row.sort_order,
+  }));
+}
+
 export interface Option {
   id: string;
   slug: string;

@@ -5,7 +5,13 @@ import type { Locale } from '@/lib/constants';
 import { getProtocolGoals } from '@/features/biohack/queries';
 import { getApprovedConfig } from '@/features/biohack/config-loader';
 import { GoalPicker } from '@/features/biohack/components/goal-picker';
+import { AboutYouForm } from '@/features/biohack/components/about-you-form';
 import { RefineForm } from '@/features/biohack/components/refine-form';
+import {
+  answersToParams,
+  readAnswerParams,
+  type ProtocolAnswers,
+} from '@/features/biohack/schemas';
 
 type Props = {
   params: Promise<{ locale: Locale }>;
@@ -30,15 +36,20 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 /**
- * docs/15 §1 — steps 1 and 2 of the BioHack Protocol Generator.
+ * docs/15 §1, §9 — the three question steps: goals, about you, refine.
  *
- * Two URLs, one page, chosen by `?step=`, with the answers in the query string — the Finder's
+ * Three URLs, one page, chosen by `?step=`, with every answer in the query string — the Finder's
  * shape (docs/05 §10), for the same reasons: the back button becomes "change my last answer" for
- * free, and neither step costs the visitor a byte of state management.
+ * free, and no step costs the visitor a byte of state management.
  *
- * Step 3 is not here. It lives at `/biohack/[code]`, because a generated protocol is a thing with
- * an address: it can be reloaded, bookmarked, shared and reopened after signing in, none of which
- * a query string full of answers can do.
+ * **Four steps rather than the three docs/15 §1 specified**, because personalisation added five
+ * questions and putting eleven on one screen is a worse trade than one more tap. The <60 s
+ * acceptance criterion still holds and is still asserted in `e2e/biohack.spec.ts` — every one of
+ * the new questions is a single tap, and all five may be skipped.
+ *
+ * The result is not one of these steps. It lives at `/biohack/[code]`, because a generated protocol
+ * is a thing with an address: reloadable, bookmarkable, shareable, and reopenable after signing in,
+ * none of which a query string full of answers can do.
  */
 export default async function BioHackPage({ params, searchParams }: Props) {
   const [{ locale }, raw] = await Promise.all([params, searchParams]);
@@ -49,8 +60,48 @@ export default async function BioHackPage({ params, searchParams }: Props) {
   const selected = readGoals(raw.goals).filter((slug) =>
     goals.some((goal) => goal.slug === slug),
   );
-  const step = raw.step === '2' && selected.length > 0 ? 2 : 1;
+
+  /*
+   * Three question steps now, not two (docs/15 §9).
+   *
+   * Steps 2 and 3 both require goals, so a URL that names a later step without them falls back to
+   * step 1 rather than rendering a form whose submit cannot validate.
+   */
+  const requested = raw.step === '3' ? 3 : raw.step === '2' ? 2 : 1;
+  const step = selected.length > 0 ? requested : 1;
   const basePath = locale === 'sq' ? '/biohack' : `/${locale}/biohack`;
+
+  /*
+   * Step 2's answers arrive in the query string and are needed by step 3, which forwards them as
+   * hidden fields. Parsed through the same schema the action uses, so an edited URL cannot smuggle
+   * a band the engine does not know.
+   */
+  const profileParams = new URLSearchParams();
+  for (const slug of selected) profileParams.append('goals', slug);
+  for (const key of ['ageBand', 'sex', 'weightBand', 'heightBand', 'activity'] as const) {
+    const value = typeof raw[key] === 'string' ? (raw[key] as string) : null;
+    if (value) profileParams.set(key, value);
+  }
+  /*
+   * Defaults written out rather than obtained from the schema.
+   *
+   * `protocolAnswersSchema.parse({ goals: selected })` looks tidier and throws: `goals` has a
+   * `min(1)`, and on step 1 nothing is selected yet, so the whole page rendered the error boundary
+   * — "Something went wrong" in place of the first question. A throwing parse has no business in a
+   * render path where the invalid case is the normal one.
+   */
+  const parsedProfile = readAnswerParams(profileParams);
+  const answers: ProtocolAnswers = parsedProfile.success
+    ? parsedProfile.data
+    : {
+        goals: selected,
+        diet: 'pa_kufizime',
+        caffeine: 'po',
+        restrictedLifeStage: false,
+        medication: false,
+        level: 'fillestar',
+        budget: 'any',
+      };
 
   const errorKey = typeof raw.gabim === 'string' ? raw.gabim : null;
   const errorMessage =
@@ -76,7 +127,7 @@ export default async function BioHackPage({ params, searchParams }: Props) {
       <p className="mt-3 max-w-2xl text-ink-600">{t('intro')}</p>
 
       <p className="mt-6 font-ui text-sm text-ink-500" data-numeric>
-        {t('step', { current: step, total: 3 })}
+        {t('step', { current: step, total: 4 })}
       </p>
 
       {errorMessage && (
@@ -87,20 +138,34 @@ export default async function BioHackPage({ params, searchParams }: Props) {
 
       <section className="mt-6">
         <h2 className="font-display text-xl font-semibold text-forest-900">
-          {step === 1 ? t('goalsTitle') : t('refineTitle')}
+          {step === 1 ? t('goalsTitle') : step === 2 ? t('aboutYouTitle') : t('refineTitle')}
         </h2>
         <p className="mt-1 mb-6 text-sm text-ink-600">
-          {step === 1 ? t('goalsHint') : t('refineHint')}
+          {step === 1 ? t('goalsHint') : step === 2 ? t('aboutYouHint') : t('refineHint')}
         </p>
 
-        {step === 1 ? (
-          <GoalPicker goals={goals} selected={selected} action={basePath} />
-        ) : (
+        {step === 1 && <GoalPicker goals={goals} selected={selected} action={basePath} />}
+
+        {step === 2 && (
+          <AboutYouForm
+            goals={selected}
+            answers={answers}
+            action={basePath}
+            backHref={`${basePath}?${goalsQuery(selected)}`}
+          />
+        )}
+
+        {step === 3 && (
           <RefineForm
             goals={selected}
+            answers={answers}
             locale={locale}
             budgetTiers={budgetTiers}
-            backHref={`${basePath}?${selected.map((slug) => `goals=${slug}`).join('&')}`}
+            /*
+             * Back to step 2 with the bands still in the URL, so returning does not silently
+             * discard five answers — the property the whole query-string design exists for.
+             */
+            backHref={`${basePath}?step=2&${answersToParams(answers).toString()}`}
           />
         )}
       </section>
@@ -108,6 +173,11 @@ export default async function BioHackPage({ params, searchParams }: Props) {
       <p className="mt-10 border-t border-line pt-6 text-xs text-ink-500">{t('disclaimer')}</p>
     </div>
   );
+}
+
+/** Goals as a query fragment, for the back links. */
+function goalsQuery(slugs: string[]): string {
+  return slugs.map((slug) => 'goals=' + encodeURIComponent(slug)).join('&');
 }
 
 /** `?goals=a&goals=b` arrives as an array; a single value arrives as a string. */

@@ -386,3 +386,107 @@ All asserted, split across three suites:
 
 One clause is **not** met, and knowingly: *kafeinë is absent* passes trivially, because the
 catalogue has no caffeinated product to exclude. See docs/14 §17.
+
+---
+
+## 9 · Personalisation — who the customer is (added after §8 shipped)
+
+The generator asked what somebody wanted and nothing about them. Five answers now say who they
+are, and a mechanism turns those into a different protocol.
+
+### The five answers
+
+| Answer      | Bands                                                        | Why it is asked                                                     |
+| ----------- | ------------------------------------------------------------ | ------------------------------------------------------------------- |
+| Age         | `nen_18` `18_29` `30_39` `40_49` `50_64` `65_plus`           | B12 absorption, bone maintenance, muscle mass — and the hard gate    |
+| Sex         | `femer` `mashkull` `pa_percaktuar`                           | Iron losses, folate, bone density after menopause, zinc              |
+| Weight      | `nen_60` `60_74` `75_89` `90_104` `105_plus`                 | Protein and creatine intake track body mass                          |
+| Height      | `nen_160` `160_169` `170_179` `180_189` `190_plus`           | Available as a rule condition; **no seeded rule uses it** — see below |
+| Activity    | `ulur` `i_lehte` `i_rregullt` `intensiv`                     | Protein, creatine, electrolytes, magnesium                           |
+
+**Bands, never exact values**, for two reasons that happen to agree. A shop selling magnesium has
+no business holding "72.4 kg, born 12 March 1988"; and five taps beat five keyboards, which is
+what keeps the extra questions inside the sixty seconds §1 asks for.
+
+**Every one is optional.** A band that was not given matches no rule, which is exactly what
+declining does — so the step can be skipped end to end and the customer gets the unpersonalised
+protocol rather than a validation error.
+
+### The mechanism is a table
+
+`protocol_profile_rules`, versioned with the config that owns it, editable at
+`/admin/biohack?tab=profile`, and reported in the trace when it fires. One row reads: *for this
+kind of person, do this to this ingredient.*
+
+```
+when_profile  {"age_bands":["50_64","65_plus"], "sexes":["femer"], "activity":["intensiv"], … }
+effect        {"weight_delta": 20} | {"exclude": true} | {"require": true} | {"servings_hint": true}
+reason_i18n   the sentence the customer reads when this rule changed their protocol
+```
+
+The alternative was a function in the engine saying "if age >= 50, weight B12 higher". That works,
+and it is wrong for this project: nobody outside the repository could see the rule, and the product
+manager who understands the nutrition could never change it. **The engine evaluates rules and knows
+none of them.**
+
+It also keeps the compliance story intact. A rule carries copy, the copy reaches a customer, so it
+lives inside the same draft → `pending_review` → approved cycle as the rest of the ruleset.
+
+### Where it runs, and why there
+
+Step **4b**: after the medication and caffeine filters, before conflicts and selection. Earlier, a
+rule could boost something medication is about to remove and the trace would explain a promotion
+that never happened. Later, a boost cannot change what was selected, which is the entire purpose.
+
+Within the step the order is fixed: **exclude, then require, then weight, then caution.** An
+excluded candidate must not first collect a boost and a sentence about an item the customer never
+sees.
+
+Two guarantees worth stating:
+
+- **A demotion stops at 1.** A negative score would sort below an ingredient nothing recommends —
+  a way of excluding something while claiming only to have demoted it. An admin who means remove
+  has `exclude`.
+- **`require` outranks the per-goal core guarantee**, making it the strongest claim on a slot. The
+  seeded case is B12: the goals somebody picked may have nothing to do with it.
+
+### The gate moved
+
+"Are you pregnant, nursing, or under 18?" was three unrelated questions behind one yes/no, and the
+one that mattered most was the easiest to answer carelessly. Under-18 is now **derived** from the
+age band; pregnancy and nursing are still declared, and are **not asked at all** of someone who
+answered `mashkull` — a form that asks anyway reads as one that was not listening.
+
+`isGated()` is the only function that decides, so the action and the engine cannot disagree.
+
+### What is deliberately not built
+
+**No rule combines weight with height.** That is BMI in disguise, and assigning somebody a BMI
+category is a health assessment this shop is not qualified to make. Height is collected because it
+was asked for, is available as a condition for an admin who wants it, and no seeded rule uses it.
+Stated plainly here so the next person does not read it as an oversight.
+
+**The serving hint is a multiplier on the label serving, never a dose.** "At your weight, two of
+the servings on the label" — the manufacturer stays the authority, which is where docs/08 §7
+requires it. The mapping lives in `SERVINGS_BY_WEIGHT` and is shown to the admin on the Profile tab.
+
+**One seeded rule fires for everybody** — the B12 `require`, whose stated reason is about diet
+rather than any band. Diet is not one of the profile dimensions, so the rule cannot key on it, and
+the result is that a customer who skipped every question still sees one "PËR TY" line. Not ideal,
+and the honest options are a `diet` dimension or different copy; noted rather than hidden. It is
+also why `e2e/biohack.spec.ts` asserts *more* explanation for a fuller profile rather than none for
+an empty one.
+
+### Four steps, not three
+
+§1 specified three screens. Personalisation added five questions and eleven on one screen is a
+worse trade than one more tap. The <60 s criterion still holds and is still asserted.
+
+### Tests
+
+- **22 unit cases** in `tests/unit/biohack-profile.test.ts`, about the interpreter rather than the
+  nutrition — matching, each effect, the clamp, the ordering, the de-duplication, determinism.
+- **Mutation-verified**, 6 for 6. The two that matter most: treating a missing answer as a match
+  (which would silently give somebody who declined to state their sex the rules written for one),
+  and letting an excluded candidate still collect a boost and a reason.
+- **6 E2E cases**, including the claim the feature rests on: same goals, two people, two protocols.

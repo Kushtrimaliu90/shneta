@@ -8,7 +8,14 @@ import { fail, ok, type ActionResult } from '@/lib/result';
 import { findBannedClaims } from '@/lib/claims';
 import { audit, requireCapability } from '@/features/admin/audit';
 import { BIOHACK_TAGS } from '@/features/biohack/config-loader';
-import { TIMING_SLOTS } from '@/features/biohack/types';
+import {
+  ACTIVITY_BANDS,
+  AGE_BANDS,
+  HEIGHT_BANDS,
+  SEX_BANDS,
+  TIMING_SLOTS,
+  WEIGHT_BANDS,
+} from '@/features/biohack/types';
 import type { Json } from '@/lib/supabase/database.types';
 
 /**
@@ -142,9 +149,30 @@ export async function createDraftConfig(): Promise<BioHackState> {
         logger.error('draft conflict copy failed', { cause: conflictError.message });
     }
 
+    /*
+     * The profile rules come with it.
+     *
+     * Easy to forget and expensive to forget: a draft without them looks complete, generates
+     * protocols that are quietly unpersonalised, and would take all eighteen rules live as deleted
+     * the moment it was approved. Anything hanging off `config_id` has to be copied here.
+     */
+    const { data: rules } = await supabase
+      .from('protocol_profile_rules')
+      .select('ingredient_id, when_profile, effect, reason_i18n, caution_i18n, active, sort_order')
+      .eq('config_id', sourceId);
+
+    if (rules && rules.length > 0) {
+      const { error: ruleError } = await supabase
+        .from('protocol_profile_rules')
+        .insert(rules.map((row) => ({ ...row, config_id: draft.id })));
+      if (ruleError) logger.error('draft profile rule copy failed', { cause: ruleError.message });
+    }
+
     await audit('biohack_config.draft_created', 'protocol_config', draft.id, null, {
       copied_from: sourceId,
       blocks: blocks?.length ?? 0,
+      conflicts: conflicts?.length ?? 0,
+      profile_rules: rules?.length ?? 0,
     });
 
     refresh();
@@ -596,6 +624,174 @@ export async function deleteConflict(
     return ok({ id: parsed.data.conflictId });
   } catch (error) {
     logger.error('deleteConflict threw', describeError(error));
+    return no('admin.errors.generic');
+  }
+}
+
+// ── Profile rules (docs/15 §9) ────────────────────────────────────────────────
+
+const profileRuleSchema = z.object({
+  configId: z.string().uuid(),
+  ruleId: z.string().uuid().optional(),
+  ingredientId: z.string().uuid().optional().or(z.literal('')),
+  weightDelta: z.coerce.number().int().min(-100).max(100).optional(),
+  exclude: z.coerce.boolean().optional(),
+  require: z.coerce.boolean().optional(),
+  servingsHint: z.coerce.boolean().optional(),
+  reasonSq: z.string().trim().min(10).max(400),
+  reasonEn: z.string().trim().min(10).max(400),
+  cautionSq: z.string().trim().max(400).optional(),
+  cautionEn: z.string().trim().max(400).optional(),
+  active: z.coerce.boolean().optional(),
+  sortOrder: z.coerce.number().int().min(0).max(9999).optional(),
+});
+
+/**
+ * Create or update one personalisation rule.
+ *
+ * The five band lists arrive as repeated checkboxes and are read with `getAll` for the reason
+ * docs/13 §Q3 records: `Object.fromEntries` keeps only the last value of a repeated key, which
+ * here would reduce "50–64 and 65+" to "65+" without any error.
+ *
+ * Written back as the snake_case jsonb the engine's mapper reads. The mapper narrows again on the
+ * way out, so a key this action does not write is inert rather than dangerous — but writing the
+ * wrong name here would produce a rule that saves cleanly and never fires, which is why the two
+ * shapes are stated once each and in the same vocabulary.
+ */
+export async function saveProfileRule(
+  _previous: BioHackState,
+  formData: FormData,
+): Promise<BioHackState> {
+  const gate = await requireCapability('biohack.manage');
+  if (!gate.ok) return no(gate.error);
+
+  const parsed = profileRuleSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return no('admin.errors.generic');
+
+  const input = parsed.data;
+
+  const banned = findBannedClaims(
+    [input.reasonSq, input.reasonEn, input.cautionSq ?? '', input.cautionEn ?? ''].join(' '),
+  );
+  if (banned.length > 0) return no('biohack.errors.bannedClaim');
+  if (!(await assertDraft(input.configId))) return no('biohack.errors.notDraft');
+
+  const bands = (field: string, allowed: readonly string[]): string[] =>
+    formData
+      .getAll(field)
+      .map(String)
+      .filter((value) => allowed.includes(value));
+
+  const when: Record<string, string[]> = {};
+  const put = (key: string, values: string[]) => {
+    if (values.length > 0) when[key] = values;
+  };
+  put('age_bands', bands('ageBands', AGE_BANDS));
+  put('sexes', bands('sexes', SEX_BANDS));
+  put('weight_bands', bands('weightBands', WEIGHT_BANDS));
+  put('height_bands', bands('heightBands', HEIGHT_BANDS));
+  put('activity', bands('activity', ACTIVITY_BANDS));
+  put('goals', formData.getAll('goals').map(String).filter(Boolean));
+
+  const effect: Record<string, number | boolean> = {};
+  if (input.weightDelta) effect.weight_delta = input.weightDelta;
+  if (input.exclude) effect.exclude = true;
+  if (input.require) effect.require = true;
+  if (input.servingsHint) effect.servings_hint = true;
+
+  /*
+   * An empty effect is refused. The column has a CHECK that would reject it anyway, and catching it
+   * here turns a constraint violation into a message — but the real reason is what an empty effect
+   * means: a rule that reads as active, carries a sentence the customer would be shown, and does
+   * nothing. The engine already declines to show its reason; the editor should decline to save it.
+   */
+  if (Object.keys(effect).length === 0) return no('admin.errors.generic');
+
+  const row = {
+    config_id: input.configId,
+    ingredient_id: input.ingredientId || null,
+    when_profile: when as unknown as Json,
+    effect: effect as unknown as Json,
+    reason_i18n: { sq: input.reasonSq, en: input.reasonEn } as unknown as Json,
+    caution_i18n:
+      input.cautionSq || input.cautionEn
+        ? ({ sq: input.cautionSq ?? '', en: input.cautionEn ?? '' } as unknown as Json)
+        : null,
+    active: Boolean(input.active),
+    sort_order: input.sortOrder ?? 0,
+  };
+
+  try {
+    const supabase = await createClient();
+
+    const { data, error } = input.ruleId
+      ? await supabase
+          .from('protocol_profile_rules')
+          .update(row)
+          .eq('id', input.ruleId)
+          .eq('config_id', input.configId)
+          .select('id')
+          .maybeSingle()
+      : await supabase.from('protocol_profile_rules').insert(row).select('id').maybeSingle();
+
+    if (error || !data) {
+      logger.error('saveProfileRule failed', { cause: error?.message });
+      return no('admin.errors.generic');
+    }
+
+    await audit(
+      input.ruleId ? 'biohack_profile_rule.updated' : 'biohack_profile_rule.created',
+      'protocol_profile_rule',
+      (data as { id: string }).id,
+      null,
+      { when, effect },
+    );
+
+    refresh();
+    return ok({ id: (data as { id: string }).id });
+  } catch (error) {
+    logger.error('saveProfileRule threw', describeError(error));
+    return no('admin.errors.generic');
+  }
+}
+
+const deleteRuleSchema = z.object({ configId: z.string().uuid(), ruleId: z.string().uuid() });
+
+export async function deleteProfileRule(
+  _previous: BioHackState,
+  formData: FormData,
+): Promise<BioHackState> {
+  const gate = await requireCapability('biohack.manage');
+  if (!gate.ok) return no(gate.error);
+
+  const parsed = deleteRuleSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return no('admin.errors.generic');
+  if (!(await assertDraft(parsed.data.configId))) return no('biohack.errors.notDraft');
+
+  try {
+    const supabase = await createClient();
+    const { error } = await supabase
+      .from('protocol_profile_rules')
+      .delete()
+      .eq('id', parsed.data.ruleId)
+      .eq('config_id', parsed.data.configId);
+
+    if (error) {
+      logger.error('deleteProfileRule failed', { cause: error.message });
+      return no('admin.errors.generic');
+    }
+
+    await audit(
+      'biohack_profile_rule.deleted',
+      'protocol_profile_rule',
+      parsed.data.ruleId,
+      null,
+      null,
+    );
+    refresh();
+    return ok({ id: parsed.data.ruleId });
+  } catch (error) {
+    logger.error('deleteProfileRule threw', describeError(error));
     return no('admin.errors.generic');
   }
 }

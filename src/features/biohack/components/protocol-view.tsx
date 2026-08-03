@@ -369,6 +369,38 @@ function ItemCard({
           {pickLocale(item.why, locale)}
         </p>
 
+        {/*
+          docs/15 §9 — why this item is here *for them*, beneath the PSE line that says why it is
+          here at all.
+          Rendered from the reasons a profile rule recorded, so a rule that changed nothing shows
+          nothing: the difference between a protocol that is personalised and one that merely says
+          it is.
+        */}
+        {item.profileReasons.length > 0 && (
+          /*
+           * A lime left border rather than a coloured label, because `lime-700` is not a token in
+           * this theme — only 400, 500 and 950 are (CLAUDE.md §9), and reaching for it would have
+           * silently rendered Tailwind's default lime instead of the brand's. The accent carries
+           * the distinction from the PSE line above it and the type stays on `forest-700`.
+           */
+          <ul className="flex flex-col gap-1 border-l-2 border-lime-500 pl-3">
+            {item.profileReasons.map((reason) => (
+              <li key={reason.sq} className="text-sm text-ink-900">
+                <span className="font-ui text-xs font-semibold tracking-wide text-forest-700">
+                  {t('profileWhy')}
+                </span>{' '}
+                {pickLocale(reason, locale)}
+              </li>
+            ))}
+          </ul>
+        )}
+
+        {item.servingsHint !== null && (
+          <p className="text-sm font-medium text-forest-800" data-numeric>
+            {t('servingsHint', { count: item.servingsHint })}
+          </p>
+        )}
+
         {item.comingSoon && <p className="text-xs text-ink-500">{t('comingSoonNote')}</p>}
       </div>
 

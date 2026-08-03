@@ -4,7 +4,7 @@ import type { Locale } from '@/lib/constants';
 import { SubmitButton } from '@/components/ui/submit-button';
 import { buttonVariants } from '@/components/ui/button';
 import { buildProtocol } from '@/features/biohack/actions';
-import { BUDGET_TIERS } from '@/features/biohack/schemas';
+import { asksLifeStage, BUDGET_TIERS, type ProtocolAnswers } from '@/features/biohack/schemas';
 
 /**
  * docs/15 §1 step 2 — the refinements, as one server-rendered form.
@@ -20,11 +20,14 @@ import { BUDGET_TIERS } from '@/features/biohack/schemas';
  */
 export async function RefineForm({
   goals,
+  answers,
   locale,
   backHref,
   budgetTiers,
 }: {
   goals: string[];
+  /** Step 2's answers, carried forward as hidden fields so this step can post the whole set. */
+  answers: ProtocolAnswers;
   locale: Locale;
   backHref: string;
   budgetTiers: number[];
@@ -47,6 +50,18 @@ export async function RefineForm({
         <input key={goal} type="hidden" name="goals" value={goal} />
       ))}
 
+      {/*
+        Step 2's bands, forwarded.
+        Only the ones that were actually answered: an empty `value` would reach the schema as `''`,
+        which is a validation failure rather than "not answered" — the distinction `singles()` in
+        `schemas.ts` exists to preserve.
+      */}
+      {answers.ageBand && <input type="hidden" name="ageBand" value={answers.ageBand} />}
+      {answers.sex && <input type="hidden" name="sex" value={answers.sex} />}
+      {answers.weightBand && <input type="hidden" name="weightBand" value={answers.weightBand} />}
+      {answers.heightBand && <input type="hidden" name="heightBand" value={answers.heightBand} />}
+      {answers.activity && <input type="hidden" name="activity" value={answers.activity} />}
+
       <RadioGroup
         name="diet"
         legend={t('dietLabel')}
@@ -68,21 +83,29 @@ export async function RefineForm({
       />
 
       {/*
-       * The gate. `required` on both radios and no default, unlike every other group here: this
-       * is the one answer the form must not guess. `buildProtocol` reads a missing value as "no",
-       * so the markup has to be what guarantees an answer was actually given.
+       * The gate — pregnancy and nursing only; under-18 now comes from the age band (docs/15 §9).
+       *
+       * `required` and no default, unlike every other group here: this is the one answer the form
+       * must not guess, because `buildProtocol` reads a missing value as "no".
+       *
+       * **Not asked of someone who answered `mashkull`.** It has an obvious answer for them, and a
+       * form that asks anyway reads as one that was not listening — which undermines the whole
+       * point of having just asked five questions about who they are. `asksLifeStage` decides, so
+       * the rule lives next to `isGated` rather than in the markup.
        */}
-      <RadioGroup
-        name="restrictedLifeStage"
-        legend={t('lifeStageLabel')}
-        hint={t('lifeStageHint')}
-        required
-        defaultValue={null}
-        options={[
-          { value: 'po', label: t('yes') },
-          { value: 'jo', label: t('no') },
-        ]}
-      />
+      {asksLifeStage(answers.sex) && (
+        <RadioGroup
+          name="restrictedLifeStage"
+          legend={t('lifeStageLabel')}
+          hint={t('lifeStageHint')}
+          required
+          defaultValue={null}
+          options={[
+            { value: 'po', label: t('yes') },
+            { value: 'jo', label: t('no') },
+          ]}
+        />
+      )}
 
       <RadioGroup
         name="medication"

@@ -109,3 +109,31 @@ the record of what compliance signed.
 **Acceptance:** an approved version offers no editing affordance; approving archives the previous
 version in the same action and purges `biohack-config` so the storefront switches immediately;
 `one_approved_protocol_config` makes two approved versions impossible at the database level.
+
+### 17.1 Profile tab (docs/15 §9)
+
+Where personalisation lives. Each row reads *for this kind of person, do this to this ingredient*,
+and the tab exists so the product manager who understands the nutrition can read and change it — the
+alternative was an `if` in the engine that nobody outside the repository could see.
+
+| Column   | What it holds                                                                                |
+| -------- | -------------------------------------------------------------------------------------------- |
+| Order    | Rules apply in `sort_order`, then by id, so the same profile always produces the same result   |
+| Target   | One ingredient, or every candidate                                                            |
+| Effect   | Score change (−100…100), remove, guarantee a place, or show the body-weight serving note      |
+| When     | Any combination of age / sex / weight / height / activity bands and chosen goals              |
+| Reason   | Required, both locales — the sentence the customer reads. Banned verbs rejected on save        |
+
+Two things the screen does that a tidier editor would not, both deliberate:
+
+- **It prints the raw stored jsonb** beside the human summary. The engine narrows `when` and
+  `effect` on the way out and silently drops what it does not recognise, so a rule can read as
+  active here and match nobody at runtime. Seeing what is stored is the only way to catch that.
+- **It flags a rule with no condition** as "matches everybody" and a rule with no effect as "does
+  nothing". The first is occasionally intended; the second never is, and is refused on save.
+
+**Acceptance:** an empty effect cannot be saved; a demotion cannot push a score below 1; starting a
+draft copies the profile rules along with the blocks and conflicts (a draft that silently lost them
+would take all of them live as deleted on approval); and the Simulator tab carries the same five
+bands with "—" for unanswered, so an editor can reproduce a customer who skipped the step and see
+the rules-fired count drop.

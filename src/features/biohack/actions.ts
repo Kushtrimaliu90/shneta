@@ -13,7 +13,7 @@ import { getCurrentUser } from '@/features/auth/queries';
 import { addToCart } from '@/features/cart/actions';
 import { getApprovedConfig, getProtocolCatalog } from '@/features/biohack/config-loader';
 import { generateProtocol } from '@/features/biohack/engine';
-import { budgetCeilingCents, readAnswerForm } from '@/features/biohack/schemas';
+import { budgetCeilingCents, isGated, readAnswerForm } from '@/features/biohack/schemas';
 import type { ProtocolInputs, ProtocolResult } from '@/features/biohack/types';
 import type { Json } from '@/lib/supabase/database.types';
 
@@ -86,8 +86,11 @@ export async function buildProtocol(formData: FormData): Promise<never> {
    * No config load, no engine, and above all **no row**. A protocol for someone who is pregnant,
    * nursing or under 18 must not exist even as a stored artefact with `gated: true` on it: there
    * is nothing to store, and the guidance screen is a static page that needs no record.
+   *
+   * `isGated` rather than a field, because under-18 is now derived from the age band while
+   * pregnancy is declared, and the two must be decided in one place (docs/15 §9).
    */
-  if (answers.restrictedLifeStage) {
+  if (isGated(answers)) {
     redirect(path(locale, '/kujdes'));
   }
 
@@ -125,6 +128,18 @@ export async function buildProtocol(formData: FormData): Promise<never> {
       medication: answers.medication,
       level: answers.level,
       budgetCents: budgetCeilingCents(answers.budget, config.settings.budgetTiers),
+      /*
+       * Spread rather than listed, so an omitted band stays omitted.
+       *
+       * The engine reads a missing band as "no rule applies". Writing the key explicitly with an
+       * undefined value would serialise into the stored `inputs` jsonb as null, which reads back
+       * as an answer that was given — and a stored protocol is meant to reproduce exactly.
+       */
+      ...(answers.ageBand ? { ageBand: answers.ageBand } : {}),
+      ...(answers.sex ? { sex: answers.sex } : {}),
+      ...(answers.weightBand ? { weightBand: answers.weightBand } : {}),
+      ...(answers.heightBand ? { heightBand: answers.heightBand } : {}),
+      ...(answers.activity ? { activity: answers.activity } : {}),
     };
 
     const result = generateProtocol(config, catalog, inputs);
