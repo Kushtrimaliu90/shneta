@@ -83,5 +83,11 @@ export const RATE_LIMITS = {
   finderSubmit: [10, 60 * 60],
   /** docs/15 §3 — generation is an unauthenticated write plus five reads. */
   protocolBuild: [10, 60 * 60],
+  /*
+   * docs/16 §4 — applying to sell is an unauthenticated write that creates a merchant row and can
+   * send an invite email. Three an hour per address: a real applicant submits once, and a mistake
+   * plus a retry is two.
+   */
+  merchantApply: [3, 60 * 60],
   orderLookup: [10, 60 * 60],
 } as const satisfies Record<string, readonly [number, number]>;

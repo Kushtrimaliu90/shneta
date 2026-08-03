@@ -1461,6 +1461,7 @@ export type Database = {
       merchants: {
         Row: {
           address: Json
+          application_note: string | null
           approved_at: string | null
           approved_by: string | null
           bank_name: string | null
@@ -1478,6 +1479,9 @@ export type Database = {
           rating_avg: number
           rating_count: number
           rejection_note: string | null
+          shipping_borne_by:
+            | Database["public"]["Enums"]["shipping_borne_by"]
+            | null
           ships_own: boolean
           slug: string
           status: Database["public"]["Enums"]["merchant_status"]
@@ -1489,6 +1493,7 @@ export type Database = {
         }
         Insert: {
           address: Json
+          application_note?: string | null
           approved_at?: string | null
           approved_by?: string | null
           bank_name?: string | null
@@ -1506,6 +1511,9 @@ export type Database = {
           rating_avg?: number
           rating_count?: number
           rejection_note?: string | null
+          shipping_borne_by?:
+            | Database["public"]["Enums"]["shipping_borne_by"]
+            | null
           ships_own?: boolean
           slug: string
           status?: Database["public"]["Enums"]["merchant_status"]
@@ -1517,6 +1525,7 @@ export type Database = {
         }
         Update: {
           address?: Json
+          application_note?: string | null
           approved_at?: string | null
           approved_by?: string | null
           bank_name?: string | null
@@ -1534,6 +1543,9 @@ export type Database = {
           rating_avg?: number
           rating_count?: number
           rejection_note?: string | null
+          shipping_borne_by?:
+            | Database["public"]["Enums"]["shipping_borne_by"]
+            | null
           ships_own?: boolean
           slug?: string
           status?: Database["public"]["Enums"]["merchant_status"]
@@ -3979,6 +3991,10 @@ export type Database = {
         Args: { p_fulfilment_id: string }
         Returns: Json
       }
+      merchant_settlement: {
+        Args: { p_items_subtotal_cents: number; p_merchant_id: string }
+        Returns: Json
+      }
       newsletter_confirm: { Args: { p_token: string }; Returns: Json }
       newsletter_subscribe: {
         Args: { p_email: string; p_locale?: string; p_source?: string }
@@ -4103,6 +4119,7 @@ export type Database = {
       product_status: "draft" | "pending_review" | "published" | "archived"
       review_status: "pending" | "approved" | "rejected"
       sex_band: "femer" | "mashkull" | "pa_percaktuar"
+      shipping_borne_by: "biocode" | "merchant" | "customer"
       stock_movement_type:
         | "received"
         | "sale"
@@ -4326,6 +4343,7 @@ export const Constants = {
       product_status: ["draft", "pending_review", "published", "archived"],
       review_status: ["pending", "approved", "rejected"],
       sex_band: ["femer", "mashkull", "pa_percaktuar"],
+      shipping_borne_by: ["biocode", "merchant", "customer"],
       stock_movement_type: [
         "received",
         "sale",

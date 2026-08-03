@@ -117,25 +117,71 @@ payload rather than by naming keys, so it still holds when somebody adds a field
 
 ---
 
-## 4–11 · Onboarding, portal, routing, money, admin
+## 4 · Onboarding — done
 
-Not yet built. §12's order is deliberate and step 1 gates the rest.
+- `merchant` added to `USER_ROLES`, and `STAFF_ROLES` rewritten as an **explicit non-staff list**.
+  It used to be `USER_ROLES.filter(r => r !== 'customer')`, so adding the role would silently have
+  made every merchant staff and opened `/admin` — the same trap as `is_staff()` in SQL, one layer up.
+- Five marketplace capabilities. `merchants.manage` and `payouts.manage` are admin-only: approving a
+  merchant sets a commission and a shipping arrangement, which is a commercial decision.
+- Middleware protects `/merchant/**` with `/merchant/apply` exempted by exact match.
+- A merchant reaching `/admin` gets **404**, not a redirect — a redirect confirms the surface exists
+  behind an authorisation check. Customers still get the redirect; they arrive by mistyping.
+- **Route collision resolved.** §5 puts the portal at `/merchant/**` and §9 the public seller page at
+  `/merchant/[slug]`; those cannot both resolve. The portal keeps fixed segments and the public page
+  moves to `/seller/[slug]`, so no dynamic segment ever sits beside a portal route.
+
+### The flow
+
+`/merchant/apply` (public, indexed, rate-limited 3/h per IP) → `merchants` row at `pending` +
+`merchant_users` membership + role `merchant` → applicant invited by email → uploads documents in the
+portal → `/admin/merchants/applications` → approve, request info, or reject.
+
+**Documents are uploaded after submission, and that ordering is forced rather than chosen.** The
+storage policy scopes writes to `merchants/<merchant_id>/`, which cannot exist before the merchant
+row does. The brief asks for the form to save drafts; an applicant has no account, so a draft would
+be either browser-local (lost on their other device) or a half-populated `merchants` row with no
+owner that the admin queue would have to learn to ignore. So the fields are grouped as the steps
+would have been and submitted once.
+
+### Decisions inside it
+
+- **Commission and shipping are set at approval**, as required inputs on the approve form. A merchant
+  going live on a commission nobody chose is a commercial decision made by a column default, first
+  noticed on a statement.
+- **Terms acceptance is recorded at submission**, not approval: the applicant accepted that version
+  on that date, and an admin approving them later does not change what they agreed to.
+- **`z.literal('on')` for both checkboxes.** An unchecked box is absent from the FormData, and
+  `z.coerce.boolean()` would turn `undefined` into `false` and pass — recording an acceptance that
+  never happened. Asserted in the suite.
+- **The slug is generated, never chosen.** A merchant picking its own slug is picking part of
+  BioCode's URL namespace; the first `biocode-official` attempt is a conversation nobody wants.
+- **IBAN is shown to reviewers as the last four digits only.** A review screen gets screenshotted.
+- **`request info` is not a status.** It writes the reviewer note and leaves the row `pending`, rather
+  than adding a fourth `merchant_status` value to handle everywhere for what is really a note.
+- **KYB documents have no update or delete policy for anyone.** A document is evidence of who somebody
+  claimed to be when they were approved; replacing one in place would leave the row pointing at
+  different bytes than the reviewer verified. A correction is a new upload.
+- **Documents open through a route handler that signs on click**, five-minute expiry. Signing at
+  render would mint URLs for documents nobody opens, sitting in the HTML of a page left open.
+
+### Tests
+
+`tests/integration/merchant-onboarding.test.ts` — 15 cases. The schema half (terms unchecked is
+refused, IBAN normalised, diacritics survive slugging) and the transition half (approval records the
+terms; `merchant_settlement` then returns 12.5% of €10 as €1.25 with €2.00 shipping and €6.75 due;
+approving twice does not move the terms; a **rejected** merchant loses access entirely while a
+**pending** one can still see its own application).
+
+The actions themselves are not unit-tested: they are `'use server'` modules reading `headers()` and
+`revalidatePath()`, neither of which exists outside a request. The click-through is step 9's job.
+
+Still to build: the portal shell itself (step 3), so an invited merchant currently has an account and
+nowhere to go but `/merchant/apply`.
+
 
 ---
 
-## 12 · Build order
-
-1. ~~Migration + `current_merchant_ids()` + full RLS isolation suite~~ — **done, 42 green**
-2. Merchant onboarding + admin application review + role/membership middleware
-3. Portal shell + offers CRUD + admin offer approval + buy box on PDP
-4. `route_order` + fulfilment model + `/admin/routing` + accept/decline/ship + partial shipments
-5. Ledger + payouts + statements
-6. Proposals; CSV bulk stock/price; scorecard
-7. Emails
-8. Optional auto-routing behind the setting
-9. E2E + a11y + perf; seed two demo merchants with overlapping SKUs
-
----
 
 ## 8 · Money — settled decisions
 
@@ -195,22 +241,23 @@ Two things to know about it:
   Do not "fix" it by making the prohibition vague.
 
 ---
+## 5–7, 9–11 · Portal, routing, admin surfaces
 
-## Step 2 progress
+Not yet built. §12 order below; step 3 is next.
 
-Groundwork done; the screens are not.
+---
 
-- `merchant` added to `USER_ROLES`, and `STAFF_ROLES` rewritten as an **explicit non-staff list**.
-  It used to be `USER_ROLES.filter(r => r !== 'customer')`, so adding the role would silently have
-  made every merchant staff and opened `/admin` — the same trap as `is_staff()` in SQL, one layer up.
-- Five marketplace capabilities. `merchants.manage` and `payouts.manage` are admin-only: approving a
-  merchant sets a commission and a shipping arrangement, which is a commercial decision.
-- Middleware protects `/merchant/**` with `/merchant/apply` exempted by exact match.
-- A merchant reaching `/admin` gets **404**, not a redirect — a redirect confirms the surface exists
-  behind an authorisation check. Customers still get the redirect; they arrive by mistyping.
-- **Route collision resolved.** §5 puts the portal at `/merchant/**` and §9 the public seller page at
-  `/merchant/[slug]`; those cannot both resolve. The portal keeps fixed segments and the public page
-  moves to `/seller/[slug]`, so no dynamic segment ever sits beside a portal route.
 
-Still to build in step 2: the `/merchant/apply` multi-step form, document upload to a private bucket,
-the applicant invite, and `/admin/merchants/applications`.
+## 12 · Build order
+
+1. ~~Migration + `current_merchant_ids()` + full RLS isolation suite~~ — **done, 42 green**
+2. ~~Merchant onboarding + admin application review + role/membership middleware~~ — **done, 15 green**
+3. Portal shell + offers CRUD + admin offer approval + buy box on PDP
+4. `route_order` + fulfilment model + `/admin/routing` + accept/decline/ship + partial shipments
+5. Ledger + payouts + statements
+6. Proposals; CSV bulk stock/price; scorecard
+7. Emails
+8. Optional auto-routing behind the setting
+9. E2E + a11y + perf; seed two demo merchants with overlapping SKUs
+
+---
