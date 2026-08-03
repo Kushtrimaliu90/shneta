@@ -1165,6 +1165,401 @@ export type Database = {
           },
         ]
       }
+      merchant_documents: {
+        Row: {
+          id: string
+          kind: string
+          merchant_id: string
+          storage_path: string
+          uploaded_at: string
+          verified: boolean
+          verified_by: string | null
+        }
+        Insert: {
+          id?: string
+          kind: string
+          merchant_id: string
+          storage_path: string
+          uploaded_at?: string
+          verified?: boolean
+          verified_by?: string | null
+        }
+        Update: {
+          id?: string
+          kind?: string
+          merchant_id?: string
+          storage_path?: string
+          uploaded_at?: string
+          verified?: boolean
+          verified_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "merchant_documents_merchant_id_fkey"
+            columns: ["merchant_id"]
+            isOneToOne: false
+            referencedRelation: "merchants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "merchant_documents_verified_by_fkey"
+            columns: ["verified_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "merchant_documents_verified_by_fkey"
+            columns: ["verified_by"]
+            isOneToOne: false
+            referencedRelation: "v_admin_customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      merchant_ledger: {
+        Row: {
+          amount_cents: number
+          created_at: string
+          created_by: string | null
+          fulfilment_id: string | null
+          id: string
+          kind: string
+          merchant_id: string
+          note: string | null
+        }
+        Insert: {
+          amount_cents: number
+          created_at?: string
+          created_by?: string | null
+          fulfilment_id?: string | null
+          id?: string
+          kind: string
+          merchant_id: string
+          note?: string | null
+        }
+        Update: {
+          amount_cents?: number
+          created_at?: string
+          created_by?: string | null
+          fulfilment_id?: string | null
+          id?: string
+          kind?: string
+          merchant_id?: string
+          note?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "merchant_ledger_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "merchant_ledger_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "v_admin_customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "merchant_ledger_fulfilment_id_fkey"
+            columns: ["fulfilment_id"]
+            isOneToOne: false
+            referencedRelation: "order_fulfilments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "merchant_ledger_merchant_id_fkey"
+            columns: ["merchant_id"]
+            isOneToOne: false
+            referencedRelation: "merchants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      merchant_offers: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          handling_days: number
+          id: string
+          low_stock_threshold: number
+          merchant_id: string
+          merchant_sku: string | null
+          price_cents: number
+          rejection_note: string | null
+          status: Database["public"]["Enums"]["offer_status"]
+          stock_on_hand: number
+          updated_at: string
+          variant_id: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          handling_days?: number
+          id?: string
+          low_stock_threshold?: number
+          merchant_id: string
+          merchant_sku?: string | null
+          price_cents: number
+          rejection_note?: string | null
+          status?: Database["public"]["Enums"]["offer_status"]
+          stock_on_hand?: number
+          updated_at?: string
+          variant_id: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          handling_days?: number
+          id?: string
+          low_stock_threshold?: number
+          merchant_id?: string
+          merchant_sku?: string | null
+          price_cents?: number
+          rejection_note?: string | null
+          status?: Database["public"]["Enums"]["offer_status"]
+          stock_on_hand?: number
+          updated_at?: string
+          variant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "merchant_offers_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "merchant_offers_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "v_admin_customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "merchant_offers_merchant_id_fkey"
+            columns: ["merchant_id"]
+            isOneToOne: false
+            referencedRelation: "merchants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "merchant_offers_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "product_variants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      merchant_payouts: {
+        Row: {
+          commission_cents: number
+          created_at: string
+          gross_cents: number
+          id: string
+          merchant_id: string
+          net_cents: number
+          note: string | null
+          paid_at: string | null
+          period_end: string
+          period_start: string
+          reference: string | null
+          status: Database["public"]["Enums"]["payout_status"]
+          updated_at: string
+        }
+        Insert: {
+          commission_cents: number
+          created_at?: string
+          gross_cents: number
+          id?: string
+          merchant_id: string
+          net_cents: number
+          note?: string | null
+          paid_at?: string | null
+          period_end: string
+          period_start: string
+          reference?: string | null
+          status?: Database["public"]["Enums"]["payout_status"]
+          updated_at?: string
+        }
+        Update: {
+          commission_cents?: number
+          created_at?: string
+          gross_cents?: number
+          id?: string
+          merchant_id?: string
+          net_cents?: number
+          note?: string | null
+          paid_at?: string | null
+          period_end?: string
+          period_start?: string
+          reference?: string | null
+          status?: Database["public"]["Enums"]["payout_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "merchant_payouts_merchant_id_fkey"
+            columns: ["merchant_id"]
+            isOneToOne: false
+            referencedRelation: "merchants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      merchant_users: {
+        Row: {
+          created_at: string
+          merchant_id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          merchant_id: string
+          role?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          merchant_id?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "merchant_users_merchant_id_fkey"
+            columns: ["merchant_id"]
+            isOneToOne: false
+            referencedRelation: "merchants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "merchant_users_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "merchant_users_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "v_admin_customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      merchants: {
+        Row: {
+          address: Json
+          approved_at: string | null
+          approved_by: string | null
+          bank_name: string | null
+          business_no: string
+          collects_cash: boolean
+          commission_pct: number
+          contact_email: string
+          contact_name: string
+          contact_phone: string
+          created_at: string
+          display_name: string
+          iban: string | null
+          id: string
+          legal_name: string
+          rating_avg: number
+          rating_count: number
+          rejection_note: string | null
+          ships_own: boolean
+          slug: string
+          status: Database["public"]["Enums"]["merchant_status"]
+          suspended_reason: string | null
+          terms_accepted_at: string | null
+          terms_version: string | null
+          updated_at: string
+          vat_no: string | null
+        }
+        Insert: {
+          address: Json
+          approved_at?: string | null
+          approved_by?: string | null
+          bank_name?: string | null
+          business_no: string
+          collects_cash?: boolean
+          commission_pct?: number
+          contact_email: string
+          contact_name: string
+          contact_phone: string
+          created_at?: string
+          display_name: string
+          iban?: string | null
+          id?: string
+          legal_name: string
+          rating_avg?: number
+          rating_count?: number
+          rejection_note?: string | null
+          ships_own?: boolean
+          slug: string
+          status?: Database["public"]["Enums"]["merchant_status"]
+          suspended_reason?: string | null
+          terms_accepted_at?: string | null
+          terms_version?: string | null
+          updated_at?: string
+          vat_no?: string | null
+        }
+        Update: {
+          address?: Json
+          approved_at?: string | null
+          approved_by?: string | null
+          bank_name?: string | null
+          business_no?: string
+          collects_cash?: boolean
+          commission_pct?: number
+          contact_email?: string
+          contact_name?: string
+          contact_phone?: string
+          created_at?: string
+          display_name?: string
+          iban?: string | null
+          id?: string
+          legal_name?: string
+          rating_avg?: number
+          rating_count?: number
+          rejection_note?: string | null
+          ships_own?: boolean
+          slug?: string
+          status?: Database["public"]["Enums"]["merchant_status"]
+          suspended_reason?: string | null
+          terms_accepted_at?: string | null
+          terms_version?: string | null
+          updated_at?: string
+          vat_no?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "merchants_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "merchants_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "v_admin_customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       newsletter_subscribers: {
         Row: {
           confirm_token: string | null
@@ -1256,11 +1651,108 @@ export type Database = {
           },
         ]
       }
+      order_fulfilments: {
+        Row: {
+          accepted_at: string | null
+          assigned_at: string | null
+          assigned_by: string | null
+          cancel_reason: string | null
+          carrier: string | null
+          commission_cents: number
+          created_at: string
+          delivered_at: string | null
+          fulfiller_kind: string
+          id: string
+          items_subtotal_cents: number
+          merchant_due_cents: number
+          merchant_id: string | null
+          order_id: string
+          packed_at: string | null
+          shipped_at: string | null
+          status: Database["public"]["Enums"]["fulfilment_status"]
+          tracking_code: string | null
+          updated_at: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          assigned_at?: string | null
+          assigned_by?: string | null
+          cancel_reason?: string | null
+          carrier?: string | null
+          commission_cents?: number
+          created_at?: string
+          delivered_at?: string | null
+          fulfiller_kind: string
+          id?: string
+          items_subtotal_cents?: number
+          merchant_due_cents?: number
+          merchant_id?: string | null
+          order_id: string
+          packed_at?: string | null
+          shipped_at?: string | null
+          status?: Database["public"]["Enums"]["fulfilment_status"]
+          tracking_code?: string | null
+          updated_at?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          assigned_at?: string | null
+          assigned_by?: string | null
+          cancel_reason?: string | null
+          carrier?: string | null
+          commission_cents?: number
+          created_at?: string
+          delivered_at?: string | null
+          fulfiller_kind?: string
+          id?: string
+          items_subtotal_cents?: number
+          merchant_due_cents?: number
+          merchant_id?: string | null
+          order_id?: string
+          packed_at?: string | null
+          shipped_at?: string | null
+          status?: Database["public"]["Enums"]["fulfilment_status"]
+          tracking_code?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_fulfilments_assigned_by_fkey"
+            columns: ["assigned_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_fulfilments_assigned_by_fkey"
+            columns: ["assigned_by"]
+            isOneToOne: false
+            referencedRelation: "v_admin_customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_fulfilments_merchant_id_fkey"
+            columns: ["merchant_id"]
+            isOneToOne: false
+            referencedRelation: "merchants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_fulfilments_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       order_items: {
         Row: {
           created_at: string
+          fulfilment_id: string | null
           id: string
           image_path: string | null
+          merchant_offer_id: string | null
           name_snapshot: string
           order_id: string
           product_id: string | null
@@ -1272,8 +1764,10 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          fulfilment_id?: string | null
           id?: string
           image_path?: string | null
+          merchant_offer_id?: string | null
           name_snapshot: string
           order_id: string
           product_id?: string | null
@@ -1285,8 +1779,10 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          fulfilment_id?: string | null
           id?: string
           image_path?: string | null
+          merchant_offer_id?: string | null
           name_snapshot?: string
           order_id?: string
           product_id?: string | null
@@ -1297,6 +1793,20 @@ export type Database = {
           variant_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "order_items_fulfilment_id_fkey"
+            columns: ["fulfilment_id"]
+            isOneToOne: false
+            referencedRelation: "order_fulfilments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_items_merchant_offer_id_fkey"
+            columns: ["merchant_offer_id"]
+            isOneToOne: false
+            referencedRelation: "merchant_offers"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "order_items_order_id_fkey"
             columns: ["order_id"]
@@ -1796,6 +2306,88 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_low_stock"
             referencedColumns: ["product_id"]
+          },
+        ]
+      }
+      product_proposals: {
+        Row: {
+          created_at: string
+          created_product_id: string | null
+          id: string
+          merchant_id: string
+          payload: Json
+          reviewed_at: string | null
+          reviewed_by: string | null
+          reviewer_note: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_product_id?: string | null
+          id?: string
+          merchant_id: string
+          payload: Json
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          reviewer_note?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_product_id?: string | null
+          id?: string
+          merchant_id?: string
+          payload?: Json
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          reviewer_note?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_proposals_created_product_id_fkey"
+            columns: ["created_product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_proposals_created_product_id_fkey"
+            columns: ["created_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_admin_inventory"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "product_proposals_created_product_id_fkey"
+            columns: ["created_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_low_stock"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "product_proposals_merchant_id_fkey"
+            columns: ["merchant_id"]
+            isOneToOne: false
+            referencedRelation: "merchants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_proposals_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_proposals_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "v_admin_customers"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -3350,6 +3942,7 @@ export type Database = {
         }
         Returns: string
       }
+      current_merchant_ids: { Args: never; Returns: string[] }
       generate_access_token: { Args: never; Returns: string }
       generate_order_number: { Args: never; Returns: string }
       get_shared_protocol: { Args: { p_code: string }; Returns: Json }
@@ -3358,6 +3951,7 @@ export type Database = {
         Returns: boolean
       }
       is_admin: { Args: never; Returns: boolean }
+      is_merchant: { Args: never; Returns: boolean }
       is_service_role: { Args: never; Returns: boolean }
       is_staff: { Args: never; Returns: boolean }
       list_public_coupons: {
@@ -3380,6 +3974,10 @@ export type Database = {
           p_ip?: string
         }
         Returns: undefined
+      }
+      merchant_fulfilment_view: {
+        Args: { p_fulfilment_id: string }
+        Returns: Json
       }
       newsletter_confirm: { Args: { p_token: string }; Returns: Json }
       newsletter_subscribe: {
@@ -3457,11 +4055,28 @@ export type Database = {
       conflict_kind: "exclude" | "caution" | "timing_rule"
       discount_type: "percentage" | "fixed" | "free_shipping"
       evidence_level: "strong" | "moderate" | "emerging" | "traditional"
+      fulfilment_status:
+        | "unassigned"
+        | "assigned"
+        | "accepted"
+        | "packed"
+        | "shipped"
+        | "delivered"
+        | "cancelled"
+        | "returned"
       height_band: "nen_160" | "160_169" | "170_179" | "180_189" | "190_plus"
+      merchant_status: "pending" | "approved" | "suspended" | "rejected"
+      offer_status:
+        | "draft"
+        | "pending_review"
+        | "approved"
+        | "rejected"
+        | "paused"
       order_status:
         | "pending"
         | "confirmed"
         | "processing"
+        | "partially_shipped"
         | "shipped"
         | "delivered"
         | "cancelled"
@@ -3473,6 +4088,7 @@ export type Database = {
         | "failed"
         | "refunded"
         | "partially_refunded"
+      payout_status: "pending" | "approved" | "paid" | "on_hold"
       product_form:
         | "capsule"
         | "tablet"
@@ -3509,6 +4125,7 @@ export type Database = {
         | "warehouse_manager"
         | "compliance_manager"
         | "admin"
+        | "merchant"
       weight_band: "nen_60" | "60_74" | "75_89" | "90_104" | "105_plus"
     }
     CompositeTypes: {
@@ -3656,11 +4273,30 @@ export const Constants = {
       conflict_kind: ["exclude", "caution", "timing_rule"],
       discount_type: ["percentage", "fixed", "free_shipping"],
       evidence_level: ["strong", "moderate", "emerging", "traditional"],
+      fulfilment_status: [
+        "unassigned",
+        "assigned",
+        "accepted",
+        "packed",
+        "shipped",
+        "delivered",
+        "cancelled",
+        "returned",
+      ],
       height_band: ["nen_160", "160_169", "170_179", "180_189", "190_plus"],
+      merchant_status: ["pending", "approved", "suspended", "rejected"],
+      offer_status: [
+        "draft",
+        "pending_review",
+        "approved",
+        "rejected",
+        "paused",
+      ],
       order_status: [
         "pending",
         "confirmed",
         "processing",
+        "partially_shipped",
         "shipped",
         "delivered",
         "cancelled",
@@ -3674,6 +4310,7 @@ export const Constants = {
         "refunded",
         "partially_refunded",
       ],
+      payout_status: ["pending", "approved", "paid", "on_hold"],
       product_form: [
         "capsule",
         "tablet",
@@ -3713,6 +4350,7 @@ export const Constants = {
         "warehouse_manager",
         "compliance_manager",
         "admin",
+        "merchant",
       ],
       weight_band: ["nen_60", "60_74", "75_89", "90_104", "105_plus"],
     },

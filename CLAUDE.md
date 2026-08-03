@@ -23,6 +23,7 @@ All specs live in `docs/`. Start every session by reading `docs/00-README.md`, t
 | Corrections and findings from every milestone                                | `docs/13-spec-corrections.md`                      |
 | Honest launch status, with evidence per checklist item                       | `docs/14-launch-readiness.md`                      |
 | The next feature: the BioHack Protocol Generator                             | `docs/15-biohack-protocol-generator.md`            |
+| The merchant marketplace (M12)                                               | `docs/16-merchant-marketplace.md`                  |
 
 Work through `docs/12-build-plan.md` milestone by milestone. Do not skip ahead; each milestone assumes the previous ones are merged and green.
 
