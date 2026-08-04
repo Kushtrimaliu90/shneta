@@ -75,7 +75,7 @@ Këto kushte rregullojnë përdorimin e këtij dyqani dhe çdo porosi të bërë
 
 [BIZNESI: plotëso — emri i regjistruar, numri unik i biznesit, numri fiskal, adresa e regjistruar]
 
-Adresa e kontaktit: info@shtrejt.com
+Adresa e kontaktit: info@biocode.fit
 
 ## 2. Produktet
 
@@ -135,7 +135,7 @@ Mund t'i përditësojmë këto kushte. Data e ndryshimit të fundit shfaqet në 
 
 Këto kushte rregullohen nga legjislacioni i Republikës së Kosovës. Mosmarrëveshjet zgjidhen nga gjykatat kompetente në Kosovë.
 
-Nëse ke një ankesë, na shkruaj së pari te info@shtrejt.com — përpiqemi ta zgjidhim drejtpërdrejt.
+Nëse ke një ankesë, na shkruaj së pari te info@biocode.fit — përpiqemi ta zgjidhim drejtpërdrejt.
 $md$, 'en', $md$
 These terms govern the use of this shop and every order placed through it. By placing an order, you accept them.
 
@@ -143,7 +143,7 @@ These terms govern the use of this shop and every order placed through it. By pl
 
 [BIZNESI: plotëso — registered name, business number, fiscal number, registered address]
 
-Contact address: info@shtrejt.com
+Contact address: info@biocode.fit
 
 ## 2. The products
 
@@ -203,7 +203,7 @@ We may update these terms. The date of the last change is shown at the top of th
 
 These terms are governed by the law of the Republic of Kosovo. Disputes are resolved by the competent courts in Kosovo.
 
-If you have a complaint, write to us first at info@shtrejt.com — we try to resolve things directly.
+If you have a complaint, write to us first at info@biocode.fit — we try to resolve things directly.
 $md$)
 where slug = 'terms' and body->>'sq' like '[LEGAL: review]%';
 
@@ -216,7 +216,7 @@ Kjo politikë shpjegon çfarë të dhënash mbledhim, pse, sa gjatë i mbajmë d
 
 [BIZNESI: plotëso — emri i regjistruar dhe adresa e regjistruar]
 
-Për çdo pyetje mbi të dhënat: info@shtrejt.com
+Për çdo pyetje mbi të dhënat: info@biocode.fit
 
 ## 2. Çfarë mbledhim
 
@@ -276,7 +276,7 @@ Sipas Ligjit Nr. 06/L-082 për Mbrojtjen e të Dhënave Personale ke të drejtë
 - ta tërheqësh pëlqimin;
 - të ankohesh te Agjencia për Informim dhe Privatësi.
 
-Nga faqja e llogarisë mund ta shkarkosh vetë një kopje të plotë të të dhënave të tua, në çdo kohë. Për fshirje, na shkruaj te info@shtrejt.com — përgjigjemi brenda 30 ditëve.
+Nga faqja e llogarisë mund ta shkarkosh vetë një kopje të plotë të të dhënave të tua, në çdo kohë. Për fshirje, na shkruaj te info@biocode.fit — përgjigjemi brenda 30 ditëve.
 
 Vër re: fshirja nuk i heq të dhënat e faturimit që ligji na detyron t'i ruajmë. Ato anonimizohen aty ku është e mundur.
 
@@ -298,7 +298,7 @@ This policy explains what data we collect, why, how long we keep it, and what ri
 
 [BIZNESI: plotëso — registered name and registered address]
 
-For any question about data: info@shtrejt.com
+For any question about data: info@biocode.fit
 
 ## 2. What we collect
 
@@ -358,7 +358,7 @@ Under Law No. 06/L-082 on Protection of Personal Data you have the right to:
 - withdraw consent;
 - complain to the Information and Privacy Agency.
 
-From your account page you can download a complete copy of your data yourself, at any time. For deletion, write to info@shtrejt.com — we respond within 30 days.
+From your account page you can download a complete copy of your data yourself, at any time. For deletion, write to info@biocode.fit — we respond within 30 days.
 
 Note that deletion does not remove invoicing records the law requires us to keep. Those are anonymised where possible.
 
@@ -408,13 +408,13 @@ Pagesa bëhet **në dorëzim, në cash**, te korrieri. Kontrollo paketën para s
 
 Korrieri provon dorëzimin dhe të kontakton në numrin që ke lënë. Nëse nuk mundet të të gjejë, paketa kthehet te ne dhe të njoftojmë me email.
 
-Nëse porosia nuk ka mbërritur brenda afatit, na shkruaj te info@shtrejt.com me numrin e porosisë dhe e ndjekim me korrierin.
+Nëse porosia nuk ka mbërritur brenda afatit, na shkruaj te info@biocode.fit me numrin e porosisë dhe e ndjekim me korrierin.
 
 ## E drejta e tërheqjes — 14 ditë
 
 Ke të drejtë ta anulosh porosinë brenda **14 ditësh** nga dita kur e ke marrë, pa dhënë asnjë arsye. Kjo është e drejta jote ligjore si konsumator në një shitje në distancë.
 
-Për ta ushtruar, na shkruaj te info@shtrejt.com brenda atij afati, me numrin e porosisë dhe artikujt që dëshiron të kthesh. Pastaj ke edhe 14 ditë të tjera për ta dërguar produktin mbrapa.
+Për ta ushtruar, na shkruaj te info@biocode.fit brenda atij afati, me numrin e porosisë dhe artikujt që dëshiron të kthesh. Pastaj ke edhe 14 ditë të tjera për ta dërguar produktin mbrapa.
 
 ### Çfarë mund të kthehet
 
@@ -440,7 +440,7 @@ Në këto raste ta zëvendësojmë produktin ose ta kthejmë të gjithë shumën
 
 ## Kontakti
 
-info@shtrejt.com — përgjigjemi brenda dy ditëve të punës.
+info@biocode.fit — përgjigjemi brenda dy ditëve të punës.
 $md$, 'en', $md$
 ## Where we deliver
 
@@ -471,13 +471,13 @@ Payment is **cash on delivery**, to the courier. Check the parcel before you pay
 
 The courier attempts delivery and contacts you on the number you left. If they cannot reach you, the parcel returns to us and we notify you by email.
 
-If your order has not arrived within the stated time, write to info@shtrejt.com with your order number and we will chase it with the courier.
+If your order has not arrived within the stated time, write to info@biocode.fit with your order number and we will chase it with the courier.
 
 ## Right of withdrawal — 14 days
 
 You have the right to cancel your order within **14 days** of receiving it, without giving any reason. This is your legal right as a consumer in a distance sale.
 
-To exercise it, write to info@shtrejt.com within that period with your order number and the items you wish to return. You then have a further 14 days to send the product back.
+To exercise it, write to info@biocode.fit within that period with your order number and the items you wish to return. You then have a further 14 days to send the product back.
 
 ### What can be returned
 
@@ -503,6 +503,6 @@ Every product we ship has at least **six months** remaining before its expiry da
 
 ## Contact
 
-info@shtrejt.com — we reply within two working days.
+info@biocode.fit — we reply within two working days.
 $md$)
 where slug = 'shipping-returns' and body->>'sq' like '[LEGAL: review]%';

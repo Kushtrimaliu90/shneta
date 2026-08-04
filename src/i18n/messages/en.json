@@ -1072,7 +1072,7 @@
       "sentNext": "Without the documents — at minimum the registration certificate — it cannot be approved.",
       "errorGeneric": "Something went wrong. Try again shortly.",
       "errorTooMany": "Too many applications from this connection. Wait an hour and try again.",
-      "errorDuplicate": "We already have an application for this business number. Contact info@shtrejt.com.",
+      "errorDuplicate": "We already have an application for this business number. Contact info@biocode.fit.",
       "errorInvalid": "Check the marked fields — something is not filled in correctly."
     },
     "portal": {

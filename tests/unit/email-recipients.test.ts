@@ -6,7 +6,7 @@ import { isUndeliverableRecipient } from '@/lib/email/recipients';
  *
  * Worth testing properly rather than trusting a regex, because the failure is silent and
  * expensive in both directions: too loose and every E2E run hard-bounces dozens of messages at
- * `shtrejt.com`'s reputation; too tight and a real customer stops receiving their order
+ * `biocode.fit`'s reputation; too tight and a real customer stops receiving their order
  * confirmation with nothing in the log but a skip.
  */
 describe('addresses that must never be sent to', () => {
@@ -40,7 +40,7 @@ describe('addresses that must never be sent to', () => {
 describe('addresses that must still be delivered', () => {
   it.each([
     ['kaliu@bkt.com.al', 'a real customer on a multi-part TLD'],
-    ['porosite@shtrejt.com', 'our own verified sending domain'],
+    ['porosite@biocode.fit', 'our own verified sending domain'],
     ['someone@gmail.com', 'the commonest recipient there is'],
     ['admin@biocode.dev', '.dev is a real TLD — the seeded staff accounts are reachable'],
     ['someone@testing.com', 'contains "test" but the TLD is com'],

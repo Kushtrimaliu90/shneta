@@ -76,7 +76,7 @@ async function main(): Promise<void> {
         '',
         'Add to .env.local:',
         '  RESEND_API_KEY=re_…',
-        '  EMAIL_FROM="BIOCODE <porosite@shtrejt.com>"',
+        '  EMAIL_FROM="BIOCODE <porosite@biocode.fit>"',
       ].join('\n'),
     );
   }

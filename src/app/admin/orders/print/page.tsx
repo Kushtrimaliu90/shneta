@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { BrandMark } from '@/components/storefront/brand-mark';
 import type { Metadata } from 'next';
 import { formatPrice } from '@/lib/money';
+import { siteHost } from '@/lib/site';
 import { pickLocale } from '@/lib/i18n';
 import { getProfile } from '@/features/auth/queries';
 import { can } from '@/features/admin/roles';
@@ -92,7 +93,8 @@ export default async function PrintOrdersPage({ searchParams }: Props) {
                 default tone because invoice stock is white.
               */}
               <BrandMark />
-              <p className="mt-0.5 text-xs text-ink-600">Prishtinë, Kosovë · shtrejt.com</p>
+              {/* The host from `NEXT_PUBLIC_SITE_URL`; it was a literal, and the domain has moved twice. */}
+              <p className="mt-0.5 text-xs text-ink-600">Prishtinë, Kosovë · {siteHost}</p>
             </div>
             <div className="text-right">
               <p className="font-ui text-xs font-semibold tracking-wide text-ink-600 uppercase">

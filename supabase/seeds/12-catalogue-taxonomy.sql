@@ -244,7 +244,7 @@ insert into brands (id, slug, name, description, country_code, website_url, sort
 
  ('a1000000-0000-4000-8000-000000000006','biocode','BIOCODE',
   '{"sq":"Aksesorët dhe pakot tona. Gjëra praktike që i shtojmë vetëm kur nuk e gjejmë mirë të bërë nga të tjerët.","en":"Our own accessories and bundles. Practical things we add only when we cannot find them well made elsewhere."}'::jsonb,
-  'XK','https://www.shtrejt.com',13,
+  'XK','https://biocode.fit',13,
   '{"title":{"sq":"Aksesorë dhe pako BIOCODE","en":"BIOCODE accessories and bundles"},"description":{"sq":"Shaker, kuti dozimi dhe pako të kuruara nga BIOCODE.","en":"Shakers, organisers and curated bundles from BIOCODE."}}'::jsonb)
 on conflict (slug) do update set
   description = excluded.description, country_code = excluded.country_code,

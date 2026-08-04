@@ -11,7 +11,7 @@
  * resolve** — and an address that cannot resolve is a hard bounce, every time.
  *
  * Hard-bounce rate is the single fastest way to destroy a new sending domain's reputation.
- * Providers suspend accounts over it, and the damage is not undone by stopping: `shtrejt.com`
+ * Providers suspend accounts over it, and the damage is not undone by stopping: `biocode.fit`
  * would arrive at launch already distrusted, with every order confirmation going to spam.
  *
  * ─────────────────────────────────────────────────────────────────────────────────────────

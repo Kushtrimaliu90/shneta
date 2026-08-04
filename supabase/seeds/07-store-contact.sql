@@ -26,7 +26,7 @@
 update settings
 set value = jsonb_build_object(
       'name', 'BIOCODE',
-      'email', 'info@shtrejt.com',
+      'email', 'info@biocode.fit',
       'phone', '',
       'address', 'Prishtinë, Kosovë',
       'instagram', '',

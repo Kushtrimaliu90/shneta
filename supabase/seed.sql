@@ -17,14 +17,19 @@
 -- Settings (docs/03 §13, docs/11 §1)
 -- -----------------------------------------------------------------------------
 /*
- * The brand is BIOCODE; the registered domain is **shtrejt.com**, verified in Resend with
- * SPF/DKIM/DMARC. The two are deliberately different: biocode.com was not available, and a
- * contact address has to sit on the domain that actually holds the DNS records — a From:
- * address on an unverified domain goes straight to spam.
+ * The brand is BIOCODE and the domain is now **biocode.fit**, which is the second one it has had:
+ * `biocode.com` was unavailable, so `shtrejt.com` was registered to hold the DNS and the Resend
+ * records, and the shop was served from it until the migration in seed 14.
  *
- * The same string is hardcoded in two other places, and all three must move together if the
- * domain ever does: the invoice/packing-slip header (`app/admin/orders/print`) and the SEO
- * preview in the product editor.
+ * A contact address has to sit on a domain that is verified in Resend, so this value and the
+ * `EMAIL_FROM` variable move together with the DNS — a From: address on an unverified domain goes
+ * straight to spam.
+ *
+ * **This is now the only hardcoded hostname in the project.** The two that used to accompany it —
+ * the invoice header and the product editor's SEO preview — read `NEXT_PUBLIC_SITE_URL` through
+ * `lib/site.ts`, because a literal in a component is a string nobody finds during a migration. This
+ * one stays a value rather than a derivation on purpose: a contact address is a decision about who
+ * reads the mail, not a consequence of where the site is served.
  *
  * Social handles are `biocode` — those are account names, not DNS, and only change if the
  * owner cannot claim them. Replace with the real handles before launch.
@@ -45,7 +50,7 @@ insert into settings (key, value) values
    */
   ('store', jsonb_build_object(
       'name', 'BIOCODE',
-      'email', 'info@shtrejt.com',
+      'email', 'info@biocode.fit',
       'phone', '',
       'address', 'Prishtinë, Kosovë',
       'instagram', '',

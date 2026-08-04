@@ -35,8 +35,8 @@ function parse(contents: string): Record<string, string> {
 
 describe('envFromLocalFile', () => {
   it('unwraps double quotes, which EMAIL_FROM requires', () => {
-    const env = parse('EMAIL_FROM="BIOCODE <porosite@shtrejt.com>"\n');
-    expect(env.EMAIL_FROM).toBe('BIOCODE <porosite@shtrejt.com>');
+    const env = parse('EMAIL_FROM="BIOCODE <porosite@biocode.fit>"\n');
+    expect(env.EMAIL_FROM).toBe('BIOCODE <porosite@biocode.fit>');
   });
 
   it('unwraps single quotes too', () => {

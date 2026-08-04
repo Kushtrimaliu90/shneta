@@ -758,3 +758,59 @@ site and the live database on the day.
 
 `/seller/[slug]`, a merchant switcher, batch withdrawal, "submit all drafts", and cleanup of abandoned
 uploads — each is listed with its reasoning in §19.
+
+## 21 · The domain moves to `biocode.fit`
+
+The brand is BIOCODE. `biocode.com` was unavailable, so `shtrejt.com` was registered to hold the DNS and
+the Resend records, and the shop has been served from it since launch prep. The brand now has
+**biocode.fit**, so the two finally agree.
+
+Sections above still name the old domain where they are describing what happened at the time — the
+doubled-slash incident in §20 was on `shtrejt.com`, and rewriting that would make the record wrong.
+
+### Moved in code and content — nothing left to do
+
+- **Everything that links somewhere already derived from `NEXT_PUBLIC_SITE_URL`**: canonicals, hreflang,
+  `robots.txt`, `sitemap.xml`, auth callbacks, the links in fourteen email templates. Verified on a build
+  with the new value: **495 sitemap URLs on `biocode.fit`, zero doubled slashes, zero old-domain
+  references.**
+- **The two display-only hostnames that were literals now read it too**, via `lib/site.ts`: the
+  invoice/packing-slip header and the SEO preview in the product editor. These were the ones docs/14 §6
+  warned "must move together" — and a literal in a component is exactly what a migration misses, so the
+  literal is gone rather than updated.
+- **One customer-facing string had it hardcoded in both locales** — the merchant-application duplicate
+  error told an applicant to write to `info@shtrejt.com`. Fixed in `sq` and `en`.
+- **Content moved in the database**: `settings.store.email`, the BIOCODE brand's website, and 14
+  occurrences of the contact address across terms, privacy and shipping-returns, in both locales. Applied
+  by `supabase/seeds/14-domain-biocode-fit.sql`; the source seeds were edited too so a fresh `db reset`
+  produces the new domain.
+
+  That seed had to exist as a *new file* because a changed seed is not re-run — the push output said
+  `Updating seed hash to supabase/seeds/06-static-pages.sql...` and skipped the statements, which is
+  docs/13 §U1 demonstrating itself.
+
+### What only the owner can do — `runbooks/deploy.md` §5 has the ordered version
+
+Three of these break the live site if done in the wrong order, which is why the runbook exists rather
+than a list here:
+
+1. Own `biocode.fit`, add it to Vercel with `www` redirecting to the apex, point DNS at Vercel.
+2. **Supabase → Auth → URL Configuration** *before* step 4: add the new site URL to the redirect
+   allowlist, or every password-reset link in flight dies the moment the variable flips.
+3. **Resend → verify `biocode.fit`**, then move `EMAIL_FROM` to `porosite@biocode.fit`. Not before:
+   sending from an unverified domain is accepted and then filed as spam, so `email_log` says `sent` and
+   the customer has nothing.
+4. Flip `NEXT_PUBLIC_SITE_URL` to `https://biocode.fit` — no trailing slash — and **redeploy**, because
+   it is read at build time.
+5. Redirect `shtrejt.com` → `biocode.fit` at the Vercel domain level, permanent, and **keep it for at
+   least a year**. Removing the old domain instead of redirecting it throws away every accumulated
+   ranking signal and breaks every link in the wild.
+6. Search Console: add the new property, submit the sitemap, then **Change of address** on the old one.
+7. MX for `info@biocode.fit` — the legal pages now tell customers to write there, so it has to receive.
+
+### One thing to decide
+
+Apex or `www`. The runbook assumes **apex** (`https://biocode.fit`) with `www` redirecting to it, because
+the name is short and it reads better in print. Whichever is chosen has to match `NEXT_PUBLIC_SITE_URL`
+exactly — a canonical that names one and a server that serves the other is duplicate content, and it is
+the kind of mistake that costs three months of indexing.

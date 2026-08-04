@@ -6,6 +6,7 @@ import { Alert } from '@/components/ui/alert';
 import { buttonVariants } from '@/components/ui/button';
 import { SubmitButton } from '@/components/ui/submit-button';
 import { fromCents } from '@/lib/money';
+import { siteHost } from '@/lib/site';
 import { pickLocale, type LocalizedField } from '@/lib/i18n';
 import { CATALOG_ERRORS, DIETARY_TAGS, PRODUCT_FORMS } from '@/features/catalog/admin-copy';
 import {
@@ -910,7 +911,15 @@ function SeoTab({ product }: { product: AdminProduct }) {
       {/* Roughly what a search result looks like — enough to judge truncation, not a mock-up. */}
       <div className="rounded-lg border border-line bg-surface p-4">
         <p className="text-xs font-semibold tracking-wide text-ink-600 uppercase">Preview</p>
-        <p className="mt-2 text-sm text-ink-500">shtrejt.com › product › {product.slug}</p>
+        {/*
+          The host comes from `NEXT_PUBLIC_SITE_URL`, not from a literal.
+          It was hardcoded, and the domain has now moved twice — biocode.com was unavailable, so
+          shtrejt.com held the DNS, and the brand later got biocode.fit. Each move meant hunting for
+          the string in files nobody associates with a domain: an SEO preview and an invoice header.
+        */}
+        <p className="mt-2 text-sm text-ink-500">
+          {siteHost} › product › {product.slug}
+        </p>
         <p className="truncate text-base text-forest-800 underline underline-offset-2">
           {values.titleSq || derivedTitle || product.slug}
         </p>

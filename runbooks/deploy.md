@@ -26,7 +26,7 @@ loudly instead of 500-ing later.
 
 | Variable                                              | Prod                  | Preview         | Notes                                                    |
 | ----------------------------------------------------- | --------------------- | --------------- | -------------------------------------------------------- |
-| `NEXT_PUBLIC_SITE_URL`                                | `https://shtrejt.com` | preview URL     | Drives canonicals, hreflang, `robots.txt`, sitemap       |
+| `NEXT_PUBLIC_SITE_URL`                                | `https://biocode.fit` | preview URL     | Drives canonicals, hreflang, `robots.txt`, sitemap       |
 | `NEXT_PUBLIC_SUPABASE_URL`                            | prod project          | staging project |                                                          |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY`                       | prod                  | staging         | Public by design                                         |
 | `SUPABASE_SERVICE_ROLE_KEY`                           | prod                  | staging         | **Secret.** Bypasses RLS. Never `NEXT_PUBLIC_`           |
@@ -42,13 +42,13 @@ Generate secrets with `openssl rand -base64 32`.
 > **Preview deployments must not point at production Supabase.** Every PR preview would
 > then write to real data, and `pnpm test:integration` writes to whatever it is aimed at.
 
-### Domain: `shtrejt.com`, registered at Cloudflare, hosted on Vercel
+### Domain: `biocode.fit`, registered at Cloudflare, hosted on Vercel
 
 A normal split — Cloudflare is the registrar and authoritative DNS, Vercel serves the app.
 Nothing in the codebase cares, because the domain reaches the app only through
 `NEXT_PUBLIC_SITE_URL`.
 
-1. **Vercel → Project → Settings → Domains → Add** `shtrejt.com` and `www.shtrejt.com`.
+1. **Vercel → Project → Settings → Domains → Add** `biocode.fit` and `www.biocode.fit`.
    Vercel prints the records it wants.
 2. **Cloudflare → DNS → Records.** Add what Vercel asked for — normally an `A` record on the
    apex to Vercel's anycast address and a `CNAME` on `www` to `cname.vercel-dns.com`.
@@ -69,13 +69,13 @@ Nothing in the codebase cares, because the domain reaches the app only through
    it serves the site over HTTP to the origin and breaks `Secure` cookies, which is every
    auth and cart cookie this app sets.
 5. Wait for Vercel to show **Valid Configuration**, then set
-   `NEXT_PUBLIC_SITE_URL=https://shtrejt.com` in Production and redeploy. It is read at build
+   `NEXT_PUBLIC_SITE_URL=https://biocode.fit` in Production and redeploy. It is read at build
    time, so the redeploy is required — without it `robots.txt`, the sitemap and every
    canonical still point at the old host.
 
 ### Email lives on the same domain
 
-Resend must verify **shtrejt.com**, and its SPF/DKIM/DMARC records go in the same Cloudflare
+Resend must verify **biocode.fit**, and its SPF/DKIM/DMARC records go in the same Cloudflare
 DNS zone. Those are TXT records and are safe to leave proxy-off (TXT cannot be proxied).
 `EMAIL_FROM` then has to be an address on that domain — a `From:` on an unverified domain is
 delivered to spam, which for an order confirmation is the same as not sending it.
@@ -117,7 +117,7 @@ the production Supabase project first (`supabase link --project-ref <prod>` then
 ## 3 · Post-deploy smoke test
 
 ```bash
-BASE=https://shtrejt.com
+BASE=https://biocode.fit
 
 curl -s $BASE/api/health                     # {"status":"ok","database":"ok",...}
 curl -s -o /dev/null -w "%{http_code}\n" $BASE/            # 200, lang="sq"
@@ -134,7 +134,7 @@ Also confirm in the Vercel dashboard: the cron is registered, and the function r
 E2E against the deployed target:
 
 ```bash
-E2E_BASE_URL=https://shtrejt.com pnpm test:e2e
+E2E_BASE_URL=https://biocode.fit pnpm test:e2e
 ```
 
 ---
@@ -178,3 +178,92 @@ Verify alerting actually fires before relying on it — an untested alert is not
   defeat the ISR strategy in `docs/02 §5` (`docs/13 §F3`).
 - **Only the housekeeping cron route exists.** Declaring crons for routes that do not exist
   yet would generate 404s and alert noise, so they are added with their milestones.
+
+---
+
+## 5 · Moving the domain (done once, for `shtrejt.com` → `biocode.fit`)
+
+Kept because a domain move is exactly the kind of task that is done under time pressure with half
+the steps remembered, and because the **order matters**: three of these break the live site if run
+early.
+
+### What is already done in the code
+
+Nothing here needs a code change. The work below is dashboards and DNS.
+
+- Everything that links somewhere derives from `NEXT_PUBLIC_SITE_URL`: canonicals, hreflang,
+  `robots.txt`, `sitemap.xml`, auth callbacks, the links in every email template.
+- The two display-only hostnames that used to be literals — the invoice/packing-slip header and the
+  SEO preview in the product editor — read it too, via `lib/site.ts`.
+- The contact address in the legal pages, `settings.store.email` and the BIOCODE brand's website are
+  content: moved by `supabase/seeds/14-domain-biocode-fit.sql`, and the source seeds (06, 07, 12,
+  `seed.sql`) were edited so a fresh `db reset` produces the new domain too.
+
+### The order, and why
+
+**1 · Own the domain.** Registrar of choice; Cloudflare if you want DNS and registration together.
+
+**2 · Add it to Vercel** → Settings → Domains → Add `biocode.fit` and `www.biocode.fit`. Set the
+apex as **primary** and `www` as a redirect to it. Add the DNS records Vercel prints, **DNS-only /
+grey cloud** if the zone is on Cloudflare — see §1 for the three separate things the orange cloud
+breaks, one of which is a checkout outage.
+
+Both domains now serve the app. Nothing has changed for a visitor yet.
+
+**3 · Supabase → Authentication → URL Configuration.** Set Site URL to `https://biocode.fit` and add
+it to the redirect allowlist, keeping `shtrejt.com` in the list for now.
+
+> **Before step 4, not after.** Password resets and email confirmations are built as
+> `${NEXT_PUBLIC_SITE_URL}/api/auth/callback`, and Supabase refuses to redirect to a URL that is not
+> allowlisted. Flip the variable first and every reset link in flight dies silently — the customer
+> clicks and lands on an error, which reads as a broken account rather than a misconfigured allowlist.
+
+**4 · Resend → Domains → Add `biocode.fit`**, put the SPF/DKIM/DMARC TXT records in DNS, wait for
+Verified. Only then change `EMAIL_FROM` to `BIOCODE <porosite@biocode.fit>`.
+
+> Sending from an address on a domain Resend has not verified is worse than not sending: the mail is
+> accepted, then filed as spam, so `email_log` says `sent` and the customer has no confirmation.
+> Keep the old `EMAIL_FROM` until the new domain is Verified, then switch — the two are independent.
+
+**5 · Flip `NEXT_PUBLIC_SITE_URL` to `https://biocode.fit`** in Vercel → Production, and
+**redeploy**. It is read at build time, so without the redeploy the canonicals, the sitemap and
+`robots.txt` all still name the old host.
+
+> No trailing slash. `z.url()` accepts one and every consumer builds `${origin}/path`, which put
+> `https://www.shtrejt.com//` in the live sitemap as the canonical home page — the parser strips it
+> now, but a value that needs stripping is still a value somebody typed wrong (docs/13 §20).
+
+**6 · Redirect the old domain.** In Vercel → Domains, edit `shtrejt.com` and `www.shtrejt.com` to
+**Redirect to `biocode.fit`**, permanent (308). Keep them attached — do not remove them:
+
+- every link on the internet to a product page still resolves, with the path preserved;
+- Google transfers the ranking signals it has accumulated, which is the entire point of a 301/308
+  rather than a fresh start;
+- customers who bookmarked an order-lookup URL still get to their order.
+
+Keep the redirect for **at least a year**, and keep the registration for as long as anybody might
+still click an old link — the cost is a renewal fee against losing traffic you already earned.
+
+**7 · Google Search Console.** Add `biocode.fit` as a property, verify, submit `sitemap.xml`. Then on
+the **old** property use **Settings → Change of address** and point it at the new one. That tells
+Google the move is deliberate rather than a mass 404, and it is the difference between a two-week
+transfer and a two-month one.
+
+**8 · Update the store contact address** if the mailbox is changing too: `info@biocode.fit` has to
+receive mail before the legal pages tell customers to write to it. Seed 14 already changed what the
+pages say; MX records for the new domain are yours to set.
+
+### Verifying the move
+
+```bash
+BASE=https://biocode.fit
+
+curl -s $BASE/api/health | jq .commit                     # the deploy that answered
+curl -s $BASE/robots.txt | grep Sitemap                   # absolute, no doubled slash
+curl -s $BASE/sitemap.xml | grep -c "biocode.fit"         # every URL on the new host
+curl -sI https://shtrejt.com/en/shop | grep -i location   # 308 → biocode.fit/en/shop
+pnpm email:test you@example.com                           # one `sent` row in email_log
+```
+
+Then sign out, request a password reset, and click the link. That single flow exercises steps 3, 4
+and 5 together, and it is the one nobody tests until a customer reports it.
