@@ -472,9 +472,63 @@ No update or delete policy exists on the ledger for anyone, including admin. A c
 
 ## 9 · Proposals, bulk updates and the scorecard
 
-**A proposal is an argument, not a draft product.** Approving records a decision and creates no product:
-a product needs a slug, SEO copy, ingredients, images and a compliance pass, and anything else would be
-merchant-created listings with a delay.
+**A proposal is an argument.** It carries what the merchant knows — name, brand, form, barcode, a link to
+the manufacturer, the stock it holds, what it would ask — and **photographs of the box**. BioCode decides.
+
+### What approving does, and the line it does not cross
+
+Approving records the decision **and creates a draft product** carrying the merchant's photographs, name,
+brand and form (`promote_proposal_to_draft` + `promoteProposal`).
+
+This reverses the first shape of this section, which said approving creates no product on the reasoning
+that anything else was merchant-created listings with a delay. Two facts moved the line:
+
+- **`created_product_id` has existed on `product_proposals` since the M12 migration** and was wired to
+  nothing. The schema always anticipated the link.
+- **A draft cannot reach a customer.** `search_products`, `listProducts` and `getProduct` all read through
+  the anon client, whose RLS policy on `products` is `status = 'published'`, and publishing needs
+  `compliance.approve` — which neither the merchant nor the product manager approving the proposal holds.
+
+So the honest reading of "an approved photograph appears on the site" is: it appears the moment the
+product is published, and nobody's photograph reaches a customer without a compliance officer having
+looked. What a proposal produces is a head start for the catalogue team — the price is written as the
+merchant's asking price and flagged provisional, and the copy, the ingredients, the warnings and the
+compliance pass are all still ahead of it.
+
+**Why images are the one thing the merchant may supply.** The form still refuses to ask for a description
+or ingredients: those are the listing, and asking a merchant to draft them is asking it to write one. A
+photograph is different — the merchant is holding the box, and it is the only party that can photograph
+it. Clause 14 of the terms (version `1.1`) makes it warrant that it holds the rights and that the images
+depict the real product, which is a promise rather than a guarantee, so the review screen shows the
+photographs and says plainly that approving publishes them.
+
+### The mechanics worth knowing
+
+- **The bytes go from the browser**, to a **private** `merchant-proposals` bucket under
+  `proposals/<merchant_id>/`, before the proposal row exists — the merchant id is known while the form is
+  still being filled. A server action's body is capped at 1 MB and a phone photograph is routinely larger,
+  so posting six through an action would reject exactly the uploads this exists to collect. Six images,
+  2 MB each, four formats; the client mirrors the bucket's limits so nothing accepted here is refused there.
+- **The paths are verified, not trusted.** `submitProposal` reads them with `getAll` (`Object.fromEntries`
+  keeps only the last of a repeated key, so the Zod schema cannot see them at all) and refuses any path
+  outside this merchant's own folder. The storage policy already stops the *upload*; nothing stops a
+  crafted submission naming somebody else's object, and approval copies images onto a public page.
+- **The reviewer sees them through `/admin/merchants/proposal-image`**, which re-checks `offers.review`,
+  constrains the path to the `proposals/` prefix, and redirects to a 5-minute signed URL. Signing every
+  image at render time would mint URLs for photographs nobody opens, each valid for its whole expiry in
+  the HTML of a queue left open all afternoon.
+- **Promotion copies rather than moves.** `products/<product_id>/…` is exactly where the product editor
+  puts its own uploads, so an image that arrived this way is indistinguishable from one a product manager
+  added — a reviewer reordering them should not have to know. The original stays in the private bucket as
+  the merchant's evidence of what it proposed.
+- **Image failures are counted, not thrown.** A draft whose third photograph did not copy is something a
+  reviewer fixes in the editor; a throw would leave the approval half-applied. For the same reason, a
+  failed promotion does **not** fail the approval — the decision is recorded and the merchant is told.
+- **Promotion is idempotent** (`created_product_id is not null` returns early), so a stale tab cannot mint
+  a second product.
+- **The form is taken only when it names a `product_form` member**, matched case-insensitively and loosely
+  singularised. The field is free text on purpose — a merchant knows forms BioCode does not — so a bare
+  cast would throw on a valid proposal. See docs/13 §X11.
 
 **Bulk update is a paste, not an upload** — the real workflow is "open the spreadsheet, select the
 columns, copy". The export sits above the paste box so a merchant editing the sheet it was given has the
@@ -497,9 +551,14 @@ decides revenue and cannot be seen by the party it measures is a secret.
 
 ## 10–11 · Terms and admin surfaces — done
 
-Terms live at `/legal/marketplace-terms`, version `1.0`, and are recorded at submission with their
-version. Admin surfaces: applications, offers, proposals, routing, payouts — each behind the capability
-docs/01 §3 gives it, and each re-checked inside the SQL so a future cron cannot route around the page.
+Terms live at `/legal/marketplace-terms`, **version `1.1`**, and are recorded at submission with their
+version. 1.1 adds clause 14 — the images and content a seller supplies, and the rights it warrants it
+holds in them — which is what §9's photograph upload rests on. Merchants who accepted `1.0` are **not**
+re-prompted: there is no re-acceptance flow, and that gap is recorded in docs/14 §19 as the item the
+30-day notice clause hangs off.
+
+Admin surfaces: applications, offers, proposals, routing, payouts — each behind the capability docs/01 §3
+gives it, and each re-checked inside the SQL so a future cron cannot route around the page.
 
 ---
 
@@ -508,11 +567,16 @@ docs/01 §3 gives it, and each re-checked inside the SQL so a future cron cannot
 | Suite       | Count | What it is for                                                     |
 | ----------- | ----- | ------------------------------------------------------------------ |
 | Unit        | 276   | Pure logic: money, CSV parsing, payout periods, schemas, error keys |
-| Integration | 311   | RLS, triggers, and every SQL function, against a real database      |
-| E2E         | 476   | The journeys and a11y, on desktop and a 390 px viewport             |
+| Integration | 319   | RLS, triggers, and every SQL function, against a real database      |
+| E2E         | 478   | The journeys and a11y, on desktop and a 390 px viewport             |
 
 Marketplace-specific: 42 isolation, 15 onboarding, 19 buy box, 24 offers, 29 routing, 29 ledger,
-25 scorecard/bulk, 17 emails/auto-routing; 50 E2E across two spec files.
+33 scorecard/bulk/proposals, 17 emails/auto-routing; 52 E2E across two spec files.
+
+The proposal-images journey (§9) is the one worth reading for what it asserts *last*: the merchant's
+photograph is on the draft product, the reviewer could see it before approving — and the product's own URL
+answers **404** to a shopper. A feature whose whole point is "approved images appear on the site" needs the
+assertion that says *not until somebody publishes it*.
 
 The isolation suite (§3) remains the definition of done for the security model, and it asserts in
 **both** directions — merchant A can read its own, and reads zero of merchant B's — which is what stops

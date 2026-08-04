@@ -1433,6 +1433,20 @@
         "invalid": "Kontrollo fushat e shënuara.",
         "notMerchant": "Propozimet hapen pasi aplikimi miratohet.",
         "tooMany": "Ke shumë propozime të hapura. Prit përgjigjen për ato."
+      },
+      "images": {
+        "label": "Fotografitë e produktit",
+        "hint": "Deri në {max} fotografi, deri 2 MB secila. JPG, PNG, WebP ose AVIF.",
+        "add": "Shto fotografi",
+        "uploading": "Po ngarkohen…",
+        "remove": "Hiq {name}",
+        "previewAlt": "Pamje paraprake e {name}",
+        "rights": "Duhet të kesh të drejtat për fotografitë që ngarkon, dhe ato duhet t’i përgjigjen produktit real. Shiko klauzolën 14 të Kushteve.",
+        "errors": {
+          "tooMany": "Maksimumi {max} fotografi.",
+          "tooLarge": "{name} është më e madhe se 2 MB.",
+          "uploadFailed": "{name} nuk u ngarkua. Kontrollo formatin dhe provo sërish."
+        }
       }
     },
     "bulk": {

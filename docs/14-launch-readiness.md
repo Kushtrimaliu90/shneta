@@ -601,7 +601,10 @@ stock is reserved at checkout, an admin routes the fulfilment, the merchant acce
 it, BioCode records delivery, and the ledger owes the merchant its net. A fortnightly run cuts a
 statement, somebody makes the transfer and records the reference.
 
-Every step of that is covered by tests: **276 unit, 311 integration, 476 E2E**, all passing.
+A merchant can also propose a product BioCode does not list, **with photographs of the box**; approving it
+creates a draft product carrying them, which the catalogue team prices, writes and sends to compliance.
+
+Every step of that is covered by tests: **276 unit, 319 integration, 478 E2E**, all passing.
 
 ### What is deliberately not built
 
@@ -616,16 +619,34 @@ Every step of that is covered by tests: **276 unit, 311 integration, 476 E2E**, 
   product page, which is the disclosure that matters; a merchant storefront is a v2 feature.
 - **No merchant switcher.** A person may belong to more than one merchant and the portal shows the
   first. Ordered by `created_at`, so "the first" is at least stable.
-- **Approving a proposal creates no product.** It records a decision; the product is created on the
-  catalogue screens. Anything else would be merchant-created listings with a delay.
+- **Approving a proposal creates a _draft_ product, not a listing.** It carries the merchant's
+  photographs, name, brand and form, and the price is written as the merchant's asking price and flagged
+  provisional. A draft is invisible on the storefront and publishing needs `compliance.approve`, so the
+  copy, the ingredients, the warnings and the compliance pass all still happen on the catalogue screens.
+  Nobody's photograph reaches a customer without a compliance officer having looked.
+- **Nothing cleans up abandoned proposal images.** A merchant who uploads three photographs and closes
+  the tab leaves three objects in a private bucket with no row pointing at them. They are invisible and
+  cost almost nothing; a cleanup job keyed on rows that were never written is more machinery than the
+  problem deserves. Removing one before submitting works, which covers the case a merchant notices.
 - **KYB documents are never verified automatically.** A human opens each one. `verified` is a column
   somebody ticks.
 
 ### What only the owner can do
 
-1. **Legal review of the marketplace terms.** Written by engineering, accurate about what the software
-   does, and not a substitute for review by somebody qualified in Kosovo commercial and data-protection
-   law. The trader identification block still carries `[BIZNESI: plotëso]`.
+1. **Legal review of the marketplace terms, now at version `1.1`.** Written by engineering, accurate about
+   what the software does, and not a substitute for review by somebody qualified in Kosovo commercial and
+   data-protection law. The trader identification block still carries `[BIZNESI: plotëso]`.
+
+   **Clause 14 most of all.** It is the newest and the one with the most legal weight per word: the seller
+   grants BioCode a licence to use the photographs it uploads, and *warrants* that it holds the rights in
+   them and that they depict the real product. Approving a proposal publishes those images under BioCode's
+   name on a BioCode product page — so if that warranty does not hold up, the exposure is BioCode's.
+
+   **And version `1.1` has no re-acceptance flow.** Merchants who accepted `1.0` still read `1.0` in
+   `merchants.terms_version`; nothing prompts them, and nothing blocks them from uploading images under an
+   agreement that did not mention images. Two ways to close it, and it is a business decision which:
+   serve the 30-day notice clause 1.1 provides for, or gate the portal on re-acceptance. Until one
+   happens, **clause 14 binds only merchants onboarded after the bump.**
 2. **Decide the default commission** in `settings.marketplace.default_commission_pct`. It is 15 and
    nobody has agreed to that number — it is a placeholder that the approve form prefills.
 3. **Decide `shipping_cost_cents`**, currently €2.00, which is what a merchant bearing shipping is

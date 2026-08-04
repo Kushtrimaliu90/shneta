@@ -74,6 +74,11 @@ Full E2E suite (all 12 journeys) + axe pass across listed pages; performance pas
 Isolation core (RLS + `current_merchant_ids()` + column-freeze triggers), onboarding and admin review, portal shell with offers CRUD, the buy box, routing and fulfilment with partial shipments, the signed ledger with fortnightly payouts and statements, proposals, bulk stock/price, the scorecard, ten lifecycle emails, and auto-routing behind a switch that is off.
 **Accept:** the isolation suite is the definition of done for §3 and asserts in both directions; checkout cannot oversell a merchant's last unit; a payout drops the balance by exactly what its statement says; no serious axe violations on any of the eleven new screens.
 
+> **Added after M12 closed:** photographs on a proposal (docs/16 §9). A merchant uploads up to six images
+> of the box to a private bucket, the reviewer sees them signed-on-request, and approving creates a
+> **draft** product carrying them — invisible to shoppers until compliance publishes it. Terms bumped to
+> `1.1` for clause 14 (image rights); merchants on `1.0` are not re-prompted, which is docs/14 §19.
+
 ## Post-v1 backlog (do not build now)
 
 Bank POS adapter go-live · Meilisearch · zero-result search logging · back-in-stock notifications · abandoned-cart emails · gift-card balance system (v1 sells codes manually fulfilled) · Q&A on PDP · scheduled article publishing · Albanian market (ALL, .al) · Stripe/EU · vendor marketplace · wholesale · AI coach · mobile apps.

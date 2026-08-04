@@ -21,9 +21,10 @@ type Props = { params: Promise<{ locale: string }> };
  * stock?" a computable question — so the honest thing to offer is a way to ask, and to say plainly that
  * BioCode decides.
  *
- * Approval does not mint a product either. A product needs a slug, SEO copy, ingredients, images and a
- * compliance review, and that happens on the catalogue screens. What a merchant gets back is "yes, we
- * listed it" and a note saying where.
+ * Approval creates a **draft** product carrying the merchant's photographs (docs/16 §9) — and a draft is
+ * invisible on the storefront, because publishing needs a compliance officer. So the photographs a merchant
+ * sends do end up on the product page, and the price, the copy and the compliance pass still happen first.
+ * What the merchant gets back is "yes, we will list this" and a note.
  */
 export default async function MerchantProposalsPage({ params }: Props) {
   const locale = resolveLocale((await params).locale);
@@ -109,7 +110,7 @@ export default async function MerchantProposalsPage({ params }: Props) {
             {t('tooManyOpen')}
           </p>
         ) : (
-          <ProposalForm />
+          <ProposalForm merchantId={merchant.id} />
         )}
       </section>
     </div>

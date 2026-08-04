@@ -8,6 +8,7 @@ import { fail, ok, type ActionResult } from '@/lib/result';
 import { audit, requireCapability } from '@/features/admin/audit';
 import { getMyMerchant } from '@/features/merchants/queries';
 import { sendProposalDecided } from '@/features/merchants/email';
+import { promoteProposal } from '@/features/merchants/proposal-promote';
 import type { Json } from '@/lib/supabase/database.types';
 
 /**
@@ -19,10 +20,18 @@ import type { Json } from '@/lib/supabase/database.types';
  * in stock?" a computable question. But a merchant holding stock of something BioCode has never listed
  * has nowhere to put it, and the honest answer to that is a request, not a listing.
  *
- * So a proposal is **an argument, not a draft product**. It carries what the merchant knows — name,
- * brand, form, barcode, a link to the manufacturer — and BioCode creates the canonical product if it
- * agrees. Nothing here writes to `products`, and nothing should: a proposal that could become a product
- * without a human deciding is merchant-created listings with extra steps.
+ * So a proposal is **an argument**. It carries what the merchant knows — name, brand, form, barcode, a
+ * link to the manufacturer, and photographs — and BioCode decides.
+ *
+ * Approving it creates a **draft** product with those photographs attached (docs/16 §9), and the
+ * distinction from what §1 forbids is exact: a draft is invisible on the storefront, and publishing needs
+ * `compliance.approve`, which neither the merchant nor the reviewer approving the proposal holds. What a
+ * proposal produces is a head start for the catalogue team, not a listing.
+ *
+ * Step 6 shipped without this, on the reasoning that any auto-creation was merchant-created listings with
+ * a delay. Two facts moved the line: `created_product_id` has existed since migration 28 and was wired to
+ * nothing, so the schema always anticipated the link; and the compliance gate means a draft cannot reach a
+ * customer by itself.
  */
 
 export type ProposalErrorKey =
@@ -83,6 +92,37 @@ export async function submitProposal(
   if (!parsed.success) return no('merchant.proposals.errors.invalid');
   const input = parsed.data;
 
+  /*
+   * The image paths, **verified rather than trusted** (docs/16 §9).
+   *
+   * The browser uploaded the bytes and tells us where it put them, exactly as the KYB documents do — and
+   * for the same reason, a path outside this merchant's own folder is refused here. The storage policy
+   * would already stop the *upload*, but nothing stops a crafted submission naming somebody else's
+   * object, and an approved proposal copies its images onto a public product page.
+   *
+   * `getAll`, not `get`: the uploader emits one hidden input per image, and `Object.fromEntries` keeps
+   * only the last of a repeated key — so the schema above cannot see these at all.
+   */
+  const imagePaths = formData
+    .getAll('imagePaths')
+    .map((value) => String(value))
+    .filter((path) => path.length > 0);
+
+  if (imagePaths.length > 6) return no('merchant.proposals.errors.invalid');
+
+  const prefix = `proposals/${merchant.id}/`;
+  for (const path of imagePaths) {
+    if (
+      !path.startsWith(prefix) ||
+      path.length <= prefix.length ||
+      path.includes('..') ||
+      path.slice(prefix.length).includes('/')
+    ) {
+      logger.info('proposal image path rejected', { merchantId: merchant.id });
+      return no('merchant.proposals.errors.invalid');
+    }
+  }
+
   try {
     const supabase = await createClient();
 
@@ -113,6 +153,7 @@ export async function submitProposal(
           stock_on_hand: input.stockOnHand,
           asking_price_cents: input.askingPriceEuro,
           note: input.note,
+          images: imagePaths,
         } as unknown as Json,
       })
       .select('id')
@@ -136,15 +177,15 @@ export async function submitProposal(
 /**
  * Decides a proposal.
  *
- * ── What "approve" does, and deliberately does not do ──
+ * ── What "approve" does, and what it leaves to somebody else ──
  *
- * It records the decision. It does **not** create the product: that is a catalogue job with a slug, SEO
- * copy, ingredients, images and a compliance review, and it happens on `/admin/products/new` where all
- * of that exists. Approving here means "yes, we will list this" — and the reviewer note is where the
- * product manager writes what they created, so the merchant can go and make an offer on it.
+ * It records the decision **and** creates a draft product carrying the merchant's photographs, the name,
+ * the brand and the form. What it does not do is decide anything commercial: the retail price is written as
+ * the merchant's asking price and flagged provisional, and the copy, the ingredients, the warnings and the
+ * compliance pass are all still ahead of it.
  *
- * A proposal that quietly minted a product would be merchant-created listings with a delay, which is
- * the thing §1 exists to prevent.
+ * The promotion failing does not fail the approval. The decision is recorded and the merchant is told; a
+ * draft a product manager has to create by hand is a smaller loss than a decision nobody can see.
  *
  * `needs_info` is a real status here, unlike on a merchant application: the RLS policy lets a merchant
  * *edit* a proposal in `needs_info` and resubmit it, which is the whole point of asking.
@@ -195,9 +236,31 @@ export async function decideProposal(
     }
     if (!data) return no('merchant.proposals.errors.invalid');
 
+    /*
+     * Approval creates a **draft** product with the merchant's photographs attached (docs/16 §9).
+     *
+     * Not a published one: publishing needs `compliance.approve`, which the reviewer approving this does
+     * not hold. So what this produces is a head start for the catalogue team, and the price, the copy and
+     * the compliance pass are still somebody else's decision.
+     *
+     * A failure here does **not** fail the approval. The decision has been recorded and the merchant will
+     * be told; a proposal approved with no draft behind it is something a product manager can create by
+     * hand, and losing the recorded decision would be worse.
+     */
+    let promotion: Awaited<ReturnType<typeof promoteProposal>> = null;
+    if (status === 'approved') {
+      promotion = await promoteProposal(input.proposalId);
+      if (!promotion) {
+        logger.error('proposal approved but not promoted', { proposalId: input.proposalId });
+      }
+    }
+
     await audit(`proposal.${status}`, 'product_proposal', input.proposalId, null, {
       note: input.note ?? null,
       merchant_id: (data as { merchant_id: string }).merchant_id,
+      product_id: promotion?.productId ?? null,
+      images_copied: promotion?.imagesCopied ?? 0,
+      images_failed: promotion?.imagesFailed ?? 0,
     } as unknown as Json);
 
     /*
@@ -217,7 +280,8 @@ export async function decideProposal(
 
     revalidatePath('/admin/merchants/proposals');
     revalidatePath('/merchant/proposals');
-    return ok({ proposalId: input.proposalId });
+    if (promotion) revalidatePath('/admin/products');
+    return ok({ proposalId: input.proposalId, productId: promotion?.productId });
   } catch (error) {
     logger.error('decideProposal threw', describeError(error));
     return no('merchant.proposals.errors.generic');

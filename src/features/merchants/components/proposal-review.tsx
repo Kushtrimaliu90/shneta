@@ -1,7 +1,7 @@
 'use client';
 
 import { useActionState, useState } from 'react';
-import { ExternalLink } from 'lucide-react';
+import { ExternalLink, ImageOff } from 'lucide-react';
 import { formatPrice } from '@/lib/money';
 import { Button } from '@/components/ui/button';
 import { SubmitButton } from '@/components/ui/submit-button';
@@ -81,6 +81,52 @@ export function ProposalReview({ proposal }: { proposal: Proposal }) {
         </Row>
       </dl>
 
+      {/*
+        The photographs, served through `/admin/merchants/proposal-image`, which signs on request.
+
+        The bucket is private until approval, so a rejected proposal's photographs never sit on a public
+        URL. Look at them before approving: approval copies them onto a product page, and clause 14 of the
+        terms makes the merchant *warrant* it holds the rights — which is a promise, not a guarantee.
+      */}
+      {proposal.imagePaths.length > 0 ? (
+        <div>
+          <p className="text-[11px] font-semibold tracking-wide text-ink-500 uppercase">
+            Photographs the merchant supplied
+          </p>
+          <ul className="mt-2 flex flex-wrap gap-2">
+            {proposal.imagePaths.map((path) => {
+              const src = `/admin/merchants/proposal-image?path=${encodeURIComponent(path)}`;
+              return (
+                <li key={path}>
+                  <a href={src} target="_blank" rel="noopener noreferrer" className="block">
+                    {/*
+                      A plain `img`, not `next/image`: the source redirects to a signed URL on a private
+                      bucket, which the optimiser cannot fetch and should not cache.
+                    */}
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={src}
+                      alt={`Proposed product photograph — ${path.split('/').pop() ?? ''}`}
+                      className="size-24 rounded-md border border-line object-cover"
+                    />
+                  </a>
+                </li>
+              );
+            })}
+          </ul>
+          <p className="mt-1 text-[13px] text-ink-500">
+            Approving copies these onto the draft product. Check they show the real packaging first.
+          </p>
+        </div>
+      ) : (
+        open && (
+          <p className="flex items-center gap-1.5 text-[13px] text-ink-500">
+            <ImageOff className="size-3.5" aria-hidden="true" />
+            No photographs supplied — the draft will need images before it can be published.
+          </p>
+        )
+      )}
+
       <div>
         <p className="text-[11px] font-semibold tracking-wide text-ink-500 uppercase">
           What the merchant says
@@ -91,6 +137,25 @@ export function ProposalReview({ proposal }: { proposal: Proposal }) {
       {proposal.reviewerNote && (
         <p className="rounded-md border border-line bg-cream p-3 text-sm text-ink-900">
           <span className="font-medium">Reviewer note:</span> {proposal.reviewerNote}
+        </p>
+      )}
+
+      {/*
+        The draft this proposal produced.
+
+        A draft is invisible on the storefront — publishing needs `compliance.approve` — so this is the next
+        step rather than a confirmation that anything is live.
+      */}
+      {proposal.createdProductId && (
+        <p className="rounded-md border border-forest-500/40 bg-forest-50/50 p-3 text-sm text-ink-900">
+          A draft product was created with the photographs attached.{' '}
+          <a
+            href={`/admin/products/${proposal.createdProductId}`}
+            className="font-medium text-forest-800 underline"
+          >
+            Set its price and copy, then send it for compliance
+          </a>
+          . It is not on the storefront until compliance publishes it.
         </p>
       )}
 

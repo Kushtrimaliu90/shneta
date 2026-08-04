@@ -28,6 +28,10 @@ export interface Proposal {
   reviewerNote: string | null;
   createdAt: string;
   reviewedAt: string | null;
+  /** Storage paths in the private `merchant-proposals` bucket, served through the signing route. */
+  imagePaths: string[];
+  /** Set once approval promoted this to a draft product (docs/16 §9). */
+  createdProductId: string | null;
 }
 
 function asText(value: unknown): string {
@@ -58,6 +62,7 @@ interface Raw {
   reviewer_note: string | null;
   created_at: string;
   reviewed_at: string | null;
+  created_product_id: string | null;
   merchants: { display_name: string } | null;
 }
 
@@ -81,11 +86,15 @@ function toProposal(row: Raw): Proposal {
     reviewerNote: row.reviewer_note,
     createdAt: row.created_at,
     reviewedAt: row.reviewed_at,
+    imagePaths: Array.isArray(payload.images)
+      ? (payload.images as unknown[]).filter((value): value is string => typeof value === 'string')
+      : [],
+    createdProductId: row.created_product_id,
   };
 }
 
 const COLUMNS = `id, merchant_id, status, payload, reviewer_note, created_at, reviewed_at,
-  merchants ( display_name )`;
+  created_product_id, merchants ( display_name )`;
 
 export async function listProposals(status?: ProposalStatus): Promise<Proposal[]> {
   const supabase = await createClient();

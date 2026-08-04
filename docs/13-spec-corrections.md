@@ -2342,6 +2342,74 @@ The consequences worth knowing before touching it:
 - there is no update or delete policy on the ledger for anyone, including admin. A correction is another
   row — the same discipline as `stock_movements`, and the reason a statement can be trusted.
 
+### X11 · The proposal field that is free text on purpose, and the enum it lands in
+
+`promote_proposal_to_draft` writes `payload->>'form'` into `products.form`, which is `product_form`.
+plpgsql accepted `create or replace` and complained on the first call — the same deferred-validation trap
+as §X1 and §X2, three times in one milestone. The lesson is recorded there; what is worth recording here
+is that **the obvious fix was worse than the error**.
+
+A bare `::product_form` throws on any value outside the ten enum members, and the proposal form asks for
+the form as free text *deliberately* — a merchant knows forms BioCode does not, and "effervescent
+tablets", "drops" and "pluhur" are all reasonable answers. So a reviewer approving a perfectly good
+proposal would have seen the promotion fail, in a way that looks like broken software rather than a
+free-text field meeting a closed set.
+
+The value is now taken **only when it names an enum member** (case-insensitively, with a trailing "s"
+dropped so "Capsules" lands on `capsule`), and left null otherwise. Nothing is lost: the merchant's own
+words are still in `payload.form` and still on the review card, and the reviewer picks the closest form in
+the editor — a judgement they were always going to make.
+
+The general rule: when free-typed input meets a closed set, coerce what matches and **carry the rest
+forward as text for a human**. Refusing the input teaches users to guess at your vocabulary.
+
+### X12 · Restating a legal document in a seed nearly deleted thirteen clauses
+
+Adding clause 14 to the marketplace terms meant editing a `legal_documents` row whose body is one jsonb
+blob per locale. The first draft of the seed was an `insert … on conflict … do update set body = <new>`,
+with the new body containing clause 14 — and clauses 1 through 13 nowhere, because they were never in the
+file. It would have applied cleanly and silently replaced the whole agreement with one paragraph.
+
+Caught before it ran, by asking what the row contained rather than what the file said. The seed now
+**appends**: it concatenates clause 14 onto the existing body, rewrites only the version line, and guards
+itself with `and body->>'en' not like '%14. Images and content the Seller supplies%'` so re-running is a
+no-op.
+
+Two things generalise:
+
+- **A seed that owns a whole column owns everything already in it.** `do update set body = …` is a
+  replacement, and for content nobody re-derives from source — legal text, editorial copy, translations —
+  the safe shape is an append with an idempotence guard.
+- **Bumping a document's version is not the same as getting it accepted.** `terms_version` on existing
+  merchants still reads `1.0`, and there is no re-acceptance flow. That is a real gap, not a detail; it is
+  in docs/14 §19 so it is not discovered by a lawyer.
+
+### X13 · `reuseExistingServer` will happily reuse a server older than the build
+
+The first run of the new proposal-images journey failed with
+`waiting for locator('#proposal-images')` — and the screenshot showed the proposal form **without the
+uploader**, rendered with no CSS at all.
+
+Nothing was wrong with the component. `playwright.config.ts` sets `reuseExistingServer: !CI`, a `pnpm start`
+from seven hours earlier was still listening on 3000, and `pnpm build` had since overwritten `.next`
+underneath it. So the server kept serving the *old* compiled app from memory while its asset URLs pointed
+at hashes that no longer existed — hence a live page missing a feature, with its stylesheet 404ing.
+
+The tell is the **unstyled page**, not the missing element: a selector bug does not remove the CSS. When an
+E2E failure claims an element that exists in source is absent, check what is actually listening on the
+port before reading the component:
+
+```powershell
+Get-NetTCPConnection -LocalPort 3000 -State Listen |
+  ForEach-Object { Get-Process -Id $_.OwningProcess | Select-Object Id, StartTime }
+Get-Item .next/BUILD_ID | Select-Object LastWriteTime   # server older than this ⇒ stale
+```
+
+A sibling of §N10, and the same root cause: **one build directory, several processes with opinions about
+it.** §N10 is "do not rebuild while the suite is running"; this is "do not run the suite against a server
+that predates the build". Killing the listener and letting Playwright start its own fixed it, and the same
+test passed in 17 s.
+
 ---
 
 ## E. Stack decisions taken at M0

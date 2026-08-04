@@ -1,12 +1,13 @@
 'use client';
 
-import { useActionState } from 'react';
+import { useActionState, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Alert } from '@/components/ui/alert';
 import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { SubmitButton } from '@/components/ui/submit-button';
 import { submitProposal, type ProposalState } from '@/features/merchants/proposal-actions';
+import { ProposalImages, type UploadedImage } from '@/features/merchants/components/proposal-images';
 
 const LEAVES = ['generic', 'invalid', 'notMerchant', 'tooMany'] as const;
 type Leaf = (typeof LEAVES)[number];
@@ -24,15 +25,21 @@ function leaf(error: string): Leaf {
  * — the two things that let somebody check the product is real and legally importable — and for the stock
  * and asking price, which decide whether the margin works before anybody writes SEO copy.
  *
- * It does not ask for a description, ingredients or images. Those belong to the canonical product BioCode
- * writes if it agrees, and asking a merchant to draft them would be asking it to write a listing.
+ * It also asks for **photographs** (docs/16 §9), which the reviewer looks at before deciding and which the
+ * approved proposal carries onto the draft product. That is not the merchant writing a listing: a merchant
+ * holding the box is the only party who can photograph it, whereas the description, the ingredients, the
+ * warnings and the price belong to the canonical product BioCode writes if it agrees.
  */
-export function ProposalForm() {
+export function ProposalForm({ merchantId }: { merchantId: string }) {
   const t = useTranslations('merchant.proposals');
-  const [state, action] = useActionState<ProposalState, FormData>(
-    async (previous, formData) => submitProposal(previous, formData),
-    null,
-  );
+  const [images, setImages] = useState<UploadedImage[]>([]);
+
+  const [state, action] = useActionState<ProposalState, FormData>(async (previous, formData) => {
+    const result = await submitProposal(previous, formData);
+    // Clear the previews on success, or a merchant sees the photos of a proposal already sent.
+    if (result?.ok) setImages([]);
+    return result;
+  }, null);
 
   return (
     <form action={action} className="flex flex-col gap-5 rounded-lg border border-line bg-surface p-5">
@@ -85,6 +92,8 @@ export function ProposalForm() {
           />
         )}
       </Field>
+
+      <ProposalImages merchantId={merchantId} images={images} onChange={setImages} />
 
       {state?.ok && (
         <p role="status" aria-live="polite" className="text-sm font-medium text-success">

@@ -4240,6 +4240,10 @@ export type Database = {
         Args: { p_note?: string; p_order_id: string; p_refund_cents: number }
         Returns: number
       }
+      promote_proposal_to_draft: {
+        Args: { p_proposal_id: string }
+        Returns: Json
+      }
       recompute_all_merchant_ratings: { Args: never; Returns: Json }
       recompute_merchant_rating: {
         Args: { p_merchant_id: string }

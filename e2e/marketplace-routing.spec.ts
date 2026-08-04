@@ -640,6 +640,149 @@ test.describe('proposals (docs/16 §4)', () => {
     await page.reload();
     await expect(page.getByText('Listed as BIO-E2E-1')).toBeVisible();
   });
+
+  /**
+   * docs/16 §9 — the photograph a merchant sends ends up on the product BioCode creates.
+   *
+   * The whole point of the feature, and the assertion worth having is the **last** one: the draft is
+   * invisible to a shopper. A merchant's photograph reaching a product page is the goal; reaching a
+   * customer without a compliance officer having looked is not, and `status = 'draft'` is what separates
+   * the two.
+   */
+  test('a proposed photograph lands on the draft product, which stays invisible', async ({
+    page,
+    browser,
+  }) => {
+    const merchant = await merchantAccount();
+    const service = db();
+
+    await signIn(page, merchant.email, merchant.password);
+    await page.goto('/en/merchant/proposals');
+
+    const name = `E2E Photo Probe ${randomUUID().slice(0, 6)}`;
+    await page.locator('#productName').fill(name);
+    await page.locator('#brandName').fill(`Photo Labs ${randomUUID().slice(0, 6)}`);
+    await page.locator('#form').fill('powder');
+    await page.locator('#variantName').fill('500 g');
+    await page.locator('#stockOnHand').fill('8');
+    await page.locator('#askingPriceEuro').fill('12,90');
+    await page.locator('#note').fill('We hold this and can photograph the real packaging.');
+
+    /*
+     * A real 1×1 PNG — the same bytes journey 8 uses — not a stub with a PNG content type. The bucket
+     * enforces its own MIME allowlist, and this travels browser → private bucket → public bucket, so
+     * anything storage would refuse proves nothing about the path that matters.
+     */
+    const png = Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+      'base64',
+    );
+
+    // The input is `hidden` behind a styled button; `setInputFiles` needs it attached, not visible.
+    await page.locator('#proposal-images').setInputFiles({
+      name: 'packaging.png',
+      mimeType: 'image/png',
+      buffer: png,
+    });
+
+    // The preview appearing is the upload having landed — the hidden path input exists only after it does.
+    await expect(page.getByAltText(/Preview of packaging\.png/)).toBeVisible({ timeout: 20_000 });
+
+    await page.getByRole('button', { name: 'Send the proposal' }).click();
+    await expect(page.getByText('Proposal sent.')).toBeVisible({ timeout: 20_000 });
+
+    // ── The reviewer sees the photograph and approves ──
+    const staffContext = await browser.newContext();
+    await staffContext.setExtraHTTPHeaders({ 'x-forwarded-for': '233.252.10.244' });
+    const staffPage = await staffContext.newPage();
+    const reviewer = await staffUser('product_manager');
+    await signIn(staffPage, reviewer.email, reviewer.password);
+
+    await staffPage.goto('/admin/merchants/proposals');
+    const card = staffPage.locator('article').filter({ hasText: name });
+    await expect(card).toBeVisible();
+
+    /*
+     * The thumbnail, served through `/admin/merchants/proposal-image`, which signs on request.
+     *
+     * Fetched rather than merely located: a broken `<img>` is still "visible", and the claim being made
+     * here is that a reviewer can *see* the photograph before deciding — which means the private bucket,
+     * the signing route and the redirect all have to work.
+     */
+    const thumbnail = card.getByAltText(/Proposed product photograph/);
+    await expect(thumbnail).toBeVisible();
+
+    const signed = await staffPage.request.get((await thumbnail.getAttribute('src')) ?? '');
+    expect(signed.status(), 'the reviewer can see it before approving').toBe(200);
+
+    await card.getByRole('button', { name: 'Approve' }).click();
+    await card.locator('textarea[name="note"]').fill('Listed. Set the price before publishing.');
+    await card.locator('form').getByRole('button', { name: 'Approve' }).click();
+
+    // The card leaves the pending queue when the decision lands; closing before that aborts the promotion.
+    await expect(staffPage.locator('article').filter({ hasText: name })).toBeHidden({
+      timeout: 20_000,
+    });
+
+    // ── The draft exists, carries the image, and is not on the storefront ──
+    const { data: proposal } = await service
+      .from('product_proposals')
+      .select('created_product_id')
+      .eq('merchant_id', merchant.merchantId)
+      .eq('status', 'approved')
+      .single();
+
+    const productId = (proposal as { created_product_id: string | null }).created_product_id;
+    expect(productId, 'approval promoted the proposal').toBeTruthy();
+    if (!productId) throw new Error('no draft product');
+    productIds.push(productId);
+
+    const { data: product } = await service
+      .from('products')
+      .select('slug, status, brand_id, form')
+      .eq('id', productId)
+      .single();
+
+    const row = product as {
+      slug: string;
+      status: string;
+      brand_id: string;
+      form: string | null;
+    };
+    expect(row.status).toBe('draft');
+    // "powder" is one of ours, so it carried across; free text that is not would be left for the reviewer.
+    expect(row.form).toBe('powder');
+    brandIds.push(row.brand_id);
+
+    const { data: images } = await service
+      .from('product_images')
+      .select('storage_path')
+      .eq('product_id', productId);
+
+    expect(images ?? [], 'the photograph came with it').toHaveLength(1);
+    expect((images as { storage_path: string }[])[0]?.storage_path).toContain(
+      `products/${productId}/`,
+    );
+
+    // The image is now on the public bucket, which is what puts it on the page once published.
+    const publicUrl = service.storage
+      .from('product-images')
+      .getPublicUrl((images as { storage_path: string }[])[0]?.storage_path ?? '').data.publicUrl;
+    const fetched = await staffPage.request.get(publicUrl);
+    expect(fetched.status(), 'and is actually served').toBe(200);
+
+    await staffContext.close();
+
+    /*
+     * ── And a shopper cannot reach it ──
+     *
+     * By slug, not by search: a search that finds nothing proves nothing, because a made-up product name
+     * may simply not match the query parser. The product's own URL is the strongest available claim — a
+     * published product answers 200 there, and this one must not.
+     */
+    const shopper = await page.goto(`/en/product/${row.slug}`);
+    expect(shopper?.status(), 'a draft is not on the storefront').toBe(404);
+  });
 });
 
 test.describe('accessibility (docs/09 §4)', () => {
@@ -717,10 +860,23 @@ test.describe('accessibility (docs/09 §4)', () => {
     await service.from('merchant_ledger').insert([
       { merchant_id: merchant.merchantId, kind: 'sale', amount_cents: 2000, note: 'e2e' },
     ]);
+    /*
+     * With an image path, so the review card's photograph block is scanned too (docs/16 §9).
+     *
+     * The object does not exist, and that is fine here: the signing route answers 404 and the browser
+     * shows a broken thumbnail, while axe checks the thing being asserted — that the `<img>` carries alt
+     * text and the list around it is markup a screen reader can follow. Loading bytes is the journey
+     * test's job.
+     */
     await service.from('product_proposals').insert({
       merchant_id: merchant.merchantId,
       status: 'pending',
-      payload: { product_name: 'Axe probe', brand_name: 'Probe', note: 'For the a11y scan.' },
+      payload: {
+        product_name: 'Axe probe',
+        brand_name: 'Probe',
+        note: 'For the a11y scan.',
+        images: [`proposals/${merchant.merchantId}/axe-probe.png`],
+      },
     });
 
     const admin = await staffUser('admin');

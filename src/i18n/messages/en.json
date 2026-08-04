@@ -1433,6 +1433,20 @@
         "invalid": "Check the highlighted fields.",
         "notMerchant": "Proposals open once your application is approved.",
         "tooMany": "You have too many open proposals. Wait for an answer on those."
+      },
+      "images": {
+        "label": "Product photographs",
+        "hint": "Up to {max} images, 2 MB each. JPG, PNG, WebP or AVIF.",
+        "add": "Add photographs",
+        "uploading": "Uploading…",
+        "remove": "Remove {name}",
+        "previewAlt": "Preview of {name}",
+        "rights": "You must hold the rights to the photographs you upload, and they must depict the actual product. See clause 14 of the Terms.",
+        "errors": {
+          "tooMany": "At most {max} images.",
+          "tooLarge": "{name} is larger than 2 MB.",
+          "uploadFailed": "{name} did not upload. Check the format and try again."
+        }
       }
     },
     "bulk": {

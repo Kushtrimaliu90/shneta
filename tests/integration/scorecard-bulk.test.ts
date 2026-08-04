@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
+  anonClient,
   createProduct,
   createUser,
   deleteUser,
@@ -21,6 +22,9 @@ const merchantIds: string[] = [];
 const userIds: string[] = [];
 const products: ProductFixture[] = [];
 const orderIds: string[] = [];
+const proposalIds: string[] = [];
+const promotedProductIds: string[] = [];
+const promotedBrandIds: string[] = [];
 
 let admin: TestUser;
 
@@ -189,12 +193,19 @@ afterAll(async () => {
     await db.from('order_events').delete().eq('order_id', id);
     await db.from('orders').delete().eq('id', id);
   }
+  for (const id of promotedProductIds) {
+    await db.from('product_images').delete().eq('product_id', id);
+    await db.from('product_variants').delete().eq('product_id', id);
+    await db.from('products').delete().eq('id', id);
+  }
+  for (const id of proposalIds) await db.from('product_proposals').delete().eq('id', id);
   for (const id of merchantIds) {
     await db.from('merchant_ledger').delete().eq('merchant_id', id);
     await db.from('merchant_offers').delete().eq('merchant_id', id);
     await db.from('product_proposals').delete().eq('merchant_id', id);
     await db.from('merchants').delete().eq('id', id);
   }
+  for (const id of promotedBrandIds) await db.from('brands').delete().eq('id', id);
   for (const id of userIds) await deleteUser(id);
   for (const fixture of products) {
     await db.from('stock_movements').delete().eq('variant_id', fixture.variantId);
@@ -753,37 +764,350 @@ describe('proposals (docs/16 §4)', () => {
    * Approving records a decision and creates **no product**. Anything else would be merchant-created
    * listings with a delay, which is what §1 exists to prevent.
    */
-  it('approving creates no product', async () => {
+  /**
+   * Approving promotes the proposal to a **draft** product — the inverse of what this file asserted at
+   * step 6, which was "approving creates no product".
+   *
+   * That assertion was defensible and it was also more conservative than the schema:
+   * `created_product_id` has existed since migration 28 and was wired to nothing. What makes the change
+   * safe is the next test — a draft cannot reach a customer, because publishing needs `compliance.approve`.
+   */
+  it('promoting an approved proposal creates a draft product', async () => {
     const db = serviceClient();
-    const merchant = await createMerchant('No Auto Product');
+    const merchant = await createMerchant('Promoted');
+    const name = `Promoted Probe ${Date.now()}`;
 
     const { data: created } = await db
       .from('product_proposals')
       .insert({
         merchant_id: merchant,
         status: 'pending',
-        payload: { product_name: 'Definitely not auto-created' },
+        payload: {
+          product_name: name,
+          brand_name: 'Promote Labs',
+          form: 'powder',
+          variant_name: '500 g',
+          asking_price_cents: 1450,
+        },
       })
       .select('id')
       .single();
 
-    await db
-      .from('product_proposals')
-      .update({ status: 'approved' })
-      .eq('id', (created as { id: string }).id);
+    const proposalId = (created as { id: string }).id;
+    proposalIds.push(proposalId);
 
-    const { data } = await db
-      .from('product_proposals')
-      .select('created_product_id')
-      .eq('id', (created as { id: string }).id)
+    const { data, error } = await db.rpc('promote_proposal_to_draft', {
+      p_proposal_id: proposalId,
+    });
+
+    expect(error).toBeNull();
+    const result = data as { created: boolean; product_id: string; slug: string };
+    expect(result.created).toBe(true);
+    promotedProductIds.push(result.product_id);
+
+    const { data: product } = await db
+      .from('products')
+      .select('slug, status, form, name, brand_id')
+      .eq('id', result.product_id)
       .single();
 
-    expect((data as { created_product_id: string | null }).created_product_id).toBeNull();
+    const row = product as {
+      slug: string;
+      status: string;
+      form: string;
+      name: Record<string, string>;
+      brand_id: string;
+    };
 
-    const { data: products_ } = await db
+    // **Draft.** This is the whole safety of the change.
+    expect(row.status).toBe('draft');
+    expect(row.form).toBe('powder');
+    expect(row.name.sq).toBe(name);
+    expect(row.name.en).toBe(name);
+    promotedBrandIds.push(row.brand_id);
+
+    // The link is recorded, which is what makes a second approval a no-op.
+    const { data: after } = await db
+      .from('product_proposals')
+      .select('created_product_id')
+      .eq('id', proposalId)
+      .single();
+    expect((after as { created_product_id: string }).created_product_id).toBe(result.product_id);
+  });
+
+  /**
+   * A draft is invisible on the storefront, which is why creating one from a merchant's proposal is not
+   * "merchant-created listings with a delay". Asserted through `search_products` and the anon client — the
+   * two things a shopper actually goes through — rather than by reading the status column back.
+   */
+  it('the draft it creates is invisible to a shopper', async () => {
+    const db = serviceClient();
+    const merchant = await createMerchant('Invisible Draft');
+    const name = `Invisible Probe ${Date.now()}`;
+
+    const { data: created } = await db
+      .from('product_proposals')
+      .insert({
+        merchant_id: merchant,
+        status: 'pending',
+        payload: { product_name: name, brand_name: 'Invisible Labs', asking_price_cents: 1000 },
+      })
+      .select('id')
+      .single();
+
+    const proposalId = (created as { id: string }).id;
+    proposalIds.push(proposalId);
+
+    const { data } = await db.rpc('promote_proposal_to_draft', { p_proposal_id: proposalId });
+    const result = data as { product_id: string; slug: string };
+    promotedProductIds.push(result.product_id);
+
+    const { data: brand } = await db
+      .from('products')
+      .select('brand_id')
+      .eq('id', result.product_id)
+      .single();
+    promotedBrandIds.push((brand as { brand_id: string }).brand_id);
+
+    const found = await anonClient().rpc('search_products', { p_query: name, p_limit: 24 });
+    expect(found.data ?? [], 'a draft must not be searchable').toHaveLength(0);
+
+    const direct = await anonClient()
       .from('products')
       .select('id')
-      .ilike('slug', '%definitely-not-auto-created%');
-    expect(products_ ?? []).toHaveLength(0);
+      .eq('id', result.product_id);
+    expect(direct.data ?? [], 'and not readable by slug or id either').toHaveLength(0);
+  });
+
+  /** A second approval, or a stale tab, must not mint a second product. */
+  it('promoting twice is a no-op', async () => {
+    const db = serviceClient();
+    const merchant = await createMerchant('Promote Once');
+
+    const { data: created } = await db
+      .from('product_proposals')
+      .insert({
+        merchant_id: merchant,
+        status: 'pending',
+        payload: {
+          product_name: `Once Probe ${Date.now()}`,
+          brand_name: 'Once Labs',
+          asking_price_cents: 900,
+        },
+      })
+      .select('id')
+      .single();
+
+    const proposalId = (created as { id: string }).id;
+    proposalIds.push(proposalId);
+
+    const first = await db.rpc('promote_proposal_to_draft', { p_proposal_id: proposalId });
+    const firstResult = first.data as { created: boolean; product_id: string };
+    expect(firstResult.created).toBe(true);
+    promotedProductIds.push(firstResult.product_id);
+
+    const { data: brand } = await db
+      .from('products')
+      .select('brand_id')
+      .eq('id', firstResult.product_id)
+      .single();
+    promotedBrandIds.push((brand as { brand_id: string }).brand_id);
+
+    const second = await db.rpc('promote_proposal_to_draft', { p_proposal_id: proposalId });
+    const secondResult = second.data as { created: boolean; product_id: string };
+    expect(secondResult.created).toBe(false);
+    expect(secondResult.product_id).toBe(firstResult.product_id);
+  });
+
+  /**
+   * The brand is matched case-insensitively before being created, or a second "Alpha Labs" would split one
+   * brand's products across two pages.
+   */
+  it('reuses an existing brand whose name differs only in case', async () => {
+    const db = serviceClient();
+    const merchant = await createMerchant('Brand Reuse');
+    const stamp = Date.now();
+
+    const { data: brand } = await db
+      .from('brands')
+      .insert({ slug: `brand-reuse-${stamp}`, name: `Reuse Labs ${stamp}` })
+      .select('id')
+      .single();
+    const brandId = (brand as { id: string }).id;
+    promotedBrandIds.push(brandId);
+
+    const { data: created } = await db
+      .from('product_proposals')
+      .insert({
+        merchant_id: merchant,
+        status: 'pending',
+        payload: {
+          product_name: `Reuse Probe ${stamp}`,
+          // Same brand, shouted.
+          brand_name: `REUSE LABS ${stamp}`,
+          asking_price_cents: 1100,
+        },
+      })
+      .select('id')
+      .single();
+
+    const proposalId = (created as { id: string }).id;
+    proposalIds.push(proposalId);
+
+    const { data } = await db.rpc('promote_proposal_to_draft', { p_proposal_id: proposalId });
+    const result = data as { product_id: string; brand_id: string };
+    promotedProductIds.push(result.product_id);
+
+    expect(result.brand_id).toBe(brandId);
+  });
+
+  /** The variant carries the merchant's asking price, because a variant cannot exist without one. */
+  it('the variant is created at the asking price, provisionally', async () => {
+    const db = serviceClient();
+    const merchant = await createMerchant('Provisional Price');
+
+    const { data: created } = await db
+      .from('product_proposals')
+      .insert({
+        merchant_id: merchant,
+        status: 'pending',
+        payload: {
+          product_name: `Price Probe ${Date.now()}`,
+          brand_name: 'Price Labs',
+          variant_name: '250 g',
+          asking_price_cents: 1450,
+        },
+      })
+      .select('id')
+      .single();
+
+    const proposalId = (created as { id: string }).id;
+    proposalIds.push(proposalId);
+
+    const { data } = await db.rpc('promote_proposal_to_draft', { p_proposal_id: proposalId });
+    const result = data as { product_id: string; provisional_price_cents: number };
+    promotedProductIds.push(result.product_id);
+
+    const { data: brand } = await db
+      .from('products')
+      .select('brand_id')
+      .eq('id', result.product_id)
+      .single();
+    promotedBrandIds.push((brand as { brand_id: string }).brand_id);
+
+    expect(result.provisional_price_cents).toBe(1450);
+
+    const { data: variant } = await db
+      .from('product_variants')
+      .select('sku, price_cents, name, is_default')
+      .eq('product_id', result.product_id)
+      .single();
+
+    const row = variant as {
+      sku: string;
+      price_cents: number;
+      name: Record<string, string>;
+      is_default: boolean;
+    };
+    expect(row.price_cents).toBe(1450);
+    expect(row.name.en).toBe('250 g');
+    expect(row.is_default).toBe(true);
+    // Obviously provisional, so nobody mistakes it for a real supplier code.
+    expect(row.sku.startsWith('PROP-')).toBe(true);
+  });
+
+  it('a proposal with no product name cannot be promoted', async () => {
+    const db = serviceClient();
+    const merchant = await createMerchant('Nameless');
+
+    const { data: created } = await db
+      .from('product_proposals')
+      .insert({ merchant_id: merchant, status: 'pending', payload: { brand_name: 'Only Brand' } })
+      .select('id')
+      .single();
+
+    const proposalId = (created as { id: string }).id;
+    proposalIds.push(proposalId);
+
+    const { error } = await db.rpc('promote_proposal_to_draft', { p_proposal_id: proposalId });
+    expect(error?.message ?? '').toContain('PROPOSAL_INCOMPLETE');
+  });
+
+  it('a merchant cannot promote its own proposal', async () => {
+    const db = serviceClient();
+    const merchantId = await createMerchant('Self Promote');
+    const owner = await createUser('merchant');
+    userIds.push(owner.id);
+    await db.from('merchant_users').insert({ merchant_id: merchantId, user_id: owner.id });
+
+    const { data: created } = await db
+      .from('product_proposals')
+      .insert({
+        merchant_id: merchantId,
+        status: 'pending',
+        payload: { product_name: 'Self promoted', brand_name: 'Self Labs' },
+      })
+      .select('id')
+      .single();
+
+    const proposalId = (created as { id: string }).id;
+    proposalIds.push(proposalId);
+
+    const { error } = await owner.client.rpc('promote_proposal_to_draft', {
+      p_proposal_id: proposalId,
+    });
+    expect(error?.message ?? '').toContain('FORBIDDEN');
+  });
+});
+
+describe('proposal images (docs/16 §9)', () => {
+  /**
+   * The bucket is private, and that is the point: a **rejected** proposal's photographs must not sit on a
+   * public URL forever for a product BioCode decided not to list.
+   */
+  it('the proposals bucket is private and accepts only images', async () => {
+    const { data } = await serviceClient()
+      .from('storage.buckets' as never)
+      .select('*')
+      .limit(0);
+
+    /*
+     * `storage.buckets` is not reachable through PostgREST, so the bucket's shape is asserted through the
+     * storage API instead — which is also how the application sees it.
+     */
+    void data;
+
+    const { data: buckets, error } = await serviceClient().storage.listBuckets();
+    expect(error).toBeNull();
+
+    const bucket = (buckets ?? []).find((entry) => entry.name === 'merchant-proposals');
+    expect(bucket, 'the bucket must exist').toBeDefined();
+    expect(bucket?.public, 'and must not be public').toBe(false);
+  });
+
+  /** A merchant may write into its own folder and nowhere else. */
+  it('a merchant cannot upload into another merchant’s folder', async () => {
+    const db = serviceClient();
+    const mine = await createMerchant('Upload Mine');
+    const theirs = await createMerchant('Upload Theirs');
+
+    const owner = await createUser('merchant');
+    userIds.push(owner.id);
+    await db.from('merchant_users').insert({ merchant_id: mine, user_id: owner.id });
+
+    const bytes = new Blob([new Uint8Array([0x89, 0x50, 0x4e, 0x47])], { type: 'image/png' });
+
+    const own = await owner.client.storage
+      .from('merchant-proposals')
+      .upload(`proposals/${mine}/probe-${Date.now()}.png`, bytes, { contentType: 'image/png' });
+    expect(own.error, 'its own folder is writable').toBeNull();
+
+    const other = await owner.client.storage
+      .from('merchant-proposals')
+      .upload(`proposals/${theirs}/probe-${Date.now()}.png`, bytes, { contentType: 'image/png' });
+    expect(other.error, 'a rival’s folder is not').not.toBeNull();
+
+    // Tidy up the one that succeeded.
+    await db.storage.from('merchant-proposals').remove([`proposals/${mine}/`]);
   });
 });

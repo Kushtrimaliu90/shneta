@@ -121,7 +121,7 @@ Cache tags (use exactly these): `products`, `product:{slug}`, `categories`, `bra
 | -------------------- | ---------------------------------------------------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Server (user ctx)    | `lib/supabase/server.ts` (`createServerClient` w/ cookies) | anon    | RSC reads, server actions — **default choice**                                                                                                                                                                                                                                                                                                      |
 | Browser              | `lib/supabase/client.ts`                                   | anon    | client components needing realtime/auth state (rare)                                                                                                                                                                                                                                                                                                |
-| Admin (service role) | `lib/supabase/admin.ts` (imports `server-only`)            | service | ONLY: payment webhooks; cron jobs; guest-cart ops keyed by `anon_token`; guest order lookup (number+email); email dispatch logging; auth-user provisioning in seed scripts; **GDPR erasure — scrubbing the GoTrue identity** (`customers/actions.ts`, M10); **team management — creating and banning a staff account** (`settings/actions.ts`, M10); **BioHack — loading the approved ruleset, writing a generated protocol, and reading one back by share code** (`biohack/config-loader.ts`, `biohack/actions.ts`, `biohack/queries.ts`) |
+| Admin (service role) | `lib/supabase/admin.ts` (imports `server-only`)            | service | ONLY: payment webhooks; cron jobs; guest-cart ops keyed by `anon_token`; guest order lookup (number+email); email dispatch logging; auth-user provisioning in seed scripts; **GDPR erasure — scrubbing the GoTrue identity** (`customers/actions.ts`, M10); **team management — creating and banning a staff account** (`settings/actions.ts`, M10); **BioHack — loading the approved ruleset, writing a generated protocol, and reading one back by share code** (`biohack/config-loader.ts`, `biohack/actions.ts`, `biohack/queries.ts`); **marketplace — submitting an application before any membership exists** (`merchants/actions.ts`, M12), **merchant/marketplace email recipients and the partial-shipment sweep** (`merchants/email.ts`, `merchants/partial-shipment-email.ts`, M12), **releasing a declined fulfilment** (`merchants/fulfilment-actions.ts`, M12), **copying an approved proposal's photographs onto the draft product** (`merchants/proposal-promote.ts`) |
 
 Middleware refreshes the session per `@supabase/ssr` docs. Any new service-role usage must be added to this table via PR.
 
@@ -140,8 +140,28 @@ under and an anon insert policy would let anyone write arbitrary rows into the t
 analytics card; the row's shape is fixed by the action instead. And the read-back is by share
 code, which a guest's own row would otherwise be invisible to under own-rows-only RLS.
 
-None of the three is a shortcut around a missing policy: in each case the absence of the policy
-_is_ the security property. Note the deliberate asymmetry with `/p/[code]`, the public share page,
+The four marketplace entries were added late — M12 shipped them without this table being updated, which
+is exactly the drift the "via PR" rule exists to prevent. Each is the same shape as the others: the caller
+has no user context that RLS could grant anything to.
+
+- **The application** (`merchants/actions.ts`) writes the `merchants` row that the applicant's future
+  membership will point at. There is no membership yet, so `current_merchant_ids()` is empty and every
+  policy on the table returns nothing — the row has to exist before the relationship that authorises
+  creating it. The slug search runs on the same client for the same reason.
+- **The emails** (`merchants/email.ts`, `merchants/partial-shipment-email.ts`) resolve a recipient across
+  merchants, orders and profiles, and read `email_log` for idempotence. Identical to the existing
+  email-dispatch entries; the partial-shipment case additionally *sweeps* orders, because the transition
+  that triggers it is made by a database trigger with no single code path to hang a send on.
+- **Declining a fulfilment** (`merchants/fulfilment-actions.ts`) calls `release_fulfilment`, which returns
+  stock to the offer and puts the line back in the routing queue. The merchant may decline; it must not be
+  able to write the queue it is declining out of.
+- **Promoting a proposal** (`merchants/proposal-promote.ts`) downloads from a private bucket and uploads to
+  a public one. A product manager holds both halves in their own session, so this is not about
+  capability — it is that the same function must work from a caller with no session at all, and one path
+  that works for every caller beats two that differ only in which client they hold.
+
+None of the three BioHack entries is a shortcut around a missing policy: in each case the absence of the
+policy _is_ the security property. Note the deliberate asymmetry with `/p/[code]`, the public share page,
 which uses the **anon** client and the `get_shared_protocol` RPC — a security-definer function
 that returns `result` and nothing else, so the page physically cannot read the `inputs` that
 record someone's medication and life-stage answers. `/admin/biohack` likewise reads through the
