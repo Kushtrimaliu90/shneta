@@ -23,6 +23,20 @@ import { db, deleteCreatedUsers, ipAllocator, signIn, staffUser } from './helper
 
 const ips = ipAllocator('233.252.10');
 
+/**
+ * 20 s for anything waiting on a server action's outcome.
+ *
+ * Playwright's default is 5 s, and this file never adopted the convention the checkout and admin specs
+ * already had. It cost a full-suite failure: `a merchant proposes a product and a reviewer answers` died on
+ * `Proposal sent.` at 9 s into the test, and then passed three times out of three in isolation at 10–17 s.
+ * Nothing was wrong with it — the round trip is insert, revalidate, re-render against a shared Supabase in
+ * eu-west-1, and under the load of a 484-test run that does not fit in five seconds.
+ *
+ * Well inside the 90 s per-test budget, for the reason in `playwright.config.ts`: an assertion timeout that
+ * can never spend itself turns a slow action into "element(s) not found", which reads like a selector bug.
+ */
+const ACTION_TIMEOUT = 20_000;
+
 const merchantIds: string[] = [];
 const productIds: string[] = [];
 const brandIds: string[] = [];
@@ -256,7 +270,9 @@ test.describe('the whole loop, through the screens (docs/16 §6, §7)', () => {
     await expect(card.getByText('holds stock')).toBeVisible();
     await card.getByRole('button', { name: 'Confirm' }).click();
 
-    await expect(page.locator('article').filter({ hasText: number })).toBeHidden();
+    await expect(page.locator('article').filter({ hasText: number })).toBeHidden({
+      timeout: ACTION_TIMEOUT,
+    });
 
     // ── The merchant accepts, packs and ships ──
     const portal = await browser.newContext();
@@ -345,7 +361,9 @@ test.describe('the whole loop, through the screens (docs/16 §6, §7)', () => {
 
     // The card leaving the unassigned queue is the assignment having actually landed. Closing the
     // context before that aborts the in-flight action, and the merchant then has nothing to decline.
-    await expect(staffPage.locator('article').filter({ hasText: number })).toBeHidden();
+    await expect(staffPage.locator('article').filter({ hasText: number })).toBeHidden({
+      timeout: ACTION_TIMEOUT,
+    });
     await staffContext.close();
 
     await signIn(page, merchant.email, merchant.password);
@@ -449,7 +467,11 @@ test.describe('the whole loop, through the screens (docs/16 §6, §7)', () => {
       .update({ status: 'shipped' })
       .eq('id', biocode?.id ?? '');
 
-    const { data: order } = await service.from('orders').select('status').eq('id', orderId).single();
+    const { data: order } = await service
+      .from('orders')
+      .select('status')
+      .eq('id', orderId)
+      .single();
     expect((order as { status: string }).status).toBe('partially_shipped');
 
     // And an admin sees which half is where.
@@ -558,7 +580,7 @@ test.describe('the money screens (docs/16 §8)', () => {
     await card.getByRole('textbox').fill('BKT-E2E-9001');
     await card.getByRole('button', { name: 'Mark paid' }).click();
 
-    await expect(card.getByText(/Paid .* ref/)).toBeVisible();
+    await expect(card.getByText(/Paid .* ref/)).toBeVisible({ timeout: ACTION_TIMEOUT });
   });
 });
 
@@ -578,7 +600,7 @@ test.describe('bulk update (docs/16 §6)', () => {
     await page.locator('textarea[name="csv"]').fill(`sku;stock;price\n${product.sku};25;18,50`);
     await page.getByRole('button', { name: 'Apply' }).click();
 
-    await expect(page.getByText('Applied 1 row(s).')).toBeVisible();
+    await expect(page.getByText('Applied 1 row(s).')).toBeVisible({ timeout: ACTION_TIMEOUT });
 
     await page.goto('/en/merchant/offers');
     const row = page.getByRole('row').filter({ hasText: product.sku });
@@ -596,6 +618,67 @@ test.describe('bulk update (docs/16 §6)', () => {
 
     await expect(page.getByText(/first row must contain the column names/)).toBeVisible();
   });
+
+  /**
+   * docs/16 §6.1 — the paste that creates offers.
+   *
+   * Two rows and one tick: a SKU the merchant already has an offer on is updated, one it does not becomes a
+   * **draft**. The draft is what the whole feature turns on — an offer a paste could publish would be a
+   * merchant publishing supply, and the assertion that it says "Draft" in the offers table is the
+   * assertion that the review model survived the convenience.
+   */
+  test('a ticked paste creates a draft offer and updates an existing one', async ({ page }) => {
+    const merchant = await merchantAccount();
+    const existing = await fixtureProduct(3000);
+    const fresh = await fixtureProduct(4000);
+    await offer(merchant.merchantId, existing.variantId, { price: 1500, stock: 2 });
+
+    await signIn(page, merchant.email, merchant.password);
+    await page.goto('/en/merchant/bulk');
+
+    // The catalogue download is what tells a merchant these codes in the first place.
+    await expect(page.getByRole('link', { name: 'Download the catalogue' })).toBeVisible();
+
+    await page
+      .locator('textarea[name="csv"]')
+      .fill(
+        `sku;stock;price;handling;lowstock\n${existing.sku};30;17,50;2;5\n${fresh.sku};8;21,00;3;4`,
+      );
+    await page.getByRole('checkbox', { name: /Create offers for SKUs/ }).check();
+    await page.getByRole('button', { name: 'Apply' }).click();
+
+    await expect(page.getByText('Applied 1 row(s).')).toBeVisible({ timeout: ACTION_TIMEOUT });
+    await expect(page.getByText(/Created 1 draft offer/)).toBeVisible({ timeout: ACTION_TIMEOUT });
+
+    await page.goto('/en/merchant/offers');
+
+    const updated = page.getByRole('row').filter({ hasText: existing.sku });
+    await expect(updated.getByText('€17.50')).toBeVisible();
+
+    const created = page.getByRole('row').filter({ hasText: fresh.sku });
+    await expect(created.getByText('€21.00')).toBeVisible();
+    await expect(created.getByText('Draft'), 'a paste cannot publish supply').toBeVisible();
+  });
+
+  /** Without the tick, an unmatched SKU is reported. A nightly stock file must not invent offers. */
+  test('an unticked paste reports the unmatched SKU instead of creating it', async ({ page }) => {
+    const merchant = await merchantAccount();
+    const product = await fixtureProduct(3000);
+
+    await signIn(page, merchant.email, merchant.password);
+    await page.goto('/en/merchant/bulk');
+
+    await page.locator('textarea[name="csv"]').fill(`sku;stock;price\n${product.sku};5;9,90`);
+    await page.getByRole('button', { name: 'Apply' }).click();
+
+    await expect(page.getByText('Applied 0 row(s).')).toBeVisible({ timeout: ACTION_TIMEOUT });
+    await expect(page.getByText(/no matching offer of yours/)).toBeVisible({
+      timeout: ACTION_TIMEOUT,
+    });
+
+    await page.goto('/en/merchant/offers');
+    await expect(page.getByRole('row').filter({ hasText: product.sku })).toHaveCount(0);
+  });
 });
 
 test.describe('proposals (docs/16 §4)', () => {
@@ -610,10 +693,12 @@ test.describe('proposals (docs/16 §4)', () => {
     await page.locator('#brandName').fill('Probe Labs');
     await page.locator('#stockOnHand').fill('12');
     await page.locator('#askingPriceEuro').fill('14,50');
-    await page.locator('#note').fill('Customers ask for this constantly and we import it directly.');
+    await page
+      .locator('#note')
+      .fill('Customers ask for this constantly and we import it directly.');
     await page.getByRole('button', { name: 'Send the proposal' }).click();
 
-    await expect(page.getByText('Proposal sent.')).toBeVisible();
+    await expect(page.getByText('Proposal sent.')).toBeVisible({ timeout: ACTION_TIMEOUT });
     await expect(page.getByText(name)).toBeVisible();
 
     // ── The reviewer answers ──
@@ -633,12 +718,14 @@ test.describe('proposals (docs/16 §4)', () => {
     await card.locator('form').getByRole('button', { name: 'Approve' }).click();
 
     // The card leaves the pending queue when the decision lands; closing before that aborts it.
-    await expect(staffPage.locator('article').filter({ hasText: name })).toBeHidden();
+    await expect(staffPage.locator('article').filter({ hasText: name })).toBeHidden({
+      timeout: ACTION_TIMEOUT,
+    });
     await staffContext.close();
 
     // The merchant reads the answer where it was promised.
     await page.reload();
-    await expect(page.getByText('Listed as BIO-E2E-1')).toBeVisible();
+    await expect(page.getByText('Listed as BIO-E2E-1')).toBeVisible({ timeout: ACTION_TIMEOUT });
   });
 
   /**
@@ -783,6 +870,182 @@ test.describe('proposals (docs/16 §4)', () => {
     const shopper = await page.goto(`/en/product/${row.slug}`);
     expect(shopper?.status(), 'a draft is not on the storefront').toBe(404);
   });
+
+  /**
+   * docs/16 §9.1 — a pasted catalogue, photographs matched by filename, decided as one thing.
+   *
+   * The whole feature in one journey, because the parts only mean something together: a sheet is worthless
+   * without photographs, filename matching is the only reason a merchant would attach three hundred of them,
+   * and the batch is the only reason a reviewer would look at two hundred rows.
+   *
+   * Three rows, two photographs. One filename carries a barcode, one carries the merchant's own SKU with a
+   * `-2` counter, and the third row gets nothing — so the assertions cover a match, a match through the
+   * counter-stripping path, and a row a reviewer must be told has no images.
+   */
+  test('a pasted catalogue matches photographs by filename and is decided as a unit', async ({
+    page,
+    browser,
+  }) => {
+    const merchant = await merchantAccount();
+    const service = db();
+
+    await signIn(page, merchant.email, merchant.password);
+    await page.goto('/en/merchant/proposals/bulk');
+
+    const stamp = randomUUID().slice(0, 6);
+    const barcode = `509${Date.now().toString().slice(-10)}`;
+    const sku = `MG-${stamp}`;
+    const names = [`Batch Alpha ${stamp}`, `Batch Beta ${stamp}`, `Batch Gamma ${stamp}`];
+
+    await page
+      .locator('textarea[name="csv"]')
+      .fill(
+        [
+          'name;brand;form;variant;barcode;sku;stock;price',
+          `${names[0]};Probe Labs ${stamp};capsule;120 caps;${barcode};;12;14,90`,
+          `${names[1]};Probe Labs ${stamp};powder;500 g;;${sku};8;21,50`,
+          `${names[2]};Probe Labs ${stamp};;;;;3;9,90`,
+        ].join('\n'),
+      );
+    await page.locator('textarea[name="note"]').fill('Our importer list. We hold all of it.');
+    await page.getByRole('button', { name: 'Send the sheet' }).click();
+
+    // A clean sheet navigates to the batch, because the rows are only half a proposal (§9.1).
+    await expect(page.getByRole('heading', { name: '3 product(s)' })).toBeVisible({
+      timeout: 20_000,
+    });
+
+    // ── The photographs, named after the codes ──
+    const png = Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+      'base64',
+    );
+
+    await page.locator('#batch-images').setInputFiles([
+      // Matches row 1 on the barcode.
+      { name: `${barcode}.png`, mimeType: 'image/png', buffer: png },
+      // Matches row 2 on the merchant's SKU, through the trailing-counter path.
+      { name: `${sku}-2.png`, mimeType: 'image/png', buffer: png },
+      // Matches nothing: a camera filename, which is exactly why the assign list exists.
+      { name: 'IMG_4821.png', mimeType: 'image/png', buffer: png },
+    ]);
+
+    await expect(page.getByRole('heading', { name: 'Matched to a product (2)' })).toBeVisible({
+      timeout: 30_000,
+    });
+    await expect(page.getByRole('heading', { name: 'Could not be matched (1)' })).toBeVisible();
+
+    // The unmatched one is assigned by hand — the handful of dropdowns the keying leaves behind.
+    await page.getByRole('combobox').selectOption({ label: names[2] ?? '' });
+    await expect(page.getByRole('heading', { name: 'Matched to a product (3)' })).toBeVisible();
+
+    await page.getByRole('button', { name: /Attach 3 photograph/ }).click();
+    await expect(page.getByText('Attached 3 photograph(s).')).toBeVisible({ timeout: 30_000 });
+
+    /*
+     * Read back from the database rather than the screen: the claim is that each photograph reached the row
+     * its *filename* named, and a count on the page would pass even if all three landed on one row.
+     */
+    const { data: rows } = await service
+      .from('product_proposals')
+      .select('payload')
+      .eq('merchant_id', merchant.merchantId);
+
+    const byName = new Map(
+      ((rows ?? []) as { payload: Record<string, unknown> }[]).map((entry) => [
+        String(entry.payload.product_name ?? ''),
+        (entry.payload.images as string[] | undefined) ?? [],
+      ]),
+    );
+
+    expect(byName.get(names[0] ?? '')).toHaveLength(1);
+    expect(byName.get(names[0] ?? '')?.[0]).toContain(barcode);
+    expect(byName.get(names[1] ?? ''), 'the -2 counter came off before matching').toHaveLength(1);
+    expect(byName.get(names[2] ?? ''), 'assigned by hand').toHaveLength(1);
+
+    // ── The reviewer rejects one row and approves the rest ──
+    const staffContext = await browser.newContext();
+    await staffContext.setExtraHTTPHeaders({ 'x-forwarded-for': '233.252.10.245' });
+    const staffPage = await staffContext.newPage();
+    const reviewer = await staffUser('product_manager');
+    await signIn(staffPage, reviewer.email, reviewer.password);
+
+    await staffPage.goto('/admin/merchants/proposals');
+    // By merchant name, not by row count: other fixtures leave batches in this queue too.
+    await staffPage
+      .getByRole('link', { name: new RegExp(`${merchant.displayName} — 3 row`) })
+      .click();
+
+    await expect(staffPage.getByRole('heading', { name: /3 row\(s\)/ })).toBeVisible();
+    // The photographs are visible to the reviewer before the decision, through the signing route.
+    await expect(staffPage.getByAltText(/Proposed product photograph/).first()).toBeVisible();
+
+    const rejectedRow = staffPage.getByRole('row').filter({ hasText: names[2] ?? '' });
+    await rejectedRow.getByRole('button', { name: 'Reject' }).click();
+    await rejectedRow.locator('textarea[name="note"]').fill('We already list this under Alpha.');
+    await rejectedRow.getByRole('button', { name: 'Reject' }).click();
+
+    await expect(rejectedRow.getByText('rejected')).toBeVisible({ timeout: 20_000 });
+
+    // Approving takes every row still pending and leaves the rejected one alone.
+    await staffPage.getByRole('button', { name: /Approve the 2 pending row/ }).click();
+    await staffPage
+      .locator('form')
+      .locator('textarea[name="note"]')
+      .fill('Listing both. Prices to be set before publishing.');
+    await staffPage.getByRole('button', { name: 'Approve', exact: true }).click();
+
+    await expect(staffPage.getByText(/2 row\(s\) decided/)).toBeVisible({ timeout: 60_000 });
+
+    await staffContext.close();
+
+    /*
+     * ── Two drafts, and the rejected row produced nothing ──
+     *
+     * `decideBatch` promotes a bounded first slice inline (ten) and leaves the rest to the cron, so at this
+     * size both rows have their draft product by the time the message renders.
+     */
+    const { data: after } = await service
+      .from('product_proposals')
+      .select('status, created_product_id, payload')
+      .eq('merchant_id', merchant.merchantId);
+
+    const decided = (after ?? []) as {
+      status: string;
+      created_product_id: string | null;
+      payload: Record<string, unknown>;
+    }[];
+
+    const approved = decided.filter((entry) => entry.status === 'approved');
+    const rejected = decided.filter((entry) => entry.status === 'rejected');
+
+    expect(approved).toHaveLength(2);
+    expect(rejected).toHaveLength(1);
+    expect(rejected[0]?.created_product_id, 'a rejected row makes no product').toBeNull();
+
+    for (const entry of approved) {
+      expect(entry.created_product_id, 'approved rows were promoted').toBeTruthy();
+      const productId = entry.created_product_id ?? '';
+      productIds.push(productId);
+
+      const { data: product } = await service
+        .from('products')
+        .select('status, brand_id')
+        .eq('id', productId)
+        .single();
+
+      const row = product as { status: string; brand_id: string };
+      // Still a draft. A pasted catalogue does not put anything on the storefront (§9).
+      expect(row.status).toBe('draft');
+      brandIds.push(row.brand_id);
+
+      const { data: images } = await service
+        .from('product_images')
+        .select('storage_path')
+        .eq('product_id', productId);
+      expect((images ?? []) as unknown[], 'the merchant photograph came with it').toHaveLength(1);
+    }
+  });
 });
 
 test.describe('accessibility (docs/09 §4)', () => {
@@ -842,12 +1105,36 @@ test.describe('accessibility (docs/09 §4)', () => {
       '/en/merchant/offers/new',
       '/en/merchant/bulk',
       '/en/merchant/proposals',
+      '/en/merchant/proposals/bulk',
       '/en/merchant/payouts',
       '/en/merchant/documents',
       '/en/merchant/settings',
     ]) {
       await scan(page, path);
     }
+
+    /*
+     * The batch page separately, because it needs a batch (§9.1).
+     *
+     * Its table is the widest surface in the portal — seven columns — so it is the one most likely to
+     * overflow at 390 px, which is where `scrollable-region-focusable` fired during M12 (docs/13 §X6).
+     */
+    const { data: batch } = await db().rpc('merchant_bulk_create_proposals', {
+      p_merchant_id: merchant.merchantId,
+      p_rows: [
+        {
+          product_name: 'Axe Batch Probe',
+          brand_name: 'Probe Labs',
+          asking_price_cents: 1500,
+          stock_on_hand: 4,
+          barcode: '5099999999123',
+        },
+      ],
+      p_note: 'For the a11y scan.',
+    });
+
+    const batchId = (batch as { batch_id: string }).batch_id;
+    await scan(page, `/en/merchant/proposals/${batchId}`);
   });
 
   test('the admin marketplace screens are accessible with real data', async ({ page }) => {
@@ -857,9 +1144,11 @@ test.describe('accessibility (docs/09 §4)', () => {
     await buy(product.variantId, 1);
 
     const service = db();
-    await service.from('merchant_ledger').insert([
-      { merchant_id: merchant.merchantId, kind: 'sale', amount_cents: 2000, note: 'e2e' },
-    ]);
+    await service
+      .from('merchant_ledger')
+      .insert([
+        { merchant_id: merchant.merchantId, kind: 'sale', amount_cents: 2000, note: 'e2e' },
+      ]);
     /*
      * With an image path, so the review card's photograph block is scanned too (docs/16 §9).
      *
@@ -879,12 +1168,29 @@ test.describe('accessibility (docs/09 §4)', () => {
       },
     });
 
+    // A batch too, so the reviewer's table — the widest grid in the admin panel — is scanned (§9.1).
+    const { data: batch } = await service.rpc('merchant_bulk_create_proposals', {
+      p_merchant_id: merchant.merchantId,
+      p_rows: [
+        {
+          product_name: 'Axe Batch Row',
+          brand_name: 'Probe Labs',
+          asking_price_cents: 1500,
+          stock_on_hand: 4,
+          barcode: '5099999999124',
+          source_url: 'https://example.com/p/1',
+        },
+      ],
+    });
+    const batchId = (batch as { batch_id: string }).batch_id;
+
     const admin = await staffUser('admin');
     await signIn(page, admin.email, admin.password);
 
     for (const path of [
       '/admin/routing',
       '/admin/payouts',
+      `/admin/merchants/proposals/${batchId}`,
       '/admin/merchants/applications',
       '/admin/merchants/offers',
       '/admin/merchants/proposals',

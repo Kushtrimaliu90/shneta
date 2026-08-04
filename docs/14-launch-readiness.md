@@ -604,7 +604,13 @@ statement, somebody makes the transfer and records the reference.
 A merchant can also propose a product BioCode does not list, **with photographs of the box**; approving it
 creates a draft product carrying them, which the catalogue team prices, writes and sends to compliance.
 
-Every step of that is covered by tests: **276 unit, 319 integration, 478 E2E**, all passing.
+Both of those work in bulk, which is what makes onboarding a real merchant possible rather than theoretical
+(docs/16 §6.1, §9.1). A pasted sheet **creates** draft offers for SKUs the merchant has none on — with a
+catalogue export so it knows our codes — and a pasted catalogue of products we do not list arrives as a
+**batch**: one queue item, up to 200 rows, photographs matched to rows by filename, rejected per row and
+approved as a unit. Approved rows become draft products, ten immediately and 25 a night thereafter.
+
+Every step of that is covered by tests: **308 unit, 354 integration, 484 E2E**, all passing.
 
 ### What is deliberately not built
 
@@ -627,7 +633,18 @@ Every step of that is covered by tests: **276 unit, 319 integration, 478 E2E**, 
 - **Nothing cleans up abandoned proposal images.** A merchant who uploads three photographs and closes
   the tab leaves three objects in a private bucket with no row pointing at them. They are invisible and
   cost almost nothing; a cleanup job keyed on rows that were never written is more machinery than the
-  problem deserves. Removing one before submitting works, which covers the case a merchant notices.
+  problem deserves. Removing one before submitting works, which covers the case a merchant notices. The
+  bulk uploader has the same property at a larger scale — three hundred files chosen and never attached — and
+  the same answer.
+- **A batch cannot be edited or withdrawn.** A merchant that pasted a sheet with the wrong prices has to
+  wait for a reviewer to reject it, and its three open-batch slots are held meanwhile. Deliberate for now:
+  the alternative is letting a merchant mutate rows a reviewer may already be reading, which is the exact
+  problem `p_own_update` exists to prevent (docs/13 §X15). If it bites in practice, the shape is a
+  merchant-initiated `withdraw` that only touches batches nobody has decided.
+- **Bulk offer creation never sends offers for review by itself.** A pasted row becomes a `draft`, and the
+  merchant still has to submit each one — deliberately, because submitting is a decision about a price, and
+  200 of them are not one decision. If merchants ask for a "submit all drafts" button, that is a small,
+  separate thing to add.
 - **KYB documents are never verified automatically.** A human opens each one. `verified` is a column
   somebody ticks.
 

@@ -1397,6 +1397,8 @@
     "proposals": {
       "title": "Proposals",
       "intro": "If you hold stock of something BioCode does not list, propose it. BioCode creates the product page — you then add an offer on it.",
+      "bulkInstead": "Have a whole catalogue?",
+      "bulkLink": "Paste it as a sheet",
       "yours": "Your proposals",
       "empty": "You have no proposals. The first request goes below.",
       "asking": "asking {amount}",
@@ -1457,13 +1459,20 @@
       "noOffers": "You have no offers to download.",
       "addOne": "Add one",
       "download": "Download CSV",
+      "catalogueTitle": "BioCode catalogue",
+      "catalogueIntro": "Every product we list, with our SKU and barcode. Use this sheet to build offers for products you do not have offers on yet — and the last column tells you where BioCode is out of stock, which is where your offer wins the buy box.",
+      "catalogueDownload": "Download the catalogue",
       "uploadTitle": "Paste the rows",
-      "intro": "Paste rows with a SKU and stock, price, or both. The first row must contain the column names.",
-      "headerExample": "sku;stock;price",
+      "intro": "Paste rows with a SKU and anything you want to set: stock, price, dispatch days, low-stock level. The first row must contain the column names.",
+      "headerExample": "sku;stock;price;handling;lowstock",
       "paste": "Rows",
       "pasteHint": "Semicolon, comma or tab. A price may be written 9,90 or 9.90.",
+      "createLabel": "Create offers for SKUs I do not have yet",
+      "createHint": "A row that matches none of your offers becomes a draft offer. Leave this off for a stock update, so a mistyped SKU is reported instead of becoming an offer.",
       "submit": "Apply",
       "applied": "Applied {count} row(s).",
+      "createdCount": "Created {count} draft offer(s).",
+      "createdNote": "New offers are drafts. Open them and send them for review before they can be bought.",
       "malformedTitle": "Rows that could not be read",
       "skippedTitle": "Rows that were skipped",
       "lineIs": "line {line}",
@@ -1474,7 +1483,15 @@
         "negative_stock": "negative stock",
         "invalid_price": "unacceptable price",
         "bad_stock": "stock is not a whole number",
-        "bad_price": "price is not a number"
+        "bad_price": "price is not a number",
+        "bad_handling": "dispatch days must be a whole number from 0 to 30",
+        "bad_threshold": "the low-stock level is not a whole number",
+        "invalid_handling": "dispatch days out of range",
+        "invalid_threshold": "the low-stock level is out of range",
+        "unknown_sku": "no product of ours has this SKU or barcode",
+        "awaiting_review": "your offer on it is awaiting review",
+        "offer_rejected": "your offer on it was rejected — open it and read the note",
+        "price_required": "a new offer needs a price"
       },
       "locale": "Sheet language: {locale}.",
       "errors": {
@@ -1482,7 +1499,7 @@
         "notMerchant": "This opens once your application is approved.",
         "empty": "Paste at least one row.",
         "tooMany": "Too many rows at once. The limit is 2000.",
-        "noHeader": "The first row must contain the column names — at least a SKU column and either stock or price."
+        "noHeader": "The first row must contain the column names — at least a SKU column and one of stock, price, dispatch days or low-stock level."
       }
     },
     "scorecard": {
@@ -1505,6 +1522,91 @@
       "accepted": "Accepted",
       "declined": "Declined",
       "delivered": "Delivered"
+    },
+    "batches": {
+      "title": "Propose a catalogue",
+      "intro": "Paste a sheet of products BioCode does not list yet. We review the whole sheet at once, reject the rows we cannot take, and create a draft product for the rest.",
+      "singleInstead": "For a single product with an argument for it,",
+      "singleLink": "use the proposal form",
+      "yours": "Sheets you have sent",
+      "rowCount": "{count} product(s)",
+      "newTitle": "Paste a new sheet",
+      "formIntro": "The first row must contain the column names. Name, brand and price are required; everything else is optional.",
+      "headerExample": "name;brand;form;variant;barcode;sku;stock;price",
+      "columnsHint": "Albanian headers work too: emri, marka, forma, varianti, barkod, kodi, stok, çmimi.",
+      "paste": "Rows",
+      "pasteHint": "Semicolon, comma or tab. A price may be written 14,90 or 14.90. Up to 200 rows per sheet.",
+      "note": "Anything the reviewer should know (optional)",
+      "noteHint": "Where the stock is, why this catalogue, whether you import it directly.",
+      "submit": "Send the sheet",
+      "created": "Sent {count} product(s) for review.",
+      "nextStepImages": "Next: add photographs. They attach to rows by filename, so 8712345678901.jpg finds the row with that barcode.",
+      "malformedTitle": "Rows that could not be read",
+      "skippedTitle": "Rows that were not accepted",
+      "lineIs": "line {line}",
+      "rowsTitle": "What you sent",
+      "rowStatus": {
+        "pending": "Pending",
+        "approved": "Approved",
+        "rejected": "Rejected",
+        "needs_info": "More needed"
+      },
+      "status": {
+        "pending": "In review",
+        "decided": "Answered"
+      },
+      "columns": {
+        "product": "Product",
+        "brand": "Brand",
+        "barcode": "Barcode / your code",
+        "stock": "You hold",
+        "asking": "You ask",
+        "images": "Photos",
+        "status": "Status"
+      },
+      "backToBatches": "← All sheets",
+      "withImages": "{count} of {total} row(s) have photographs",
+      "reviewerNote": "Reviewer note:",
+      "reasons": {
+        "incomplete": "the name or the brand is missing",
+        "no_price": "no asking price",
+        "negative_stock": "negative stock",
+        "duplicate_in_sheet": "the same product appears earlier in the sheet",
+        "already_proposed": "you have already proposed this and it is still open",
+        "bad_price": "the price is not a number",
+        "bad_stock": "the stock is not a whole number"
+      },
+      "images": {
+        "title": "Photographs",
+        "intro": "Choose all your photographs at once. Each one attaches to the row whose barcode or code matches its filename.",
+        "namingHint": "Name the files after the barcode or your own code: 8712345678901.jpg, and 8712345678901-2.jpg for a second photo of the same product. Anything we cannot match, you assign below.",
+        "choose": "Choose photographs",
+        "uploading": "Uploading…",
+        "matchedTitle": "Matched to a product ({count})",
+        "unmatchedTitle": "Could not be matched ({count})",
+        "unmatchedHint": "Pick the product each of these belongs to, or rename the files after the barcode and choose them again.",
+        "assignTo": "Which product is {name} for?",
+        "assignPlaceholder": "Choose a product…",
+        "attach": "Attach {count} photograph(s)",
+        "attached": "Attached {count} photograph(s).",
+        "previewAlt": "Preview of {name}",
+        "closed": "This sheet has been answered, so photographs can no longer be added. Approved rows keep the photographs they had.",
+        "errors": {
+          "tooMany": "That is more than {max} files at once.",
+          "someFailed": "{count} file(s) could not be uploaded. They may be larger than 2 MB or in a format we do not accept.",
+          "nothingMatched": "Nothing is matched to a product yet.",
+          "attachFailed": "Could not attach the photographs. Try again shortly."
+        }
+      },
+      "errors": {
+        "generic": "Something went wrong. Try again shortly.",
+        "invalid": "Check the sheet and try again.",
+        "notMerchant": "This opens once your application is approved.",
+        "empty": "Paste at least one row.",
+        "noHeader": "The first row must contain the column names, including a name, a brand and a price column.",
+        "tooMany": "Too many rows at once. The limit is 200 per sheet.",
+        "tooManyOpen": "You have three sheets waiting for an answer. Wait for one of them before sending another."
+      }
     }
   }
 }

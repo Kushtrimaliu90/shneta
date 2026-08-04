@@ -2386,6 +2386,7 @@ export type Database = {
       }
       product_proposals: {
         Row: {
+          batch_id: string | null
           created_at: string
           created_product_id: string | null
           id: string
@@ -2398,6 +2399,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          batch_id?: string | null
           created_at?: string
           created_product_id?: string | null
           id?: string
@@ -2410,6 +2412,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          batch_id?: string | null
           created_at?: string
           created_product_id?: string | null
           id?: string
@@ -2422,6 +2425,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "product_proposals_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "proposal_batches"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "product_proposals_created_product_id_fkey"
             columns: ["created_product_id"]
@@ -2824,6 +2834,67 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      proposal_batches: {
+        Row: {
+          created_at: string
+          id: string
+          merchant_id: string
+          note: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          reviewer_note: string | null
+          row_count: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          merchant_id: string
+          note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          reviewer_note?: string | null
+          row_count?: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          merchant_id?: string
+          note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          reviewer_note?: string | null
+          row_count?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposal_batches_merchant_id_fkey"
+            columns: ["merchant_id"]
+            isOneToOne: false
+            referencedRelation: "merchants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposal_batches_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposal_batches_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "v_admin_customers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       protocol_blocks: {
         Row: {
@@ -3804,6 +3875,48 @@ export type Database = {
       }
     }
     Views: {
+      proposals_awaiting_promotion: {
+        Row: {
+          batch_id: string | null
+          id: string | null
+          image_count: number | null
+          merchant_id: string | null
+          product_name: string | null
+          reviewed_at: string | null
+        }
+        Insert: {
+          batch_id?: string | null
+          id?: string | null
+          image_count?: never
+          merchant_id?: string | null
+          product_name?: never
+          reviewed_at?: string | null
+        }
+        Update: {
+          batch_id?: string | null
+          id?: string | null
+          image_count?: never
+          merchant_id?: string | null
+          product_name?: never
+          reviewed_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_proposals_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "proposal_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_proposals_merchant_id_fkey"
+            columns: ["merchant_id"]
+            isOneToOne: false
+            referencedRelation: "merchants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       v_admin_coupons: {
         Row: {
           code: string | null
@@ -4091,6 +4204,17 @@ export type Database = {
         }
         Returns: Json
       }
+      catalogue_export: {
+        Args: never
+        Returns: {
+          barcode: string
+          in_stock: boolean
+          price_cents: number
+          product_name: string
+          sku: string
+          variant_name: string
+        }[]
+      }
       check_rate_limit: {
         Args: { p_key: string; p_max: number; p_window: string }
         Returns: boolean
@@ -4124,6 +4248,10 @@ export type Database = {
         Returns: string
       }
       current_merchant_ids: { Args: never; Returns: string[] }
+      decide_proposal_batch: {
+        Args: { p_batch_id: string; p_decision: string; p_note?: string }
+        Returns: Json
+      }
       fulfilment_candidates: {
         Args: { p_fulfilment_id: string }
         Returns: {
@@ -4186,9 +4314,17 @@ export type Database = {
         Args: { p_payout_id: string; p_reference: string }
         Returns: undefined
       }
+      merchant_attach_batch_images: {
+        Args: { p_assignments: Json; p_batch_id: string }
+        Returns: Json
+      }
       merchant_balance: { Args: { p_merchant_id: string }; Returns: Json }
-      merchant_bulk_update_offers: {
-        Args: { p_merchant_id: string; p_rows: Json }
+      merchant_bulk_create_proposals: {
+        Args: { p_merchant_id: string; p_note?: string; p_rows: Json }
+        Returns: Json
+      }
+      merchant_bulk_upsert_offers: {
+        Args: { p_create?: boolean; p_merchant_id: string; p_rows: Json }
         Returns: Json
       }
       merchant_fulfilment_counts: { Args: never; Returns: Json }

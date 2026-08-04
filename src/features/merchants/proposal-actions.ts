@@ -126,9 +126,19 @@ export async function submitProposal(
   try {
     const supabase = await createClient();
 
+    /*
+     * Twenty open, and **batch rows do not count** (docs/16 §9.1).
+     *
+     * The cap exists so one merchant cannot make the review queue unusable for everybody else, and a batch
+     * costs the reviewer one table rather than 200 cards — so batches are bounded separately, in SQL: 200
+     * rows each, three open at a time. Counting them here as well would mean a merchant that pasted its
+     * catalogue could no longer propose the one product it thought of afterwards, which is the opposite of
+     * what either limit is for.
+     */
     const { count } = await supabase
       .from('product_proposals')
       .select('id', { count: 'exact', head: true })
+      .is('batch_id', null)
       .in('status', ['pending', 'needs_info']);
 
     if ((count ?? 0) >= 20) return no('merchant.proposals.errors.tooMany');
@@ -278,8 +288,15 @@ export async function decideProposal(
       input.note ?? null,
     );
 
-    revalidatePath('/admin/merchants/proposals');
-    revalidatePath('/merchant/proposals');
+    /*
+     * `'layout'`, so the batch page under this path refreshes too (docs/16 §9.1).
+     *
+     * A row rejected from inside a batch table is decided by this action, and revalidating only
+     * `/admin/merchants/proposals` leaves the child route `/admin/merchants/proposals/[batchId]` serving the
+     * row as still pending — the decision recorded, the screen disagreeing.
+     */
+    revalidatePath('/admin/merchants/proposals', 'layout');
+    revalidatePath('/merchant/proposals', 'layout');
     if (promotion) revalidatePath('/admin/products');
     return ok({ proposalId: input.proposalId, productId: promotion?.productId });
   } catch (error) {

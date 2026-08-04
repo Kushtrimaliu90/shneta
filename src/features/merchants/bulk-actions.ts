@@ -9,7 +9,14 @@ import { parseOfferCsv, type CsvRow } from '@/features/merchants/csv';
 import type { Json } from '@/lib/supabase/database.types';
 
 /**
- * docs/16 §6 — a merchant updating stock and price in bulk.
+ * docs/16 §6 — a merchant updating, and now creating, offers in bulk.
+ *
+ * ── Creation is opt-in per paste ──
+ *
+ * A row whose SKU matches no offer used to be reported and dropped. With `create` ticked it becomes a
+ * **draft offer** instead, which then goes through the ordinary `offers.review` approval — the review model
+ * is untouched, only the typing. Off by default, because the nightly stock file is the common paste and
+ * there a mistyped SKU should report itself rather than quietly become an offer at a price nobody checked.
  *
  * ── Pasted text, not an uploaded file ──
  *
@@ -34,6 +41,8 @@ export type BulkErrorKey =
 
 export interface BulkReport {
   applied: number;
+  /** Offers this paste brought into existence, as drafts awaiting review. */
+  created: number;
   skipped: { sku: string; reason: string }[];
   /** Rows the CSV parser itself rejected, before the database saw them. */
   malformed: { line: number; reason: string }[];
@@ -45,7 +54,7 @@ function no(error: BulkErrorKey): BulkState {
   return fail<BulkErrorKey, BulkReport>(error);
 }
 
-export async function bulkUpdateOffers(
+export async function bulkApplyOffers(
   _previous: BulkState,
   formData: FormData,
 ): Promise<BulkState> {
@@ -55,6 +64,9 @@ export async function bulkUpdateOffers(
   const text = String(formData.get('csv') ?? '');
   if (text.trim().length === 0) return no('merchant.bulk.errors.empty');
 
+  // A checkbox: present means ticked. Absent means "change what exists and tell me about the rest".
+  const create = formData.get('create') !== null;
+
   const parsed = parseOfferCsv(text);
   if (parsed.kind === 'no_header') return no('merchant.bulk.errors.noHeader');
   if (parsed.rows.length === 0 && parsed.malformed.length === 0) return no('merchant.bulk.errors.empty');
@@ -62,19 +74,21 @@ export async function bulkUpdateOffers(
 
   try {
     const supabase = await createClient();
-    const { data, error } = await supabase.rpc('merchant_bulk_update_offers', {
+    const { data, error } = await supabase.rpc('merchant_bulk_upsert_offers', {
       p_merchant_id: merchant.id,
       p_rows: parsed.rows as unknown as Json,
+      p_create: create,
     });
 
     if (error) {
       if (error.message.includes('TOO_MANY_ROWS')) return no('merchant.bulk.errors.tooMany');
-      logger.error('bulkUpdateOffers failed', { cause: error.message });
+      logger.error('bulkApplyOffers failed', { cause: error.message });
       return no('merchant.bulk.errors.generic');
     }
 
     const result = (data ?? {}) as {
       applied?: number;
+      created?: number;
       skipped?: { sku: string; reason: string }[];
     };
 
@@ -83,11 +97,12 @@ export async function bulkUpdateOffers(
 
     return ok({
       applied: result.applied ?? 0,
+      created: result.created ?? 0,
       skipped: result.skipped ?? [],
       malformed: parsed.malformed,
     });
   } catch (error) {
-    logger.error('bulkUpdateOffers threw', describeError(error));
+    logger.error('bulkApplyOffers threw', describeError(error));
     return no('merchant.bulk.errors.generic');
   }
 }

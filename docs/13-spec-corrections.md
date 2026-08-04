@@ -2450,6 +2450,53 @@ A run that creates two accounts and leaves seven untouched printed the new passw
 printed password actually belongs to, and states that the rest kept theirs — the kind of wrong that costs
 somebody twenty minutes of "the password doesn't work".
 
+### X15 · A zero-row UPDATE is a success, so the action reported work it had not done
+
+`attachBatchImages` wrote `product_proposals.payload` through the merchant's own session and reported three
+photographs attached. **Zero rows had changed.**
+
+`p_own_update` is `using (merchant_id = any (current_merchant_ids()) and status = 'needs_info')` — a merchant
+may edit a proposal a reviewer sent *back*, and nothing else. That is correct and worth keeping: a pending
+proposal must not change under the reviewer reading it. But a batch's photographs arrive **after** its rows
+by design, so the one write the merchant legitimately needs was the one the policy forbade.
+
+Two things made it silent:
+
+- **PostgREST answers an UPDATE that matched nothing with success and no error.** RLS does not raise on a
+  filtered-out row; it removes the row from the statement's scope, and an UPDATE with no matches is a
+  perfectly ordinary UPDATE.
+- **The action counted its own intent.** It computed `merged.length - current.images.length` from what it had
+  read and meant to write, never asking the database what it had actually written.
+
+The fix is a `security definer` function that permits exactly one change — appending paths — and returns
+`{attached, rejected}`. A wider policy was the wrong instrument: admitting `status = 'pending'` would let a
+merchant rewrite a pending proposal's name, brand and price while it sits in the queue.
+
+Two rules worth keeping:
+
+1. **Report what the database says you changed, never what you intended.** Use `.select()` on a mutation, or
+   a function that returns a count. An optimistic count is a lie with a green tick next to it.
+2. **When RLS forbids a write the product genuinely needs, name the write.** A guarded RPC that allows one
+   field is a smaller hole than a policy that allows a status.
+
+What caught it was the E2E journey reading the rows back out of the database instead of trusting the
+"Attached 3 photograph(s)" the screen showed. An assertion against your own success message asserts nothing.
+
+### X3 (again) · Restating a function dropped a fix, in the migration whose comment cites §X3
+
+Migration 47 restated `merchant_bulk_update_offers` as `merchant_bulk_upsert_offers` and copied the body from
+migration 39 — which still carried `order by (lower(o.merchant_sku) = lower(v_sku)) desc`. Migration 40 had
+already replaced that with a `case` expression for the reason in §X4: **`desc` implies `nulls first`**, so an
+offer with no `merchant_sku` sorted above the offer that matched on the merchant's own code.
+
+The migration's own header comment cites §X3 and warns about exactly this. **Reading the warning is not the
+same as checking.** What caught it, within a minute of the push, was the regression test written when §X4 was
+first fixed — `matches the merchant's own SKU in preference to BioCode's`.
+
+Sharper form of the rule: a restated function is the accumulation of *every* migration that ever touched it.
+Before restating one, `grep` the function name across `supabase/migrations/` and read every hit in order — or
+better, do not restate. And keep the test that pins the behaviour, because it is the only thing that notices.
+
 ---
 
 ## E. Stack decisions taken at M0

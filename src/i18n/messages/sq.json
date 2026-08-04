@@ -1397,6 +1397,8 @@
     "proposals": {
       "title": "Propozimet",
       "intro": "Nëse ke stok të një produkti që BioCode nuk e listën, propozoje. Faqen e produktit e krijon BioCode — ti më pas shton ofertën.",
+      "bulkInstead": "Ke një katalog të tërë?",
+      "bulkLink": "Ngjite si fletë",
       "yours": "Propozimet e tua",
       "empty": "Nuk ke propozime. Kërkesa e parë shkon më poshtë.",
       "asking": "kërkon {amount}",
@@ -1457,13 +1459,20 @@
       "noOffers": "Nuk ke oferta për të shkarkuar.",
       "addOne": "Shto një",
       "download": "Shkarko CSV",
+      "catalogueTitle": "Katalogu i BIOCODE",
+      "catalogueIntro": "Të gjitha produktet që listojmë, me SKU-në dhe barkodin tonë. Përdore këtë fletë për të krijuar oferta për produkte për të cilat nuk ke ofertë — dhe kolona e fundit tregon ku BIOCODE nuk ka stok, që është pikërisht ku oferta tënde fiton kutinë e blerjes.",
+      "catalogueDownload": "Shkarko katalogun",
       "uploadTitle": "Kopjo rreshtat",
-      "intro": "Ngjit rreshtat me SKU dhe stok, çmim ose të dyja. Rreshti i pare duhet të përmbajë emrat e kolonave.",
-      "headerExample": "sku;stok;çmimi",
+      "intro": "Ngjit rreshtat me SKU dhe çfarë do të vendosësh: stok, çmim, ditë dërgese, kufi stoku. Rreshti i parë duhet të përmbajë emrat e kolonave.",
+      "headerExample": "sku;stok;çmimi;dite;kufi",
       "paste": "Rreshtat",
       "pasteHint": "Pikëpresje, presje ose tab. Çmimi mund të shkruhet 9,90 ose 9.90.",
+      "createLabel": "Krijo oferta për SKU-t që nuk i kam",
+      "createHint": "Rreshti që nuk përputhet me asnjë ofertë tënde bëhet ofertë draft. Lëre të pashënuar për përditësim stoku, që një SKU e shkruar gabim të raportohet e të mos bëhet ofertë.",
       "submit": "Zbato",
       "applied": "U zbatuan {count} rreshta.",
+      "createdCount": "U krijuan {count} oferta draft.",
+      "createdNote": "Ofertat e re janë draft. Hapi dhe dërgoji për shqyrtim para se të mund të blihen.",
       "malformedTitle": "Rreshta që nuk u lexuan",
       "skippedTitle": "Rreshta që u kapërcyen",
       "lineIs": "rreshti {line}",
@@ -1474,7 +1483,15 @@
         "negative_stock": "stok negativ",
         "invalid_price": "çmim i papranueshëm",
         "bad_stock": "stoku nuk është numër i plotë",
-        "bad_price": "çmimi nuk është numër"
+        "bad_price": "çmimi nuk është numër",
+        "bad_handling": "ditët e dërgesës duhet numër i plotë 0–30",
+        "bad_threshold": "kufiri i stokut të ulët nuk është numër i plotë",
+        "invalid_handling": "ditët e dërgesës jashtë intervalit",
+        "invalid_threshold": "kufiri i stokut të ulët jashtë intervalit",
+        "unknown_sku": "asnjë produkt i yni nuk ka këtë SKU ose barkod",
+        "awaiting_review": "oferta tënde për të është në shqyrtim",
+        "offer_rejected": "oferta tënde për të u refuzua — hape dhe lexo shënimin",
+        "price_required": "oferta e re kërkon çmim"
       },
       "locale": "Gjuha e fletës: {locale}.",
       "errors": {
@@ -1482,7 +1499,7 @@
         "notMerchant": "Kjo hapet pasi aplikimi miratohet.",
         "empty": "Ngjit së paku një rresht.",
         "tooMany": "Shumë rreshta njëherësh. Maksimumi 2000.",
-        "noHeader": "Rreshti i parë duhet të përmbajë emrat e kolonave — të paktën një kolonë SKU dhe stok ose çmim."
+        "noHeader": "Rreshti i parë duhet të përmbajë emrat e kolonave — të paktën një kolonë SKU dhe një nga stok, çmim, ditë dërgese ose kufi stoku."
       }
     },
     "scorecard": {
@@ -1505,6 +1522,91 @@
       "accepted": "Pranuar",
       "declined": "Refuzuar",
       "delivered": "Dorëzuar"
+    },
+    "batches": {
+      "title": "Propozo një katalog",
+      "intro": "Ngjit një fletë me produkte që BIOCODE nuk i liston. E shqyrtojmë fletën të tërën njëherësh, refuzojmë rreshtat që nuk mund t’i marrim, dhe për të tjerët krijojmë produkt draft.",
+      "singleInstead": "Për një produkt të vetëm me arsyetim,",
+      "singleLink": "përdor formularin e propozimit",
+      "yours": "Fletët që ke dërguar",
+      "rowCount": "{count} produkte",
+      "newTitle": "Ngjit një fletë të re",
+      "formIntro": "Rreshti i parë duhet të përmbajë emrat e kolonave. Emri, marka dhe çmimi janë të detyrueshëm; të tjerat opsionale.",
+      "headerExample": "emri;marka;forma;varianti;barkod;kodi;stok;çmimi",
+      "columnsHint": "Funksionojnë edhe emrat në anglisht: name, brand, form, variant, barcode, sku, stock, price.",
+      "paste": "Rreshtat",
+      "pasteHint": "Pikëpresje, presje ose tab. Çmimi mund të shkruhet 14,90 ose 14.90. Deri 200 rreshta për fletë.",
+      "note": "Çka duhet të dijë shqyrtuesi (opsionale)",
+      "noteHint": "Ku është stoku, pse ky katalog, a e importon drejtpërdrejt.",
+      "submit": "Dërgo fletën",
+      "created": "U dërguan {count} produkte për shqyrtim.",
+      "nextStepImages": "Tjetra: shto fotografitë. Ato lidhen me rreshtat sipas emrit të skedarit, kështu 8712345678901.jpg e gjen rreshtin me atë barkod.",
+      "malformedTitle": "Rreshta që nuk u lexuan",
+      "skippedTitle": "Rreshta që nuk u pranuan",
+      "lineIs": "rreshti {line}",
+      "rowsTitle": "Çka dërgove",
+      "rowStatus": {
+        "pending": "Në pritje",
+        "approved": "Miratuar",
+        "rejected": "Refuzuar",
+        "needs_info": "Kërkohet më shumë"
+      },
+      "status": {
+        "pending": "Në shqyrtim",
+        "decided": "Përgjigjur"
+      },
+      "columns": {
+        "product": "Produkti",
+        "brand": "Marka",
+        "barcode": "Barkodi / kodi i yt",
+        "stock": "Ke",
+        "asking": "Kërkon",
+        "images": "Foto",
+        "status": "Statusi"
+      },
+      "backToBatches": "← Të gjitha fletët",
+      "withImages": "{count} nga {total} rreshta kanë fotografi",
+      "reviewerNote": "Shënim i shqyrtuesit:",
+      "reasons": {
+        "incomplete": "mungon emri ose marka",
+        "no_price": "pa çmim të kërkuar",
+        "negative_stock": "stok negativ",
+        "duplicate_in_sheet": "i njëjti produkt është më lart në fletë",
+        "already_proposed": "e ke propozuar më parë dhe është ende e hapur",
+        "bad_price": "çmimi nuk është numër",
+        "bad_stock": "stoku nuk është numër i plotë"
+      },
+      "images": {
+        "title": "Fotografitë",
+        "intro": "Zgjidh të gjitha fotografitë njëherësh. Secila lidhet me rreshtin që ka barkodin ose kodin në emrin e skedarit.",
+        "namingHint": "Emërto skedarët sipas barkodit ose kodit tënd: 8712345678901.jpg, dhe 8712345678901-2.jpg për foto të dytë të të njëjtit produkt. Çka nuk përputhet, e caktoni më poshtë.",
+        "choose": "Zgjidh fotografitë",
+        "uploading": "Po ngarkohen…",
+        "matchedTitle": "Të lidhura me një produkt ({count})",
+        "unmatchedTitle": "Nuk u lidhën ({count})",
+        "unmatchedHint": "Zgjidh produktin për secilën, ose riemërto skedarët sipas barkodit dhe zgjidhi sërish.",
+        "assignTo": "Për cilin produkt është {name}?",
+        "assignPlaceholder": "Zgjidh produktin…",
+        "attach": "Lidh {count} fotografi",
+        "attached": "U lidhën {count} fotografi.",
+        "previewAlt": "Pamje paraprake e {name}",
+        "closed": "Kjo fletë është përgjigjur, kështu që fotografitë nuk mund të shtohen më. Rreshtat e miratuar mbajnë fotografitë që kishin.",
+        "errors": {
+          "tooMany": "Kjo është më shumë se {max} skedarë njëherësh.",
+          "someFailed": "{count} skedarë nuk u ngarkuan. Mund të jenë më të mëdhenj se 2 MB ose në format që nuk e pranojmë.",
+          "nothingMatched": "Asnjë nuk është lidhur me produkt.",
+          "attachFailed": "Nuk u lidhën fotografitë. Provo sërish pas pak."
+        }
+      },
+      "errors": {
+        "generic": "Diçka shkoi keq. Provo sërish pas pak.",
+        "invalid": "Kontrollo fletën dhe provo sërish.",
+        "notMerchant": "Kjo hapet pasi aplikimi miratohet.",
+        "empty": "Ngjit së paku një rresht.",
+        "noHeader": "Rreshti i parë duhet të përmbajë emrat e kolonave, përfshirë emrin, markën dhe çmimin.",
+        "tooMany": "Shumë rreshta njëherësh. Maksimumi 200 për fletë.",
+        "tooManyOpen": "Ke tri fleta në pritje të përgjigjes. Prit një nga ato para se të dërgosh tjetër."
+      }
     }
   }
 }

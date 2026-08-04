@@ -1,6 +1,7 @@
 import { getTranslations } from 'next-intl/server';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
+import { Link } from '@/i18n/routing';
 import { resolveLocale } from '@/i18n/locale';
 import { formatPrice } from '@/lib/money';
 import { cn } from '@/lib/utils';
@@ -43,6 +44,13 @@ export default async function MerchantProposalsPage({ params }: Props) {
       <header>
         <h2 className="font-display text-xl font-semibold text-forest-900">{t('title')}</h2>
         <p className="mt-1 text-sm text-ink-600">{t('intro')}</p>
+        {/* The other path (§9.1): a whole sheet, reviewed as one thing, with photographs keyed by filename. */}
+        <p className="mt-2 text-[13px] text-ink-500">
+          {t('bulkInstead')}{' '}
+          <Link href="/merchant/proposals/bulk" className="underline">
+            {t('bulkLink')}
+          </Link>
+        </p>
       </header>
 
       <section aria-labelledby="submitted" className="flex flex-col gap-3">

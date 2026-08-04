@@ -96,12 +96,21 @@ function toProposal(row: Raw): Proposal {
 const COLUMNS = `id, merchant_id, status, payload, reviewer_note, created_at, reviewed_at,
   created_product_id, merchants ( display_name )`;
 
+/**
+ * Proposals submitted **on their own**, oldest first.
+ *
+ * Batch rows are excluded (`batch_id is null`) and read through `getBatch` instead (docs/16 §9.1). Both
+ * screens this feeds — the merchant's list and the reviewer's queue — show one card per proposal, and 200
+ * cards from one pasted catalogue would bury every individually-considered proposal underneath it. The
+ * batch is its own queue item, with its own table.
+ */
 export async function listProposals(status?: ProposalStatus): Promise<Proposal[]> {
   const supabase = await createClient();
 
   let query = supabase
     .from('product_proposals')
     .select(COLUMNS)
+    .is('batch_id', null)
     // Oldest first for a review queue; the merchant's own list is short enough that it does not matter.
     .order('created_at', { ascending: true });
 
@@ -125,7 +134,11 @@ export async function proposalCounts(): Promise<Record<ProposalStatus, number>> 
   };
 
   const supabase = await createClient();
-  const { data, error } = await supabase.from('product_proposals').select('status');
+  // Standalone proposals only, matching `listProposals` — the batches are counted as batches.
+  const { data, error } = await supabase
+    .from('product_proposals')
+    .select('status')
+    .is('batch_id', null);
 
   if (error) {
     logger.error('proposalCounts failed', { cause: error.message });
@@ -210,6 +223,49 @@ export async function merchantScorecard(merchantId: string): Promise<Scorecard> 
     avgAcceptHours: asNullableNumber(row.avg_accept_hours),
     avgDispatchHours: asNullableNumber(row.avg_dispatch_hours),
   };
+}
+
+export interface CatalogueRow {
+  sku: string;
+  barcode: string;
+  productName: string;
+  variantName: string;
+  priceCents: number;
+  inStock: boolean;
+}
+
+/**
+ * BioCode's published SKUs, for a merchant building a sheet of offers it does not have yet (§6.1).
+ *
+ * The counterpart to `offersExport`, and the reason bulk *creation* is usable at all: a merchant cannot
+ * paste `sku;price;stock` for a catalogue whose codes it has never been told, and every guess lands in the
+ * report as `unknown_sku`. `inStock` is the commercially interesting column — where BioCode is short is
+ * exactly where a merchant's offer wins the buy box.
+ */
+export async function catalogueExport(): Promise<CatalogueRow[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc('catalogue_export');
+
+  if (error) {
+    logger.error('catalogueExport failed', { cause: error.message });
+    return [];
+  }
+
+  return ((data ?? []) as {
+    sku: string;
+    barcode: string;
+    product_name: string;
+    variant_name: string;
+    price_cents: number;
+    in_stock: boolean;
+  }[]).map((row) => ({
+    sku: row.sku,
+    barcode: row.barcode,
+    productName: row.product_name,
+    variantName: row.variant_name,
+    priceCents: row.price_cents,
+    inStock: row.in_stock,
+  }));
 }
 
 export interface OfferExportRow {

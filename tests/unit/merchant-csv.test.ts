@@ -177,3 +177,74 @@ describe('an empty paste', () => {
     expect(result.rows).toHaveLength(0);
   });
 });
+
+/**
+ * docs/16 §6.1 — the two columns bulk creation added.
+ *
+ * Both are bounded by column checks on `merchant_offers`, so the parser rejects them here with a line
+ * number rather than letting Postgres answer with a constraint name.
+ */
+describe('handling days and the low-stock threshold', () => {
+  it('reads both, in either language', () => {
+    const english = parseOfferCsv('sku;price;handling;lowstock\nA-1;9,90;3;15');
+    expect(english.rows).toEqual([
+      { sku: 'A-1', price_cents: 990, handling_days: 3, low_stock_threshold: 15 },
+    ]);
+
+    const albanian = parseOfferCsv('sku;çmimi;dite;kufi\nA-1;9,90;3;15');
+    expect(albanian.rows).toEqual([
+      { sku: 'A-1', price_cents: 990, handling_days: 3, low_stock_threshold: 15 },
+    ]);
+  });
+
+  it('accepts a sheet whose only settable column is one of them', () => {
+    const result = parseOfferCsv('sku;handling\nA-1;2');
+    expect(result.kind).toBe('ok');
+    expect(result.rows).toEqual([{ sku: 'A-1', handling_days: 2 }]);
+  });
+
+  it('refuses a dispatch promise outside the column check', () => {
+    expect(parseOfferCsv('sku;handling\nA-1;400').malformed).toEqual([
+      { line: 2, reason: 'bad_handling' },
+    ]);
+    expect(parseOfferCsv('sku;handling\nA-1;-1').malformed).toEqual([
+      { line: 2, reason: 'bad_handling' },
+    ]);
+    expect(parseOfferCsv('sku;handling\nA-1;soon').malformed).toEqual([
+      { line: 2, reason: 'bad_handling' },
+    ]);
+  });
+
+  it('refuses a negative low-stock level', () => {
+    expect(parseOfferCsv('sku;lowstock\nA-1;-3').malformed).toEqual([
+      { line: 2, reason: 'bad_threshold' },
+    ]);
+  });
+
+  it('an empty cell means leave it alone, not zero', () => {
+    const result = parseOfferCsv('sku;stok;handling;lowstock\nA-1;5;;');
+    expect(result.rows).toEqual([{ sku: 'A-1', stock: 5 }]);
+  });
+});
+
+/**
+ * A barcode is a lookup key the database resolves, so it is accepted as the SKU column — and a sheet
+ * carrying both must not have the answer depend on which one Excel put first.
+ */
+describe('the key column', () => {
+  it('accepts a barcode header', () => {
+    expect(parseOfferCsv('barkod;stok\n5012345678900;7').rows).toEqual([
+      { sku: '5012345678900', stock: 7 },
+    ]);
+  });
+
+  it('prefers sku over barcode wherever they sit', () => {
+    const skuFirst = parseOfferCsv('sku;barcode;stok\nA-1;5012345678900;7');
+    expect(skuFirst.rows).toEqual([{ sku: 'A-1', stock: 7 }]);
+
+    const barcodeFirst = parseOfferCsv('barcode;sku;stok\n5012345678900;A-1;7');
+    expect(barcodeFirst.rows, 'alias order decides, not column order').toEqual([
+      { sku: 'A-1', stock: 7 },
+    ]);
+  });
+});

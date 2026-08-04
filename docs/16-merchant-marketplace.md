@@ -530,12 +530,134 @@ photographs and says plainly that approving publishes them.
   singularised. The field is free text on purpose — a merchant knows forms BioCode does not — so a bare
   cast would throw on a valid proposal. See docs/13 §X11.
 
+---
+
+## 9.1 · Pasted catalogues — a batch is one thing a reviewer decides
+
+A merchant onboarding two hundred products BioCode does not list had to submit two hundred proposals, one
+form at a time, against a cap of twenty open ones. The honest answer was "we cannot take your catalogue".
+
+**The cap is not the problem to remove.** It exists because one merchant must not be able to make the review
+queue unusable for everybody else. What changes is *what a reviewer decides*: a **batch** is one queue item
+with many rows. The merchant pastes a sheet, the reviewer reads a table, rejects the rows that are wrong, and
+approves the rest in one action.
+
+### The caps, and why they moved
+
+| Path                 | Limit                                     |
+| -------------------- | ----------------------------------------- |
+| Individual proposals | 20 open — unchanged                       |
+| Batch rows           | **exempt** from that cap                  |
+| A batch              | 200 rows                                  |
+| Open batches         | 3 per merchant                            |
+
+Batch rows are exempt because the queue cost of a batch is one table a reviewer scrolls, not 200 cards — so
+the thing being limited is the thing that actually costs review time. Counting them in the twenty as well
+would mean a merchant that pasted its catalogue could no longer propose the one product it thought of
+afterwards, which is the opposite of what either limit is for. `listProposals` and `proposalCounts` filter
+`batch_id is null` for the same reason: 200 cards from one paste would bury every individually-argued
+proposal underneath them.
+
+### Reject per row, approve the batch
+
+The asymmetry is the design. **Rejecting is a judgement about one product** — wrong brand, no barcode, we
+already list it — and each rejected row needs its own reason the merchant can act on, so each row has its own
+form. **Approving is a judgement about the sheet**, so `decide_proposal_batch` takes every row still pending
+and leaves rows already rejected exactly as they are.
+
+A batch whose every row was refused at parse time **leaves no batch behind**. Otherwise a merchant fixing its
+spreadsheet burns one of its three slots per attempt and the reviewer's queue fills with empty tables.
+
+### Photographs keyed by filename
+
+The rows arrive without images: a server action's body is capped at 1 MB and three hundred phone photographs
+are not going through it. So the bytes go from the browser to the private `merchant-proposals` bucket, and
+**the filename says which row they belong to**.
+
+- The key is the **barcode**, else the merchant's own **SKU**, normalised hard — lower-cased and stripped of
+  everything that is not a letter or a digit, because the same code is written `5099-9999`, `5099 9999` and
+  `5099_9999` by three different people, and a photograph that did not attach because of a hyphen is
+  indistinguishable from a bug.
+- `8712345678901-2.jpg` is the second photograph of one product, so a **trailing counter of one to three
+  digits** comes off. The whole stem is tried first, in case a SKU genuinely ends in `-2`. Four digits are
+  left alone: trimming them would turn every `IMG_4821.JPG` into the key `img`.
+- Anything unmatched appears in an **assign list** with a select per file. That is the same dropdown as the
+  naive design, except only for the files that need it — usually a handful rather than all three hundred.
+
+The alternative was a dropdown per photograph, which for a real catalogue is three hundred dropdowns and
+nobody does it.
+
+**Attaching goes through `merchant_attach_batch_images`, not an UPDATE.** `p_own_update` admits a merchant
+only for `status = 'needs_info'` — a pending proposal must not change under the reviewer reading it — so a
+direct write matched zero rows, and PostgREST calls that success (docs/13 §X15). The function permits exactly
+one change, appending paths, re-checks the folder prefix and the row's batch, and **returns what it actually
+wrote**. Uploading closes when the batch is decided, because promotion has already copied the images.
+
+### Promotion at scale
+
+Approving 200 rows means 200 draft products and every photograph copied between storage buckets — many
+hundreds of round trips, well past what a request should hold open. So:
+
+1. `decide_proposal_batch` records the decision for every row and **creates nothing**;
+2. `decideBatch` promotes a bounded first slice (10) inline, so the reviewer sees it work;
+3. the housekeeping cron drains `proposals_awaiting_promotion` at **25 a night**.
+
+The queue is a **view** — `status = 'approved' and created_product_id is null` — not a column. A row leaves
+by being *done* rather than by being marked, which makes overlapping drains harmless: two sweeps racing on
+one row both call an idempotent function and the second gets `created: false`. There is no "claimed" flag to
+leak when a run dies halfway.
+
+25 a night is a decision about *the cron*, not about the queue: it has a 60-second budget shared with eight
+other steps, and the products are drafts either way — invisible until compliance publishes them. The
+awaiting count is shown on the admin proposals screen, so a queue that is not draining is visible rather
+than silent.
+
 **Bulk update is a paste, not an upload** — the real workflow is "open the spreadsheet, select the
 columns, copy". The export sits above the paste box so a merchant editing the sheet it was given has the
 right SKUs by construction. The parser handles semicolons (Excel in a comma-decimal locale, which Kosovo
 is), comma decimals, tabs, a BOM, CRLF, quoted fields and bilingual header aliases — and **refuses** a
 sheet with no recognisable header rather than guessing column order, because guessing writes prices into
 stock levels silently.
+
+## 6.1 · Bulk offer *creation*
+
+The same paste box also **creates** offers. A merchant onboarding a real catalogue had to add every offer
+by hand — about forty seconds each, so two hundred SKUs was an afternoon — because a row matching no
+existing offer was reported as `no_matching_offer` and dropped. Now it becomes a **draft offer** and goes
+through the ordinary `offers.review` approval.
+
+Nothing about the review model changes. A merchant still cannot publish supply; a reviewer still sees every
+new offer before a customer can buy it. What changes is the typing.
+
+**Off by default, per paste.** The nightly stock file is the common paste, and there a mistyped SKU must
+report itself rather than quietly become an offer at a price nobody checked — so `p_create` is a checkbox
+the merchant ticks when the sheet is new supply.
+
+**Two more columns**, both of which a new offer needs and an existing one keeps if the column is absent:
+`handling_days` (the dispatch promise the scorecard measures against) and `low_stock_threshold`. There is
+deliberately **no `condition` column**: `merchant_offers` has none, every supplement on the site is sold
+new, and an enum with one member is a migration in exchange for nothing.
+
+**A creation matches on BioCode's key, not the merchant's.** An update matches `merchant_sku` first and
+falls back to our `sku`; a creation has no offer to read a `merchant_sku` from, so the key is the variant
+`sku` or its `barcode`. Which is why the page hands out a **catalogue export** — a merchant guessing at our
+codes fills its report with `unknown_sku`. The export's most useful column is `ka_stok_biocode`: where
+BioCode is short is exactly where a merchant's offer wins the buy box.
+
+**The variant must belong to a published product.** Two reasons, and the second is the one that matters: an
+offer on an unpublished product would sit on a page no customer can reach, and a lookup that answered for
+drafts would make this function an oracle for probing whether BioCode is preparing to list something. A
+draft answers `unknown_sku`, the same as a code that does not exist.
+
+Every refusal has its own reason, because each needs a different thing from the merchant:
+
+| Reason            | What it means                                                     |
+| ----------------- | ----------------------------------------------------------------- |
+| `unknown_sku`     | no published variant carries that SKU or barcode                  |
+| `price_required`  | a new offer needs a price; there is no sensible default           |
+| `awaiting_review` | the merchant's offer on that variant is mid-review — wait         |
+| `offer_rejected`  | it was rejected: open the offer and read the note                 |
+| `no_matching_offer` | the row matched nothing and creation was not ticked             |
 
 **The scorecard is observed, not entered.** `rating_avg` is a buy-box tie-break, so it decides which of
 two equally-priced merchants gets the sale — that makes it a number that has to be earned by something
@@ -566,12 +688,12 @@ gives it, and each re-checked inside the SQL so a future cron cannot route aroun
 
 | Suite       | Count | What it is for                                                     |
 | ----------- | ----- | ------------------------------------------------------------------ |
-| Unit        | 276   | Pure logic: money, CSV parsing, payout periods, schemas, error keys |
-| Integration | 319   | RLS, triggers, and every SQL function, against a real database      |
-| E2E         | 478   | The journeys and a11y, on desktop and a 390 px viewport             |
+| Unit        | 308   | Pure logic: money, both CSV parsers, filename keys, payout periods, schemas |
+| Integration | 354   | RLS, triggers, and every SQL function, against a real database             |
+| E2E         | 484   | The journeys and a11y, on desktop and a 390 px viewport                    |
 
 Marketplace-specific: 42 isolation, 15 onboarding, 19 buy box, 24 offers, 29 routing, 29 ledger,
-33 scorecard/bulk/proposals, 17 emails/auto-routing; 52 E2E across two spec files.
+44 scorecard/bulk/proposals, 24 batches, 17 emails/auto-routing; 58 E2E across two spec files.
 
 The proposal-images journey (§9) is the one worth reading for what it asserts *last*: the merchant's
 photograph is on the draft product, the reviewer could see it before approving — and the product's own URL
@@ -597,5 +719,11 @@ it passing vacuously.
 7. ~~Emails~~ — **done**
 8. ~~Optional auto-routing behind the setting~~ — **done**
 9. ~~E2E + a11y + perf; seed two demo merchants with overlapping SKUs~~ — **done**
+
+Added after M12 closed, because onboarding a real merchant needs both:
+
+10. ~~Photographs on a proposal; approving creates a draft product carrying them~~ — **done (§9)**
+11. ~~Bulk offer *creation* from the same paste, with a catalogue export~~ — **done (§6.1)**
+12. ~~Pasted catalogues as batches, photographs keyed by filename, promotion swept by cron~~ — **done (§9.1)**
 
 ---

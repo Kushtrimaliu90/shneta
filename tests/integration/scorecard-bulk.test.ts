@@ -453,7 +453,7 @@ describe('bulk stock and price (docs/16 §6)', () => {
     products.push(product);
     const offer = await createOffer(merchant, product.variantId, { price: 1500, stock: 2 });
 
-    const { data, error } = await serviceClient().rpc('merchant_bulk_update_offers', {
+    const { data, error } = await serviceClient().rpc('merchant_bulk_upsert_offers', {
       p_merchant_id: merchant,
       p_rows: [{ sku: product.sku, stock: 20, price_cents: 1800 }],
     });
@@ -487,7 +487,7 @@ describe('bulk stock and price (docs/16 §6)', () => {
       sku: a.sku,
     });
 
-    await serviceClient().rpc('merchant_bulk_update_offers', {
+    await serviceClient().rpc('merchant_bulk_upsert_offers', {
       p_merchant_id: merchant,
       p_rows: [{ sku: a.sku, stock: 50 }],
     });
@@ -511,7 +511,7 @@ describe('bulk stock and price (docs/16 §6)', () => {
     products.push(product);
     const offer = await createOffer(merchant, product.variantId, { price: 1500, stock: 2 });
 
-    await serviceClient().rpc('merchant_bulk_update_offers', {
+    await serviceClient().rpc('merchant_bulk_upsert_offers', {
       p_merchant_id: merchant,
       p_rows: [{ sku: product.sku, stock: 9 }],
     });
@@ -533,7 +533,7 @@ describe('bulk stock and price (docs/16 §6)', () => {
     products.push(product);
     await createOffer(merchant, product.variantId, { price: 1500, stock: 1 });
 
-    const { data } = await serviceClient().rpc('merchant_bulk_update_offers', {
+    const { data } = await serviceClient().rpc('merchant_bulk_upsert_offers', {
       p_merchant_id: merchant,
       p_rows: [
         { sku: product.sku, stock: 4 },
@@ -564,7 +564,7 @@ describe('bulk stock and price (docs/16 §6)', () => {
       .select('id')
       .single();
 
-    const { data } = await serviceClient().rpc('merchant_bulk_update_offers', {
+    const { data } = await serviceClient().rpc('merchant_bulk_upsert_offers', {
       p_merchant_id: merchant,
       p_rows: [{ sku: product.sku, stock: 99 }],
     });
@@ -587,7 +587,7 @@ describe('bulk stock and price (docs/16 §6)', () => {
     userIds.push(owner.id);
     await serviceClient().from('merchant_users').insert({ merchant_id: mine, user_id: owner.id });
 
-    const { error } = await owner.client.rpc('merchant_bulk_update_offers', {
+    const { error } = await owner.client.rpc('merchant_bulk_upsert_offers', {
       p_merchant_id: theirs,
       p_rows: [{ sku: 'ANY', stock: 999 }],
     });
@@ -612,11 +612,298 @@ describe('bulk stock and price (docs/16 §6)', () => {
     expect(rows[0]?.merchant_sku).toBe('MY-1');
 
     // And the exported SKU matches on the way back in, which is the point of the export.
-    const applied = await serviceClient().rpc('merchant_bulk_update_offers', {
+    const applied = await serviceClient().rpc('merchant_bulk_upsert_offers', {
       p_merchant_id: merchant,
       p_rows: [{ sku: rows[0]?.merchant_sku ?? '', stock: 11 }],
     });
     expect((applied.data as { applied: number }).applied).toBe(1);
+  });
+
+  it('applies handling days and the low-stock threshold', async () => {
+    const merchant = await createMerchant('Bulk Handling');
+    const product = await createProduct({ stock: 0, priceCents: 3000 });
+    products.push(product);
+    const offer = await createOffer(merchant, product.variantId, { price: 1500, stock: 2 });
+
+    await serviceClient().rpc('merchant_bulk_upsert_offers', {
+      p_merchant_id: merchant,
+      p_rows: [{ sku: product.sku, handling_days: 4, low_stock_threshold: 12 }],
+    });
+
+    const { data } = await serviceClient()
+      .from('merchant_offers')
+      .select('handling_days, low_stock_threshold, price_cents')
+      .eq('id', offer)
+      .single();
+
+    const row = data as {
+      handling_days: number;
+      low_stock_threshold: number;
+      price_cents: number;
+    };
+    expect(row.handling_days).toBe(4);
+    expect(row.low_stock_threshold).toBe(12);
+    // Absent columns still mean "leave it alone", which is what makes a partial sheet safe.
+    expect(row.price_cents).toBe(1500);
+  });
+});
+
+/**
+ * docs/16 §6.1 — the same paste creates offers.
+ *
+ * The thing worth testing is not that an INSERT works. It is that **every way a creation should be
+ * refused, is** — an unknown code, a product BioCode has not published, a variant that is switched off, an
+ * offer already mid-review, and a row with no price. A bulk creator that guesses is a bulk creator that
+ * puts a merchant's supply on the wrong product at the wrong price, two hundred rows at a time.
+ */
+describe('bulk offer creation (docs/16 §6.1)', () => {
+  it('creates a draft offer for a SKU the merchant has no offer on', async () => {
+    const merchant = await createMerchant('Create One');
+    const product = await createProduct({ stock: 0, priceCents: 3000 });
+    products.push(product);
+
+    const { data, error } = await serviceClient().rpc('merchant_bulk_upsert_offers', {
+      p_merchant_id: merchant,
+      p_rows: [
+        { sku: product.sku, price_cents: 1750, stock: 6, handling_days: 2, low_stock_threshold: 4 },
+      ],
+      p_create: true,
+    });
+
+    expect(error).toBeNull();
+    const result = data as { applied: number; created: number; skipped: unknown[] };
+    expect(result.created).toBe(1);
+    expect(result.applied).toBe(0);
+    expect(result.skipped).toEqual([]);
+
+    const { data: row } = await serviceClient()
+      .from('merchant_offers')
+      .select('status, price_cents, stock_on_hand, handling_days, low_stock_threshold, merchant_sku')
+      .eq('merchant_id', merchant)
+      .eq('variant_id', product.variantId)
+      .single();
+
+    const offer = row as {
+      status: string;
+      price_cents: number;
+      stock_on_hand: number;
+      handling_days: number;
+      low_stock_threshold: number;
+      merchant_sku: string;
+    };
+
+    /*
+     * `draft`, not `pending_review`.
+     *
+     * Submitting for review is a decision a merchant makes about an offer it has looked at, and a paste of
+     * two hundred rows is not two hundred such decisions. It is also what keeps the review model intact:
+     * nothing here reaches a customer without `offers.review`.
+     */
+    expect(offer.status).toBe('draft');
+    expect(offer.price_cents).toBe(1750);
+    expect(offer.stock_on_hand).toBe(6);
+    expect(offer.handling_days).toBe(2);
+    expect(offer.low_stock_threshold).toBe(4);
+    // Kept, so the merchant's *next* sheet matches on its own code rather than ours.
+    expect(offer.merchant_sku).toBe(product.sku);
+  });
+
+  it('defaults stock, handling and threshold when the sheet omits them', async () => {
+    const merchant = await createMerchant('Create Defaults');
+    const product = await createProduct({ stock: 0, priceCents: 3000 });
+    products.push(product);
+
+    await serviceClient().rpc('merchant_bulk_upsert_offers', {
+      p_merchant_id: merchant,
+      p_rows: [{ sku: product.sku, price_cents: 900 }],
+      p_create: true,
+    });
+
+    const { data } = await serviceClient()
+      .from('merchant_offers')
+      .select('stock_on_hand, handling_days, low_stock_threshold')
+      .eq('merchant_id', merchant)
+      .single();
+
+    const offer = data as {
+      stock_on_hand: number;
+      handling_days: number;
+      low_stock_threshold: number;
+    };
+    // Zero stock is the honest default: a merchant that did not say how many holds none yet.
+    expect(offer.stock_on_hand).toBe(0);
+    expect(offer.handling_days).toBe(1);
+    expect(offer.low_stock_threshold).toBe(3);
+  });
+
+  it('matches a barcode when that is all the merchant has', async () => {
+    const merchant = await createMerchant('Create Barcode');
+    const product = await createProduct({ stock: 0, priceCents: 3000 });
+    products.push(product);
+
+    const barcode = `50${Date.now().toString().slice(-11)}`;
+    await serviceClient()
+      .from('product_variants')
+      .update({ barcode })
+      .eq('id', product.variantId);
+
+    const { data } = await serviceClient().rpc('merchant_bulk_upsert_offers', {
+      p_merchant_id: merchant,
+      p_rows: [{ sku: barcode, price_cents: 1100 }],
+      p_create: true,
+    });
+
+    expect((data as { created: number }).created).toBe(1);
+
+    const { data: row } = await serviceClient()
+      .from('merchant_offers')
+      .select('variant_id')
+      .eq('merchant_id', merchant)
+      .single();
+    expect((row as { variant_id: string }).variant_id).toBe(product.variantId);
+  });
+
+  it('reports a code no product of ours carries', async () => {
+    const merchant = await createMerchant('Create Unknown');
+
+    const { data } = await serviceClient().rpc('merchant_bulk_upsert_offers', {
+      p_merchant_id: merchant,
+      p_rows: [{ sku: 'NO-SUCH-SKU-EVER', price_cents: 500 }],
+      p_create: true,
+    });
+
+    const result = data as { created: number; skipped: { sku: string; reason: string }[] };
+    expect(result.created).toBe(0);
+    expect(result.skipped).toEqual([{ sku: 'NO-SUCH-SKU-EVER', reason: 'unknown_sku' }]);
+  });
+
+  /**
+   * A draft product is not offerable, and the reason is not tidiness.
+   *
+   * An offer on an unpublished product would sit on a page no customer can reach — and a lookup that
+   * answered for drafts would make this function an oracle for probing whether BioCode is preparing to
+   * list something. `unknown_sku` is the same answer a nonexistent code gets, deliberately.
+   */
+  it('refuses to create against an unpublished product, and says nothing about it', async () => {
+    const merchant = await createMerchant('Create Draft Product');
+    const product = await createProduct({ stock: 0, priceCents: 3000, status: 'draft' });
+    products.push(product);
+
+    const { data } = await serviceClient().rpc('merchant_bulk_upsert_offers', {
+      p_merchant_id: merchant,
+      p_rows: [{ sku: product.sku, price_cents: 500 }],
+      p_create: true,
+    });
+
+    const result = data as { created: number; skipped: { sku: string; reason: string }[] };
+    expect(result.created).toBe(0);
+    expect(result.skipped[0]?.reason).toBe('unknown_sku');
+  });
+
+  it('refuses to create against an inactive variant', async () => {
+    const merchant = await createMerchant('Create Inactive');
+    const product = await createProduct({ stock: 0, priceCents: 3000, variantActive: false });
+    products.push(product);
+
+    const { data } = await serviceClient().rpc('merchant_bulk_upsert_offers', {
+      p_merchant_id: merchant,
+      p_rows: [{ sku: product.sku, price_cents: 500 }],
+      p_create: true,
+    });
+
+    expect((data as { created: number }).created).toBe(0);
+  });
+
+  it('needs a price to create, and says so', async () => {
+    const merchant = await createMerchant('Create No Price');
+    const product = await createProduct({ stock: 0, priceCents: 3000 });
+    products.push(product);
+
+    const { data } = await serviceClient().rpc('merchant_bulk_upsert_offers', {
+      p_merchant_id: merchant,
+      p_rows: [{ sku: product.sku, stock: 5 }],
+      p_create: true,
+    });
+
+    const result = data as { created: number; skipped: { sku: string; reason: string }[] };
+    expect(result.created).toBe(0);
+    expect(result.skipped).toEqual([{ sku: product.sku, reason: 'price_required' }]);
+  });
+
+  /**
+   * `unique (merchant_id, variant_id)` would raise on a second offer, and the two blocked states need
+   * different things from the merchant: wait, or open the offer and read the note.
+   */
+  it('names the offer that is in the way rather than colliding', async () => {
+    const merchant = await createMerchant('Create Blocked');
+    const pending = await createProduct({ stock: 0, priceCents: 3000 });
+    const rejected = await createProduct({ stock: 0, priceCents: 3000 });
+    products.push(pending, rejected);
+
+    await serviceClient().from('merchant_offers').insert([
+      {
+        merchant_id: merchant,
+        variant_id: pending.variantId,
+        price_cents: 1000,
+        status: 'pending_review',
+      },
+      {
+        merchant_id: merchant,
+        variant_id: rejected.variantId,
+        price_cents: 1000,
+        status: 'rejected',
+      },
+    ]);
+
+    const { data } = await serviceClient().rpc('merchant_bulk_upsert_offers', {
+      p_merchant_id: merchant,
+      p_rows: [
+        { sku: pending.sku, price_cents: 1200 },
+        { sku: rejected.sku, price_cents: 1200 },
+      ],
+      p_create: true,
+    });
+
+    const result = data as { created: number; skipped: { sku: string; reason: string }[] };
+    expect(result.created).toBe(0);
+
+    const reasons = new Map(result.skipped.map((entry) => [entry.sku, entry.reason]));
+    expect(reasons.get(pending.sku)).toBe('awaiting_review');
+    expect(reasons.get(rejected.sku)).toBe('offer_rejected');
+  });
+
+  /** The default. A nightly stock file must report a typo, not turn it into an offer. */
+  it('creates nothing when p_create is not asked for', async () => {
+    const merchant = await createMerchant('Create Off');
+    const product = await createProduct({ stock: 0, priceCents: 3000 });
+    products.push(product);
+
+    const { data } = await serviceClient().rpc('merchant_bulk_upsert_offers', {
+      p_merchant_id: merchant,
+      p_rows: [{ sku: product.sku, price_cents: 1000, stock: 3 }],
+    });
+
+    const result = data as { created: number; skipped: { sku: string; reason: string }[] };
+    expect(result.created).toBe(0);
+    expect(result.skipped).toEqual([{ sku: product.sku, reason: 'no_matching_offer' }]);
+  });
+
+  it('the catalogue export lists published variants and not drafts', async () => {
+    const published = await createProduct({ stock: 4, priceCents: 2500 });
+    const draft = await createProduct({ stock: 0, priceCents: 2500, status: 'draft' });
+    products.push(published, draft);
+
+    const { data, error } = await serviceClient().rpc('catalogue_export');
+    expect(error).toBeNull();
+
+    const rows = (data ?? []) as { sku: string; in_stock: boolean; price_cents: number }[];
+    const bySku = new Map(rows.map((row) => [row.sku, row]));
+
+    expect(bySku.has(published.sku), 'a published variant is offerable and listed').toBe(true);
+    expect(bySku.has(draft.sku), 'a draft is neither').toBe(false);
+    // The column that tells a merchant where its offer would win the buy box.
+    expect(bySku.get(published.sku)?.in_stock).toBe(true);
+    expect(bySku.get(published.sku)?.price_cents).toBe(2500);
   });
 });
 

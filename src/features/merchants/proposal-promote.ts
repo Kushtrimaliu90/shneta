@@ -50,9 +50,20 @@ export interface PromotionResult {
  * the approval half-applied, with `created_product_id` set and the merchant told nothing. The count comes
  * back so the screen can say what happened.
  */
-export async function promoteProposal(proposalId: string): Promise<PromotionResult | null> {
+export async function promoteProposal(
+  proposalId: string,
+  options?: { asService?: boolean },
+): Promise<PromotionResult | null> {
   try {
-    const supabase = await createClient();
+    /*
+     * `asService` is for the cron (§9.1), which has no session at all.
+     *
+     * `promote_proposal_to_draft` admits the service role or a product manager, and the SSR client carries
+     * whichever of those the caller is. A cron carries neither — so the sweep passes this flag rather than
+     * the function guessing from the absence of a session, which is the kind of inference that silently
+     * turns into "anyone may promote" the day a session is missing for a different reason.
+     */
+    const supabase = options?.asService ? createAdminClient() : await createClient();
 
     // Rows first: if this refuses, nothing has been copied and there is nothing to unwind.
     const { data, error } = await supabase.rpc('promote_proposal_to_draft', {

@@ -4,7 +4,7 @@ import { useActionState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Alert } from '@/components/ui/alert';
 import { SubmitButton } from '@/components/ui/submit-button';
-import { bulkUpdateOffers, type BulkState } from '@/features/merchants/bulk-actions';
+import { bulkApplyOffers, type BulkState } from '@/features/merchants/bulk-actions';
 
 const LEAVES = ['generic', 'notMerchant', 'empty', 'tooMany', 'noHeader'] as const;
 type Leaf = (typeof LEAVES)[number];
@@ -22,6 +22,15 @@ const SKIP_REASONS = [
   'invalid_price',
   'bad_stock',
   'bad_price',
+  // Bulk creation (§6.1): each one needs a different thing from the merchant, so each has its own line.
+  'bad_handling',
+  'bad_threshold',
+  'invalid_handling',
+  'invalid_threshold',
+  'unknown_sku',
+  'awaiting_review',
+  'offer_rejected',
+  'price_required',
 ] as const;
 
 type SkipReason = (typeof SKIP_REASONS)[number];
@@ -47,7 +56,7 @@ function reasonKey(reason: string): SkipReason {
 export function BulkForm() {
   const t = useTranslations('merchant.bulk');
   const [state, action] = useActionState<BulkState, FormData>(
-    async (previous, formData) => bulkUpdateOffers(previous, formData),
+    async (previous, formData) => bulkApplyOffers(previous, formData),
     null,
   );
 
@@ -74,11 +83,34 @@ export function BulkForm() {
         <span className="text-[13px] text-ink-500">{t('pasteHint')}</span>
       </label>
 
+      {/*
+        Creation off by default (§6.1).
+
+        The nightly stock file is the common paste, and there a mistyped SKU must report itself rather
+        than become an offer at a price nobody checked. Ticking this is the merchant saying "these are new".
+      */}
+      <label className="flex items-start gap-2.5 text-sm">
+        <input
+          type="checkbox"
+          name="create"
+          className="mt-0.5 size-4 rounded-sm border-line-strong text-forest-700"
+        />
+        <span>
+          <span className="font-medium text-ink-900">{t('createLabel')}</span>
+          <span className="block text-[13px] text-ink-500">{t('createHint')}</span>
+        </span>
+      </label>
+
       {state?.ok && (
         <div className="flex flex-col gap-2" role="status" aria-live="polite">
           <p className="text-sm font-medium text-success">
             {t('applied', { count: state.data.applied })}
+            {state.data.created > 0 && ` · ${t('createdCount', { count: state.data.created })}`}
           </p>
+
+          {state.data.created > 0 && (
+            <p className="text-[13px] text-ink-600">{t('createdNote')}</p>
+          )}
 
           {state.data.malformed.length > 0 && (
             <Alert tone="warning" title={t('malformedTitle')}>

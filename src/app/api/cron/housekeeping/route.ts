@@ -8,6 +8,7 @@ import {
   findPartiallyShippedOrders,
   sendPartialShipmentNotice,
 } from '@/features/merchants/partial-shipment-email';
+import { sweepApprovedProposals } from '@/features/merchants/proposal-sweep';
 
 /**
  * docs/10 §5 — nightly housekeeping, 03:30 UTC.
@@ -20,6 +21,7 @@ import {
  *   · chase merchants sitting on an unanswered order (docs/16 §7)
  *   · tell customers whose order is arriving in more than one parcel (docs/16 §7)
  *   · auto-route unassigned merchant fulfilments, if that setting is on (docs/16 §6)
+ *   · turn approved proposals into draft products, 25 a night (docs/16 §9.1)
  *
  * Service-role by design — cron jobs are one of the six sanctioned uses (docs/02 §6).
  * Idempotent: every step is bounded by a timestamp predicate, so re-running it the same
@@ -59,6 +61,8 @@ export async function GET(request: NextRequest) {
     fulfilmentReminders: 0,
     partialShipmentNotices: 0,
     autoRouted: 0,
+    proposalsPromoted: 0,
+    proposalsAwaiting: 0,
   };
   const failures: string[] = [];
 
@@ -204,6 +208,25 @@ export async function GET(request: NextRequest) {
       const result = (data ?? {}) as { enabled?: boolean; routed?: unknown[] };
       summary.autoRouted = result.enabled ? (result.routed?.length ?? 0) : 0;
     }
+  }
+
+  /*
+   * 9 · Turn approved proposals into draft products (docs/16 §9.1).
+   *
+   * Approving a 200-row batch records 200 decisions; creating the drafts means copying every photograph
+   * between storage buckets, which is hundreds of round trips no request should hold open. `decideBatch`
+   * promotes a bounded first slice so the reviewer sees it work and this drains the rest.
+   *
+   * Bounded at 25 a night, which is a deliberate choice about *this* job rather than about the queue: the
+   * cron has a 60 s budget shared with eight other steps, and a queue that takes a week to drain is a
+   * catalogue nobody is waiting on — the products are drafts either way, invisible until compliance
+   * publishes them. The count is reported so a queue that is not draining is visible.
+   */
+  {
+    const swept = await sweepApprovedProposals({ limit: 25 });
+    summary.proposalsPromoted = swept.promoted;
+    summary.proposalsAwaiting = swept.remaining;
+    if (swept.failed > 0) failures.push(`promotion: ${swept.failed} row(s) failed`);
   }
 
   if (failures.length > 0) {

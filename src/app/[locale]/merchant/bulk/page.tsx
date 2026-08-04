@@ -89,6 +89,34 @@ export default async function MerchantBulkPage({ params }: Props) {
         )}
       </section>
 
+      {/*
+        The catalogue, which is what makes bulk *creation* usable (§6.1).
+
+        A merchant cannot paste `sku;price;stock` for products whose codes it has never been told — every
+        guess lands in the report as `unknown_sku`. A route handler rather than an inlined `data:` URL,
+        because this file is every published variant rather than a handful of the merchant's own rows.
+      */}
+      <section aria-labelledby="catalogue" className="flex flex-col gap-3">
+        <h3 id="catalogue" className="font-display text-lg font-semibold text-forest-900">
+          {t('catalogueTitle')}
+        </h3>
+        <p className="text-sm text-ink-600">{t('catalogueIntro')}</p>
+        <div>
+          {/*
+            A plain anchor with `download`, not next/link: the target is a route handler that answers with a
+            CSV attachment, so a client-side transition would try to render a file as a page. The `download`
+            attribute is also what tells `no-html-link-for-pages` this is a file rather than a route.
+          */}
+          <a
+            href="/api/merchant/catalogue"
+            download="biocode-catalogue.csv"
+            className="inline-flex min-h-11 items-center rounded-md border border-line-strong px-4 text-sm font-medium text-forest-800 hover:bg-forest-50"
+          >
+            {t('catalogueDownload')}
+          </a>
+        </div>
+      </section>
+
       <section aria-labelledby="upload" className="flex flex-col gap-3">
         <h3 id="upload" className="font-display text-lg font-semibold text-forest-900">
           {t('uploadTitle')}

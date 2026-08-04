@@ -64,7 +64,9 @@ test.describe('protected surfaces refuse an unauthenticated caller', () => {
       expect(response.status()).toBeLessThan(400);
 
       const location = response.headers()['location'] ?? '';
-      expect(location, `${route} redirected somewhere other than sign-in`).toContain('/auth/sign-in');
+      expect(location, `${route} redirected somewhere other than sign-in`).toContain(
+        '/auth/sign-in',
+      );
     });
   }
 
@@ -87,6 +89,25 @@ test.describe('protected surfaces refuse an unauthenticated caller', () => {
       { maxRedirects: 0 },
     );
 
+    expect(response.status()).toBe(404);
+  });
+
+  /**
+   * docs/16 §6.1 — the catalogue download carries its own guard.
+   *
+   * Signed **in as a customer**, for the same reason as the export above: a signed-out request is turned
+   * away by the middleware and proves nothing about the handler. This one sits outside the merchant portal's
+   * layout, so the layout's check does not apply to it — it repeats the check itself, and answers 404 rather
+   * than 403 so a status code does not confirm which URLs exist for people who may not use them.
+   *
+   * The data is public, every column of it. What is being guarded is the invitation to pull the whole
+   * catalogue in one request.
+   */
+  test('the merchant catalogue download refuses a signed-in customer', async ({ page }) => {
+    const customer = await staffUser('customer');
+    await signIn(page, customer.email, customer.password);
+
+    const response = await page.request.get('/api/merchant/catalogue', { maxRedirects: 0 });
     expect(response.status()).toBe(404);
   });
 
