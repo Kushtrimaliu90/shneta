@@ -67,13 +67,24 @@ interface Candidate {
  * than by regex alone is why the product slugs are passed in.
  */
 function parseName(file: string, slugs: Set<string>): { slug: string; position: number } | null {
-  const stem = basename(file, extname(file)).toLowerCase();
+  const raw = basename(file, extname(file)).toLowerCase();
 
-  if (slugs.has(stem)) return { slug: stem, position: 0 };
+  /*
+   * Underscores count as hyphens.
+   *
+   * `on_bcaa_1000.jpg` is the product `on-bcaa-1000`, and that is not a typo worth bouncing a file over:
+   * phone cameras, Windows renames and half the export dialogs in existence produce underscores, and a
+   * photographer handed a list of hyphenated slugs will still send some of both. Tried as a *fallback*
+   * after the literal stem, so a slug that genuinely contains an underscore — none do today — would
+   * still win on its own name.
+   */
+  for (const stem of raw.includes('_') ? [raw, raw.replace(/_/g, '-')] : [raw]) {
+    if (slugs.has(stem)) return { slug: stem, position: 0 };
 
-  const match = /^(.*)-(\d{1,2})$/.exec(stem);
-  if (match && match[1] && slugs.has(match[1])) {
-    return { slug: match[1], position: Number(match[2]) - 1 };
+    const match = /^(.*)[-_](\d{1,2})$/.exec(stem);
+    if (match && match[1] && slugs.has(match[1])) {
+      return { slug: match[1], position: Number(match[2]) - 1 };
+    }
   }
 
   return null;
@@ -226,13 +237,37 @@ async function main(): Promise<void> {
     return;
   }
 
+  /*
+   * Which products already have a photograph, so a first shot is not added twice.
+   *
+   * The product editor uploads to `${productId}/${uuid}.${ext}` and this script to
+   * `${productId}/${slug}.${ext}`, so the same photograph under two names is two rows and the gallery
+   * renders it twice — the unique index cannot see it, because the paths genuinely differ.
+   *
+   * It happened: nine images were added through the Media tab, then the same folder was run through
+   * here forty minutes later. Neither party did anything wrong, which is why the tool has to be the one
+   * that notices. A **position-0** file is skipped when the product already has an image; `--replace`
+   * says overwrite, and `<slug>-2.jpg` is an intentional second shot and always proceeds.
+   */
+  const { data: existingRows } = await db.from('product_images').select('product_id');
+  const alreadyHasImage = new Set(
+    ((existingRows ?? []) as { product_id: string }[]).map((row) => row.product_id),
+  );
+
   let uploaded = 0;
   let failed = 0;
+  let skippedExisting = 0;
   const touched = new Set<string>();
 
   for (const candidate of candidates) {
     const productId = bySlug.get(candidate.slug);
     if (!productId) continue;
+
+    if (candidate.position === 0 && !replace && alreadyHasImage.has(productId)) {
+      console.log(`  – ${candidate.file}: ${candidate.slug} already has an image (--replace to overwrite)`);
+      skippedExisting += 1;
+      continue;
+    }
 
     /*
      * `--replace` clears first, once per product rather than once per file — otherwise the second
@@ -293,7 +328,9 @@ async function main(): Promise<void> {
     uploaded += 1;
   }
 
-  console.log(`\nuploaded ${uploaded} · failed ${failed} · products touched ${touched.size}`);
+  console.log(
+    `\nuploaded ${uploaded} · failed ${failed} · already had one ${skippedExisting} · products touched ${touched.size}`,
+  );
 
   const { count: withImages } = await db
     .from('product_images')
