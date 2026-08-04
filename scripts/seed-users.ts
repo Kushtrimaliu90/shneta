@@ -84,6 +84,34 @@ const USERS = [
     role: 'customer',
     name: 'Klienti Provë',
   },
+
+  /*
+   * The two marketplace logins (docs/16 §5).
+   *
+   * `merchantId` links the profile into `merchant_users`, which is what `current_merchant_ids()`
+   * reads and therefore what every merchant-side policy depends on. **The `merchant` role alone
+   * grants nothing** — it is what keeps a merchant out of `/admin`, not what lets them into the
+   * portal — so a fixture with the role and no membership would sign in to a redirect.
+   *
+   * Two of them, because one cannot show the difference that matters: Alpha is approved and has
+   * offers, a ledger and a paid statement, while Gamma is a pending application whose portal opens
+   * with Orders, Offers, Bulk and Proposals visibly locked. Seeing both is how you know the gate is
+   * real rather than absent.
+   */
+  {
+    id: 'e0000000-0000-4000-8000-000000000008',
+    email: 'alpha@biocode.dev',
+    role: 'merchant',
+    name: 'Arta Krasniqi (Alpha Supplements)',
+    merchantId: 'd1000000-0000-4000-8000-000000000001',
+  },
+  {
+    id: 'e0000000-0000-4000-8000-000000000009',
+    email: 'gamma@biocode.dev',
+    role: 'merchant',
+    name: 'Drita Berisha (Gamma Vitamins)',
+    merchantId: 'd1000000-0000-4000-8000-000000000003',
+  },
 ] as const;
 
 function generatePassword(): string {
@@ -97,6 +125,8 @@ interface Outcome {
   role: string;
   action: 'created' | 'password reset' | 'email updated' | 'already existed';
   roleChanged: boolean;
+  /** For the marketplace fixtures: whether the `merchant_users` link could be made. */
+  membership?: 'linked' | 'merchant missing';
 }
 
 async function upsertUser(
@@ -187,7 +217,36 @@ async function upsertUser(
     if (error) throw new Error(`${user.email} role: ${error.message}`);
   }
 
-  return { email: user.email, role: user.role, action, roleChanged };
+  /*
+   * The marketplace membership.
+   *
+   * Deliberately tolerant of the merchant row being absent, because of the ordering docs/11 §10
+   * requires: this script runs **before** `seed.sql` and `seeds/`, so on a fresh `supabase db reset`
+   * the demo merchants do not exist yet. Reporting "merchant missing" and carrying on beats failing
+   * the whole run — re-run after the seed and the link completes.
+   */
+  let membership: Outcome['membership'];
+  const merchantId = 'merchantId' in user ? user.merchantId : undefined;
+
+  if (merchantId) {
+    const { data: merchant } = await db
+      .from('merchants')
+      .select('id')
+      .eq('id', merchantId)
+      .maybeSingle();
+
+    if (!merchant) {
+      membership = 'merchant missing';
+    } else {
+      const { error } = await db
+        .from('merchant_users')
+        .upsert({ merchant_id: merchantId, user_id: user.id, role: 'owner' });
+      if (error) throw new Error(`${user.email} membership: ${error.message}`);
+      membership = 'linked';
+    }
+  }
+
+  return { email: user.email, role: user.role, action, roleChanged, membership };
 }
 
 async function main(): Promise<void> {
@@ -219,9 +278,15 @@ async function main(): Promise<void> {
 
   for (const outcome of outcomes) {
     const note = outcome.roleChanged ? ' · role set' : '';
+    const link = outcome.membership ? ` · ${outcome.membership}` : '';
     console.log(
-      `  ${outcome.email.padEnd(24)} ${outcome.role.padEnd(19)} ${outcome.action}${note}`,
+      `  ${outcome.email.padEnd(24)} ${outcome.role.padEnd(19)} ${outcome.action}${note}${link}`,
     );
+  }
+
+  if (outcomes.some((outcome) => outcome.membership === 'merchant missing')) {
+    console.log('\n  A merchant fixture has no row yet — apply');
+    console.log('  supabase/seeds/10-marketplace-demo.sql, then run this again to link it.');
   }
 
   const created = outcomes.filter((o) => o.action !== 'already existed').length;
@@ -235,7 +300,10 @@ async function main(): Promise<void> {
     console.log('  Re-run with --reset-password if you need a new one.');
   }
 
-  console.log('\n  Sign in to the admin panel at /en/auth/sign-in, then open /admin.');
+  console.log('\n  Sign in at /en/auth/sign-in, then:');
+  console.log('    · staff             → /admin');
+  console.log('    · alpha@biocode.dev → /en/merchant   approved: offers, orders, payouts');
+  console.log('    · gamma@biocode.dev → /en/merchant   pending: only documents and settings');
 }
 
 // A single client, created lazily so the guard above runs before any connection is opened.
