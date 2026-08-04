@@ -137,8 +137,7 @@ function parsePrice(raw: string, delimiter: string): number | null {
   const cleaned = raw.replace(/[€\s]/g, '');
   if (cleaned.length === 0) return null;
 
-  const normalized =
-    delimiter === ',' ? cleaned.replace(/,/g, '') : cleaned.replace(',', '.');
+  const normalized = delimiter === ',' ? cleaned.replace(/,/g, '') : cleaned.replace(',', '.');
 
   const value = Number(normalized);
   if (!Number.isFinite(value) || value <= 0) return null;

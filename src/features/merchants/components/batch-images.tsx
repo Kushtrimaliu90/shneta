@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { ImagePlus, Check, HelpCircle } from 'lucide-react';
 import { Alert } from '@/components/ui/alert';
@@ -77,11 +77,24 @@ export function BatchImages({
   const [busy, setBusy] = useState(false);
   const [attached, setAttached] = useState<number | null>(null);
 
+  /*
+   * A ref alongside the state, only so the unmount cleanup can see the *current* list.
+   *
+   * An effect with `[pending]` would revoke on every keystroke of the assign list; an effect with `[]` closes
+   * over the empty first render. The ref is the standard way out, and it is written where the state is so the
+   * two cannot drift.
+   */
+  const pendingRef = useRef<Pending[]>([]);
+  pendingRef.current = pending;
+
   /** Every key any row answers to, pointing at that row. Built once per row list, not per file. */
   const keyed = useMemo(() => {
     const index = new Map<string, string>();
     for (const row of rows) {
-      for (const candidate of [imageKey(row.barcode ?? undefined), imageKey(row.merchantSku ?? undefined)]) {
+      for (const candidate of [
+        imageKey(row.barcode ?? undefined),
+        imageKey(row.merchantSku ?? undefined),
+      ]) {
         // First row wins a contested key: a duplicate barcode across rows is the sheet's problem, not this
         // component's, and silently attaching to the later row would hide it.
         if (candidate && !index.has(candidate)) index.set(candidate, row.id);
@@ -157,6 +170,16 @@ export function BatchImages({
     }
   }
 
+  /*
+   * And on the way off the screen, for the merchant who uploads three hundred photographs and then navigates
+   * away without attaching them. Same reason as above: a blob URL pins its file in memory.
+   */
+  useEffect(() => {
+    return () => {
+      for (const entry of pendingRef.current) URL.revokeObjectURL(entry.preview);
+    };
+  }, []);
+
   async function attach(): Promise<void> {
     const assignments = pending
       .filter((entry): entry is Pending & { proposalId: string } => entry.proposalId !== null)
@@ -178,8 +201,20 @@ export function BatchImages({
       }
 
       setAttached(result.data.attached);
-      // Only the attached ones leave the list; anything still unassigned stays visible to be dealt with.
-      setPending((current) => current.filter((entry) => entry.proposalId === null));
+
+      /*
+       * Only the attached ones leave the list; anything still unassigned stays visible to be dealt with.
+       *
+       * Their preview URLs are **revoked** on the way out. A blob URL holds its `File` in memory, and this
+       * screen is built for three hundred of them at up to 2 MB each — well over half a gigabyte retained
+       * until the tab closes, on a phone, which is where a merchant photographing its own stock will be.
+       */
+      setPending((current) => {
+        for (const entry of current) {
+          if (entry.proposalId !== null) URL.revokeObjectURL(entry.preview);
+        }
+        return current.filter((entry) => entry.proposalId === null);
+      });
     } finally {
       setBusy(false);
     }
@@ -249,7 +284,9 @@ export function BatchImages({
                     className="h-20 w-full rounded-sm object-cover"
                   />
                   <span className="truncate font-ui text-[11px] text-ink-500">{entry.name}</span>
-                  <span className="truncate text-[13px] text-ink-900">{row?.productName ?? '—'}</span>
+                  <span className="truncate text-[13px] text-ink-900">
+                    {row?.productName ?? '—'}
+                  </span>
                 </li>
               );
             })}

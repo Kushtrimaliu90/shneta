@@ -61,7 +61,10 @@ export function BulkForm() {
   );
 
   return (
-    <form action={action} className="flex flex-col gap-4 rounded-lg border border-line bg-surface p-5">
+    <form
+      action={action}
+      className="flex flex-col gap-4 rounded-lg border border-line bg-surface p-5"
+    >
       <div>
         <p className="text-sm text-ink-600">{t('intro')}</p>
         {/* Stated because the alternative — guessing column order — would write prices into stock. */}
@@ -108,9 +111,7 @@ export function BulkForm() {
             {state.data.created > 0 && ` · ${t('createdCount', { count: state.data.created })}`}
           </p>
 
-          {state.data.created > 0 && (
-            <p className="text-[13px] text-ink-600">{t('createdNote')}</p>
-          )}
+          {state.data.created > 0 && <p className="text-[13px] text-ink-600">{t('createdNote')}</p>}
 
           {state.data.malformed.length > 0 && (
             <Alert tone="warning" title={t('malformedTitle')}>
@@ -129,7 +130,8 @@ export function BulkForm() {
               <ul className="mt-1 flex flex-col gap-0.5">
                 {state.data.skipped.map((entry) => (
                   <li key={`${entry.sku}-${entry.reason}`}>
-                    <span data-numeric>{entry.sku}</span> — {t(`reasons.${reasonKey(entry.reason)}`)}
+                    <span data-numeric>{entry.sku}</span> —{' '}
+                    {t(`reasons.${reasonKey(entry.reason)}`)}
                   </li>
                 ))}
               </ul>

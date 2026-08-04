@@ -39,7 +39,9 @@ test.describe('the supplement disclaimer (docs/08 §7.3)', () => {
 
   test('appears in Albanian too, which is the market it is required for', async ({ page }) => {
     await page.goto('/');
-    await expect(page.getByText(/nuk (e )?zëvendësojnë|nuk janë zëvendësim/i).first()).toBeVisible();
+    await expect(
+      page.getByText(/nuk (e )?zëvendësojnë|nuk janë zëvendësim/i).first(),
+    ).toBeVisible();
   });
 });
 
@@ -64,6 +66,39 @@ test.describe('what search engines are told (docs/08 §4)', () => {
 
     expect(xml).toContain('hreflang="sq"');
     expect(xml).toContain('hreflang="en"');
+  });
+
+  /**
+   * Every URL is a URL a crawler can fetch — no doubled slash after the origin.
+   *
+   * This is the assertion that was missing when it mattered. `NEXT_PUBLIC_SITE_URL` was set with a trailing
+   * slash, `z.url()` accepted it, and the live sitemap advertised `https://www.shtrejt.com//` as the canonical
+   * home page and `//shop` for every product — distinct URLs to Google, none of them the real one. The
+   * reciprocity test above passed throughout, because the alternates were consistently wrong.
+   *
+   * Checked on the **rendered output** rather than on the env var, because that is where the mistake showed up
+   * and where a future one will: any code path that concatenates an origin badly fails here.
+   */
+  test('no sitemap URL has a doubled slash after the origin', async ({ request }) => {
+    const xml = await (await request.get('/sitemap.xml')).text();
+
+    const urls = [...xml.matchAll(/(?:<loc>|href=")(https?:\/\/[^<"]+)/g)].map(
+      (match) => match[1] ?? '',
+    );
+    expect(urls.length, 'no URLs found to check').toBeGreaterThan(50);
+
+    const malformed = urls.filter((url) => url.replace(/^https?:\/\//, '').includes('//'));
+    expect(malformed.slice(0, 5), 'these URLs have a doubled slash').toEqual([]);
+  });
+
+  test('robots.txt points at a well-formed sitemap', async ({ request }) => {
+    const body = await (await request.get('/robots.txt')).text();
+
+    const sitemap = /Sitemap:\s*(\S+)/.exec(body)?.[1] ?? '';
+    expect(sitemap, 'robots.txt names no sitemap').toContain('/sitemap.xml');
+    expect(sitemap.replace(/^https?:\/\//, ''), 'doubled slash in the sitemap URL').not.toContain(
+      '//',
+    );
   });
 
   test('the sitemap includes the pages added after M8', async ({ request }) => {

@@ -599,18 +599,34 @@ Approving 200 rows means 200 draft products and every photograph copied between 
 hundreds of round trips, well past what a request should hold open. So:
 
 1. `decide_proposal_batch` records the decision for every row and **creates nothing**;
-2. `decideBatch` promotes a bounded first slice (10) inline, so the reviewer sees it work;
-3. the housekeeping cron drains `proposals_awaiting_promotion` at **25 a night**.
+2. `decideBatch` promotes a bounded first slice (5) inline, so the reviewer sees it work;
+3. the housekeeping cron drains `proposals_awaiting_promotion` at **15 a night**.
 
 The queue is a **view** — `status = 'approved' and created_product_id is null` — not a column. A row leaves
 by being *done* rather than by being marked, which makes overlapping drains harmless: two sweeps racing on
 one row both call an idempotent function and the second gets `created: false`. There is no "claimed" flag to
 leak when a run dies halfway.
 
-25 a night is a decision about *the cron*, not about the queue: it has a 60-second budget shared with eight
-other steps, and the products are drafts either way — invisible until compliance publishes them. The
-awaiting count is shown on the admin proposals screen, so a queue that is not draining is visible rather
-than silent.
+Both numbers come from measurement, not taste. One row with one photograph takes about a second — an RPC, a
+download from the private bucket, an upload to the public one, an insert — and a row may carry six images.
+So **five inline** is a worst case of roughly twenty seconds, inside the sixty the admin batch page declares
+via `maxDuration` and inside Vercel's default even if that declaration is ever lost; **fifteen a night** is a
+worst case of about a minute against a cron budget of sixty seconds shared with eight other steps, all of
+which have already committed their work by the time the sweep runs.
+
+The failure mode each bound avoids is different. A request that dies at the platform's timeout *after*
+`decide_proposal_batch` has committed every decision reads as a broken feature even though nothing was lost.
+A cron that overruns loses only its summary — but a timeout logged every night is a signal nobody reads after
+the first week.
+
+The products are drafts either way, invisible until compliance publishes them, so a queue that takes days to
+drain costs nothing. The awaiting count is shown on the admin proposals screen, so a queue that is not
+draining **at all** is visible rather than silent.
+
+**The images land at `<product_id>/<file>`** — the same path `media-actions.ts` signs for an editor upload.
+The first version wrote `products/<product_id>/…` and claimed in a comment that this matched the editor; it
+did not, and one bucket with two conventions is one where every future sweep is right about half the objects
+(docs/13 §X16).
 
 **Bulk update is a paste, not an upload** — the real workflow is "open the spreadsheet, select the
 columns, copy". The export sits above the paste box so a merchant editing the sheet it was given has the

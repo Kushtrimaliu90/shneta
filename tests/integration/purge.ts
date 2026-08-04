@@ -399,9 +399,7 @@ export async function purgeFixtures(
    */
   const { data: byEmail } = await db.from('orders').select('id').like('email', '%@biocode.test');
   const { data: byNumber } = await db.from('orders').select('id').like('order_number', 'SH-9999-%');
-  const orderIds = [
-    ...new Set([...(byEmail ?? []), ...(byNumber ?? [])].map((row) => row.id)),
-  ];
+  const orderIds = [...new Set([...(byEmail ?? []), ...(byNumber ?? [])].map((row) => row.id))];
 
   if (orderIds.length > 0) {
     await restockTestOrders(db, orderIds, record);
@@ -452,10 +450,90 @@ export async function purgeFixtures(
       'merchant_payouts',
       (await db.from('merchant_payouts').delete().in('merchant_id', merchantIds).select('id')).data,
     );
+    /*
+     * The draft products those proposals were promoted into (docs/16 §9, docs/13 §X16).
+     *
+     * Read **before** the proposals are deleted, because `created_product_id` is the only link — and
+     * deleted **after**, because it references `products(id)` with no cascade, so the product cannot go
+     * while its proposal still points at it.
+     *
+     * The slug patterns the rest of this file relies on cannot help here: a promoted draft is slugged from
+     * the product *name*, so `e2e-creatine-431a6f` and `promoted-probe-1785849308525` are invisible to
+     * `slug LIKE 'product-%'`. Forty of them accumulated on the shared project in a single day, and every
+     * one was a fixture's.
+     *
+     * Scoped to fixture merchants and to `status = 'draft'`: a promoted product a human has since published
+     * is a real catalogue row that happens to have started as a proposal, and it is not this sweep's to take.
+     */
+    const { data: promotedRows } = await db
+      .from('product_proposals')
+      .select('created_product_id')
+      .in('merchant_id', merchantIds)
+      .not('created_product_id', 'is', null);
+
+    const promotedIds = (promotedRows ?? [])
+      .map((row) => (row as { created_product_id: string | null }).created_product_id)
+      .filter((id): id is string => typeof id === 'string');
+
     record(
       'product_proposals',
-      (await db.from('product_proposals').delete().in('merchant_id', merchantIds).select('id')).data,
+      (await db.from('product_proposals').delete().in('merchant_id', merchantIds).select('id'))
+        .data,
     );
+
+    if (promotedIds.length > 0) {
+      const { data: draftRows } = await db
+        .from('products')
+        .select('id, brand_id')
+        .in('id', promotedIds)
+        .eq('status', 'draft');
+
+      const draftIds = (draftRows ?? []).map((row) => (row as { id: string }).id);
+      const draftBrandIds = (draftRows ?? []).map((row) => (row as { brand_id: string }).brand_id);
+
+      if (draftIds.length > 0) {
+        // Storage first: `product_images` cascades, so the rows would go and leave the objects orphaned.
+        for (const productId of draftIds) {
+          const { data: objects } = await db.storage
+            .from('product-images')
+            .list(`products/${productId}`);
+          const paths = (objects ?? []).map((object) => `products/${productId}/${object.name}`);
+          if (paths.length > 0) {
+            const { data: removed } = await db.storage.from('product-images').remove(paths);
+            record('promoted images', removed);
+          }
+        }
+
+        record(
+          'promoted variants',
+          (await db.from('product_variants').delete().in('product_id', draftIds).select('id')).data,
+        );
+        record(
+          'promoted drafts',
+          (await db.from('products').delete().in('id', draftIds).select('id')).data,
+        );
+
+        /*
+         * And the brands those drafts invented, but only if nothing else uses them.
+         *
+         * `promote_proposal_to_draft` creates a brand when no existing one matches the name, so a fixture
+         * leaves `probe-labs` behind — which no slug pattern matches either. A brand still carrying
+         * products is somebody's, fixture or not, and is left alone.
+         */
+        for (const brandId of new Set(draftBrandIds)) {
+          const { count } = await db
+            .from('products')
+            .select('id', { count: 'exact', head: true })
+            .eq('brand_id', brandId);
+          if ((count ?? 0) === 0) {
+            record(
+              'promoted brands',
+              (await db.from('brands').delete().eq('id', brandId).select('id')).data,
+            );
+          }
+        }
+      }
+    }
     record(
       'merchant_offers',
       (await db.from('merchant_offers').delete().in('merchant_id', merchantIds).select('id')).data,
@@ -639,6 +717,123 @@ export async function purgeFixtures(
     'rate_limits',
     (await db.from('rate_limits').delete().like('key', '%test-%').select('key')).data,
   );
+
+  /*
+   * --- promoted drafts a killed run orphaned (docs/13 §X17) ------------------------
+   *
+   * The sweep above follows `created_product_id` from a fixture merchant's proposals, which works when the
+   * run finishes. It does not when a run is **killed**: the spec's own `afterAll` may already have deleted
+   * the merchant — cascading its proposals — leaving a draft product whose only link to anything fixture-ish
+   * is gone. Its slug comes from the product name (`e2e-creatine-7f873f`, `batch-alpha-3bd078`), so no slug
+   * pattern in this file can see it either. Four accumulated from one interrupted run.
+   *
+   * The durable marker is the **brand**: `promote_proposal_to_draft` mints a brand from the proposal payload,
+   * and the payloads in the specs are all `Probe Labs` or `Photo Labs`. No real manufacturer is called that,
+   * so matching the brand name is precise in a way that matching the product cannot be — a real approved
+   * proposal also produces a draft with a `PROP-` SKU, and deleting those would destroy somebody's work.
+   */
+  const fixtureBrandIds: string[] = [];
+  for (const pattern of ['Probe Labs%', 'Photo Labs%']) {
+    const { data } = await db.from('brands').select('id').ilike('name', pattern);
+    for (const row of (data ?? []) as { id: string }[]) fixtureBrandIds.push(row.id);
+  }
+
+  if (fixtureBrandIds.length > 0) {
+    const { data: promoted } = await db
+      .from('products')
+      .select('id')
+      .in('brand_id', fixtureBrandIds);
+    const promotedIds = (promoted ?? []).map((row) => (row as { id: string }).id);
+
+    if (promotedIds.length > 0) {
+      for (const productId of promotedIds) {
+        const { data: objects } = await db.storage.from('product-images').list(productId);
+        const paths = (objects ?? []).map((object) => `${productId}/${object.name}`);
+        if (paths.length > 0) {
+          const { data: removed } = await db.storage.from('product-images').remove(paths);
+          record('promoted images', removed);
+        }
+      }
+
+      // The proposal may survive its product; drop the reference rather than the row.
+      await db
+        .from('product_proposals')
+        .update({ created_product_id: null })
+        .in('created_product_id', promotedIds);
+
+      record(
+        'promoted variants',
+        (await db.from('product_variants').delete().in('product_id', promotedIds).select('id'))
+          .data,
+      );
+      record(
+        'orphaned drafts',
+        (await db.from('products').delete().in('id', promotedIds).select('id')).data,
+      );
+    }
+
+    record(
+      'fixture brands',
+      (await db.from('brands').delete().in('id', fixtureBrandIds).select('id')).data,
+    );
+  }
+
+  /*
+   * --- orphaned storage (docs/13 §X16) --------------------------------------------
+   *
+   * Last, and keyed on **existence rather than on a pattern**: a folder under `products/<id>/` or
+   * `proposals/<merchant_id>/` whose row is gone can belong to nobody.
+   *
+   * Every other sweep in this file removes objects for rows it is deleting itself, which misses the case that
+   * actually accumulates: a spec that tidies its own rows in `afterAll` and leaves the bytes, because deleting
+   * a product cascades `product_images` and says nothing about storage. Twenty-nine objects had built up in
+   * the private proposals bucket before anybody looked, at five or six per suite run.
+   *
+   * Self-healing by construction — it needs no fixture convention, so a future code path that writes to either
+   * bucket is covered the day it ships — and safe for the same reason: a real merchant's folder and a real
+   * product's folder both still have their row.
+   */
+  for (const [bucket, prefix, table] of [
+    // The editor's convention, which promotion now matches: `<product_id>/<file>` at the bucket root.
+    ['product-images', '', 'products'],
+    // The uploader's, and the storage policy is scoped to this prefix, so it stays a prefix.
+    ['merchant-proposals', 'proposals', 'merchants'],
+  ] as const) {
+    const { data: folders } = await db.storage.from(bucket).list(prefix, { limit: 1000 });
+
+    const orphaned: string[] = [];
+    for (const folder of folders ?? []) {
+      /*
+       * Only folders named as a uuid, which is the only shape our code writes.
+       *
+       * Without this the `.eq('id', …)` below is asked to compare a uuid column against something that is not
+       * one: PostgREST answers 400, `count` comes back null, and a folder somebody created by hand would read
+       * as orphaned and be deleted. The guard is the difference between "no row" and "no answer".
+       */
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(folder.name)) {
+        continue;
+      }
+
+      const { count, error } = await db
+        .from(table)
+        .select('id', { count: 'exact', head: true })
+        .eq('id', folder.name);
+
+      // An error is not an absence. Leave it and let the next run try again.
+      if (error || (count ?? 0) > 0) continue;
+
+      // `''` for a bucket-root convention, so no leading slash creeps into the object path.
+      const folderPath = prefix ? `${prefix}/${folder.name}` : folder.name;
+
+      const { data: objects } = await db.storage.from(bucket).list(folderPath, { limit: 1000 });
+      for (const object of objects ?? []) orphaned.push(`${folderPath}/${object.name}`);
+    }
+
+    if (orphaned.length > 0) {
+      const { data: removed } = await db.storage.from(bucket).remove(orphaned);
+      record(`${bucket} (orphaned)`, removed);
+    }
+  }
 
   return counts;
 }

@@ -2482,6 +2482,108 @@ Two rules worth keeping:
 What caught it was the E2E journey reading the rows back out of the database instead of trusting the
 "Attached 3 photograph(s)" the screen showed. An assertion against your own success message asserts nothing.
 
+### X16 · A feature that starts creating rows makes every existing teardown wrong
+
+§9 changed approving a proposal from "records a decision" to "records a decision **and creates a draft
+product**". Every test that approved a proposal therefore started creating catalogue rows, and none of them
+knew it. **Forty draft products accumulated on the shared project in a single day**, found by counting rather
+than by any failure.
+
+Three separate reasons, and each is a different lesson:
+
+1. **The integration teardown deleted in the wrong order.** `product_proposals.created_product_id` references
+   `products(id)` with no cascade, so deleting the promoted product while its proposal still pointed at it was
+   refused by the foreign key. The loop did not check the error. It left thirty products whose variants *had*
+   been deleted — orphans that could never be sold and never be published. **A cleanup loop that ignores its
+   errors is a leak with a green tick.** It now throws.
+2. **The E2E test predated the change and registered nothing.** `a merchant proposes a product and a reviewer
+   answers` was written when approval created nothing, so it tracked nothing for cleanup. It now reads
+   `created_product_id` back and registers the product and its brand.
+3. **The purge could not see them.** It sweeps `slug LIKE 'product-%'`, and a promoted draft is slugged from
+   the *product name* — `e2e-creatine-431a6f`, `promoted-probe-1785849308525`. The pattern that has caught
+   every fixture product since M2 was blind to a new way of creating one. The purge now follows the *link*
+   instead: draft products referenced by a fixture merchant's proposals, read before the proposals are deleted
+   and deleted after, plus the brands the promotion invented if nothing else uses them.
+
+The general rule: **when a feature starts writing to a table it did not write to before, the fixture cleanup
+is part of the feature.** Ask what the new rows are keyed by, and whether any existing sweep can find them —
+because slug patterns, name prefixes and email suffixes are all conventions a new code path has never heard of.
+
+#### The same day, the same shape, in storage
+
+Counting again after the row leak was fixed showed **29 objects in the private proposals bucket and 27 under
+`product-images`**, growing by five or six per suite run. Rows were clean; bytes were not. Two causes:
+
+- every storage sweep in `purge.ts` removes objects for rows *it* is deleting, and a spec that tidies its own
+  rows in `afterAll` leaves the bytes — deleting a product cascades `product_images` and says nothing about
+  storage;
+- nothing had ever swept `merchant-proposals` at all, because before §9 nothing wrote to it from a test.
+
+The fix is keyed on **existence rather than on a pattern**: a folder named as a uuid whose row is gone belongs
+to nobody, so it goes. That needs no fixture convention, which means the next code path to write into either
+bucket is covered the day it ships — and it is safe for the same reason, since a real merchant's folder and a
+real product's folder both still have their row. It cleaned 71 objects on its first run, including one orphan
+left by a milestone months earlier.
+
+Two guards it needs, both learned by writing it wrong first: only folder names that **are** uuids (otherwise
+`.eq('id', name)` against a uuid column answers 400, `count` is null, and "no answer" reads as "no row"), and
+an explicit `if (error) continue` for the same reason.
+
+#### And a comment that claimed a consistency it did not have
+
+`copyImages` wrote `products/<product_id>/…` under a comment saying that was where the product editor puts its
+uploads, so a promoted image would be indistinguishable from a hand-added one. The editor actually signs
+`<product_id>/<uuid>.<ext>` — no prefix segment. Nothing broke: `product_images.storage_path` holds the full
+path, so rendering and deletion both worked. But the bucket had two conventions, the sweep that has cleaned
+`<product_id>/` since M2 could not see half of them, and the comment asserting otherwise is the kind that
+survives review precisely because it sounds like it was checked.
+
+Promotion now writes the editor's path. **A claim about consistency is worth exactly one grep**, and this one
+was never run until a storage listing showed a folder that should not have existed.
+
+And the reason it was worth chasing at all: drafts are invisible to customers, so nothing was broken. It was
+purely junk accumulating in `/admin/products` at about seven rows per test run, on the one project that is
+also production (§7).
+
+### X17 · The test suite puts its fixtures on the customer-facing storefront
+
+Reported as "the category list contains test-related names": `Emri Provë`, `Kategori e Zënë`, `Prindi` —
+Albanian for *Test Name*, *Taken Category*, *Parent* — each appearing **twice** in the shop's category
+sidebar, on the live site.
+
+They were not catalogue rows. They were **E2E fixtures, live, while the suite was running.** The admin
+taxonomy journeys create categories to test creating categories; the desktop and mobile projects each make
+their own, which is why each name appeared twice; and the global teardown removes them at the end of the
+run. Between those two moments — about twenty-five minutes — every visitor to the shop sees them, because
+one Supabase project serves dev, test and production (§7 of docs/14).
+
+The teardown line at the end of that run is the whole story:
+
+    purged fixtures — categories: 6, categories (children): 2, brands: 10, health_goals: 2, …
+
+**Nothing here is a bug in the code**, which is what makes it worth writing down. The fixtures are correctly
+named, correctly scoped and correctly cleaned. The purge works. The tests are right to create them. What is
+wrong is the *arrangement*: a suite that must create a category to prove creating a category works cannot
+share a database with customers.
+
+Three things follow:
+
+1. **This is now the strongest argument for the environment separation in docs/14 §7**, ahead of the
+   destructive-purge risk that was previously the headline. A purge that deletes real data is a disaster
+   that has not happened; test data on the shop floor is a defect that is happening on every run.
+2. **The window is the exposure**, so shortening it has value even before separation: a fixture cleaned up
+   by the test that made it is visible for seconds instead of for the length of the suite. Where a spec
+   creates catalogue rows that render publicly, the cleanup belongs in that spec, not only in the global
+   teardown.
+3. **Do not "fix" it by making fixtures invisible** — deactivating them, or filtering fixture slugs out of
+   the storefront query. Both would weaken the tests to protect production from the tests, which is the
+   wrong direction: the assertion that a new category *appears* is exactly the one worth keeping.
+
+The diagnosis also corrected the report. The names looked like leaked rows and were assumed to be leaked
+rows; counting them after the suite finished showed zero. The genuine catalogue leak was one row — a brand
+called `The Governor`, from a manual admin test weeks earlier, invisible to every purge pattern because its
+slug came from its name. That is §X16's lesson again, and seed 12 removes it.
+
 ### X3 (again) · Restating a function dropped a fix, in the migration whose comment cites §X3
 
 Migration 47 restated `merchant_bulk_update_offers` as `merchant_bulk_upsert_offers` and copied the body from

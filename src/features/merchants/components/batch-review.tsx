@@ -34,14 +34,11 @@ export function BatchReview({ batch }: { batch: BatchWithRows }) {
   const [panel, setPanel] = useState<'approve' | 'reject' | null>(null);
   const [rejecting, setRejecting] = useState<string | null>(null);
 
-  const [state, action] = useActionState<DecideBatchState, FormData>(
-    async (previous, formData) => {
-      const result = await decideBatch(previous, formData);
-      if (result?.ok) setPanel(null);
-      return result;
-    },
-    null,
-  );
+  const [state, action] = useActionState<DecideBatchState, FormData>(async (previous, formData) => {
+    const result = await decideBatch(previous, formData);
+    if (result?.ok) setPanel(null);
+    return result;
+  }, null);
 
   const [rowState, rowAction] = useActionState<ProposalState, FormData>(
     async (previous, formData) => {
@@ -53,7 +50,9 @@ export function BatchReview({ batch }: { batch: BatchWithRows }) {
   );
 
   const open = batch.status === 'pending';
-  const pending = batch.rows.filter((row) => row.status === 'pending' || row.status === 'needs_info');
+  const pending = batch.rows.filter(
+    (row) => row.status === 'pending' || row.status === 'needs_info',
+  );
   const rejected = batch.rows.filter((row) => row.status === 'rejected');
   const withoutImages = pending.filter((row) => row.imagePaths.length === 0).length;
 
@@ -65,12 +64,12 @@ export function BatchReview({ batch }: { batch: BatchWithRows }) {
             {batch.merchantName ?? 'Merchant'} — {batch.rowCount} row(s)
           </h1>
           <p className="mt-1 text-sm text-ink-600">
-            sent {batch.createdAt.slice(0, 10)} · {pending.length} still pending ·{' '}
-            {rejected.length} rejected
+            sent {batch.createdAt.slice(0, 10)} · {pending.length} still pending · {rejected.length}{' '}
+            rejected
           </p>
           {batch.note && <p className="mt-1 text-sm text-ink-900">{batch.note}</p>}
         </div>
-        <span className="rounded-sm bg-ink-100 px-1.5 py-0.5 font-ui text-[11px] font-semibold text-ink-900">
+        <span className="bg-ink-100 rounded-sm px-1.5 py-0.5 font-ui text-[11px] font-semibold text-ink-900">
           {batch.status}
         </span>
       </header>
@@ -119,13 +118,18 @@ export function BatchReview({ batch }: { batch: BatchWithRows }) {
       )}
 
       {panel && (
-        <form action={action} className="flex flex-col gap-3 rounded-md border border-line bg-cream p-4">
+        <form
+          action={action}
+          className="flex flex-col gap-3 rounded-md border border-line bg-cream p-4"
+        >
           <input type="hidden" name="batchId" value={batch.id} />
           <input type="hidden" name="decision" value={panel} />
 
           <label className="flex flex-col gap-1 text-sm">
             <span className="font-medium text-ink-900">
-              {panel === 'approve' ? 'Note for the merchant (optional)' : 'Why the batch is rejected'}
+              {panel === 'approve'
+                ? 'Note for the merchant (optional)'
+                : 'Why the batch is rejected'}
             </span>
             <textarea
               name="note"
@@ -191,7 +195,9 @@ export function BatchReview({ batch }: { batch: BatchWithRows }) {
                 <Td>
                   {row.barcode ? <span data-numeric>{row.barcode}</span> : '—'}
                   {row.merchantSku && (
-                    <span className="block font-ui text-[11px] text-ink-500">{row.merchantSku}</span>
+                    <span className="block font-ui text-[11px] text-ink-500">
+                      {row.merchantSku}
+                    </span>
                   )}
                   {row.sourceUrl && (
                     <a

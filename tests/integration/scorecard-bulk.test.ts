@@ -193,17 +193,29 @@ afterAll(async () => {
     await db.from('order_events').delete().eq('order_id', id);
     await db.from('orders').delete().eq('id', id);
   }
-  for (const id of promotedProductIds) {
-    await db.from('product_images').delete().eq('product_id', id);
-    await db.from('product_variants').delete().eq('product_id', id);
-    await db.from('products').delete().eq('id', id);
-  }
   for (const id of proposalIds) await db.from('product_proposals').delete().eq('id', id);
   for (const id of merchantIds) {
     await db.from('merchant_ledger').delete().eq('merchant_id', id);
     await db.from('merchant_offers').delete().eq('merchant_id', id);
     await db.from('product_proposals').delete().eq('merchant_id', id);
     await db.from('merchants').delete().eq('id', id);
+  }
+
+  /*
+   * Promoted products **after** the proposals, and the error is checked.
+   *
+   * `product_proposals.created_product_id` references `products(id)` with no cascade, so deleting the
+   * product while its proposal still points at it is refused by the foreign key — and a delete that fails
+   * here returns an error nobody was reading. Thirty draft products accumulated on the shared project in a
+   * single day before anybody counted them (docs/13 §X16).
+   *
+   * Loud, so the next ordering mistake is a failing teardown rather than a slow leak.
+   */
+  for (const id of promotedProductIds) {
+    await db.from('product_images').delete().eq('product_id', id);
+    await db.from('product_variants').delete().eq('product_id', id);
+    const { error } = await db.from('products').delete().eq('id', id);
+    if (error) throw new Error(`promoted product ${id} not cleaned: ${error.message}`);
   }
   for (const id of promotedBrandIds) await db.from('brands').delete().eq('id', id);
   for (const id of userIds) await deleteUser(id);
@@ -236,8 +248,18 @@ describe('the scorecard (docs/16 §6)', () => {
   it('counts what was assigned, accepted and delivered', async () => {
     const merchant = await createMerchant('Counted');
     await fulfilmentHistory(merchant, [
-      { assignedHoursAgo: 48, acceptedHoursAfterAssign: 2, shippedHoursAfterAccept: 4, status: 'delivered' },
-      { assignedHoursAgo: 30, acceptedHoursAfterAssign: 3, shippedHoursAfterAccept: 5, status: 'shipped' },
+      {
+        assignedHoursAgo: 48,
+        acceptedHoursAfterAssign: 2,
+        shippedHoursAfterAccept: 4,
+        status: 'delivered',
+      },
+      {
+        assignedHoursAgo: 30,
+        acceptedHoursAfterAssign: 3,
+        shippedHoursAfterAccept: 5,
+        status: 'shipped',
+      },
       { assignedHoursAgo: 10, status: 'assigned' },
     ]);
 
@@ -251,8 +273,18 @@ describe('the scorecard (docs/16 §6)', () => {
   it('averages the hours to accept and to dispatch', async () => {
     const merchant = await createMerchant('Timed');
     await fulfilmentHistory(merchant, [
-      { assignedHoursAgo: 50, acceptedHoursAfterAssign: 2, shippedHoursAfterAccept: 6, status: 'shipped' },
-      { assignedHoursAgo: 40, acceptedHoursAfterAssign: 4, shippedHoursAfterAccept: 10, status: 'shipped' },
+      {
+        assignedHoursAgo: 50,
+        acceptedHoursAfterAssign: 2,
+        shippedHoursAfterAccept: 6,
+        status: 'shipped',
+      },
+      {
+        assignedHoursAgo: 40,
+        acceptedHoursAfterAssign: 4,
+        shippedHoursAfterAccept: 10,
+        status: 'shipped',
+      },
     ]);
 
     const card = await scorecard(merchant);
@@ -288,15 +320,24 @@ describe('the scorecard (docs/16 §6)', () => {
       },
     ]);
 
-    expect((await scorecard(honest)).late_dispatch, 'three days promised, sixty hours taken').toBe(0);
-    expect((await scorecard(optimistic)).late_dispatch, 'one day promised, sixty hours taken').toBe(1);
+    expect((await scorecard(honest)).late_dispatch, 'three days promised, sixty hours taken').toBe(
+      0,
+    );
+    expect((await scorecard(optimistic)).late_dispatch, 'one day promised, sixty hours taken').toBe(
+      1,
+    );
   });
 
   it('counts a cancellation after acceptance, which is what the customer feels', async () => {
     const merchant = await createMerchant('Cancelled Late');
     await fulfilmentHistory(merchant, [
       { assignedHoursAgo: 40, acceptedHoursAfterAssign: 1, status: 'cancelled' },
-      { assignedHoursAgo: 30, acceptedHoursAfterAssign: 1, shippedHoursAfterAccept: 2, status: 'shipped' },
+      {
+        assignedHoursAgo: 30,
+        acceptedHoursAfterAssign: 1,
+        shippedHoursAfterAccept: 2,
+        status: 'shipped',
+      },
     ]);
 
     const card = await scorecard(merchant);
@@ -368,8 +409,18 @@ describe('the rating the buy box reads (docs/16 §6)', () => {
   it('accepting everything quickly and shipping on time scores near the top', async () => {
     const merchant = await createMerchant('Exemplary');
     await fulfilmentHistory(merchant, [
-      { assignedHoursAgo: 40, acceptedHoursAfterAssign: 1, shippedHoursAfterAccept: 3, status: 'delivered' },
-      { assignedHoursAgo: 30, acceptedHoursAfterAssign: 1, shippedHoursAfterAccept: 4, status: 'delivered' },
+      {
+        assignedHoursAgo: 40,
+        acceptedHoursAfterAssign: 1,
+        shippedHoursAfterAccept: 3,
+        status: 'delivered',
+      },
+      {
+        assignedHoursAgo: 30,
+        acceptedHoursAfterAssign: 1,
+        shippedHoursAfterAccept: 4,
+        status: 'delivered',
+      },
     ]);
 
     const { data } = await admin.client.rpc('recompute_merchant_rating', {
@@ -383,14 +434,34 @@ describe('the rating the buy box reads (docs/16 §6)', () => {
   it('cancelling after acceptance drops the rating hard', async () => {
     const good = await createMerchant('Reliable');
     await fulfilmentHistory(good, [
-      { assignedHoursAgo: 40, acceptedHoursAfterAssign: 1, shippedHoursAfterAccept: 3, status: 'delivered' },
-      { assignedHoursAgo: 35, acceptedHoursAfterAssign: 1, shippedHoursAfterAccept: 3, status: 'delivered' },
+      {
+        assignedHoursAgo: 40,
+        acceptedHoursAfterAssign: 1,
+        shippedHoursAfterAccept: 3,
+        status: 'delivered',
+      },
+      {
+        assignedHoursAgo: 35,
+        acceptedHoursAfterAssign: 1,
+        shippedHoursAfterAccept: 3,
+        status: 'delivered',
+      },
     ]);
 
     const flaky = await createMerchant('Flaky');
     await fulfilmentHistory(flaky, [
-      { assignedHoursAgo: 40, acceptedHoursAfterAssign: 1, shippedHoursAfterAccept: 3, status: 'delivered' },
-      { assignedHoursAgo: 35, acceptedHoursAfterAssign: 1, shippedHoursAfterAccept: 3, status: 'cancelled' },
+      {
+        assignedHoursAgo: 40,
+        acceptedHoursAfterAssign: 1,
+        shippedHoursAfterAccept: 3,
+        status: 'delivered',
+      },
+      {
+        assignedHoursAgo: 35,
+        acceptedHoursAfterAssign: 1,
+        shippedHoursAfterAccept: 3,
+        status: 'cancelled',
+      },
     ]);
 
     const goodRating = Number(
@@ -406,7 +477,12 @@ describe('the rating the buy box reads (docs/16 §6)', () => {
   it('is clamped to the 0–5 range', async () => {
     const merchant = await createMerchant('Clamped');
     await fulfilmentHistory(merchant, [
-      { assignedHoursAgo: 20, acceptedHoursAfterAssign: 0, shippedHoursAfterAccept: 1, status: 'delivered' },
+      {
+        assignedHoursAgo: 20,
+        acceptedHoursAfterAssign: 0,
+        shippedHoursAfterAccept: 1,
+        status: 'delivered',
+      },
     ]);
 
     const value = Number(
@@ -498,7 +574,10 @@ describe('bulk stock and price (docs/16 §6)', () => {
       .in('id', [offerA, offerB]);
 
     const byId = new Map(
-      ((rows ?? []) as { id: string; stock_on_hand: number }[]).map((row) => [row.id, row.stock_on_hand]),
+      ((rows ?? []) as { id: string; stock_on_hand: number }[]).map((row) => [
+        row.id,
+        row.stock_on_hand,
+      ]),
     );
 
     expect(byId.get(offerB), 'the merchant’s own code wins').toBe(50);
@@ -678,7 +757,9 @@ describe('bulk offer creation (docs/16 §6.1)', () => {
 
     const { data: row } = await serviceClient()
       .from('merchant_offers')
-      .select('status, price_cents, stock_on_hand, handling_days, low_stock_threshold, merchant_sku')
+      .select(
+        'status, price_cents, stock_on_hand, handling_days, low_stock_threshold, merchant_sku',
+      )
       .eq('merchant_id', merchant)
       .eq('variant_id', product.variantId)
       .single();
@@ -742,10 +823,7 @@ describe('bulk offer creation (docs/16 §6.1)', () => {
     products.push(product);
 
     const barcode = `50${Date.now().toString().slice(-11)}`;
-    await serviceClient()
-      .from('product_variants')
-      .update({ barcode })
-      .eq('id', product.variantId);
+    await serviceClient().from('product_variants').update({ barcode }).eq('id', product.variantId);
 
     const { data } = await serviceClient().rpc('merchant_bulk_upsert_offers', {
       p_merchant_id: merchant,
@@ -840,20 +918,22 @@ describe('bulk offer creation (docs/16 §6.1)', () => {
     const rejected = await createProduct({ stock: 0, priceCents: 3000 });
     products.push(pending, rejected);
 
-    await serviceClient().from('merchant_offers').insert([
-      {
-        merchant_id: merchant,
-        variant_id: pending.variantId,
-        price_cents: 1000,
-        status: 'pending_review',
-      },
-      {
-        merchant_id: merchant,
-        variant_id: rejected.variantId,
-        price_cents: 1000,
-        status: 'rejected',
-      },
-    ]);
+    await serviceClient()
+      .from('merchant_offers')
+      .insert([
+        {
+          merchant_id: merchant,
+          variant_id: pending.variantId,
+          price_cents: 1000,
+          status: 'pending_review',
+        },
+        {
+          merchant_id: merchant,
+          variant_id: rejected.variantId,
+          price_cents: 1000,
+          status: 'rejected',
+        },
+      ]);
 
     const { data } = await serviceClient().rpc('merchant_bulk_upsert_offers', {
       p_merchant_id: merchant,
@@ -1159,10 +1239,7 @@ describe('proposals (docs/16 §4)', () => {
     const found = await anonClient().rpc('search_products', { p_query: name, p_limit: 24 });
     expect(found.data ?? [], 'a draft must not be searchable').toHaveLength(0);
 
-    const direct = await anonClient()
-      .from('products')
-      .select('id')
-      .eq('id', result.product_id);
+    const direct = await anonClient().from('products').select('id').eq('id', result.product_id);
     expect(direct.data ?? [], 'and not readable by slug or id either').toHaveLength(0);
   });
 

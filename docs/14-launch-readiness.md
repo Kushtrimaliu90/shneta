@@ -37,13 +37,18 @@ milestones of quietly re-rendering every request (docs/13 §Q1), the security pa
 runs as tests rather than as a checklist somebody ticked, the dependency audit is clean, and CSP
 enforcement is one environment variable away.
 
-**What is left before a real customer: one environment variable, and the products.**
-`shtrejt.com` is registered and verified in Resend, so the sending domain is real. What is not
-set is `RESEND_API_KEY` — and `sendEmail` needs the key and `EMAIL_FROM` together, so until both
-exist all fourteen templates record `skipped_no_provider` and nobody receives anything. The
-newsletter depends on that to _complete_ a subscription, not just to say thank you.
-`pnpm email:test you@gmail.com` proves deliverability once the key lands. And the shop still
-sells 24 demo fixtures until somebody enters the real ones.
+**And it is deployed.** `https://www.shtrejt.com` serves it, and `/api/health` reports which commit
+answered — which is the only reliable way to tell whether what you are looking at is what you pushed.
+
+**What is left before a real customer: four environment variables in Vercel, and the products.**
+`RESEND_API_KEY` and `EMAIL_FROM` (set locally, unverified in the deployment — until both exist every
+template records `skipped_no_provider` and a newsletter subscription cannot _complete_), `CSP_ENFORCE`
+(production serves the policy report-only today), and a Sentry DSN. And the shop still sells 24 demo
+fixtures with no photography until somebody enters the real ones.
+
+**§20 is the current list**, written from an audit of the live site rather than from this preamble. The
+sections above are milestone records and some of their numbers were stale by the time it was written —
+which is the argument for §20 existing.
 
 Legend: ✅ done and verified · 🟡 partial · ⬜ not started · ➖ not applicable yet
 
@@ -55,22 +60,22 @@ Legend: ✅ done and verified · 🟡 partial · ⬜ not started · ➖ not appl
 | ----------------------------------------------------- | ----- | ----------------------------------------------------------------------------------------------------------------- |
 | Next.js app builds for production                     | ✅    | `pnpm build`, 86 routes, no warnings                                                                              |
 | First Load JS within the 170 kB budget (`docs/09 §3`) | ✅    | 120–138 kB per route, enforced by `check:bundle`                                                                  |
-| Database schema applied                               | ✅    | 20 migrations on `rszbpdgfvyofvmuishmn`, Postgres 17.6                                                            |
+| Database schema applied                               | ✅    | **50** migrations on `rszbpdgfvyofvmuishmn`, Postgres 17.6                                                        |
 | RLS enabled on every public table (`docs/10 §4`)      | ✅    | `tables_without_rls()` → `[]`                                                                                     |
-| Integration suite against a real database             | ✅    | **87/87**, ~97 s — includes the docs/09 §5 attack suite                                                           |
-| Unit suite                                            | ✅    | **140/140**                                                                                                       |
-| E2E + axe on both locales                             | ✅    | **390/390**, repeatable; zero serious/critical violations on cart, checkout, account, admin and the content pages |
-| Generated DB types match the live schema              | ✅    | `db:types:linked` → 3372 lines, `pnpm verify` green                                                               |
+| Integration suite against a real database             | ✅    | **354/354** — includes the docs/09 §5 attack suite                                                                |
+| Unit suite                                            | ✅    | **310/310**                                                                                                       |
+| E2E + axe on both locales                             | ✅    | **484/484**, repeatable; zero serious/critical violations on any asserted surface                                 |
+| Generated DB types match the live schema              | ✅    | `db:types:linked` → 4803 lines, `pnpm verify` green                                                              |
 | CI pipeline (quality · integration+E2E · audit)       | ✅    | `.github/workflows/ci.yml`                                                                                        |
-| Security headers (`docs/10 §5`)                       | ✅    | asserted by an E2E test                                                                                           |
-| `/api/health` for uptime monitoring (`docs/10 §6`)    | ✅    | returns `{status:"ok",database:"ok"}`                                                                             |
-| Sitemap + robots with hreflang (`docs/08 §4`)         | ✅    | Reciprocal sq/en alternates on every URL, asserted by `e2e/compliance.spec.ts`                                    |
+| Security headers (`docs/10 §5`)                       | 🟡    | asserted by an E2E test. **CSP is report-only in production** — `CSP_ENFORCE` is unset (§20)                       |
+| `/api/health` for uptime monitoring (`docs/10 §6`)    | ✅    | returns `{status:"ok",database:"ok",commit}` — the commit is how you tell which build answered                     |
+| Sitemap + robots with hreflang (`docs/08 §4`)         | ✅    | Reciprocal sq/en alternates on every URL, and no doubled slash — both asserted (§20)                               |
 | Two crons, `CRON_SECRET`-guarded                      | ✅    | housekeeping 03:30, subscription renewals 05:00; both 401 unauthenticated, 200 with token                         |
 | On-demand ISR purge, secret-guarded                   | ✅    | rejects unknown tags, 401 unauthenticated                                                                         |
 | Sentry server + edge                                  | ✅    | inert without a DSN; client SDK lazy-loaded                                                                       |
 | `vercel.json` — region `fra1`, crons                  | ✅    |                                                                                                                   |
-| Vercel project + domain + DNS                         | ⬜    | **owner task** (`docs/00`)                                                                                        |
-| Resend domain verified (SPF/DKIM/DMARC)               | ✅    | `shtrejt.com` registered and verified. **`RESEND_API_KEY` is still unset**, so nothing sends yet                  |
+| Vercel project + domain + DNS + HTTPS                 | ✅    | **live**: `https://www.shtrejt.com/api/health` answers 200 with the deployed commit                              |
+| Resend domain verified (SPF/DKIM/DMARC)               | 🟡    | `shtrejt.com` verified; `RESEND_API_KEY` and `EMAIL_FROM` are set locally. **Unverified in Vercel** — see §20    |
 | Supabase staging + production projects                | ➖    | **owner decision (§7)** — one project serves all three roles                                                      |
 | PITR / backups on production                          | ⬜    | **owner task**, `docs/10 §4`. More urgent under §7: no second database to fall back on                            |
 | Destructive suites gated on `SUPABASE_TEST_PROJECT`   | ✅    | integration, E2E and the purge all refuse an undeclared target (§7)                                               |
@@ -682,3 +687,74 @@ manual and recorded with a bank reference on `/admin/payouts`.
 
 ---
 
+
+## 20 · What is actually left, as of the audit on 2026-08-04
+
+Written after going looking rather than after reading this document — several rows above had gone stale,
+and a launch ledger nobody re-checks is worse than none. Everything here was verified against the live
+site and the live database on the day.
+
+### Fixed during the audit
+
+- **Every URL in the production sitemap had a doubled slash.** `NEXT_PUBLIC_SITE_URL` was set to
+  `https://www.shtrejt.com/`, `z.url()` accepted the trailing slash, and all fifteen consumers build
+  `${origin}/path` — so `<loc>https://www.shtrejt.com//</loc>` was the advertised canonical home page,
+  `//shop` every product URL, `//en` every English alternate, and `//api/auth/callback` the address
+  Supabase was asked to redirect to. To Google those are different URLs, none of them the real one. The
+  parser now strips trailing slashes, and `e2e/compliance.spec.ts` asserts it on the rendered sitemap and
+  on `robots.txt` — the assertion that was missing, since the reciprocity test passed throughout by being
+  consistently wrong. **This needs a deploy to take effect: the value is read at build time.**
+- **Forty draft products had leaked onto the shared project in one day**, from §9 making approval create
+  products while three separate cleanup paths knew nothing about it. Fixed in the teardown, the E2E spec
+  and the purge; recorded as docs/13 §X16. Storage had the same shape of leak — 56 orphaned objects across
+  two buckets, now swept by existence rather than by pattern.
+- **Promotion wrote images to a different path than the product editor**, under a comment claiming it did
+  not. One convention now.
+- **Approving a batch could have timed out in production.** It promoted ten proposals inline at about a
+  second each; Vercel's default function duration is ten seconds. Now five, with `maxDuration = 60`
+  declared on the page that hosts the action, and the nightly sweep lowered from 25 to 15 for the same
+  reason against the cron's shared 60 s.
+- **A decided batch had no link anywhere in the admin panel.** The reviewer who decided it could not find
+  it again; the merchant could. Answered catalogues are now listed.
+
+### Left, and only the owner can do them
+
+1. **`RESEND_API_KEY` and `EMAIL_FROM` in Vercel.** Both are set locally, so `pnpm email:test` works from a
+   laptop; whether the deployment has them is not visible from here. Until it does, every template records
+   `skipped_no_provider` in `email_log` and a newsletter subscription cannot complete. **Check `email_log`
+   after a real order rather than trusting a settings screen.**
+2. **`CSP_ENFORCE=true`.** Production serves `content-security-policy-report-only` today — the policy is
+   correct and nothing enforces it. Flip it after watching the report endpoint for a few days.
+3. **`SENTRY_DSN` / `NEXT_PUBLIC_SENTRY_DSN`.** Both unset, so the SDK is inert and nothing reports.
+4. **Separate the test project from production (§7).** This moved from "risky" to "actively visible" during
+   the audit: a report of *test-related names in the category list* turned out to be E2E fixtures — `Emri
+   Provë`, `Kategori e Zënë`, `Prindi` — rendering in the shop's category sidebar **while the suite ran**,
+   for the twenty-five minutes it takes. The purge removes them afterwards, the tests are correct to create
+   them, and nothing is broken. It is the shared project that is wrong (docs/13 §X17).
+
+   Until there are two projects: delete `SUPABASE_TEST_PROJECT` from `.env.local` before real customers
+   arrive and never set it in Vercel, and do not run the suites while anyone is shopping.
+5. **PITR / backups, an uptime monitor on `/api/health`, and a restore drill.** All three unchanged.
+6. **Legal review of both terms documents**, clause 14 most of all, and the `[BIZNESI: plotëso]` trader
+   block. Terms are at `1.1` with no re-acceptance flow (§19).
+7. **The commercial numbers nobody has agreed to**: 15 % default commission, €2.00 shipping deduction.
+8. **Photography.** The catalogue itself is now finished — 63 published products across 16 categories, 14
+   brands, bilingual claim-safe copy, EUR prices benchmarked to European retail, SEO on every page (seeds
+   12–13, docs/11 §11). What it has no images at all. `pnpm seed:images ./photos` uploads a folder named
+   after product slugs and is proven idempotent, so this is a drag-and-drop job once assets exist — from
+   the manufacturers' dealer portals or from a camera. It is **not** a job that can be done by copying
+   another retailer's photographs: those are theirs, and the pages that would carry them are the pages that
+   earn the money. Migration 14 makes an image a precondition of publishing, so this gates everything the
+   catalogue team creates from now on.
+9. **Reprice against real invoices.** The seeded prices are benchmarked to typical European online retail,
+   which is a starting point and not a margin: nobody has costed a delivery to Prishtinë or agreed a landed
+   cost with a distributor.
+10. **Confirm which brands you can actually supply.** Fourteen are listed, all real manufacturers with
+    European distribution, but listing a brand is not the same as having an agreement with it. Deactivate
+    the ones you cannot get — `is_active = false` on the brand **and** unpublish its products, because they
+    are filtered separately.
+
+### Known and deliberate, not defects
+
+`/seller/[slug]`, a merchant switcher, batch withdrawal, "submit all drafts", and cleanup of abandoned
+uploads — each is listed with its reasoning in §19.

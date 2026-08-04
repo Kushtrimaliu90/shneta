@@ -28,6 +28,7 @@
     "purge:demo": "tsx scripts/purge-demo-catalogue.ts",
     "purge:test-data": "tsx scripts/purge-test-data.ts",
     "seed:users": "tsx scripts/seed-users.ts",
+    "seed:images": "tsx scripts/seed-images.ts",
     "start": "next start",
     "test": "vitest run",
     "test:e2e": "playwright test",

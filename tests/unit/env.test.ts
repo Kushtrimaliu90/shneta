@@ -30,6 +30,33 @@ describe('parseClientEnv', () => {
     );
   });
 
+  /**
+   * A trailing slash is normalised away, not rejected.
+   *
+   * Every consumer builds `${origin}/path`, so one invisible character at the end of a Vercel setting put
+   * `https://www.shtrejt.com//` in the live sitemap as the canonical home page, `//shop` on every product
+   * URL, `//en` as the English alternate, and `//api/auth/callback` in the address Supabase was asked to
+   * redirect to. `z.url()` accepts it, so nothing failed and nothing warned.
+   *
+   * Normalised rather than refused because a value that differs from the intended one by a slash should mean
+   * what the person obviously meant, not fail a production deploy.
+   */
+  it('strips a trailing slash from the site URL', () => {
+    expect(parseClientEnv({ ...VALID, NEXT_PUBLIC_SITE_URL: 'https://biocode.com/' })).toEqual(
+      VALID,
+    );
+    expect(parseClientEnv({ ...VALID, NEXT_PUBLIC_SITE_URL: 'https://biocode.com///' })).toEqual(
+      VALID,
+    );
+  });
+
+  it('leaves a path-bearing origin alone apart from the trailing slash', () => {
+    expect(
+      parseClientEnv({ ...VALID, NEXT_PUBLIC_SITE_URL: 'https://biocode.com/shop/' })
+        .NEXT_PUBLIC_SITE_URL,
+    ).toBe('https://biocode.com/shop');
+  });
+
   it('rejects a truncated anon key', () => {
     expect(() => parseClientEnv({ ...VALID, NEXT_PUBLIC_SUPABASE_ANON_KEY: 'short' })).toThrow(
       /NEXT_PUBLIC_SUPABASE_ANON_KEY/,
@@ -77,7 +104,10 @@ describe('parseClientEnv', () => {
     it('never echoes the offending value', () => {
       let message = '';
       try {
-        parseClientEnv({ ...VALID, NEXT_PUBLIC_SUPABASE_ANON_KEY: 'leaky-value-should-not-appear' });
+        parseClientEnv({
+          ...VALID,
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: 'leaky-value-should-not-appear',
+        });
       } catch (error) {
         message = error instanceof Error ? error.message : String(error);
       }

@@ -69,7 +69,7 @@ export default async function MerchantProposalBulkPage({ params }: Props) {
                     {batch.note && ` · ${batch.note.slice(0, 60)}`}
                   </p>
                 </div>
-                <span className="rounded-sm bg-ink-100 px-1.5 py-0.5 font-ui text-[11px] font-semibold text-ink-900">
+                <span className="bg-ink-100 rounded-sm px-1.5 py-0.5 font-ui text-[11px] font-semibold text-ink-900">
                   {t(`status.${batch.status}`)}
                 </span>
               </li>

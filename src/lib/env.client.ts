@@ -8,7 +8,21 @@ import { z } from 'zod';
  * `undefined` in the browser bundle.
  */
 const clientSchema = z.object({
-  NEXT_PUBLIC_SITE_URL: z.url(),
+  /*
+   * The origin, with **any trailing slash removed**.
+   *
+   * Every consumer builds `${origin}/path` — the sitemap, `robots.txt`, every canonical and hreflang tag,
+   * the auth callback URLs and the links in fourteen email templates. `z.url()` happily accepts
+   * `https://www.example.com/`, and that single character produced a live site advertising
+   * `https://www.shtrejt.com//` as the canonical home page, `//shop` in the sitemap, `//en` as the English
+   * alternate and `//api/auth/callback` as the address Supabase was asked to redirect to.
+   *
+   * Normalising here rather than at each of the fifteen call sites: a rule enforced once at the boundary
+   * cannot be forgotten by the sixteenth. And normalising rather than *rejecting* a trailing slash, because
+   * a value that differs from the intended one by an invisible character should not fail a production
+   * deploy — it should mean what the person obviously meant.
+   */
+  NEXT_PUBLIC_SITE_URL: z.url().transform((value) => value.replace(/\/+$/, '')),
   NEXT_PUBLIC_SUPABASE_URL: z.url(),
   NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(20),
 });
@@ -24,7 +38,8 @@ export type ClientEnv = z.infer<typeof clientSchema>;
  * configuration ought to look like.
  */
 const EXAMPLES: Record<keyof ClientEnv, string> = {
-  NEXT_PUBLIC_SITE_URL: 'https://www.example.com (the scheme is required — a bare host is rejected)',
+  NEXT_PUBLIC_SITE_URL:
+    'https://www.example.com (the scheme is required — a bare host is rejected)',
   NEXT_PUBLIC_SUPABASE_URL: 'https://<project-ref>.supabase.co',
   NEXT_PUBLIC_SUPABASE_ANON_KEY: 'the anon key from Supabase → Settings → API',
 };
@@ -41,7 +56,8 @@ export function parseClientEnv(source: Record<string, string | undefined>): Clie
     const detail = parsed.error.issues
       .map((issue) => {
         const name = issue.path.join('.') as keyof ClientEnv;
-        const reason = source[name] === undefined || source[name] === '' ? 'not set' : issue.message;
+        const reason =
+          source[name] === undefined || source[name] === '' ? 'not set' : issue.message;
         return `  · ${name} — ${reason}\n    expected: ${EXAMPLES[name] ?? 'see .env.example'}`;
       })
       .join('\n');

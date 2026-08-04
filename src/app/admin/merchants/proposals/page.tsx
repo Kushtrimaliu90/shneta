@@ -45,12 +45,22 @@ export default async function AdminProposalsPage({ searchParams }: Props) {
     ? (raw as ProposalStatus)
     : 'pending';
 
+  /*
+   * All batches, not only the pending ones.
+   *
+   * A decided batch had no link anywhere in the admin panel — the merchant could still open it, the reviewer
+   * who decided it could not. "What did we take from that catalogue?" is the obvious question a week later,
+   * and the answer was reachable only by knowing the URL.
+   */
   const [proposals, counts, batches, awaiting] = await Promise.all([
     listProposals(status),
     proposalCounts(),
-    listBatches({ onlyPending: true }),
+    listBatches(),
     countAwaitingPromotion(),
   ]);
+
+  const pendingBatches = batches.filter((batch) => batch.status === 'pending');
+  const decidedBatches = batches.filter((batch) => batch.status === 'decided').slice(0, 10);
 
   return (
     <section className="flex flex-col gap-6">
@@ -58,12 +68,13 @@ export default async function AdminProposalsPage({ searchParams }: Props) {
         <h1 className="font-display text-2xl font-semibold text-forest-900">Product proposals</h1>
         <p className="mt-1 text-sm text-ink-600">
           A merchant holding stock of something BioCode does not list. Approving creates a{' '}
-          <strong>draft</strong> product with the merchant&rsquo;s photographs attached — set its price and
-          copy on{' '}
+          <strong>draft</strong> product with the merchant&rsquo;s photographs attached — set its
+          price and copy on{' '}
           <Link href="/admin/products" className="underline">
             the catalogue screens
           </Link>
-          , then send it for compliance. Nothing here reaches the storefront until compliance publishes it.
+          , then send it for compliance. Nothing here reaches the storefront until compliance
+          publishes it.
         </p>
       </header>
 
@@ -83,18 +94,18 @@ export default async function AdminProposalsPage({ searchParams }: Props) {
           {awaiting > 0 && (
             <p className="rounded-md border border-forest-500/40 bg-forest-50/50 p-3 text-sm text-ink-900">
               <span data-numeric>{awaiting}</span> approved row(s) are still waiting for their draft
-              product. The nightly job creates 25 at a time; approving a batch creates the first few
+              product. The nightly job creates 15 at a time; approving a batch creates the first few
               immediately.
             </p>
           )}
 
-          {batches.length === 0 ? (
+          {pendingBatches.length === 0 ? (
             <p className="rounded-md border border-dashed border-line-strong p-6 text-center text-sm text-ink-600">
               No catalogues waiting.
             </p>
           ) : (
             <ul className="flex flex-col gap-2">
-              {batches.map((batch) => (
+              {pendingBatches.map((batch) => (
                 <li
                   key={batch.id}
                   className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-line bg-surface p-4"
@@ -120,6 +131,31 @@ export default async function AdminProposalsPage({ searchParams }: Props) {
                 </li>
               ))}
             </ul>
+          )}
+
+          {/* Answered ones, so "what did we take from that catalogue?" has somewhere to be asked. */}
+          {decidedBatches.length > 0 && (
+            <details className="rounded-md border border-line bg-surface p-4">
+              <summary className="cursor-pointer text-sm font-medium text-ink-900">
+                Answered catalogues ({decidedBatches.length})
+              </summary>
+              <ul className="mt-3 flex flex-col gap-1.5">
+                {decidedBatches.map((batch) => (
+                  <li key={batch.id} className="text-sm">
+                    <Link
+                      href={`/admin/merchants/proposals/${batch.id}`}
+                      className="text-forest-800 underline"
+                    >
+                      {batch.merchantName ?? 'Merchant'} — {batch.rowCount} row(s)
+                    </Link>
+                    <span className="text-ink-500">
+                      {' '}
+                      · answered {(batch.reviewedAt ?? batch.createdAt).slice(0, 10)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </details>
           )}
         </section>
       )}

@@ -113,9 +113,16 @@ export async function promoteProposal(
 /**
  * Downloads each proposal image and uploads it under the product's own folder.
  *
- * `products/<product_id>/…` matches where the product editor puts its uploads, so an image that arrived
- * this way is indistinguishable from one a product manager added — which is the point. A reviewer
- * reordering or deleting them in the editor should not have to know where they came from.
+ * ── `<product_id>/<file>`, which is exactly what the editor writes ──
+ *
+ * `media-actions.ts` signs uploads to `${productId}/${uuid}.${ext}` — no prefix segment. The first version of
+ * this function used `products/<product_id>/…` and its comment claimed that matched the editor; it did not,
+ * and the result was one bucket with two conventions, where every future sweep, migration or path assumption
+ * would be right about half the objects.
+ *
+ * Matching the editor is what makes the claim true: an image that arrived from a proposal is indistinguishable
+ * from one a product manager added, so reordering or deleting it in the editor needs no special case, and the
+ * fixture sweep that has cleaned `<product_id>/` since M2 finds these too.
  *
  * The original stays in the private bucket. It is the merchant's evidence of what it proposed, it costs
  * almost nothing, and deleting it would mean a rejected-then-reopened proposal had lost its photographs.
@@ -155,7 +162,7 @@ async function copyImages(
       }
 
       const name = path.split('/').pop() ?? `image-${index}`;
-      const target = `products/${productId}/${name}`;
+      const target = `${productId}/${name}`;
 
       const { error: uploadError } = await admin.storage
         .from('product-images')

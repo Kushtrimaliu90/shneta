@@ -9,6 +9,17 @@ import { BatchReview } from '@/features/merchants/components/batch-review';
 export const metadata: Metadata = { title: 'Proposed catalogue' };
 export const dynamic = 'force-dynamic';
 
+/**
+ * 60 s, because `decideBatch` runs here.
+ *
+ * A server action is a POST to this route, so the segment's duration is the action's duration — and
+ * approving a batch promotes a bounded slice of rows inline, each of which copies photographs between
+ * storage buckets. Vercel's default for a Node function is ten seconds; without this the reviewer would
+ * watch the request die *after* `decide_proposal_batch` had already committed every decision, which reads as
+ * a broken feature rather than as a slow one.
+ */
+export const maxDuration = 60;
+
 type Props = { params: Promise<{ batchId: string }> };
 
 /**

@@ -251,14 +251,16 @@ export async function catalogueExport(): Promise<CatalogueRow[]> {
     return [];
   }
 
-  return ((data ?? []) as {
-    sku: string;
-    barcode: string;
-    product_name: string;
-    variant_name: string;
-    price_cents: number;
-    in_stock: boolean;
-  }[]).map((row) => ({
+  return (
+    (data ?? []) as {
+      sku: string;
+      barcode: string;
+      product_name: string;
+      variant_name: string;
+      price_cents: number;
+      in_stock: boolean;
+    }[]
+  ).map((row) => ({
     sku: row.sku,
     barcode: row.barcode,
     productName: row.product_name,
@@ -291,16 +293,18 @@ export async function offersExport(merchantId: string): Promise<OfferExportRow[]
     return [];
   }
 
-  return ((data ?? []) as {
-    sku: string;
-    merchant_sku: string;
-    product_name: string;
-    variant_name: string;
-    status: string;
-    stock_on_hand: number;
-    price_cents: number;
-    retail_price_cents: number;
-  }[]).map((row) => ({
+  return (
+    (data ?? []) as {
+      sku: string;
+      merchant_sku: string;
+      product_name: string;
+      variant_name: string;
+      status: string;
+      stock_on_hand: number;
+      price_cents: number;
+      retail_price_cents: number;
+    }[]
+  ).map((row) => ({
     sku: row.sku,
     merchantSku: row.merchant_sku,
     productName: row.product_name,

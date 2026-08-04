@@ -120,7 +120,9 @@ export default async function MerchantBatchPage({ params }: Props) {
                   <Td>
                     {row.barcode ? <span data-numeric>{row.barcode}</span> : '—'}
                     {row.merchantSku && (
-                      <span className="block font-ui text-[11px] text-ink-500">{row.merchantSku}</span>
+                      <span className="block font-ui text-[11px] text-ink-500">
+                        {row.merchantSku}
+                      </span>
                     )}
                   </Td>
                   <Td>{row.stockOnHand}</Td>
@@ -142,7 +144,9 @@ export default async function MerchantBatchPage({ params }: Props) {
                       {t(`rowStatus.${row.status}`)}
                     </span>
                     {row.reviewerNote && (
-                      <span className="mt-1 block text-[13px] text-ink-600">{row.reviewerNote}</span>
+                      <span className="mt-1 block text-[13px] text-ink-600">
+                        {row.reviewerNote}
+                      </span>
                     )}
                   </Td>
                 </tr>
@@ -157,7 +161,10 @@ export default async function MerchantBatchPage({ params }: Props) {
 
 function Th({ children }: { children: React.ReactNode }) {
   return (
-    <th scope="col" className="py-2 pr-3 text-[11px] font-semibold tracking-wide text-ink-500 uppercase">
+    <th
+      scope="col"
+      className="py-2 pr-3 text-[11px] font-semibold tracking-wide text-ink-500 uppercase"
+    >
       {children}
     </th>
   );

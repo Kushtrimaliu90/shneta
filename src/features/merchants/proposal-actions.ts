@@ -86,7 +86,8 @@ export async function submitProposal(
   formData: FormData,
 ): Promise<ProposalState> {
   const merchant = await getMyMerchant();
-  if (!merchant || merchant.status !== 'approved') return no('merchant.proposals.errors.notMerchant');
+  if (!merchant || merchant.status !== 'approved')
+    return no('merchant.proposals.errors.notMerchant');
 
   const parsed = proposalSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return no('merchant.proposals.errors.invalid');
@@ -281,12 +282,7 @@ export async function decideProposal(
     const proposedName =
       typeof decided.payload?.product_name === 'string' ? decided.payload.product_name : '';
 
-    await sendProposalDecided(
-      decided.merchant_id,
-      proposedName,
-      status,
-      input.note ?? null,
-    );
+    await sendProposalDecided(decided.merchant_id, proposedName, status, input.note ?? null);
 
     /*
      * `'layout'`, so the batch page under this path refreshes too (docs/16 §9.1).

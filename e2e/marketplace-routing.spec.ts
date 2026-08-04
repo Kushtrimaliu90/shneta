@@ -726,6 +726,35 @@ test.describe('proposals (docs/16 §4)', () => {
     // The merchant reads the answer where it was promised.
     await page.reload();
     await expect(page.getByText('Listed as BIO-E2E-1')).toBeVisible({ timeout: ACTION_TIMEOUT });
+
+    /*
+     * The draft this approval created has to be registered for cleanup (docs/13 §X16).
+     *
+     * This test predates §9, when approving recorded a decision and created nothing. It now leaves a draft
+     * product and a brand behind, and the purge cannot see either: it matches `slug LIKE 'product-%'` and a
+     * promoted draft is slugged from the product name. Ten of these accumulated on the shared project in one
+     * day before anybody counted them.
+     */
+    const service = db();
+    const { data: proposal } = await service
+      .from('product_proposals')
+      .select('created_product_id')
+      .eq('merchant_id', merchant.merchantId)
+      .maybeSingle();
+
+    const productId = (proposal as { created_product_id: string | null } | null)
+      ?.created_product_id;
+    expect(productId, 'approving promotes the proposal').toBeTruthy();
+
+    if (productId) {
+      productIds.push(productId);
+      const { data: product } = await service
+        .from('products')
+        .select('brand_id')
+        .eq('id', productId)
+        .single();
+      brandIds.push((product as { brand_id: string }).brand_id);
+    }
   });
 
   /**
@@ -847,9 +876,14 @@ test.describe('proposals (docs/16 §4)', () => {
       .eq('product_id', productId);
 
     expect(images ?? [], 'the photograph came with it').toHaveLength(1);
-    expect((images as { storage_path: string }[])[0]?.storage_path).toContain(
-      `products/${productId}/`,
-    );
+    /*
+     * `<product_id>/<file>` — the same shape `media-actions.ts` signs for an editor upload, asserted in
+     * `admin.spec.ts:661`. One convention in the bucket, so an image that arrived from a proposal is
+     * indistinguishable from one a product manager added.
+     */
+    expect(
+      (images as { storage_path: string }[])[0]?.storage_path.startsWith(`${productId}/`),
+    ).toBe(true);
 
     // The image is now on the public bucket, which is what puts it on the page once published.
     const publicUrl = service.storage
@@ -934,6 +968,24 @@ test.describe('proposals (docs/16 §4)', () => {
       timeout: 30_000,
     });
     await expect(page.getByRole('heading', { name: 'Could not be matched (1)' })).toBeVisible();
+
+    /*
+     * axe here, not in the a11y block.
+     *
+     * The matched and unmatched lists only exist while files are in flight, so the scan in the accessibility
+     * describe — which visits a batch page with nothing uploaded — cannot see them. This is the only moment
+     * the assign list is on screen, and it is a `<select>` per row whose label is `sr-only`.
+     */
+    const uploadAxe = await new AxeBuilder({ page })
+      .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+      .analyze();
+
+    expect(
+      uploadAxe.violations
+        .filter((v) => v.impact === 'serious' || v.impact === 'critical')
+        .map((v) => `${v.id} on ${v.nodes.length} node(s)`),
+      'axe found serious violations on the batch upload lists',
+    ).toEqual([]);
 
     // The unmatched one is assigned by hand — the handful of dropdowns the keying leaves behind.
     await page.getByRole('combobox').selectOption({ label: names[2] ?? '' });

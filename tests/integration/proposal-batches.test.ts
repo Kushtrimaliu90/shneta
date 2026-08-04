@@ -66,7 +66,11 @@ async function createBatch(
   merchantId: string,
   rows: Record<string, unknown>[],
   note?: string,
-): Promise<{ batch_id: string | null; created: number; skipped: { name: string; reason: string }[] }> {
+): Promise<{
+  batch_id: string | null;
+  created: number;
+  skipped: { name: string; reason: string }[];
+}> {
   const { data, error } = await serviceClient().rpc('merchant_bulk_create_proposals', {
     p_merchant_id: merchantId,
     p_rows: rows,
@@ -158,20 +162,20 @@ describe('creating a batch (docs/16 §9.1)', () => {
     const result = await createBatch(merchant, [first, again]);
 
     expect(result.created).toBe(1);
-    expect(result.skipped).toEqual([
-      { name: 'Twice Over Again', reason: 'duplicate_in_sheet' },
-    ]);
+    expect(result.skipped).toEqual([{ name: 'Twice Over Again', reason: 'duplicate_in_sheet' }]);
   });
 
   it('drops a row the merchant has already proposed and is still waiting on', async () => {
     const merchant = await createMerchant('Batch Already');
     const name = `Standing Proposal ${Date.now()}`;
 
-    await serviceClient().from('product_proposals').insert({
-      merchant_id: merchant,
-      status: 'pending',
-      payload: { product_name: name, brand_name: 'Probe Labs', asking_price_cents: 900 },
-    });
+    await serviceClient()
+      .from('product_proposals')
+      .insert({
+        merchant_id: merchant,
+        status: 'pending',
+        payload: { product_name: name, brand_name: 'Probe Labs', asking_price_cents: 900 },
+      });
 
     const result = await createBatch(merchant, [row({ product_name: name })]);
 

@@ -1,9 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  filenameKeys,
-  imageKey,
-  parseProposalCsv,
-} from '@/features/merchants/proposal-csv';
+import { filenameKeys, imageKey, parseProposalCsv } from '@/features/merchants/proposal-csv';
 
 /**
  * docs/16 §9.1 — the pasted-catalogue parser and the filename matching.
@@ -85,7 +81,9 @@ describe('the price column', () => {
   });
 
   it('reads a comma as a thousands separator when the delimiter is a comma', () => {
-    expect(parseProposalCsv('name,brand,price\nA,B,1250').rows[0]?.asking_price_cents).toBe(125_000);
+    expect(parseProposalCsv('name,brand,price\nA,B,1250').rows[0]?.asking_price_cents).toBe(
+      125_000,
+    );
   });
 
   it('strips a euro sign', () => {

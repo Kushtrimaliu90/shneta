@@ -66,7 +66,9 @@ export async function submitProposalBatch(
   const text = String(formData.get('csv') ?? '');
   if (text.trim().length === 0) return no('merchant.batches.errors.empty');
 
-  const note = String(formData.get('note') ?? '').trim().slice(0, 2000);
+  const note = String(formData.get('note') ?? '')
+    .trim()
+    .slice(0, 2000);
 
   const parsed = parseProposalCsv(text);
   if (parsed.kind === 'no_header') return no('merchant.batches.errors.noHeader');
@@ -149,7 +151,8 @@ export type AttachState = ActionResult<{ attached: number }, BatchErrorKey> | nu
  */
 export async function attachBatchImages(input: unknown): Promise<AttachState> {
   const merchant = await getMyMerchant();
-  if (!merchant || merchant.status !== 'approved') return fail('merchant.batches.errors.notMerchant');
+  if (!merchant || merchant.status !== 'approved')
+    return fail('merchant.batches.errors.notMerchant');
 
   const parsed = assignmentSchema.safeParse(input);
   if (!parsed.success) return fail('merchant.batches.errors.invalid');
@@ -227,6 +230,21 @@ export interface BatchDecision {
   awaiting: number;
 }
 
+/**
+ * How many rows this request promotes before handing the rest to the cron.
+ *
+ * Five, from measurement rather than taste: one row with one photograph takes about a second — an RPC, a
+ * download from the private bucket, an upload to the public one and an insert — and a row may carry six
+ * images. Five is therefore a worst case of roughly twenty seconds, inside the sixty the page declares and
+ * inside Vercel's default even if that declaration is ever dropped.
+ *
+ * The point of promoting *any* inline is that a reviewer who approves sixty products should see products
+ * appear rather than a promise. The point of stopping at five is that the alternative — a reviewer watching a
+ * request die at the platform's timeout after the decision has already been committed — reads as a broken
+ * feature even though every row was recorded.
+ */
+const INLINE_PROMOTIONS = 5;
+
 export type DecideBatchState = ActionResult<BatchDecision, BatchErrorKey> | null;
 
 /**
@@ -277,7 +295,10 @@ export async function decideBatch(
     let awaiting = 0;
 
     if (input.decision === 'approve') {
-      const swept = await sweepApprovedProposals({ limit: 10, batchId: input.batchId });
+      const swept = await sweepApprovedProposals({
+        limit: INLINE_PROMOTIONS,
+        batchId: input.batchId,
+      });
       promoted = swept.promoted;
       awaiting = swept.remaining;
     }

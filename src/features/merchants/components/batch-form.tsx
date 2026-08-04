@@ -62,14 +62,22 @@ export function BatchForm() {
      * Only when nothing was refused. A merchant with thirteen bad rows needs to read them here, and a
      * navigation that happened before they could would hide the one thing this screen is for.
      */
-    if (result?.ok && result.data.batchId && result.data.skipped.length === 0 && result.data.malformed.length === 0) {
+    if (
+      result?.ok &&
+      result.data.batchId &&
+      result.data.skipped.length === 0 &&
+      result.data.malformed.length === 0
+    ) {
       router.push(`/merchant/proposals/${result.data.batchId}`);
     }
     return result;
   }, null);
 
   return (
-    <form action={action} className="flex flex-col gap-5 rounded-lg border border-line bg-surface p-5">
+    <form
+      action={action}
+      className="flex flex-col gap-5 rounded-lg border border-line bg-surface p-5"
+    >
       <div>
         <p className="text-sm text-ink-600">{t('formIntro')}</p>
         <p className="mt-2 rounded-md bg-cream p-3 font-ui text-[13px] text-ink-900">
@@ -85,7 +93,9 @@ export function BatchForm() {
           rows={10}
           required
           spellCheck={false}
-          placeholder={'emri;marka;forma;varianti;barkod;kodi;stok;çmimi\nMagnesium Glycinate;Probe Labs;kapsula;120 kapsula;5099999999901;MG-120;24;14,90'}
+          placeholder={
+            'emri;marka;forma;varianti;barkod;kodi;stok;çmimi\nMagnesium Glycinate;Probe Labs;kapsula;120 kapsula;5099999999901;MG-120;24;14,90'
+          }
           className="rounded-sm border border-line-strong bg-surface p-2.5 font-ui text-sm"
         />
         <span className="text-[13px] text-ink-500">{t('pasteHint')}</span>
@@ -107,9 +117,7 @@ export function BatchForm() {
             {t('created', { count: state.data.created })}
           </p>
 
-          {state.data.batchId && (
-            <p className="text-[13px] text-ink-600">{t('nextStepImages')}</p>
-          )}
+          {state.data.batchId && <p className="text-[13px] text-ink-600">{t('nextStepImages')}</p>}
 
           {state.data.malformed.length > 0 && (
             <Alert tone="warning" title={t('malformedTitle')}>

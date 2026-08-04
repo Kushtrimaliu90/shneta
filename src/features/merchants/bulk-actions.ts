@@ -69,7 +69,8 @@ export async function bulkApplyOffers(
 
   const parsed = parseOfferCsv(text);
   if (parsed.kind === 'no_header') return no('merchant.bulk.errors.noHeader');
-  if (parsed.rows.length === 0 && parsed.malformed.length === 0) return no('merchant.bulk.errors.empty');
+  if (parsed.rows.length === 0 && parsed.malformed.length === 0)
+    return no('merchant.bulk.errors.empty');
   if (parsed.rows.length > 2000) return no('merchant.bulk.errors.tooMany');
 
   try {

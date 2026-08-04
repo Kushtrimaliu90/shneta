@@ -74,3 +74,89 @@ Coupons: `WELCOME10` percentage 10, min €15, per-user 1, active · `FALAS` fre
 ## 10. Seed mechanics
 
 `seed.sql` is idempotent (fixed UUIDs, `on conflict do update`) so `db reset` and CI are deterministic; user-dependent fixtures reference the fixed UUIDs created by `scripts/seed-users.ts` (runs first in CI). A `pnpm seed:images` step uploads `public/seed/*` to buckets (skips if present). Acceptance: after `supabase db reset` + scripts, home/PLP/PDP/admin all render fully, E2E suite passes.
+
+---
+
+## 11 · The launch catalogue (seeds 12–13) and `pnpm seed:images`
+
+The demo catalogue in seeds 01–02 was 24 products doing a launch catalogue's job. Counted per category
+it was eleven categories with one or two products and two with none — a shopper who taps "Collagen" and
+finds one item concludes the shop is empty. Seeds 12 and 13 finish it.
+
+**Seed 12 — taxonomy.** Descriptions and SEO for all 16 categories and all brands, which the storefront
+reads and which were empty on every row: `getCategoryTree` selects `description`, so every category page
+had a heading and nothing under it, and no page had a title or meta description of its own. Also six new
+brands, the removal of a stray `governor` brand left by a manual test, and a fix for the two BIOCODE
+products that seed 01 had credited to NOW Foods.
+
+**Seed 13 — 39 products**, taking the catalogue to 63 published with 3–8 per category. Joined by **slug**
+rather than by uuid: 39 products across five link tables is roughly 250 identifiers nobody can proofread,
+and the natural unique columns (`products.slug`, `product_variants.sku`) make the upserts idempotent
+without them. Certifications are derived by rule from `dietary_tags` rather than listed per product, which
+also backfilled the 18 of 24 older products that had none.
+
+Two things it does **not** do, both deliberate:
+
+- **Gift cards are deactivated, not populated.** A gift card is a promise to deliver a code, v1 fulfils
+  codes by hand, and the email system has never successfully sent a message (docs/14 §20). Taking money
+  for something with no delivery path is worse than an empty category.
+- **No images.** See below — this is the one part of a catalogue that cannot be written.
+
+### `pnpm seed:images <folder>`
+
+Specified in §10 above since M2 and never written, which is why all 63 products render the branded
+fallback tile. It matters more than a missing nicety: **migration 14 makes an image a precondition of
+publishing** (docs/14 §8), so anything created in the admin panel cannot go live without one. The seeded
+products are published only because the service role is exempt from that guard.
+
+    pnpm seed:images ./photos              # upload, matched to products by filename
+    pnpm seed:images ./photos --dry-run    # report matches, touch nothing
+    pnpm seed:images ./photos --replace    # clear a product's existing images first
+
+`now-vitamin-d3-4000.jpg` finds that product; `now-vitamin-d3-4000-2.jpg` is its second image and the
+counter sets `position`. The same filename convention as merchant batch proposals (docs/16 §9.1), for the
+same reason: a folder named after what is in the photographs is what a photographer hands over.
+**Unmatched files are listed and skipped, never guessed at** — a photograph on the wrong product page is
+worse than a missing one, because nobody re-checks a page that looks finished.
+
+Images land at `<product_id>/<file>`, which is what the product editor signs and what proposal promotion
+writes (docs/13 §X16). Migration 51 adds `unique (product_id, storage_path)` so running the import twice
+is an upsert rather than a duplication — and re-running it is the normal case, as photographs get re-shot.
+
+`alt` is left empty on purpose. It describes what is *in* the photograph, only a person looking at it can
+write it, and the product editor has the field. A generated "Product name" alt passes the accessibility
+check while telling a screen-reader user nothing the heading had not already said.
+
+### Where the photographs come from
+
+Not from another retailer's site. Product photography belongs to whoever shot it, and a shop that lifts it
+is one takedown notice away from empty product pages — on the pages that earn the money. The two lawful
+sources are the manufacturer's dealer assets (NOW Foods, Solgar, Optimum Nutrition and the rest all run
+asset portals for stockists) and a camera pointed at your own shelf. The script does not care which.
+
+### Automated image retrieval was tried and does not work
+
+Asked to pull official product photography from the manufacturers' sites, so it was tested rather than
+assumed:
+
+| Source                              | Result                                                        |
+| ----------------------------------- | ------------------------------------------------------------- |
+| `nowfoods.com`                      | **403 Forbidden** to any scripted request                     |
+| `solgar.com`                        | **403 Forbidden**                                             |
+| `iherb.com`                         | **403 Forbidden**                                             |
+| Open Food Facts (CC-BY-SA, open API) | Works — and returns what it has                              |
+
+The three 403s are the point rather than an obstacle: a manufacturer's product photography is a licensed
+asset library, and blocking bots is how it stays one. The images exist for stockists and are handed over
+through a dealer portal, with terms attached.
+
+Open Food Facts does answer, and for a supplement it returns a **user-contributed photograph of whichever
+market's packaging somebody happened to own** — the NOW vitamin D lookup came back with a Cyrillic label and
+a French front shot. Three problems with using it: the packaging is not what arrives in the customer's box,
+the quality is a phone photo on a kitchen table, and CC-BY-SA requires visible attribution the storefront
+has nowhere to put. It would look worse than the branded fallback tile, which at least reads as deliberate.
+
+**So the shot list is the deliverable.** `pnpm seed:images --manifest` emits CSV — filename, brand, product,
+status — for every product with no photograph, which is currently all 63. That goes to a distributor as an
+asset request or to whoever is holding the camera, and comes back as a folder `pnpm seed:images ./photos`
+consumes. Naming the files is the whole protocol.

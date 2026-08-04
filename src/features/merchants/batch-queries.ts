@@ -128,13 +128,15 @@ export async function getBatch(batchId: string): Promise<BatchWithRows | null> {
     return null;
   }
 
-  const rows = ((rowData ?? []) as {
-    id: string;
-    status: string;
-    reviewer_note: string | null;
-    created_product_id: string | null;
-    payload: Record<string, unknown> | null;
-  }[]).map((row): BatchRow => {
+  const rows = (
+    (rowData ?? []) as {
+      id: string;
+      status: string;
+      reviewer_note: string | null;
+      created_product_id: string | null;
+      payload: Record<string, unknown> | null;
+    }[]
+  ).map((row): BatchRow => {
     const payload = row.payload ?? {};
     const text = (key: string): string | null =>
       typeof payload[key] === 'string' && payload[key] !== '' ? (payload[key] as string) : null;
@@ -159,7 +161,9 @@ export async function getBatch(batchId: string): Promise<BatchWithRows | null> {
       note: text('note'),
       reviewerNote: row.reviewer_note,
       imagePaths: Array.isArray(payload.images)
-        ? (payload.images as unknown[]).filter((value): value is string => typeof value === 'string')
+        ? (payload.images as unknown[]).filter(
+            (value): value is string => typeof value === 'string',
+          )
         : [],
       createdProductId: row.created_product_id,
     };
