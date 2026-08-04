@@ -24,9 +24,10 @@
  * ─────────────────────────────────────────────────────────────────────────────────────────
  * Passwords
  *
- * One password for all seven accounts, generated at random and printed **once**. Not stored,
- * not committed, not recoverable — re-run with `--reset-password` to mint a new one. The
- * accounts are `@biocode.dev`, which docs/11 scopes to local and staging.
+ * One password, generated at random and printed **once** — for the accounts it is actually the
+ * password of. A run that creates two accounts and leaves seven alone says so and names the two;
+ * `--reset-password` puts every account on one password. Not stored, not committed, not
+ * recoverable. The accounts are `@biocode.dev`, which docs/11 scopes to local and staging.
  *
  * The guard is the same one the test suites use: it refuses to run unless
  * `SUPABASE_TEST_PROJECT` names the target. Creating a user called `admin@biocode.dev` with a
@@ -123,62 +124,100 @@ function generatePassword(): string {
 interface Outcome {
   email: string;
   role: string;
-  action: 'created' | 'password reset' | 'email updated' | 'already existed';
+  created: boolean;
+  /** True when the printed password is this account's password — created, or explicitly reset. */
+  passwordSet: boolean;
+  emailUpdated: boolean;
   roleChanged: boolean;
   /** For the marketplace fixtures: whether the `merchant_users` link could be made. */
   membership?: 'linked' | 'merchant missing';
 }
 
+/**
+ * A readable line from a GoTrue error.
+ *
+ * `AuthRetryableFetchError.message` is the response body run through `JSON.stringify`, so an empty
+ * body arrives as the literal string `{}` — which is what turned a fixable rename into
+ * `seed:users failed: klienti@biocode.dev: {}`, a message with nothing in it to act on. The name and
+ * the status are always there and always say more than that.
+ */
+function describeAuthError(error: { name: string; message: string; status?: number }): string {
+  const body = error.message && error.message !== '{}' ? error.message : '(empty response body)';
+  return `${error.name}${error.status ? ` ${error.status}` : ''} — ${body}`;
+}
+
+/**
+ * Creates or reconciles one fixture account.
+ *
+ * ── Existence is decided by id, not by what `createUser` says about it ──
+ *
+ * These accounts are created **by fixed id** so `seed.sql` can reference them, and that makes
+ * `createUser` the wrong question to ask second time round. GoTrue answers a duplicate *email* with a
+ * clean 422 that says "already been registered", but a duplicate *id* with **500 and an empty body** —
+ * so the earlier check, which sniffed the message for `/already|exists|duplicate/`, correctly handled
+ * the re-run where nothing had changed and threw on the one case that needed the work: an account whose
+ * address this script has since changed. That is docs/13 §X14.
+ *
+ * So: look the id up, then create or reconcile. A `createUser` failure now means something real — the
+ * id was free and the **email** was not, i.e. it belongs to a different account — and says so.
+ */
 async function upsertUser(
   db: SupabaseClient,
   user: (typeof USERS)[number],
   password: string,
   resetPassword: boolean,
 ): Promise<Outcome> {
-  let action: Outcome['action'] = 'created';
+  /*
+   * A missing id answers `404 · User not found`. Keyed on the **status**, with the text as a fallback —
+   * sniffing an API's English is the habit that produced the bug this function was rewritten for.
+   */
+  const { data: found, error: lookupError } = await db.auth.admin.getUserById(user.id);
+  if (lookupError) {
+    const missing =
+      (lookupError as { status?: number }).status === 404 || /not.?found/i.test(lookupError.message);
+    if (!missing) throw new Error(`${user.email} lookup: ${describeAuthError(lookupError)}`);
+  }
 
-  const { error: createError } = await db.auth.admin.createUser({
-    // Supplying the id keeps `seed.sql`'s references valid across a re-run.
-    id: user.id,
-    email: user.email,
-    password,
-    // Confirmed outright: these are fixtures, and there is no inbox to click a link in.
-    email_confirm: true,
-    user_metadata: { full_name: user.name },
-  });
+  const account = found?.user ?? null;
+  let created = false;
+  let passwordSet = false;
+  let emailUpdated = false;
 
-  if (createError) {
-    // Anything other than "already there" is a real failure and must not be swallowed.
-    if (!/already|registered|exists|duplicate/i.test(createError.message)) {
-      throw new Error(`${user.email}: ${createError.message}`);
-    }
+  if (!account) {
+    const { error } = await db.auth.admin.createUser({
+      // Supplying the id keeps `seed.sql`'s references valid across a re-run.
+      id: user.id,
+      email: user.email,
+      password,
+      // Confirmed outright: these are fixtures, and there is no inbox to click a link in.
+      email_confirm: true,
+      user_metadata: { full_name: user.name },
+    });
 
-    action = 'already existed';
-
+    // The id was free, so this is the address being taken by some *other* account.
+    if (error) throw new Error(`${user.email}: ${describeAuthError(error)}`);
+    created = true;
+    passwordSet = true;
+  } else {
     if (resetPassword) {
       const { error } = await db.auth.admin.updateUserById(user.id, { password });
-      if (error) throw new Error(`${user.email}: ${error.message}`);
-      action = 'password reset';
+      if (error) throw new Error(`${user.email}: ${describeAuthError(error)}`);
+      passwordSet = true;
     }
 
     /*
      * Reconcile the address, not just the password.
      *
-     * These are created **by fixed id**, so a re-run after the address changes hits
-     * "already exists" and returns — leaving the account on its old email while this script
-     * reports the new one. The BIOCODE rebrand is exactly that case: six `@shneta.dev`
-     * accounts that `seed:users` would have gone on claiming were `@biocode.dev` forever.
-     *
-     * Read-then-write so the common case (nothing changed) costs no write and the output
-     * stays honest about what actually happened.
+     * The BIOCODE rebrand is why this exists: six `@shneta.dev` accounts that `seed:users` would
+     * otherwise have gone on claiming were `@biocode.dev` forever. Read-then-write, so the common case
+     * (nothing changed) costs no write and the output stays honest about what actually happened.
      */
-    const { data: current } = await db.auth.admin.getUserById(user.id);
-    if (current.user && current.user.email !== user.email) {
+    if (account.email !== user.email) {
       const { error } = await db.auth.admin.updateUserById(user.id, {
         email: user.email,
         email_confirm: true,
       });
-      if (error) throw new Error(`${user.email} rename: ${error.message}`);
+      if (error) throw new Error(`${user.email} rename: ${describeAuthError(error)}`);
 
       // `profiles.email` is populated by `handle_new_user` at insert and does not follow.
       const { error: profileError } = await db
@@ -187,7 +226,7 @@ async function upsertUser(
         .eq('id', user.id);
       if (profileError) throw new Error(`${user.email} profile rename: ${profileError.message}`);
 
-      action = 'email updated';
+      emailUpdated = true;
     }
   }
 
@@ -246,7 +285,27 @@ async function upsertUser(
     }
   }
 
-  return { email: user.email, role: user.role, action, roleChanged, membership };
+  return {
+    email: user.email,
+    role: user.role,
+    created,
+    passwordSet,
+    emailUpdated,
+    roleChanged,
+    membership,
+  };
+}
+
+/** What happened to one account, for the report. */
+function describe(outcome: Outcome): string {
+  const parts: string[] = [];
+  if (outcome.created) parts.push('created');
+  else parts.push('already existed');
+  if (outcome.passwordSet && !outcome.created) parts.push('password reset');
+  if (outcome.emailUpdated) parts.push('email updated');
+  if (outcome.roleChanged) parts.push('role set');
+  if (outcome.membership) parts.push(outcome.membership);
+  return parts.join(' · ');
 }
 
 async function main(): Promise<void> {
@@ -277,10 +336,8 @@ async function main(): Promise<void> {
   }
 
   for (const outcome of outcomes) {
-    const note = outcome.roleChanged ? ' · role set' : '';
-    const link = outcome.membership ? ` · ${outcome.membership}` : '';
     console.log(
-      `  ${outcome.email.padEnd(24)} ${outcome.role.padEnd(19)} ${outcome.action}${note}${link}`,
+      `  ${outcome.email.padEnd(24)} ${outcome.role.padEnd(19)} ${describe(outcome)}`,
     );
   }
 
@@ -289,15 +346,34 @@ async function main(): Promise<void> {
     console.log('  supabase/seeds/10-marketplace-demo.sql, then run this again to link it.');
   }
 
-  const created = outcomes.filter((o) => o.action !== 'already existed').length;
+  /*
+   * The password is printed for the accounts it is **actually** the password of.
+   *
+   * A partial run is the normal case, not the exception: adding the two merchant fixtures to a project
+   * that already had seven meant one new password and seven untouched ones. Printing it under "password
+   * for all 9 accounts" would have been wrong in the way that costs somebody twenty minutes — so the
+   * accounts it applies to are named, and the rest are stated as unchanged.
+   */
+  const withPassword = outcomes.filter((outcome) => outcome.passwordSet);
 
-  if (created > 0 || explicit) {
-    console.log(`\n  Password for all ${USERS.length} accounts:\n\n      ${password}\n`);
-    console.log('  Printed once and not stored anywhere. Save it now, or re-run with');
-    console.log('  --reset-password to mint a new one.');
-  } else {
-    console.log('\n  All accounts already existed; passwords left alone.');
+  if (withPassword.length === 0) {
+    console.log('\n  Every account already existed; passwords left alone.');
     console.log('  Re-run with --reset-password if you need a new one.');
+  } else {
+    const all = withPassword.length === outcomes.length;
+    console.log(
+      all
+        ? `\n  Password for all ${outcomes.length} accounts:\n\n      ${password}\n`
+        : `\n  Password for ${withPassword.length} of ${outcomes.length} accounts:\n\n      ${password}\n`,
+    );
+    if (!all) {
+      for (const outcome of withPassword) console.log(`      · ${outcome.email}`);
+      console.log('\n  The others kept the password they already had. Re-run with --reset-password');
+      console.log('  to put every account on one password.');
+    } else {
+      console.log('  Printed once and not stored anywhere. Save it now, or re-run with');
+      console.log('  --reset-password to mint a new one.');
+    }
   }
 
   console.log('\n  Sign in at /en/auth/sign-in, then:');

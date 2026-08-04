@@ -2410,6 +2410,46 @@ it.** §N10 is "do not rebuild while the suite is running"; this is "do not run 
 that predates the build". Killing the listener and letting Playwright start its own fixed it, and the same
 test passed in 17 s.
 
+### X14 · `seed:users failed: klienti@biocode.dev: {}`
+
+Two bugs in one line, and the second one hid the first.
+
+**The error had no content.** `AuthRetryableFetchError.message` is the HTTP response body run through
+`JSON.stringify`, so an empty body arrives as the literal string `{}`. The script printed
+`${user.email}: ${error.message}` and produced a failure nobody could act on. `error.name` and
+`error.status` were populated the whole time — `AuthRetryableFetchError`, `500`. **Never report an API
+error by its message alone**; a `describeAuthError` helper now prints the name and status and says
+`(empty response body)` when that is what happened.
+
+**And the real defect: GoTrue answers a duplicate id and a duplicate email differently.**
+
+| Conflict            | Response                                     |
+| ------------------- | -------------------------------------------- |
+| Email already taken | `422` · `"email address has already been registered"` |
+| **Id** already taken | **`500` · empty body**                       |
+
+`upsertUser` decided "already there, reconcile it" by sniffing the message for
+`/already|registered|exists|duplicate/`. That is exactly backwards for a script whose whole point is
+**fixed UUIDs**: the re-run where nothing changed passed (the email collides, the message says
+"already"), and the one case that needed work — an account whose address this script has since changed —
+threw. The BIOCODE rebrand left `klienti@shneta.dev` on id `…007`, so `createUser` collided on the id
+alone, got the 500, matched nothing, and died. Six accounts had already been renamed; the seventh could
+not be, and the two merchant fixtures behind it were never created at all.
+
+The fix inverts the question: **look the id up, then create or reconcile**, keyed on the 404 status
+rather than on the words "User not found". A `createUser` failure now means something real and unambiguous
+— the id was free and the *email* was not, i.e. it belongs to a different account — and it says so.
+
+The general rule, and it is the same one twice: **branch on an API's status codes and identifiers, never
+on its prose.** Message text is for humans, and it changes without warning; here it did not even exist.
+
+#### The output was also about to lie
+
+A run that creates two accounts and leaves seven untouched printed the new password under
+`Password for all 9 accounts:`. Seven of them still had the old one. The report now names the accounts the
+printed password actually belongs to, and states that the rest kept theirs — the kind of wrong that costs
+somebody twenty minutes of "the password doesn't work".
+
 ---
 
 ## E. Stack decisions taken at M0
