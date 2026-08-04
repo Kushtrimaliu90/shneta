@@ -22,12 +22,12 @@ import { cn } from '@/lib/utils';
  */
 export function RedeemButton({
   balance,
-  redeemPoints,
-  redeemValueCents,
+  minRedeemPoints,
+  pointValueCents,
 }: {
   balance: number;
-  redeemPoints: number;
-  redeemValueCents: number;
+  minRedeemPoints: number;
+  pointValueCents: number;
 }) {
   const t = useTranslations('account.loyalty');
   const tRoot = useTranslations();
@@ -38,7 +38,16 @@ export function RedeemButton({
   );
   const [copied, setCopied] = useState(false);
 
-  const value = formatPrice(redeemValueCents, locale);
+  /*
+   * docs/17 §0.1 — the value of a redemption is now computed, not configured.
+   *
+   * With one point worth one cent, the old fixed "100 points = €5" tier is gone: the smallest
+   * redemption is `min_redeem_points` and it is worth exactly that many cents. The RPC accepts any
+   * multiple of 100 at or above the minimum; this button spends the minimum, which is the common case
+   * and the only one the current UI offers.
+   */
+  const redeemPoints = minRedeemPoints;
+  const value = formatPrice(redeemPoints * pointValueCents, locale);
 
   if (state?.ok && state.data) {
     const code = state.data.code;

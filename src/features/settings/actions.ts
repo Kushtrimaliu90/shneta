@@ -178,10 +178,16 @@ export async function savePaymentSettings(
 // Loyalty and subscriptions
 // -----------------------------------------------------------------------------
 
+/*
+ * docs/17 §0.1 — one point value replaces the old two-number conversion block.
+ *
+ * `pointValueCents` is what a point is worth and `minRedeemPoints` is the floor, in multiples of 100.
+ * The old shape carried a rate in two fields that could contradict each other; this one cannot.
+ */
 const loyaltySchema = z.object({
   earnRate: z.coerce.number().min(0).max(100),
-  redeemPoints: z.coerce.number().int().min(1).max(100_000),
-  redeemValue: z.string().trim().min(1),
+  pointValueCents: z.coerce.number().int().min(1).max(100),
+  minRedeemPoints: z.coerce.number().int().min(100).max(100_000),
   subscriptionDiscountPct: z.coerce.number().int().min(0).max(90),
   noticeDays: z.coerce.number().int().min(0).max(30),
 });
@@ -202,10 +208,15 @@ export async function saveLoyaltySettings(
   }
 
   const input = parsed.data;
-  const redeemValueCents = toCents(input.redeemValue);
-  if (!Number.isFinite(redeemValueCents) || redeemValueCents < 1) {
+
+  /*
+   * A multiple of 100, because `redeem_loyalty_points` refuses anything else — a minimum of 550 would
+   * be a floor no redemption could ever sit exactly on, and the customer would see the button refuse a
+   * balance the page told them was enough.
+   */
+  if (input.minRedeemPoints % 100 !== 0) {
     return fail<SettingsErrorKey, { message?: string }>('admin.settings.errors.checkFields', {
-      redeemValue: ['An amount like 5.00.'],
+      minRedeemPoints: ['A multiple of 100.'],
     });
   }
 
@@ -232,9 +243,9 @@ export async function saveLoyaltySettings(
   const loyalty = await writeSetting(
     'loyalty',
     {
-      earn_rate_points_per_eur: input.earnRate,
-      redeem_points: input.redeemPoints,
-      redeem_value_cents: redeemValueCents,
+      earn_points_per_eur: input.earnRate,
+      point_value_cents: input.pointValueCents,
+      min_redeem_points: input.minRedeemPoints,
     },
     [CACHE_TAGS.settings],
   );

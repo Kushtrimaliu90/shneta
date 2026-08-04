@@ -109,8 +109,8 @@ export default async function AccountLoyaltyPage({ params }: Props) {
         <aside>
           <RedeemButton
             balance={loyalty.balance}
-            redeemPoints={loyalty.redeemPoints}
-            redeemValueCents={loyalty.redeemValueCents}
+            minRedeemPoints={loyalty.minRedeemPoints}
+            pointValueCents={loyalty.pointValueCents}
           />
         </aside>
       </div>

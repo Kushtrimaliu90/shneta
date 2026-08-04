@@ -37,9 +37,9 @@ export interface LedgerEntry {
 
 export interface LoyaltyView {
   balance: number;
-  /** Points needed for one redemption, and what it is worth. From `settings.loyalty`. */
-  redeemPoints: number;
-  redeemValueCents: number;
+  /** The smallest redemption allowed and what one point is worth, from `settings.loyalty` (docs/17 §0.1). */
+  minRedeemPoints: number;
+  pointValueCents: number;
   entries: LedgerEntry[];
 }
 
@@ -57,8 +57,8 @@ function toReason(value: string): LoyaltyReason {
  * different number.
  */
 export async function getLoyaltySettings(): Promise<{
-  redeemPoints: number;
-  redeemValueCents: number;
+  minRedeemPoints: number;
+  pointValueCents: number;
   earnRate: number;
 }> {
   const supabase = createPublicClient();
@@ -75,10 +75,23 @@ export async function getLoyaltySettings(): Promise<{
   const num = (key: string, fallback: number) =>
     typeof value[key] === 'number' ? (value[key] as number) : fallback;
 
+  /*
+   * docs/17 §0.1 — one point value, 1 point = €0.01.
+   *
+   * `minRedeemPoints` replaces the old fixed `redeem_points` tier, and `pointValueCents` replaces the
+   * `redeem_value_cents` that used to be the value of that one tier. Both fall back to the old key so a
+   * settings row that has not been migrated still reads sensibly rather than returning zero — and
+   * `redeem_value_cents / redeem_points` is exactly the old point value, so the fallback is a
+   * conversion rather than a guess.
+   */
+  const legacyTier = num('redeem_points', 0);
+  const legacyValue = num('redeem_value_cents', 0);
+  const legacyPointValue = legacyTier > 0 ? Math.round(legacyValue / legacyTier) : 0;
+
   return {
-    redeemPoints: num('redeem_points', 100),
-    redeemValueCents: num('redeem_value_cents', 500),
-    earnRate: num('earn_rate_points_per_eur', 1),
+    minRedeemPoints: num('min_redeem_points', legacyTier || 500),
+    pointValueCents: num('point_value_cents', legacyPointValue || 1),
+    earnRate: num('earn_points_per_eur', num('earn_rate_points_per_eur', 1)),
   };
 }
 
@@ -113,8 +126,8 @@ export async function getLoyalty(): Promise<LoyaltyView | null> {
 
   return {
     balance: (profile as { loyalty_points: number } | null)?.loyalty_points ?? 0,
-    redeemPoints: settings.redeemPoints,
-    redeemValueCents: settings.redeemValueCents,
+    minRedeemPoints: settings.minRedeemPoints,
+    pointValueCents: settings.pointValueCents,
     entries: rows.map((row) => ({
       id: row.id,
       points: row.points,

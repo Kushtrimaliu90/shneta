@@ -79,6 +79,16 @@ Isolation core (RLS + `current_merchant_ids()` + column-freeze triggers), onboar
 > **draft** product carrying them — invisible to shoppers until compliance publishes it. Terms bumped to
 > `1.1` for clause 14 (image rights); merchants on `1.0` are not re-prompted, which is docs/14 §19.
 
+## M13 — Referral programme _(docs: 17)_
+
+Customers invite customers: a permanent `BIO-XXXXX` code, one referrer per customer for ever, and 1% of a referred customer's eligible spend paid to the referrer in points for 12 months. Admin reviews, approves, revokes and links manually; the referrer sees counts, points and expiries and never what a referral bought.
+**Accept:** €100 of delivered eligible spend produces exactly 100 points; refunds claw back and floor at zero; the clock stops at 12 months; `my_referral_overview` is the only customer read path and its shape carries no per-referee amount — asserted by a test; a referrer cannot select `referral_links` or any `referral_earnings` row directly.
+
+> **In progress.** Steps 1–2 of the §8 build order are done and green: the schema, the codes, RLS, the
+> `my_referral_overview` and `my_referral_source` RPCs with 28 integration tests, and the point-value
+> unification (§0.1 — **1 point = €0.01, which takes loyalty from 5% back to 1%**). Steps 3–8 remain:
+> code entry, the accrual engine, the account page, the admin surface, the crons and the emails.
+
 ## Post-v1 backlog (do not build now)
 
 Bank POS adapter go-live · Meilisearch · zero-result search logging · back-in-stock notifications · abandoned-cart emails · gift-card balance system (v1 sells codes manually fulfilled) · Q&A on PDP · scheduled article publishing · Albanian market (ALL, .al) · Stripe/EU · vendor marketplace · wholesale · AI coach · mobile apps.

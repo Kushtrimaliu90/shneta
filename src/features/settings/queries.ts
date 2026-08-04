@@ -38,8 +38,9 @@ export interface TaxSettings {
 
 export interface LoyaltySettings {
   earnRatePointsPerEur: number;
-  redeemPoints: number;
-  redeemValueCents: number;
+  /** docs/17 §0.1 — one point value, and the floor on a redemption in multiples of 100. */
+  pointValueCents: number;
+  minRedeemPoints: number;
 }
 
 export interface CheckoutSettings {
@@ -108,9 +109,9 @@ export async function getAllSettings(): Promise<AllSettings> {
     },
     tax: { rate: num(tax, 'rate', 18) },
     loyalty: {
-      earnRatePointsPerEur: num(loyalty, 'earn_rate_points_per_eur', 1),
-      redeemPoints: num(loyalty, 'redeem_points', 100),
-      redeemValueCents: num(loyalty, 'redeem_value_cents', 500),
+      earnRatePointsPerEur: num(loyalty, 'earn_points_per_eur', num(loyalty, 'earn_rate_points_per_eur', 1)),
+      pointValueCents: num(loyalty, 'point_value_cents', 1),
+      minRedeemPoints: num(loyalty, 'min_redeem_points', 500),
     },
     checkout: {
       maxItemQty: num(checkout, 'max_item_qty', 20),

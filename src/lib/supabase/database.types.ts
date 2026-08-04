@@ -2802,6 +2802,7 @@ export type Database = {
           marketing_opt_in: boolean
           phone: string | null
           preferred_locale: string
+          referral_code: string | null
           role: Database["public"]["Enums"]["user_role"]
           updated_at: string
         }
@@ -2816,6 +2817,7 @@ export type Database = {
           marketing_opt_in?: boolean
           phone?: string | null
           preferred_locale?: string
+          referral_code?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           updated_at?: string
         }
@@ -2830,6 +2832,7 @@ export type Database = {
           marketing_opt_in?: boolean
           phone?: string | null
           preferred_locale?: string
+          referral_code?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           updated_at?: string
         }
@@ -3215,6 +3218,172 @@ export type Database = {
           window_start?: string
         }
         Relationships: []
+      }
+      referral_earnings: {
+        Row: {
+          base_cents: number
+          created_at: string
+          id: string
+          link_id: string
+          loyalty_transaction_id: string | null
+          order_id: string
+          points: number
+          reason: string
+        }
+        Insert: {
+          base_cents: number
+          created_at?: string
+          id?: string
+          link_id: string
+          loyalty_transaction_id?: string | null
+          order_id: string
+          points: number
+          reason?: string
+        }
+        Update: {
+          base_cents?: number
+          created_at?: string
+          id?: string
+          link_id?: string
+          loyalty_transaction_id?: string | null
+          order_id?: string
+          points?: number
+          reason?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referral_earnings_link_id_fkey"
+            columns: ["link_id"]
+            isOneToOne: false
+            referencedRelation: "referral_links"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referral_earnings_loyalty_transaction_id_fkey"
+            columns: ["loyalty_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "loyalty_transactions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referral_earnings_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      referral_links: {
+        Row: {
+          approved_by: string | null
+          code_used: string | null
+          created_at: string
+          expires_at: string | null
+          id: string
+          linked_at: string | null
+          referee_id: string
+          referrer_id: string
+          revoke_reason: string | null
+          revoked_at: string | null
+          revoked_by: string | null
+          risk_flags: string[]
+          source: string
+          status: Database["public"]["Enums"]["referral_link_status"]
+          updated_at: string
+        }
+        Insert: {
+          approved_by?: string | null
+          code_used?: string | null
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          linked_at?: string | null
+          referee_id: string
+          referrer_id: string
+          revoke_reason?: string | null
+          revoked_at?: string | null
+          revoked_by?: string | null
+          risk_flags?: string[]
+          source?: string
+          status?: Database["public"]["Enums"]["referral_link_status"]
+          updated_at?: string
+        }
+        Update: {
+          approved_by?: string | null
+          code_used?: string | null
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          linked_at?: string | null
+          referee_id?: string
+          referrer_id?: string
+          revoke_reason?: string | null
+          revoked_at?: string | null
+          revoked_by?: string | null
+          risk_flags?: string[]
+          source?: string
+          status?: Database["public"]["Enums"]["referral_link_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referral_links_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referral_links_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "v_admin_customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referral_links_referee_id_fkey"
+            columns: ["referee_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referral_links_referee_id_fkey"
+            columns: ["referee_id"]
+            isOneToOne: true
+            referencedRelation: "v_admin_customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referral_links_referrer_id_fkey"
+            columns: ["referrer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referral_links_referrer_id_fkey"
+            columns: ["referrer_id"]
+            isOneToOne: false
+            referencedRelation: "v_admin_customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referral_links_revoked_by_fkey"
+            columns: ["revoked_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referral_links_revoked_by_fkey"
+            columns: ["revoked_by"]
+            isOneToOne: false
+            referencedRelation: "v_admin_customers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       refunds: {
         Row: {
@@ -4280,6 +4449,7 @@ export type Database = {
       }
       generate_access_token: { Args: never; Returns: string }
       generate_order_number: { Args: never; Returns: string }
+      generate_referral_code: { Args: never; Returns: string }
       get_shared_protocol: { Args: { p_code: string }; Returns: Json }
       has_any_role: {
         Args: { roles: Database["public"]["Enums"]["user_role"][] }
@@ -4362,6 +4532,8 @@ export type Database = {
         }[]
       }
       merchant_statement: { Args: { p_payout_id: string }; Returns: Json }
+      my_referral_overview: { Args: never; Returns: Json }
+      my_referral_source: { Args: never; Returns: Json }
       newsletter_confirm: { Args: { p_token: string }; Returns: Json }
       newsletter_subscribe: {
         Args: { p_email: string; p_locale?: string; p_source?: string }
@@ -4393,7 +4565,7 @@ export type Database = {
         Args: { p_subscription_id: string }
         Returns: undefined
       }
-      redeem_loyalty_points: { Args: never; Returns: Json }
+      redeem_loyalty_points: { Args: { p_points?: number }; Returns: Json }
       release_fulfilment: {
         Args: { p_fulfilment_id: string; p_reason?: string }
         Returns: undefined
@@ -4542,6 +4714,12 @@ export type Database = {
         | "sachet"
         | "other"
       product_status: "draft" | "pending_review" | "published" | "archived"
+      referral_link_status:
+        | "pending"
+        | "approved"
+        | "rejected"
+        | "revoked"
+        | "expired"
       review_status: "pending" | "approved" | "rejected"
       sex_band: "femer" | "mashkull" | "pa_percaktuar"
       shipping_borne_by: "biocode" | "merchant" | "customer"
@@ -4767,6 +4945,13 @@ export const Constants = {
         "other",
       ],
       product_status: ["draft", "pending_review", "published", "archived"],
+      referral_link_status: [
+        "pending",
+        "approved",
+        "rejected",
+        "revoked",
+        "expired",
+      ],
       review_status: ["pending", "approved", "rejected"],
       sex_band: ["femer", "mashkull", "pa_percaktuar"],
       shipping_borne_by: ["biocode", "merchant", "customer"],

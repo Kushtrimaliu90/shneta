@@ -19,7 +19,6 @@ import type {
   SubscriptionSettings,
   TaxSettings,
 } from '@/features/settings/queries';
-import { fromCents } from '@/lib/money';
 
 const inputClass =
   'mt-1 h-10 w-full rounded-sm border border-line-strong bg-surface px-3 text-sm text-ink-900';
@@ -302,37 +301,54 @@ export function LoyaltyForm({
           </p>
         </div>
 
+        {/*
+          docs/17 §0.1 — one point value, so the pair of fields changed meaning.
+
+          It used to be "an exchange block of N points is worth €X", which encoded a conversion rate in
+          two numbers that could disagree with each other. Now a point has one value in cents, and the
+          only other question is the smallest redemption allowed.
+        */}
         <div className="grid grid-cols-2 gap-2">
           <div>
-            <label htmlFor="redeemPoints" className={labelClass}>
-              Exchange block
+            <label htmlFor="pointValueCents" className={labelClass}>
+              A point is worth (cents)
             </label>
             <input
-              id="redeemPoints"
-              name="redeemPoints"
+              id="pointValueCents"
+              name="pointValueCents"
               type="number"
               min={1}
-              defaultValue={loyalty.redeemPoints}
+              max={100}
+              defaultValue={loyalty.pointValueCents}
               required
               className={inputClass}
               data-numeric
             />
+            <p className="mt-1 text-[11px] text-ink-500">
+              1 means 100 points = €1, which is 1% back at the earn rate above.
+            </p>
           </div>
           <div>
-            <label htmlFor="redeemValue" className={labelClass}>
-              is worth (€)
+            <label htmlFor="minRedeemPoints" className={labelClass}>
+              Minimum redemption
             </label>
             <input
-              id="redeemValue"
-              name="redeemValue"
-              defaultValue={fromCents(loyalty.redeemValueCents)}
+              id="minRedeemPoints"
+              name="minRedeemPoints"
+              type="number"
+              min={100}
+              step={100}
+              defaultValue={loyalty.minRedeemPoints}
               required
               className={inputClass}
               data-numeric
             />
-            {fieldError(state, 'redeemValue') && (
-              <p className="mt-1 text-[13px] text-error">{fieldError(state, 'redeemValue')}</p>
+            {fieldError(state, 'minRedeemPoints') && (
+              <p className="mt-1 text-[13px] text-error">{fieldError(state, 'minRedeemPoints')}</p>
             )}
+            <p className="mt-1 text-[11px] text-ink-500">
+              Points, in multiples of 100. Keeps the shop out of five-cent coupons.
+            </p>
           </div>
         </div>
 

@@ -194,7 +194,7 @@
       "redeemedBody": "Përdore në arkë. Vlen {value}, një herë, brenda 90 ditësh.",
       "copyCode": "Kopjo kodin",
       "copied": "U kopjua",
-      "terms": "Fiton një pikë për çdo euro te porositë e dorëzuara. Pikët zbriten nëse një porosi rimbursohet. Nuk skadojnë.",
+      "terms": "Fiton një pikë për euro në porositë e dorëzuara, dhe 100 pikë vlejnë 1 €. Pikët zbriten nëse porosia rimbursohet. Nuk skadojnë.",
       "emptyLedger": "Ende pa pikë. Vijnë kur të dorëzohet porosia jote e parë.",
       "reason": {
         "earn_order": "Porosi e dorëzuar",

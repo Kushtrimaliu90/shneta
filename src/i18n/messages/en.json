@@ -194,7 +194,7 @@
       "redeemedBody": "Use it at checkout. It is worth {value} and can be used once, within 90 days.",
       "copyCode": "Copy code",
       "copied": "Copied",
-      "terms": "You earn one point per euro on delivered orders. Points come back off if an order is refunded. They do not expire.",
+      "terms": "You earn one point per euro on delivered orders, and 100 points are worth €1. Points come back off if an order is refunded. They do not expire.",
       "emptyLedger": "No points yet. They arrive when your first order is delivered.",
       "reason": {
         "earn_order": "Order delivered",

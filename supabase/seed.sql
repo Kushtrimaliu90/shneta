@@ -57,7 +57,7 @@ insert into settings (key, value) values
       'tiktok', '',
       'facebook', '')),
   ('tax', '{"rate": 18}'::jsonb),
-  ('loyalty', '{"earn_rate_points_per_eur": 1, "redeem_points": 100, "redeem_value_cents": 500}'::jsonb),
+  ('loyalty', '{"earn_points_per_eur": 1, "point_value_cents": 1, "min_redeem_points": 500}'::jsonb),
   ('checkout', '{"max_item_qty": 20, "cod_enabled": true, "bank_pos_enabled": false}'::jsonb),
   ('inventory', '{"default_low_stock_threshold": 5}'::jsonb),
   /*
