@@ -2174,6 +2174,176 @@ less rather than promising it.
 
 ---
 
+## X. What finishing the marketplace taught us
+
+### X1 · plpgsql deferred a cast until the first customer order
+
+`route_order` wrote
+
+    case when v_group.kind = 'biocode' then 'assigned' else 'unassigned' end
+
+into a column of type `fulfilment_status`, and Postgres refused it: `column "status" is of type
+fulfilment_status but expression is of type text`. A bare `'assigned'` in the same position would have
+been coerced — wrapping it in a `case` resolves the unknown-type literals to `text` and takes the
+coercion away.
+
+The trap is the one this project has now hit three times (docs/16 §2): **plpgsql validates a function
+body at first execution, not at `create`.** The migration applied perfectly, `check:sql` passed, and the
+defect surfaced as a failed checkout — that is, on the first order anyone placed.
+
+The lesson is not "cast your enums". It is that a plpgsql function is not tested by applying it, and the
+routing integration suite existing *before* the screens is what turned a production incident into a red
+test.
+
+### X2 · A `returns table` signature that had to match exactly
+
+`fulfilment_candidates` declared `merchant_slug text`. `merchants.slug` is `extensions.citext` —
+deliberately, so `/seller/alpha` and `/seller/Alpha` are the same merchant. `return query` will not widen
+citext to text on the way out, and the call died with `structure of query does not match function result
+type`.
+
+Worth pairing with §X1 because the same function file contained a `language sql` sibling,
+`variant_buy_box`, that returns `merchant_slug text` from the same column and works — its outer `select`
+list coerces. Two functions, same column, same declared type, one works.
+
+`::text` on the projection rather than `citext` in the signature: the callers are TypeScript, which has
+one string type, and a signature naming a Postgres extension type for no caller's benefit is an
+implementation detail leaking outward.
+
+### X3 · Restating a 250-line function silently discarded a fix five migrations later
+
+Extending checkout to source a line from a merchant meant reproducing `checkout_create_order` in full —
+`create or replace function` has no partial form. Reproducing it from **migration 08**, which defined it,
+silently reverted **migration 13**, which had changed `set search_path = public` to `public, extensions`.
+
+One missing schema breaks exactly one thing, invisibly. `coupons.code` is `citext`; the cast in the
+comparison is schema-qualified and resolves, but the `=` *operator* for citext also lives in `extensions`
+and cannot be qualified inside an expression. Postgres cannot see `=(citext, citext)`, citext is
+binary-coercible to text, so it silently resolves `=(text, text)` — no error, no warning, just a
+case-sensitive comparison, and `welcome10` stops matching `WELCOME10`.
+
+Two things follow.
+
+**A function's current definition is not any one file.** It is the accumulation, and only the database
+knows it. Restating one means reading `\df+` or the latest `alter`, not the migration that created it.
+
+**The test that caught it was written when the bug was first fixed**, and its docstring says so:
+*"Fixed by migration 20260731001300; this test is what stops it coming back."* That is the entire
+argument for writing the regression test with the fix rather than after it — five milestones later,
+somebody who had never read migration 13 was told within ninety seconds.
+
+### X4 · `desc` implies `nulls first`, and the tie-break lost to the row with no value
+
+The bulk-update matcher said, meaning "the merchant's own code wins when both match":
+
+    order by (lower(o.merchant_sku) = lower(v_sku)) desc
+
+For an offer with `merchant_sku is null`, that expression is `null` — not `false` — and `desc` places
+nulls **first**. So a merchant uploading its own SKU updated whichever offer happened to have no SKU at
+all.
+
+Two notes worth keeping. A `case … then 0 else 1 end` says what is meant without a modifier that has to
+be remembered. And the test that found it had to construct a real collision — one offer whose merchant
+code equals another offer's BioCode code — because with a single candidate the wrong ordering still picks
+the right row. A test that merely exercised the feature would have passed.
+
+### X5 · Vitest resolves `server-only` to the entry point that throws
+
+Every module in `features/*` that touches the database opens with `import 'server-only'`. The package
+ships two entry points: a no-op for the server and a module that throws for the browser, chosen by
+`exports` conditions Next sets and Vitest does not — so Vitest's **node** environment gets the browser
+one, and any test importing such a module dies with *"This module cannot be imported from a Client
+Component module"* before its first line runs.
+
+The consequence was not subtle: none of the email senders could be tested at all, which is how an email
+ships addressed to the wrong person.
+
+Aliased to an empty stub in `vitest.integration.config.mts` **only**. The guarantee `server-only` exists
+for is about the client bundle — it stops a module holding a service-role key from being shipped to a
+browser — and `next build` is what enforces that. A node test runner is not a browser, so the stub
+removes nothing real. The unit config deliberately has no such alias: nothing there touches the database,
+and a unit test reaching for a server-only module is a sign the module boundary is wrong.
+
+### X6 · Two a11y failures that only appear with real data
+
+Both were found by running axe against the eleven new screens **populated**, and neither would have been
+found against an empty state.
+
+**`definition-list`, serious.** A `<dl>` may contain `<dt>`, `<dd>` and `<div>` wrappers, and a `<div>`
+inside one may contain only `<dt>` and `<dd>`. Every stat card in the portal had a sibling `<p>` for its
+hint, which makes the list invalid. Moving the hint inside the `<dd>` fixes it and reads better anyway —
+the hint describes the value, so it belongs with it.
+
+**`color-contrast`, serious.** "In the buy box" was `text-lime-500`. Lime is the brand accent: `#a3e635`
+on the cream surface is about 1.8:1, against the 4.5:1 AA needs for small text. It belongs on the focus
+ring and on dark backgrounds, which is exactly where docs/04's palette puts it — this was reaching for a
+brand colour because the badge felt like it should be branded. The same mistake as docs/13 §C, in a new
+place.
+
+A third, `scrollable-region-focusable`, appeared only at 390 px: an `overflow-x-auto` container scrolls
+with a finger and **cannot be reached by a keyboard at all**, so the right-hand columns of a wide table
+are unreachable without a pointer. `ScrollRegion` now wraps every one of them with `tabIndex={0}`, a
+`role="region"` and the table's own caption as its name — a focusable div with no accessible name is a
+tab stop that announces nothing.
+
+### X7 · The half of "purchasable" that was missing for two steps
+
+Migration 35 taught `checkout_create_order` to source a line from a merchant when BioCode is short. The
+PDP kept reading `v_product_stock`, which answers "can BioCode ship this?" — so a variant a merchant was
+holding rendered as **out of stock on a page whose checkout would have sold it**, and `addToCart` refused
+what checkout would have accepted.
+
+Nothing failed. The integration suite passed, because it called the RPC directly. The E2E assertion that
+caught it was the one written at step 3 to say *"a merchant-only variant is out of stock and names no
+seller"*, with a note that the day this changed the test would change with it deliberately — and when
+step 4 arrived, inverting that assertion is what exposed that only half the change had been made.
+
+An assertion about behaviour you intend to change later is worth writing precisely because it fails when
+you change it.
+
+### X8 · A seed whose comments described a database it had not read
+
+The marketplace demo seed set up two merchants on overlapping SKUs and explained, in a header comment,
+which variant would demonstrate which buy-box rule. Three of the four claims were wrong: the commerce
+seed stocks **every** variant, so BioCode won all of them and not one merchant offer was ever selected.
+
+The fixture ran, inserted every row, and demonstrated nothing. It was caught by querying
+`variant_buy_box` after seeding rather than by reading the file — which is the only way it could have
+been caught, since the file is internally consistent and its comments are confident.
+
+The seed now takes two variants to zero through `apply_stock_movement`, which is both realistic — a shop
+out of stock on two lines with suppliers who are not is the state the marketplace exists for — and
+consistent with the ledger invariant a bare `UPDATE` would have broken (docs/13 §A7).
+
+### X9 · The guard refusing the seed was the guard working
+
+`guard_merchant_offer_write` refuses `status = 'approved'` from anyone who is not staff or the service
+role. A seed file runs as `postgres`, which is neither — `is_service_role()` reads a JWT claim and
+`has_any_role()` reads `auth.uid()`, and a psql session has neither — so the first approved offer in the
+demo seed raised `OFFER_STATUS_FORBIDDEN` and the file failed.
+
+The tempting fix is to insert drafts and update them afterwards, which passes the trigger while meaning
+exactly the same thing. The seed instead sets `request.jwt.claims` to declare what it is doing, and
+resets it at the end. A workaround that hides its own intent is worse than a line that states it.
+
+### X10 · Where the marketplace's own money invariant lives
+
+Recorded because it is the thing most likely to be broken by a well-meaning change.
+
+**`merchant_ledger.amount_cents` is signed, and the balance is `sum(amount_cents)` over every row
+including payouts.** A payout row is negative, so a settled fortnight leaves nothing behind and there is
+no "unpaid" flag anywhere that can fall out of step with the total.
+
+The consequences worth knowing before touching it:
+
+- building a payout must post its own balancing row, or the balance will not move;
+- a second build of the same period must find nothing, which is what makes a daily cron safe;
+- marking a payout *paid* must post nothing, because the money left the balance when it was *built*;
+- there is no update or delete policy on the ledger for anyone, including admin. A correction is another
+  row — the same discipline as `stock_movements`, and the reason a statement can be trusted.
+
+---
+
 ## E. Stack decisions taken at M0
 
 | Item          | Spec                  | Built as            | Why                                                                                               |

@@ -365,9 +365,158 @@ Not covered by a test, and worth stating: no component-render unit tests exist i
 
 ---
 
-## 6–7, 9–11 · Routing, money, admin surfaces
+## 6 · Routing — merchant supply becomes purchasable
 
-Not yet built. §12 order below; step 4 is next.
+### Checkout sources a line
+
+BioCode first, always: a variant BioCode can ship never reaches a merchant however cheap the offer.
+Otherwise the buy-box winner, resolved **in SQL with `for update` on the offer** and its stock reserved
+there and then.
+
+The reservation happens at checkout rather than at routing, and the oversell test is why: routing is an
+admin decision taken after the order exists, so taking stock at assignment means two customers buying the
+last unit both succeed and the merchant declines one of them a day later.
+
+A line BioCode cannot fully cover goes **entirely** to a merchant. Splitting one line across two
+suppliers means two parcels for one product and neither side shipping what its screen said.
+
+Pricing is untouched. The line is priced from `product_variants` whoever supplies it (§5).
+
+### `route_order`, `assign_fulfilment`, `release_fulfilment`
+
+`route_order` splits an order into one fulfilment per fulfiller, idempotently. BioCode's is created
+`assigned` — there is nobody to ask — and a merchant's `unassigned`, naming the merchant whose stock
+checkout reserved: **the buy box proposes, the admin decides.**
+
+`assign_fulfilment` is not a status update. It moves the stock reservation between merchants and
+recomputes commission atomically, and its loop asks per line "is this already reserved from the merchant
+we are assigning to?" — which is what makes reassign-after-decline-to-the-same-merchant correct. An
+earlier version keyed on `merchant_id` changing and silently left those lines with no reservation at all.
+
+`release_fulfilment` returns the reservation, because a merchant that ships nothing keeps its stock.
+
+`fulfilment_candidates` lists merchants that can cover **every** line — a merchant with two of three
+products is not a candidate, because splitting a fulfilment further means two parcels for lines the
+customer bought together.
+
+### Auto-routing
+
+Built, and switched off. `auto_route` is `false` and stays false: the scorecard it picks candidates by
+needs weeks of real fulfilments before its numbers mean anything, and manual routing is where an operator
+learns which merchants actually answer.
+
+When on it assigns each unassigned fulfilment to the first row `fulfilment_candidates` returns — the same
+list, same order, a human sees — through `assign_fulfilment`. It will not escalate, will not split a
+fulfilment to make itself succeed, and will not override a human. It reports `enabled: false` rather than
+doing nothing quietly.
+
+---
+
+## 7 · The merchant's lane, partial shipments, and the emails
+
+`assigned → accepted → packed → shipped`, plus declining before acceptance. **`delivered` is BioCode's
+word**, refused from a merchant by the transition guard, because a merchant that could mark its own
+parcels delivered could trigger its own payout. Timestamps are stamped by a trigger so an SLA cannot be
+backdated.
+
+`partially_shipped` was added to the enum in migration 28 and had been **unreachable** ever since,
+because no transition admitted it. Order status is now derived from its fulfilments: two shippers who do
+not know about each other cannot each decide what the order is.
+
+### Emails
+
+Ten merchant templates plus the partial-shipment notice. The rule that shapes all of them: **merchants
+never receive the customer's email and never message customers**. A merchant email says what the merchant
+has to do and links into the portal, which is behind a session.
+
+The partial-shipment notice needed its own template because `templateForStatus` maps one order to one
+status and neither "shipped" nor silence is true of a half-shipped order — a customer who receives one
+box of two assumes something went missing, which becomes a ticket and then a chargeback. It does **not**
+say who is shipping which part: the sale is BioCode↔customer, and the seller line on the product page is
+a disclosure before buying, not logistics after.
+
+Reminders and the notice are cron sweeps rather than calls from the shipping action, because the
+transition is made by a database trigger fired by whichever party shipped and there is no one path to
+hang them on.
+
+---
+
+## 8 · Money — the ledger and the payouts
+
+**A merchant is owed on delivery**, not on shipping (a parcel in transit can come back) and not on
+payment (a COD order is not paid until the courier hands the cash over).
+
+Three or four rows per delivered fulfilment — `sale`, `commission`, `shipping` when the merchant bears
+it, `cod_collected` when the merchant took the cash — rather than one net row, so a merchant asking why
+it is owed €8.50 on a €10 sale gets an answer. Idempotent on `(fulfilment, kind)` by unique index rather
+than by checking first, because two concurrent callers both pass a check.
+
+Refunds claw back proportionally by reversing the whole fulfilment × the refunded fraction, so a full
+refund lands on zero rather than leaving a rounding residue.
+
+### The invariant
+
+`amount_cents` is signed and the balance is a plain `sum` over **every** row including payouts. Building
+a payout posts its own balancing negative row, so after building, the balance has dropped by exactly what
+the statement says — with no "these rows are spoken for" state anywhere. Building twice settles nothing
+the second time, which is what makes a daily cron safe; marking one _paid_ posts nothing, because the
+money left the balance when it was _built_.
+
+The cycle is **calendar halves** (1st–15th, 16th–end), not a rolling fortnight that drifts until
+statements straddle month ends. `payout-period.ts` is pure and takes the date, so the boundary is
+testable.
+
+No update or delete policy exists on the ledger for anyone, including admin. A correction is another row.
+
+---
+
+## 9 · Proposals, bulk updates and the scorecard
+
+**A proposal is an argument, not a draft product.** Approving records a decision and creates no product:
+a product needs a slug, SEO copy, ingredients, images and a compliance pass, and anything else would be
+merchant-created listings with a delay.
+
+**Bulk update is a paste, not an upload** — the real workflow is "open the spreadsheet, select the
+columns, copy". The export sits above the paste box so a merchant editing the sheet it was given has the
+right SKUs by construction. The parser handles semicolons (Excel in a comma-decimal locale, which Kosovo
+is), comma decimals, tabs, a BOM, CRLF, quoted fields and bilingual header aliases — and **refuses** a
+sheet with no recognisable header rather than guessing column order, because guessing writes prices into
+stock levels silently.
+
+**The scorecard is observed, not entered.** `rating_avg` is a buy-box tie-break, so it decides which of
+two equally-priced merchants gets the sale — that makes it a number that has to be earned by something
+observable. Four measures: acceptance rate, acceptance speed, dispatch speed against **the offer's own
+handling promise**, and cancellation after acceptance. Deliberately not a customer review score: a
+merchant is a supplier the customer never contracts with and mostly cannot name.
+
+Rates are `null`, not zero, with no history — and no history rates 0/5, which loses every tie-break
+rather than winning one it has not earned. The merchant sees its own scorecard: a measurement that
+decides revenue and cannot be seen by the party it measures is a secret.
+
+---
+
+## 10–11 · Terms and admin surfaces — done
+
+Terms live at `/legal/marketplace-terms`, version `1.0`, and are recorded at submission with their
+version. Admin surfaces: applications, offers, proposals, routing, payouts — each behind the capability
+docs/01 §3 gives it, and each re-checked inside the SQL so a future cron cannot route around the page.
+
+---
+
+## Testing, at the end of M12
+
+| Suite       | Count | What it is for                                                     |
+| ----------- | ----- | ------------------------------------------------------------------ |
+| Unit        | 276   | Pure logic: money, CSV parsing, payout periods, schemas, error keys |
+| Integration | 311   | RLS, triggers, and every SQL function, against a real database      |
+| E2E         | 476   | The journeys and a11y, on desktop and a 390 px viewport             |
+
+Marketplace-specific: 42 isolation, 15 onboarding, 19 buy box, 24 offers, 29 routing, 29 ledger,
+25 scorecard/bulk, 17 emails/auto-routing; 50 E2E across two spec files.
+
+The isolation suite (§3) remains the definition of done for the security model, and it asserts in
+**both** directions — merchant A can read its own, and reads zero of merchant B's — which is what stops
+it passing vacuously.
 
 ---
 
@@ -378,11 +527,11 @@ Not yet built. §12 order below; step 4 is next.
 1. ~~Migration + `current_merchant_ids()` + full RLS isolation suite~~ — **done, 42 green**
 2. ~~Merchant onboarding + admin application review + role/membership middleware~~ — **done, 15 green**
 3. ~~Portal shell + offers CRUD + admin offer approval + buy box on PDP~~ — **done, 65 green**
-4. `route_order` + fulfilment model + `/admin/routing` + accept/decline/ship + partial shipments
-5. Ledger + payouts + statements
-6. Proposals; CSV bulk stock/price; scorecard
-7. Emails
-8. Optional auto-routing behind the setting
-9. E2E + a11y + perf; seed two demo merchants with overlapping SKUs
+4. ~~`route_order` + fulfilment model + `/admin/routing` + accept/decline/ship + partial shipments~~ — **done**
+5. ~~Ledger + payouts + statements~~ — **done**
+6. ~~Proposals; CSV bulk stock/price; scorecard~~ — **done**
+7. ~~Emails~~ — **done**
+8. ~~Optional auto-routing behind the setting~~ — **done**
+9. ~~E2E + a11y + perf; seed two demo merchants with overlapping SKUs~~ — **done**
 
 ---

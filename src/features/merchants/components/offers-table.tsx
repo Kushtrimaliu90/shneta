@@ -10,6 +10,7 @@ import type { Locale } from '@/lib/constants';
 import { cn } from '@/lib/utils';
 import { Alert } from '@/components/ui/alert';
 import { SubmitButton } from '@/components/ui/submit-button';
+import { ScrollRegion } from '@/components/ui/scroll-region';
 import {
   setOfferStatus,
   updateOfferStock,
@@ -44,7 +45,7 @@ export function OffersTable({
   const winning = new Set(winningIds);
 
   return (
-    <div className="overflow-x-auto rounded-lg border border-line">
+    <ScrollRegion label={t('tableCaption')} className="rounded-lg border border-line">
       <table className="w-full min-w-[52rem] border-collapse text-sm">
         <caption className="sr-only">{t('tableCaption')}</caption>
         <thead>
@@ -94,8 +95,16 @@ export function OffersTable({
 
               <td className="px-3 py-3">
                 <StatusChip status={offer.status} label={t(`status.${offer.status}`)} />
+                {/*
+                  `forest-800`, not `lime-500`.
+
+                  Lime is the brand accent — `#a3e635` on the cream surface is about 1.8:1, nowhere near
+                  the 4.5:1 AA needs for small text, and axe flagged it as a serious `color-contrast`
+                  violation on this exact line. It belongs on the focus ring and on dark backgrounds,
+                  which is where the palette puts it (docs/13 §C).
+                */}
                 {winning.has(offer.id) && (
-                  <p className="mt-1 flex items-center gap-1 text-[13px] text-lime-500">
+                  <p className="mt-1 flex items-center gap-1 text-[13px] font-medium text-forest-800">
                     <Trophy className="size-3.5" aria-hidden="true" />
                     {t('inBuyBox')}
                   </p>
@@ -115,7 +124,7 @@ export function OffersTable({
           ))}
         </tbody>
       </table>
-    </div>
+    </ScrollRegion>
   );
 }
 

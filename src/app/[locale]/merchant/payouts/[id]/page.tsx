@@ -7,6 +7,7 @@ import { formatPrice } from '@/lib/money';
 import { cn } from '@/lib/utils';
 import { getMyMerchant } from '@/features/merchants/queries';
 import { getStatement } from '@/features/merchants/payout-queries';
+import { ScrollRegion } from '@/components/ui/scroll-region';
 
 export const metadata: Metadata = { title: 'Pasqyra' };
 export const dynamic = 'force-dynamic';
@@ -130,7 +131,7 @@ export default async function MerchantStatementPage({ params }: Props) {
           {t('linesTitle')}
         </h3>
 
-        <div className="overflow-x-auto rounded-lg border border-line">
+        <ScrollRegion label={t('linesCaption')} className="rounded-lg border border-line">
           <table className="w-full min-w-[36rem] border-collapse text-sm">
             <caption className="sr-only">{t('linesCaption')}</caption>
             <thead>
@@ -178,7 +179,7 @@ export default async function MerchantStatementPage({ params }: Props) {
               </tr>
             </tfoot>
           </table>
-        </div>
+        </ScrollRegion>
 
         <p className="text-[13px] text-ink-500">{t('disputeWindow')}</p>
       </section>

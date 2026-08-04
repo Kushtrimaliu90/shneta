@@ -8,6 +8,7 @@ import { formatPrice } from '@/lib/money';
 import { getMyMerchant } from '@/features/merchants/queries';
 import { getMyFulfilment } from '@/features/merchants/fulfilment-queries';
 import { FulfilmentActionsPanel } from '@/features/merchants/components/fulfilment-actions-panel';
+import { ScrollRegion } from '@/components/ui/scroll-region';
 
 export const metadata: Metadata = { title: 'Porosia' };
 export const dynamic = 'force-dynamic';
@@ -73,7 +74,7 @@ export default async function MerchantFulfilmentPage({ params }: Props) {
           {t('whatToSend')}
         </h3>
 
-        <div className="overflow-x-auto rounded-lg border border-line">
+        <ScrollRegion label={t('linesCaption')} className="rounded-lg border border-line">
           <table className="w-full min-w-[28rem] border-collapse text-sm">
             <caption className="sr-only">{t('linesCaption')}</caption>
             <thead>
@@ -100,7 +101,7 @@ export default async function MerchantFulfilmentPage({ params }: Props) {
               ))}
             </tbody>
           </table>
-        </div>
+        </ScrollRegion>
       </section>
 
       {fulfilment.shipTo ? (

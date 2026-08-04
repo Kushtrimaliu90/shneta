@@ -296,7 +296,23 @@ async function fetchProduct(slug: string): Promise<ProductDetail | null> {
         priceCents: variant.price_cents,
         compareAtPriceCents: variant.compare_at_price_cents,
         isDefault: variant.is_default,
-        stockStatus: stockByVariant.get(variant.id) ?? 'out_of_stock',
+        /*
+         * The **merged** availability, from `variant_buy_box`: BioCode's bucket where BioCode has the
+         * stock, the winning merchant's where it does not (docs/16 §1).
+         *
+         * This was BioCode-only until routing landed, and correctly so — merchant supply was not
+         * purchasable, so saying it was in stock would have been a claim checkout could not honour.
+         * Migration 35 made it purchasable and this is the other half of that change: without it the
+         * PDP renders "out of stock" over a variant a merchant is holding and checkout would happily
+         * sell.
+         *
+         * The view is the fallback for when the supply lookup fails, which is the same answer the page
+         * gave before the marketplace existed.
+         */
+        stockStatus:
+          supplyByVariant.get(variant.id)?.stockStatus ??
+          stockByVariant.get(variant.id) ??
+          'out_of_stock',
         supply: supplyByVariant.get(variant.id) ?? null,
       })),
     /*

@@ -146,32 +146,38 @@ export function OfferForm({
               <dt className="text-[11px] font-semibold tracking-wide text-ink-500 uppercase">
                 {t('retail')}
               </dt>
-              <dd className="mt-0.5 font-medium text-ink-900" data-numeric>
-                {formatPrice(retailCents, locale)}
+              <dd className="mt-0.5">
+                <span className="font-medium text-ink-900" data-numeric>
+                  {formatPrice(retailCents, locale)}
+                </span>
+                <span className="block text-[13px] text-ink-500">{t('retailHint')}</span>
               </dd>
-              <p className="text-[13px] text-ink-500">{t('retailHint')}</p>
             </div>
             <div>
               <dt className="text-[11px] font-semibold tracking-wide text-ink-500 uppercase">
                 {t('due')}
               </dt>
-              <dd className="mt-0.5 font-medium text-forest-900" data-numeric>
-                {formatPrice(dueCents, locale)}
+              <dd className="mt-0.5">
+                <span className="font-medium text-forest-900" data-numeric>
+                  {formatPrice(dueCents, locale)}
+                </span>
+                <span className="block text-[13px] text-ink-500">
+                  {t('dueHint', { pct: offer?.commissionPct ?? 0 })}
+                </span>
               </dd>
-              <p className="text-[13px] text-ink-500">
-                {t('dueHint', { pct: offer?.commissionPct ?? 0 })}
-              </p>
             </div>
             <div>
               <dt className="text-[11px] font-semibold tracking-wide text-ink-500 uppercase">
                 {t('askingShort')}
               </dt>
-              <dd className="mt-0.5 font-medium text-ink-900" data-numeric>
-                {Number.isFinite(askingCents) && askingCents > 0
-                  ? formatPrice(askingCents, locale)
-                  : '—'}
+              <dd className="mt-0.5">
+                <span className="font-medium text-ink-900" data-numeric>
+                  {Number.isFinite(askingCents) && askingCents > 0
+                    ? formatPrice(askingCents, locale)
+                    : '—'}
+                </span>
+                <span className="block text-[13px] text-ink-500">{t('askingShortHint')}</span>
               </dd>
-              <p className="text-[13px] text-ink-500">{t('askingShortHint')}</p>
             </div>
           </dl>
         )}

@@ -7,6 +7,7 @@ import { formatPrice } from '@/lib/money';
 import { cn } from '@/lib/utils';
 import { getMyMerchant } from '@/features/merchants/queries';
 import { listLedger, listPayouts, merchantBalance } from '@/features/merchants/payout-queries';
+import { ScrollRegion } from '@/components/ui/scroll-region';
 
 export const metadata: Metadata = { title: 'Shlyerjet' };
 export const dynamic = 'force-dynamic';
@@ -139,7 +140,7 @@ export default async function MerchantPayoutsPage({ params }: Props) {
             {t('noEntries')}
           </p>
         ) : (
-          <div className="overflow-x-auto rounded-lg border border-line">
+          <ScrollRegion label={t('accountCaption')} className="rounded-lg border border-line">
             <table className="w-full min-w-[32rem] border-collapse text-sm">
               <caption className="sr-only">{t('accountCaption')}</caption>
               <thead>
@@ -175,7 +176,7 @@ export default async function MerchantPayoutsPage({ params }: Props) {
                 ))}
               </tbody>
             </table>
-          </div>
+          </ScrollRegion>
         )}
       </section>
     </div>

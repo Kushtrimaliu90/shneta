@@ -224,11 +224,21 @@ function Stat({
   return (
     <div className="rounded-lg border border-line bg-surface p-4">
       <dt className="text-[11px] font-semibold tracking-wide text-ink-500 uppercase">{label}</dt>
-      <dd className="mt-1 flex items-center gap-1.5 font-display text-2xl font-semibold text-forest-900">
-        {icon && <Trophy className="size-4 text-lime-500" aria-hidden="true" />}
-        <span data-numeric>{value}</span>
+      {/*
+        The hint lives **inside the `<dd>`**, not beside it.
+        
+        A `<dl>` may contain `<dt>`, `<dd>` and `<div>` wrappers, and a `<div>` inside one may contain
+        only `<dt>` and `<dd>` — a sibling `<p>` makes the list invalid, which axe reports as
+        `definition-list` at serious impact. It also reads better: the hint describes the value, so it
+        belongs with it.
+      */}
+      <dd className="mt-1">
+        <span className="flex items-center gap-1.5 font-display text-2xl font-semibold text-forest-900">
+          {icon && <Trophy className="size-4 text-forest-800" aria-hidden="true" />}
+          <span data-numeric>{value}</span>
+        </span>
+        {hint && <span className="mt-1 block text-[13px] text-ink-500">{hint}</span>}
       </dd>
-      {hint && <p className="mt-1 text-[13px] text-ink-500">{hint}</p>}
     </div>
   );
 }

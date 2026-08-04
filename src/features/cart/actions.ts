@@ -108,13 +108,21 @@ export async function addToCart(formData: FormData): Promise<CartResult> {
       return cartFail('cart.errors.variantUnavailable');
     }
 
-    const { data: stock } = await client
-      .from('v_product_stock')
-      .select('is_available')
-      .eq('variant_id', variantId)
-      .maybeSingle();
+    /*
+     * Availability across **every** supplier, not just BioCode's warehouse (docs/16 §1).
+     *
+     * `v_product_stock` answers "can BioCode ship this?", which was the whole question until routing
+     * landed. Checkout now sources a line from the winning merchant offer when BioCode is short
+     * (migration 35), so a cart guard reading the old view would refuse to add something the checkout
+     * would have sold — the two would disagree, and the customer would be told a product they can see
+     * a seller for is unavailable.
+     *
+     * `variant_buy_box` is the one place that decision lives, so both ask it.
+     */
+    const { data: supply } = await client.rpc('variant_buy_box', { p_variant_ids: [variantId] });
+    const source = ((supply ?? []) as { source: string }[])[0]?.source;
 
-    if ((stock as { is_available: boolean } | null)?.is_available !== true) {
+    if (source !== 'biocode' && source !== 'merchant') {
       return cartFail('cart.errors.outOfStock');
     }
 

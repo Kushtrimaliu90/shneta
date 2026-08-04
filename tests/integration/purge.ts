@@ -437,6 +437,25 @@ export async function purgeFixtures(
 
   const merchantIds = (fixtureMerchants ?? []).map((row) => row.id);
   if (merchantIds.length > 0) {
+    /*
+     * The money tables first. `merchant_ledger` and `merchant_payouts` reference `merchants` **without**
+     * `on delete cascade` — deliberately, because a ledger that vanishes with the row it describes is
+     * not an audit trail — so deleting the merchant first fails on the foreign key, the merchant
+     * survives, and then its `approved_by` keeps a fixture admin undeletable. The symptom was
+     * `auth users FAILED` in the teardown line, three tables away from the cause.
+     */
+    record(
+      'merchant_ledger',
+      (await db.from('merchant_ledger').delete().in('merchant_id', merchantIds).select('id')).data,
+    );
+    record(
+      'merchant_payouts',
+      (await db.from('merchant_payouts').delete().in('merchant_id', merchantIds).select('id')).data,
+    );
+    record(
+      'product_proposals',
+      (await db.from('product_proposals').delete().in('merchant_id', merchantIds).select('id')).data,
+    );
     record(
       'merchant_offers',
       (await db.from('merchant_offers').delete().in('merchant_id', merchantIds).select('id')).data,

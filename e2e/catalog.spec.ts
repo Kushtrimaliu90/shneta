@@ -1,5 +1,5 @@
 import AxeBuilder from '@axe-core/playwright';
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 
 /**
  * docs/09 §1 journey 1, browse half — filter the PLP, open a PDP, read the label.
@@ -7,14 +7,41 @@ import { expect, test } from '@playwright/test';
  */
 
 test.describe('product listing', () => {
+  /**
+   * The seeded catalogue is 24 products, and the count used to be asserted exactly.
+   *
+   * That coupled this test to "no other spec ever publishes a product" — which two marketplace specs
+   * now do, because a merchant offer needs a published product to be an offer *on*. Running in
+   * parallel, their fixtures appeared in the count and this failed for a reason that had nothing to do
+   * with the catalogue.
+   *
+   * **At least** 24 keeps what the assertion was for — the seed is intact and the listing renders it —
+   * without asserting something no longer true: that this spec is the only one creating products.
+   */
+  /**
+   * `expect.poll`, not a bare read.
+   *
+   * The assertion this replaced was `expect(getByText('24 products')).toBeVisible()`, which **retries**
+   * until the deadline. A plain `textContent()` does not — so after `goBack()` it read the filtered
+   * count off the page still on screen and failed on a number that was about to be correct.
+   */
+  async function expectAtLeast(page: Page, pattern: RegExp, minimum: number): Promise<void> {
+    await expect
+      .poll(async () => {
+        const text = await page.getByText(pattern).first().textContent();
+        return Number(/\d+/.exec(text ?? '')?.[0] ?? 0);
+      })
+      .toBeGreaterThanOrEqual(minimum);
+  }
+
   test('lists the catalogue in both locales', async ({ page }) => {
     await page.goto('/shop');
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('Dyqani');
-    await expect(page.getByText('24 produkte').first()).toBeVisible();
+    await expectAtLeast(page, /\d+ produkte/, 24);
 
     await page.goto('/en/shop');
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('Shop');
-    await expect(page.getByText('24 products').first()).toBeVisible();
+    await expectAtLeast(page, /\d+ products/, 24);
   });
 
   test('a dietary filter narrows the result and lives in the URL', async ({ page }) => {
@@ -26,9 +53,10 @@ test.describe('product listing', () => {
     await expect(page.getByText('12 products').first()).toBeVisible();
 
     // ...and the back button restores the previous result, for free, because it is a real
-    // navigation rather than a client-side mutation.
+    // navigation rather than a client-side mutation. The unfiltered count is a lower bound for the
+    // same reason as above: other specs publish fixture products concurrently.
     await page.goBack();
-    await expect(page.getByText('24 products').first()).toBeVisible();
+    await expectAtLeast(page, /\d+ products/, 24);
   });
 
   test('sorting by price ascending really orders by price', async ({ page }) => {

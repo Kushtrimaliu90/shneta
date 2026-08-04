@@ -46,9 +46,16 @@ export default defineConfig({
    * Raising the timeout instead would hide a real signal: if checkout takes 30 s, something is
    * wrong, and the suite should say so. Capping concurrency keeps the deadline meaningful.
    *
-   * CI stays at 1 for the same reason, more strictly.
+   * **One worker everywhere since M12.** The marketplace specs are the heaviest in the suite — each
+   * journey places real orders, routes them, and runs axe over eleven populated screens — and at two
+   * workers they began producing failures that pass in isolation every time: a decline panel that had
+   * not rendered yet, a shipping method that had not reached a cached storefront. Every one was the
+   * shared database being slow, not the code being wrong.
+   *
+   * The same trade as before, one notch further: the run takes about twenty minutes instead of eleven,
+   * and a failure means something. A suite that is fast and flaky is a suite people stop reading.
    */
-  workers: process.env.CI ? 1 : 2,
+  workers: 1,
   reporter: process.env.CI ? [['github'], ['html', { open: 'never' }]] : [['list']],
   use: {
     baseURL,

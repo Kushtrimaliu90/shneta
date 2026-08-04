@@ -373,14 +373,14 @@ test.describe('who the customer is buying from (docs/16 §1)', () => {
   });
 
   /**
-   * A merchant-only variant is **not** purchasable yet, and the page must not pretend otherwise.
+   * A merchant-only variant **is** purchasable, and the page names who is shipping it.
    *
-   * Merchant supply becomes orderable with routing (docs/16 §12 step 4), because an order nobody can
-   * route is worse for the customer than a product marked out of stock. Until then the honest render
-   * is the out-of-stock line and no seller attribution — asserted here so the day that changes, this
-   * test changes with it deliberately rather than by accident.
+   * This assertion is the inverse of what it was at step 3, and that is the point: it then read
+   * "out of stock and names no seller", with a note saying the day merchant supply became orderable
+   * the test would change with it deliberately rather than by accident. Step 4 made it orderable, so
+   * here is that change.
    */
-  test('a merchant-only variant is out of stock and names no seller', async ({ page }) => {
+  test('a merchant-only variant is buyable and names the merchant', async ({ page }) => {
     const merchant = await merchantAccount();
     const product = await fixtureProduct(1500);
 
@@ -394,9 +394,47 @@ test.describe('who the customer is buying from (docs/16 §1)', () => {
 
     await page.goto(`/en/product/${product.slug}`);
 
-    // The button, not the status line: "out of stock" appears in both, and the disabled button is
-    // the claim that matters — the variant genuinely cannot be bought.
-    await expect(page.getByRole('button', { name: 'Currently out of stock' })).toBeDisabled();
+    await expect(page.getByRole('button', { name: 'Add to cart' })).toBeEnabled();
+    await expect(page.getByText(`shipped by ${merchant.displayName}`)).toBeVisible();
+
+    // The canonical price, not the merchant's €10.00 asking price — the marketplace's central
+    // pricing rule (docs/16 §5), and the assertion that would fail first if somebody changed it.
+    await expect(page.getByText('€15.00').first()).toBeVisible();
+  });
+
+  /**
+   * With BioCode holding stock, the merchant never appears. First-party is privileged by the shape of
+   * the schema, not by a flag, and this is the customer-visible consequence.
+   */
+  test('BioCode stock keeps the merchant off the page entirely', async ({ page }) => {
+    const merchant = await merchantAccount();
+    const product = await fixtureProduct(1500);
+    const service = db();
+
+    const { data: warehouse } = await service
+      .from('warehouses')
+      .select('id')
+      .eq('is_default', true)
+      .single();
+
+    await service.rpc('apply_stock_movement', {
+      p_variant_id: product.variantId,
+      p_warehouse_id: (warehouse as { id: string }).id,
+      p_type: 'received',
+      p_quantity: 10,
+      p_note: 'e2e first-party stock',
+    });
+
+    await service.from('merchant_offers').insert({
+      merchant_id: merchant.merchantId,
+      variant_id: product.variantId,
+      price_cents: 400,
+      stock_on_hand: 50,
+      status: 'approved',
+    });
+
+    await page.goto(`/en/product/${product.slug}`);
+    await expect(page.getByText('Sold and shipped by BioCode')).toBeVisible();
     await expect(page.getByText(`shipped by ${merchant.displayName}`)).toBeHidden();
   });
 });

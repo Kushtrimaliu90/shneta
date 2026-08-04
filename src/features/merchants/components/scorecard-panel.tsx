@@ -138,16 +138,26 @@ function Figure({
   return (
     <div className="rounded-lg border border-line bg-surface p-4">
       <dt className="text-[11px] font-semibold tracking-wide text-ink-500 uppercase">{label}</dt>
-      <dd
-        className={cn(
-          'mt-1 font-display text-2xl font-semibold',
-          tone === 'good' ? 'text-success' : tone === 'bad' ? 'text-error' : 'text-ink-900',
-        )}
-        data-numeric
-      >
-        {value}
+      {/*
+        The hint lives **inside the `<dd>`**, not beside it.
+        
+        A `<dl>` may contain `<dt>`, `<dd>` and `<div>` wrappers, and a `<div>` inside one may contain
+        only `<dt>` and `<dd>` — a sibling `<p>` makes the list invalid, which axe reports as
+        `definition-list` at serious impact. It also reads better: the hint describes the value, so it
+        belongs with it.
+      */}
+      <dd className="mt-1">
+        <span
+          className={cn(
+            'font-display text-2xl font-semibold',
+            tone === 'good' ? 'text-success' : tone === 'bad' ? 'text-error' : 'text-ink-900',
+          )}
+          data-numeric
+        >
+          {value}
+        </span>
+        <span className="mt-1 block text-[13px] text-ink-500">{hint}</span>
       </dd>
-      <p className="mt-1 text-[13px] text-ink-500">{hint}</p>
     </div>
   );
 }

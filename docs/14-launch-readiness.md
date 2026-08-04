@@ -585,3 +585,62 @@ Found by editing the store block in `seed.sql`, pushing, and watching the live r
 `info@biocode.com`. The correction had to become its own numbered file
 (`seeds/07-store-contact.sql`) to land. In practice, seed corrections behave like migrations and
 have to be numbered like them.
+
+## 19 · The merchant marketplace (M12)
+
+Built and green. What follows is the honest state of it, in the same terms as every other section
+here: what works, what is deliberately not built, and what only the owner can finish.
+
+### What works, end to end
+
+A merchant applies at `/merchant/apply`, uploads its registration certificate, and is approved with a
+commission and a shipping arrangement chosen at that moment. It adds offers against BioCode's
+canonical products; a product manager approves them; the cheapest approved in-stock offer wins the buy
+box wherever BioCode has no stock of its own. A customer buys it at the canonical price, the offer's
+stock is reserved at checkout, an admin routes the fulfilment, the merchant accepts, packs and ships
+it, BioCode records delivery, and the ledger owes the merchant its net. A fortnightly run cuts a
+statement, somebody makes the transfer and records the reference.
+
+Every step of that is covered by tests: **276 unit, 311 integration, 476 E2E**, all passing.
+
+### What is deliberately not built
+
+- **Auto-routing is off.** The code exists and is tested; `settings.marketplace.auto_route` is
+  `false`. The scorecard it picks candidates by needs weeks of real fulfilments before its numbers
+  mean anything, and manual routing is where an operator learns which merchants actually answer.
+- **`customer` shipping adds no surcharge at checkout.** The customer is charged one delivery fee
+  before routing happens, so there is no per-merchant line to add at the moment money is taken. It
+  means "covered by the fee already collected" and is a distinct value for attribution, not arithmetic
+  (§8).
+- **No public seller page.** `/seller/[slug]` is reserved and not built. The seller is named on the
+  product page, which is the disclosure that matters; a merchant storefront is a v2 feature.
+- **No merchant switcher.** A person may belong to more than one merchant and the portal shows the
+  first. Ordered by `created_at`, so "the first" is at least stable.
+- **Approving a proposal creates no product.** It records a decision; the product is created on the
+  catalogue screens. Anything else would be merchant-created listings with a delay.
+- **KYB documents are never verified automatically.** A human opens each one. `verified` is a column
+  somebody ticks.
+
+### What only the owner can do
+
+1. **Legal review of the marketplace terms.** Written by engineering, accurate about what the software
+   does, and not a substitute for review by somebody qualified in Kosovo commercial and data-protection
+   law. The trader identification block still carries `[BIZNESI: plotëso]`.
+2. **Decide the default commission** in `settings.marketplace.default_commission_pct`. It is 15 and
+   nobody has agreed to that number — it is a placeholder that the approve form prefills.
+3. **Decide `shipping_cost_cents`**, currently €2.00, which is what a merchant bearing shipping is
+   deducted per fulfilment. Also a placeholder.
+4. **Recruit the first merchants.** Nothing here has been used by a real business.
+
+### One operational thing to know before the first payout
+
+**A merchant is owed on delivery, and delivery is BioCode's word to record.** If nobody marks orders
+delivered, no merchant is ever paid and the balance stays at zero while parcels arrive at customers'
+doors. The order screen's delivered transition is what drives the entire money side, and it is the one
+manual step the whole marketplace depends on.
+
+The payout cron builds statements on the 1st and the 16th; it does not pay anybody. Transfers are
+manual and recorded with a bank reference on `/admin/payouts`.
+
+---
+

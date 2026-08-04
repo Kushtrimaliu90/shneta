@@ -5,6 +5,7 @@ import { AlertTriangle, Banknote, Clock, Star } from 'lucide-react';
 import { formatPrice } from '@/lib/money';
 import { cn } from '@/lib/utils';
 import { SubmitButton } from '@/components/ui/submit-button';
+import { ScrollRegion } from '@/components/ui/scroll-region';
 import {
   assignFulfilment,
   releaseFulfilment,
@@ -120,7 +121,10 @@ export function RoutingCard({
           </p>
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-md border border-line">
+        <ScrollRegion
+          label="Merchants that can cover every line of this fulfilment"
+          className="rounded-md border border-line"
+        >
           <table className="w-full min-w-[40rem] border-collapse text-sm">
             <caption className="sr-only">
               Merchants that can cover every line of this fulfilment
@@ -194,7 +198,7 @@ export function RoutingCard({
               })}
             </tbody>
           </table>
-        </div>
+        </ScrollRegion>
       )}
 
       {row.status === 'assigned' && (
