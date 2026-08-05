@@ -6,6 +6,22 @@ import { expect, test, type Page } from '@playwright/test';
  * The add-to-cart and checkout half arrives with M4.
  */
 
+/**
+ * The result count on screen.
+ *
+ * Module scope because both `describe` blocks need it: the listing tests compare a filtered count with an
+ * unfiltered one, and the taxonomy tests compare a scoped page with the whole shop.
+ *
+ * Every literal count in this file has now been replaced by a comparison. `12 products`, `5 produkte` and
+ * two `3 products` were all facts about a 24-product demo catalogue; the real one has 108 and grows
+ * whenever somebody adds a product in the panel, so a literal broke on ordinary catalogue work — and when
+ * it passed it proved nothing about filtering or scoping, which is what these tests are named for.
+ */
+async function resultCount(page: Page, pattern: RegExp): Promise<number> {
+  const text = await page.getByText(pattern).first().textContent();
+  return Number(/\d+/.exec(text ?? '')?.[0] ?? 0);
+}
+
 test.describe('product listing', () => {
   /**
    * The seeded catalogue is 24 products, and the count used to be asserted exactly.
@@ -34,6 +50,7 @@ test.describe('product listing', () => {
       .toBeGreaterThanOrEqual(minimum);
   }
 
+
   test('lists the catalogue in both locales', async ({ page }) => {
     await page.goto('/shop');
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('Dyqani');
@@ -46,11 +63,28 @@ test.describe('product listing', () => {
 
   test('a dietary filter narrows the result and lives in the URL', async ({ page }) => {
     await page.goto('/en/shop');
+    const unfiltered = await resultCount(page, /\d+ products/);
+    expect(unfiltered).toBeGreaterThan(0);
+
     await page.getByRole('link', { name: 'Vegan', exact: true }).click();
 
     // docs/05 §2 — filters are shareable URL state, not hidden client state.
     await expect(page).toHaveURL(/tag=vegan/);
-    await expect(page.getByText('12 products').first()).toBeVisible();
+
+    /*
+     * Asserted as a relationship, not as a number.
+     *
+     * This said `12 products`, which was true of a 24-product demo catalogue and false the moment the
+     * real one landed — 108 products, and growing every time somebody adds one in the admin panel. A
+     * literal count breaks on ordinary catalogue work, and when it passes it says nothing about
+     * filtering.
+     *
+     * What the test is for is in its name: the filter *narrows*. So — fewer than unfiltered, and not
+     * zero.
+     */
+    const filtered = await resultCount(page, /\d+ products/);
+    expect(filtered).toBeGreaterThan(0);
+    expect(filtered).toBeLessThan(unfiltered);
 
     // ...and the back button restores the previous result, for free, because it is a real
     // navigation rather than a client-side mutation. The unfiltered count is a lower bound for the
@@ -85,7 +119,17 @@ test.describe('product listing', () => {
     await page.goto('/shop/vitaminat');
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('Vitaminat');
     await expect(page.getByRole('navigation', { name: 'Shtegu i faqes' })).toBeVisible();
-    await expect(page.getByText('5 produkte').first()).toBeVisible();
+
+    /*
+     * Scoped, not counted. This said `5 produkte`, which was a fact about the 24-product demo
+     * catalogue — the real one has 108 and grows whenever somebody adds a product in the panel.
+     * "This category shows fewer than the whole shop, and more than none" is the claim that survives.
+     */
+    const scoped = await resultCount(page, /\d+ produkte/);
+    expect(scoped).toBeGreaterThan(0);
+
+    await page.goto('/shop');
+    expect(scoped).toBeLessThan(await resultCount(page, /\d+ produkte/));
   });
 
   test('an over-narrow filter shows the empty state, not a blank grid', async ({ page }) => {
@@ -197,14 +241,23 @@ test.describe('taxonomy pages', () => {
 
     await page.getByRole('link', { name: /Solgar/ }).click();
     await expect(page).toHaveURL(/\/brands\/solgar$/);
-    // Scoped: Solgar has three products in the fixture, not all 24.
-    await expect(page.getByText('3 products').first()).toBeVisible();
+
+    // Scoped: Solgar's own products, not the whole shop. A literal count here was a fact about the
+    // demo catalogue and broke when the real one landed.
+    const scoped = await resultCount(page, /\d+ products/);
+    expect(scoped).toBeGreaterThan(0);
+
+    await page.goto('/en/shop');
+    expect(scoped).toBeLessThan(await resultCount(page, /\d+ products/));
   });
 
   test('a goal page scopes the listing and carries the disclaimer', async ({ page }) => {
     await page.goto('/en/goals/gjumi');
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('Better Sleep');
-    await expect(page.getByText('3 products').first()).toBeVisible();
+
+    // Scoped to the goal, for the same reason as the brand page above.
+    expect(await resultCount(page, /\d+ products/)).toBeGreaterThan(0);
+
     // docs/08 §7.3 — goal pages are educational surfaces and need it.
     await expect(page.getByText(/Food supplements are not a substitute/).first()).toBeVisible();
   });

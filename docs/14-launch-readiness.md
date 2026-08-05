@@ -64,7 +64,7 @@ Legend: ✅ done and verified · 🟡 partial · ⬜ not started · ➖ not appl
 | RLS enabled on every public table (`docs/10 §4`)      | ✅    | `tables_without_rls()` → `[]`                                                                                     |
 | Integration suite against a real database             | ✅    | **478/478** — includes the docs/09 §5 attack suite and the M13 referral suites                                     |
 | Unit suite                                            | ✅    | **351/351**                                                                                                       |
-| E2E + axe on both locales                             | ✅    | **484/484**, repeatable; zero serious/critical violations on any asserted surface                                 |
+| E2E + axe on both locales                             | ✅    | **530/530**, repeatable; zero serious/critical violations on any asserted surface                                 |
 | Generated DB types match the live schema              | ✅    | `db:types:linked` → 5111 lines, `pnpm verify` green                                                              |
 | CI pipeline (quality · integration+E2E · audit)       | ✅    | `.github/workflows/ci.yml`                                                                                        |
 | Security headers (`docs/10 §5`)                       | 🟡    | asserted by an E2E test. **CSP is report-only in production** — `CSP_ENFORCE` is unset (§20)                       |
@@ -794,9 +794,10 @@ site and the live database on the day.
    the referral programme is built around and the rate the seeded settings and both terms pages now state.
    If 5 % was intended, `settings.loyalty.point_value_cents` is the one number to change — and
    `/legal/referral-terms` and the loyalty terms in `messages/{sq,en}.json` have to change with it.
-8. **Photography.** The catalogue itself is now finished — 63 published products across 16 categories, 14
+8. **Photography — 72 of 91 products still have none.** The catalogue itself is finished: 16 categories, 20
    brands, bilingual claim-safe copy, EUR prices benchmarked to European retail, SEO on every page (seeds
-   12–13, docs/11 §11). What it has no images at all. `pnpm seed:images ./photos` uploads a folder named
+   12–13, docs/11 §11). Nineteen products now carry photographs, most of them uploaded through the admin
+   Media tab; `Pictures/` holds a byte-for-byte mirror of what is in the bucket so `--replace` can rebuild it. `pnpm seed:images ./photos` uploads a folder named
    after product slugs and is proven idempotent, so this is a drag-and-drop job once assets exist — from
    the manufacturers' dealer portals or from a camera. It is **not** a job that can be done by copying
    another retailer's photographs: those are theirs, and the pages that would carry them are the pages that

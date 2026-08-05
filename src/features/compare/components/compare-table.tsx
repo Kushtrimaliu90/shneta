@@ -129,11 +129,21 @@ export function CompareTable({ products }: { products: CompareProduct[] }) {
                     className="min-w-52 px-3 py-3 align-top font-normal"
                   >
                     <div className="relative">
+                      {/*
+                        `z-10` is load-bearing, not decoration.
+
+                        The button is absolutely positioned and comes *before* the image in DOM order, so
+                        in the same stacking context with no z-index the image paints on top of it and
+                        swallows the click. That was invisible for as long as products had no photography
+                        — the fallback tile is a plain div — and became "the remove button does nothing"
+                        the day real images landed. Found by the compare E2E, which reported the image
+                        element as intercepting pointer events.
+                      */}
                       <button
                         type="button"
                         onClick={() => remove(product.id)}
                         aria-label={`${t('remove')}: ${name}`}
-                        className="absolute top-0 right-0 rounded-sm p-1 text-ink-500 hover:text-ink-900"
+                        className="absolute top-0 right-0 z-10 rounded-sm bg-surface/90 p-1 text-ink-500 hover:text-ink-900"
                       >
                         <X className="size-4" aria-hidden="true" />
                       </button>

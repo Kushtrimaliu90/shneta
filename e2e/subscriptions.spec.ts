@@ -325,19 +325,28 @@ test.describe('loyalty (docs/07 §9)', () => {
      * balance. Writing `profiles.loyalty_points` directly is refused by `guard_profile_self_update`,
      * which is exactly the protection being relied on here.
      */
+    /*
+     * 550 points, not 150.
+     *
+     * docs/17 §0.1 replaced the fixed "100 points for a EUR 5 coupon" tier with one point value and a
+     * `min_redeem_points` floor of 500, so a balance of 150 can no longer redeem at all — the button is
+     * correctly disabled and this test used to wait ninety seconds for it. The amounts below follow from
+     * the floor: 500 points at 1 cent each is the same EUR 5 coupon, and 550 leaves 50 behind, which is
+     * what the balance assertion at the end is checking.
+     */
     const { error } = await db()
       .from('loyalty_transactions')
-      .insert({ user_id: userId, points: 150, reason: 'adjustment', note: 'E2E fixture' });
+      .insert({ user_id: userId, points: 550, reason: 'adjustment', note: 'E2E fixture' });
     expect(error, 'ledger insert must succeed').toBeNull();
 
     await signIn(page, customer.email, customer.password);
     await page.goto('/en/account/loyalty');
 
-    await expect(page.getByText('150 points')).toBeVisible({ timeout: ACTION_TIMEOUT });
+    await expect(page.getByText('550 points')).toBeVisible({ timeout: ACTION_TIMEOUT });
     await expect(page.getByText('Adjustment')).toBeVisible();
 
     // ── Exchange ─────────────────────────────────────────────────────────────
-    await page.getByRole('button', { name: /Exchange 100 points/ }).click();
+    await page.getByRole('button', { name: /Exchange 500 points/ }).click();
     await expect(page.getByText('Here is your code')).toBeVisible({ timeout: ACTION_TIMEOUT });
 
     const code = await page.locator('code').first().textContent();
@@ -357,7 +366,7 @@ test.describe('loyalty (docs/07 §9)', () => {
       is_active: boolean;
     };
     expect(row.type).toBe('fixed');
-    expect(row.value, '100 points is worth €5').toBe(500);
+    expect(row.value, '500 points at 1 cent each is €5').toBe(500);
     expect(row.max_uses, 'single use').toBe(1);
     // docs/13 §A3 — system coupons stay active and are hidden from /offers, never deactivated.
     expect(row.is_system).toBe(true);
@@ -385,6 +394,6 @@ test.describe('loyalty (docs/07 §9)', () => {
     await page.goto('/en/account/loyalty');
 
     // Disabled rather than hidden, so the customer can see what they are working towards.
-    await expect(page.getByRole('button', { name: /Exchange 100 points/ })).toBeDisabled();
+    await expect(page.getByRole('button', { name: /Exchange 500 points/ })).toBeDisabled();
   });
 });

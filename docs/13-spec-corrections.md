@@ -2842,6 +2842,85 @@ Worth remembering because the input is a free-text field a person typed on a pho
 not enough — `split_part` cares about *internal* runs too. Any `split_part` over user-entered text wants
 whitespace collapsed first.
 
+### Y11 · Adding photographs broke two buttons, because a component's two branches had different layout
+
+The compare table's remove button and the subscriptions page's Pause button both stopped working. Neither
+is near an image in the markup. Playwright said exactly what was wrong, in the clearest words anybody
+wrote about it:
+
+```
+- element is visible, enabled and stable
+- <img sizes="48px" data-nimg="fill" alt="NOW Vitamin D3 4000 IU" …>
+    from <ul class="mt-2 flex flex-col gap-2"> subtree intercepts pointer events
+```
+
+A 48-pixel image was covering an entire `<ul>`. `ProductImage` had two return branches with **different
+layout semantics**:
+
+- no photograph → a `<div>` carrying `className`, an ordinary in-flow box sized by `size-12`;
+- a photograph → a bare `<Image fill>`, which is `position: absolute; inset: 0` and therefore ignores
+  `size-*` for positioning entirely. It fills the nearest **positioned ancestor**.
+
+Call sites that wrapped it in a `relative` box were fine. The ones that passed `size-12 p-1` and expected
+an in-flow box got an image stretched across whatever container happened to be positioned further up the
+tree — in one case a whole list, swallowing every click in it.
+
+**This was latent from M3 and could not surface until M13**, because the catalogue had no photography: every
+product rendered the in-flow fallback, so the broken branch was unreachable. It appeared the day real
+images landed, in two places at once, in features nobody had touched.
+
+Fixed in the component: the wrapper is always rendered and always `relative`, `className` sizes *it*
+(which is what every call site already meant), and `inset: 0` resolves against its padding box so `p-2`
+still insets the photograph exactly as before. `object-cover` became an explicit `fit` prop, because a
+class name landing on the wrapper would be silently inert.
+
+Two rules out of it:
+
+- **A component with a conditional root must render the same kind of box in every branch.** If one branch
+  is in-flow and another is absolutely positioned, every call site is coupled to which branch it happens
+  to get — and that is data, not markup.
+- **A fallback that is the normal case is not a tested case.** For eleven milestones `path` was always
+  null, so the photograph branch had no coverage anywhere, and the first real data exercised it in
+  production-shaped ways nothing had rehearsed. The compare table's remove button had a passing E2E test
+  the whole time.
+
+### Y12 · Every literal count in the catalogue spec was a fact about the demo data
+
+Four assertions failed together: `12 products` for the vegan filter, `5 produkte` for a category, and two
+`3 products` for a brand and a goal. All true of the 24-product demo catalogue, all false once the real
+one landed — 108 products, and one more every time somebody adds a product in the panel.
+
+### Y13 · One reload is not enough to observe a tag purge
+
+`an edit to a brand reaches the storefront immediately` failed about one run in three, and only in a full
+suite. The write was not slow — `expectRowName` already confirms the row changed before the storefront is
+checked. It is **stale-while-revalidate**: `revalidateTag` marks the cached entry stale, and the first
+request after that may still be served the stale copy while regeneration happens behind it. The second
+request gets the new one.
+
+So a single `reload()` was asserting something the test never meant to claim — not "the purge happened"
+but "the very first byte after the purge is fresh". Reloading inside an `expect.poll` keeps the real claim
+and drops the accidental one. 5/5 after, 2/3 before.
+
+Worth generalising, because ISR is used for the whole storefront: **an assertion about a cache purge needs
+to be retried, not timed.** A longer timeout on a single request does not help — the stale response
+arrives promptly and is simply the wrong one.
+
+This one was not an M13 regression. It surfaced because the full suite had not been run cleanly in a
+while, which is its own lesson: a flake that only appears in a full run is invisible to exactly the
+workflow that would fix it.
+
+The same file had **already learned this once**: `expectAtLeast(page, /\d+ products/, 24)` exists with a
+comment explaining that other specs publish fixtures concurrently, so an exact count is not the assertion.
+The lesson was applied to the unfiltered count and not to the four scoped ones.
+
+Updating `12` to the new number would only move the breakage to the next catalogue edit — and a literal
+proves nothing about filtering when it passes. Each is now the relationship the test is *named* for:
+filtered is greater than zero and fewer than unfiltered; a category, brand or goal page shows fewer than
+the whole shop. **When a test asserts a number, check whether the number or the relationship is the
+claim.** Here the relationship was always the claim, and the number was a convenient way to spell it that
+stopped being true.
+
 ---
 
 ## E. Stack decisions taken at M0

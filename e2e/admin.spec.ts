@@ -1168,8 +1168,28 @@ test.describe('taxonomy admin (docs/06 §4–§7)', () => {
      */
     await expectRowName('brand', slug, 'After Rename');
 
-    await shopperPage.reload();
-    await expect(shopperPage.getByRole('heading', { level: 1 })).toContainText('After Rename');
+    /*
+     * Reload until it changes, rather than reloading once.
+     *
+     * A single reload failed roughly one run in three, and the reason is not a slow write — the write is
+     * already confirmed by `expectRowName` above. It is ISR's stale-while-revalidate: `revalidateTag`
+     * marks the cached entry stale, and the **first** request after that may still be served the stale
+     * copy while regeneration happens behind it. The second request gets the new one.
+     *
+     * So the assertion this test is named for — "reaches the storefront immediately" — is about the purge
+     * happening at all, not about the very first byte after it. Polling keeps that claim and drops the
+     * one it never meant to make. Without this it is a flake that fails a whole suite run for a reason
+     * unrelated to whatever was being changed.
+     */
+    await expect
+      .poll(
+        async () => {
+          await shopperPage.reload();
+          return (await shopperPage.getByRole('heading', { level: 1 }).textContent()) ?? '';
+        },
+        { timeout: ACTION_TIMEOUT, intervals: [250, 500, 1000, 2000] },
+      )
+      .toContain('After Rename');
 
     await shopper.close();
   });

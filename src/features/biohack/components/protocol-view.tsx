@@ -333,7 +333,10 @@ function ItemCard({
           path={product?.imagePath ?? null}
           alt={pickLocale(item.name, locale)}
           sizes="64px"
-          className="size-16 shrink-0 overflow-hidden rounded-md object-cover"
+          // `fit` rather than an `object-cover` class: `className` sizes the wrapper now, where an
+          // `object-*` utility would be inert. See `ProductImage`.
+          fit="cover"
+          className="size-16 shrink-0 rounded-md"
         />
       )}
 
