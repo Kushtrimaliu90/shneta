@@ -293,8 +293,20 @@ describe('order immutability (docs/13 §B6)', () => {
 });
 
 describe('loyalty redemption (docs/13 §B4)', () => {
+  /*
+   * The order is €600 rather than €200 because docs/17 §0.1 changed what redemption costs.
+   *
+   * It used to be a fixed tier: spend 100 points, get a €5 coupon — which is 5 % back at one point per
+   * euro. There is now one point value (`point_value_cents = 1`, so 100 points = €1) and a
+   * `min_redeem_points` floor of 500, and the no-argument call redeems that minimum. A customer with
+   * 200 points can no longer redeem at all, which is why this test failed with `INSUFFICIENT_POINTS`
+   * rather than because anything was broken.
+   *
+   * The coupon is still worth exactly 500 cents — 500 points × 1 cent — so every assertion below it is
+   * unchanged. What moved is the price of it.
+   */
   it('mints a single-use coupon and deducts the points atomically', async () => {
-    const { user, orderId } = await placeOrder({ priceCents: 20000 });
+    const { user, orderId } = await placeOrder({ priceCents: 60000 });
     for (const status of ['confirmed', 'processing', 'shipped', 'delivered']) {
       await setStatus(orderId, status);
     }
@@ -309,7 +321,7 @@ describe('loyalty redemption (docs/13 §B4)', () => {
       .select('loyalty_points')
       .eq('id', user.id)
       .single();
-    expect(profile?.loyalty_points).toBe(200 - 100);
+    expect(profile?.loyalty_points).toBe(600 - 500);
 
     const { data: coupon } = await service
       .from('coupons')

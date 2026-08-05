@@ -4407,6 +4407,7 @@ export type Database = {
         Args: { p_subscription_id: string }
         Returns: Json
       }
+      claim_referral_code: { Args: { p_code: string }; Returns: Json }
       contact_submit: {
         Args: {
           p_body: string
@@ -4459,6 +4460,10 @@ export type Database = {
       is_merchant: { Args: never; Returns: boolean }
       is_service_role: { Args: never; Returns: boolean }
       is_staff: { Args: never; Returns: boolean }
+      link_referral: {
+        Args: { p_code: string; p_referee_id: string; p_source: string }
+        Returns: string
+      }
       list_public_coupons: {
         Args: never
         Returns: {
@@ -4540,6 +4545,7 @@ export type Database = {
         Returns: Json
       }
       newsletter_unsubscribe: { Args: { p_token: string }; Returns: boolean }
+      normalize_referral_code: { Args: { p_code: string }; Returns: string }
       post_fulfilment_to_ledger: {
         Args: { p_fulfilment_id: string }
         Returns: number

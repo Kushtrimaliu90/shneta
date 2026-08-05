@@ -7,6 +7,12 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Alert } from '@/components/ui/alert';
 import { VitalityRing } from '@/components/shared/vitality-ring';
 import { getProfile } from '@/features/auth/queries';
+import { getLoyaltySettings } from '@/features/loyalty/queries';
+import { getCodeEntryState } from '@/features/referrals/queries';
+import {
+  ReferralCodeEntry,
+  ReferralSourceNote,
+} from '@/features/referrals/components/code-entry-card';
 import { buttonVariants } from '@/components/ui/button';
 
 type Props = {
@@ -32,13 +38,24 @@ export default async function AccountOverviewPage({ params, searchParams }: Prop
   setRequestLocale(resolveLocale((await params).locale));
   const { password } = await searchParams;
 
-  const profile = await getProfile();
+  const [profile, loyalty, referral] = await Promise.all([
+    getProfile(),
+    getLoyaltySettings(),
+    getCodeEntryState(),
+  ]);
   const t = await getTranslations();
 
   // The layout guarantees this, but the page must not assume it.
   if (!profile) return null;
 
-  const redeemThreshold = 100;
+  /*
+   * The threshold comes from settings, not from a constant here.
+   *
+   * It was hardcoded at 100 and the point-value unification (docs/17 §0.1) moved the real minimum to
+   * 500 — so this ring filled up and said "ready to redeem" at a fifth of the points the redeem
+   * button will actually accept. A promise the next screen refuses is worse than no promise.
+   */
+  const redeemThreshold = loyalty.minRedeemPoints;
   const progress = Math.min(1, profile.loyaltyPoints / redeemThreshold);
 
   return (
@@ -63,6 +80,14 @@ export default async function AccountOverviewPage({ params, searchParams }: Prop
                       count: redeemThreshold - profile.loyaltyPoints,
                     })}
               </p>
+              {referral.source && (
+                <div className="mt-3">
+                  <ReferralSourceNote
+                    referrerName={referral.source.referrerName}
+                    pending={referral.source.status === 'pending'}
+                  />
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -80,6 +105,8 @@ export default async function AccountOverviewPage({ params, searchParams }: Prop
           </CardContent>
         </Card>
       </div>
+
+      {referral.canEnter && <ReferralCodeEntry suggestedCode={referral.suggestedCode} />}
 
       <Card>
         <CardContent>

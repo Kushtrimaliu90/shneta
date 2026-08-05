@@ -110,7 +110,9 @@
       "confirmPassword": "Confirm password",
       "passwordHint": "At least 8 characters.",
       "phone": "Phone",
-      "phoneHint": "e.g. 044 123 456 or +383 44 123 456."
+      "phoneHint": "e.g. 044 123 456 or +383 44 123 456.",
+      "referralCode": "Invite code (optional)",
+      "referralCodeHint": "If a friend gave you a code, enter it here. You can also add it later, until your first order."
     },
     "signIn": {
       "title": "Sign in",
@@ -156,7 +158,8 @@
       "resetLinkInvalid": "That link has expired. Request a new one.",
       "linkInvalid": "That link is no longer valid. Please try again.",
       "notSignedIn": "Your session expired. Please sign in again.",
-      "generic": "Something went wrong. Please try again."
+      "generic": "Something went wrong. Please try again.",
+      "invalidReferralCode": "That doesn't look like an invite code. Codes look like BIO-XXXXX."
     }
   },
   "account": {
@@ -304,6 +307,28 @@
         "signedOut": "Please sign in again.",
         "checkFields": "Check the fields marked below.",
         "notFound": "That address no longer exists.",
+        "generic": "Something went wrong. Please try again."
+      }
+    },
+    "referrals": {
+      "haveCodeTitle": "Were you invited?",
+      "haveCodeBody": "Enter the code a friend gave you and they earn points on your orders. You can do this until your first order.",
+      "codeLabel": "Invite code",
+      "codeHint": "Nine characters, like BIO-K7F2M. The link a friend sent you works too.",
+      "claimSubmit": "Add code",
+      "claimedTitle": "Code added",
+      "claimed": "Thanks — we've recorded who invited you. Nothing changes for your orders or prices.",
+      "termsNote": "Read the <terms>referral terms</terms>.",
+      "termsLink": "referral terms",
+      "invitedBy": "Invited by {name}.",
+      "invitedByPending": "Invited by {name} — waiting to be confirmed.",
+      "errors": {
+        "invalid": "We can't use that code. Check it with the person who gave it to you.",
+        "alreadyLinked": "Your account already has an invite recorded, and that cannot be changed.",
+        "self": "That's your own code — you'll need a friend's.",
+        "graceClosed": "An invite code can only be added before your first order.",
+        "tooManyAttempts": "Too many attempts. Please try again later.",
+        "notSignedIn": "Your session expired. Please sign in again.",
         "generic": "Something went wrong. Please try again."
       }
     }

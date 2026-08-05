@@ -129,6 +129,7 @@ export async function signIn(page: Page, email: string, password: string): Promi
  *   · 233.252.8                — biohack.spec.ts
  *   · 233.252.9                — marketplace.spec.ts
  *   · 233.252.10               — marketplace-routing.spec.ts
+ *   · 233.252.11               — referrals.spec.ts
  *
  * biohack.spec.ts and content.spec.ts both had 233.252.4 until the marketplace journeys were
  * added, which is the collision this list exists to prevent — two files sharing a block means the

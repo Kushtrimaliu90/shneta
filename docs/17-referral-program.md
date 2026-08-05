@@ -163,9 +163,9 @@ Referee: welcome mentioning the friend's code and a link to the terms. Bilingual
 
 ## 8 · Build order
 
-1. Migration + backfill + trigger + RLS + `my_referral_overview` and its shape test.
-2. Point-value unification (§0.1) across settings, loyalty UI, emails, seed.
-3. Code entry: sign-up field, `/r/{CODE}` + cookie, account grace entry, validation.
+1. ~~Migration + backfill + trigger + RLS + `my_referral_overview` and its shape test.~~ **Done.**
+2. ~~Point-value unification (§0.1) across settings, loyalty UI, emails, seed.~~ **Done.**
+3. ~~Code entry: sign-up field, `/r/{CODE}` + cookie, account grace entry, validation.~~ **Done.**
 4. Accrual engine + delivered hook + refund clawback + idempotency tests.
 5. Account referrals page.
 6. Admin queue, links, manual link, revoke, earnings, fraud panel, settings.

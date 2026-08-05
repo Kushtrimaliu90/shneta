@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { LOCALES } from '@/lib/constants';
+import { optionalReferralCodeSchema } from '@/features/referrals/schemas';
 
 /**
  * docs/02 §7 — schemas are single-sourced here and reused on client and server. The server
@@ -52,6 +53,14 @@ export const signUpSchema = z.object({
   marketingOptIn: z.coerce.boolean().default(false),
   // docs/05 §15 — terms acceptance is explicit and required.
   terms: z.literal('on', { message: 'TERMS_REQUIRED' }),
+  /*
+   * docs/17 §1 — the invite code, optional.
+   *
+   * Validated for shape rather than accepted blindly, because a mistyped code is only fixable while
+   * the person who typed it is still looking at the field: silently dropping it means the referrer
+   * never gets credited and nobody ever finds out why. An empty field is not an error.
+   */
+  referralCode: optionalReferralCodeSchema,
   next: z.string().optional(),
 });
 

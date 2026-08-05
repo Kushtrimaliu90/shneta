@@ -2601,6 +2601,162 @@ better, do not restate. And keep the test that pins the behaviour, because it is
 
 ---
 
+## Y. What building the referral programme taught us
+
+### Y1 · `array || 'literal'` is not array-append, and the exception guard hid it
+
+`link_referral` collects risk flags before inserting a link:
+
+```sql
+v_flags text[] := '{}';
+…
+v_flags := v_flags || 'same_address';   -- looks obvious, is wrong
+```
+
+With an untyped literal on the right, Postgres resolves `||` to `anyarray || anyarray` rather than
+`anyarray || anyelement`, and tries to parse the string as an array literal:
+
+```
+malformed array literal: "rapid_signup"
+Array value must start with "{" or dimension information.
+```
+
+So every link that *should* have carried a flag was instead **not created at all** — the exact population a
+fraud review exists to look at. Use `array_append(v_flags, 'same_address')`, which has one meaning, or cast
+the literal.
+
+**The part worth remembering is why it was nearly invisible.** `handle_new_user` calls `link_referral` inside
+an exception guard, deliberately, so that a referral bug can never stop somebody registering:
+
+```sql
+begin
+  perform public.link_referral(new.id, v_code, v_source);
+exception when others then
+  raise warning 'referral link failed for %: %', new.id, sqlerrm;
+end;
+```
+
+That guard is right and stays. But it converts "the flag logic is broken" into "some referrals silently do not
+exist", and nobody audits referrals that were never created. In production the symptom would have been a fraud
+panel that never flagged anything — which reads as *good news*.
+
+The rule this yields: **a swallowed exception needs a test that asserts the work happened, not just that the
+caller survived.** The test that found this asserts `risk_flags` contains `same_address`, not merely that the
+account was created. The three-line fix was migration 57; the test was written in the same hour, which is the
+only reason the bug lasted twenty minutes rather than reaching a customer.
+
+Corollary for `plpgsql` generally: this compiled fine at `create` time and failed at first execution, like §X1
+and §X15. A function whose error path has never run has not been tested.
+
+### Y2 · Collapsing error messages, and the two that should not collapse
+
+docs/17 §6 requires one generic rejection so the claim endpoint cannot be walked as a code oracle. Applied
+literally that produces a form which answers "we can't use that code" when the customer typed **their own**
+code, or when they already have a referrer — and both are mistakes real people make constantly.
+
+The distinction that resolves it: **collapse facts about somebody else's code; keep facts about the caller's own
+account.** `no such code`, `same phone as the owner`, `would close a cycle` and `owner is at their cap` all
+collapse to `invalid`, because each one leaks something about a code the caller does not own. `self` and
+`already_linked` are things the caller can already see on their own screen, so saying them plainly reveals
+nothing and saves a support email.
+
+`link_referral` therefore returns a precise outcome and `claim_referral_code` decides what may cross the wire.
+Putting the collapse in the caller rather than the validator is what lets the admin queue show the real reason
+later without touching either.
+
+### Y3 · The invite field must never be the reason an account cannot be created
+
+The code is optional, so the temptation is to accept anything and drop what does not resolve. That loses
+referrals silently: a mistyped code is only fixable while the person who typed it is still looking at the field.
+
+So it *is* validated for shape — and the tests pin both halves of the compromise: a present-and-malformed code
+is a field error on `referralCode` alone (never a whole-form failure), and an empty field parses clean. Two
+tests, and they are there because the failure mode is a sign-up form that rejects customers over a field that
+does not matter.
+
+The Zod 4 detail found on the way: `z.union([schema, z.literal(''), z.undefined()]).transform(…)` still
+rejects a **missing** key. `.transform()` yields a pipe, and a pipe is non-optional regardless of what its
+input union accepts — listing `z.undefined()` parses a *present* `undefined` only. `.optional()` after the
+transform is what makes the key itself optional.
+
+### Y4 · One new test file broke twenty tests in files it never touched
+
+`referral-entry.test.ts` passed on its own, then the full run came back:
+
+```
+Test Files  8 failed | 11 passed (19)
+Tests  20 failed | 304 passed | 79 skipped (403)
+Error: sign-in failed: Request rate limit reached
+```
+
+Nothing was wrong with the code. `helpers.createUser` ends in `signInWithPassword` so it can hand back a
+JWT-carrying client, and Supabase Auth rate-limits that endpoint **per IP** on a hosted project. The suite
+already creates around fifty accounts per run; the new file added twenty-one more sign-ins and pushed the
+whole thing over. The failures then landed in whichever file happened to be running when the budget ran out —
+`referrals.test.ts`, which the change had nothing to do with.
+
+Most of those twenty-one sign-ins were waste: the accounts existed to *own a referral code* or *be a row the
+service client reads*, and their clients were discarded. So the file grew a local `createBareUser()` that
+creates a confirmed user through `auth.admin.createUser` and stops there, and signs in only the six accounts
+that genuinely assert through RLS. 21 → 6.
+
+Two rules out of this:
+
+- **A sign-in is a shared, rate-limited resource, not a free fixture.** Reach for `createUser` when the test
+  needs a *customer-context client*; create the account bare when it only needs to exist. Reuse one signed-in
+  account across cases that all end in rejection — a rejected attempt leaves nothing behind, so the account is
+  still pristine for the next one.
+- **A test file that passes alone has not been tested.** This suite is `fileParallelism: false` against one
+  shared database precisely because tests interact, and per-IP quota is one of the ways they interact. Run the
+  whole suite before believing a new file.
+
+### Y5 · `request.nextUrl.origin` is not the host the visitor typed
+
+The `/r/{CODE}` handler sets a cookie and redirects to the sign-up form. In a browser the field came back
+empty, every time, while a `curl` with a cookie jar filled it correctly. The redirect chain said why:
+
+```
+307 http://127.0.0.1:3000/en/r/BIO-6S95A -> 200 http://localhost:3000/en/auth/sign-up
+cookie: { name: 'biocode_ref', domain: '127.0.0.1', … }
+```
+
+The cookie was stored against `127.0.0.1`; the browser then asked **`localhost`** for the sign-up form and,
+correctly, sent nothing. The invite disappeared between two lines of code that both read as obviously right.
+
+The cause is that `request.nextUrl.origin` reports the origin **Next computed**, not the `Host` the request
+carried — and `request.url` reports the same thing, so swapping one for the other fixes nothing. The fix is to
+stop naming a host at all:
+
+```ts
+new NextResponse(null, { status: 307, headers: { Location: localizePath(path, locale) } })
+```
+
+A relative `Location` (RFC 7231 §7.1.2) keeps the visitor on whatever host they arrived at, so the host that
+set the cookie is always the host that reads it.
+
+This is not a localhost curiosity. The same mismatch is `biocode.fit` against `www.biocode.fit`, and every
+preview deployment — exactly the URLs a share link gets pasted into. **Any redirect that carries cookie state
+should use a relative `Location`.** Where an absolute URL is genuinely required (an email link, a payment
+return), it must be built from `NEXT_PUBLIC_SITE_URL`, which is a decision, rather than from the request,
+which is a guess.
+
+### Y6 · Two conventions the E2E suite already had, learned again
+
+`referrals.spec.ts` was written with a test that registers through the sign-up form. It failed with
+`over_email_send_rate_limit`: the hosted project sends its own confirmation email and rate-limits that to a
+couple an hour, so the second run of any such test gets "Something went wrong" and no account. `auth.spec.ts`
+had already solved this — its header says the fixtures are built through the service role — and the lesson is
+that **a browser cannot create accounts on this project**; the DB half of a sign-up journey belongs in the
+integration suite, and the spec should say where the seam is rather than leave it implied.
+
+The second: a test asserted a `Code added` success alert that never renders. The action calls
+`revalidatePath('/account')`, the server tree re-renders, `canEnter` turns false, and the card containing the
+alert unmounts before it can paint. The customer sees the settled state instead — "Invited by Blerim K." where
+the form was — which is the better confirmation. **Assert what the refresh leaves on screen, not what the
+action returned**; with server actions plus `revalidatePath` those are routinely different things.
+
+---
+
 ## E. Stack decisions taken at M0
 
 | Item          | Spec                  | Built as            | Why                                                                                               |

@@ -110,7 +110,9 @@
       "confirmPassword": "Konfirmo fjalëkalimin",
       "passwordHint": "Të paktën 8 karaktere.",
       "phone": "Telefoni",
-      "phoneHint": "P.sh. 044 123 456 ose +383 44 123 456."
+      "phoneHint": "P.sh. 044 123 456 ose +383 44 123 456.",
+      "referralCode": "Kod ftese (opsionale)",
+      "referralCodeHint": "Nëse një shok ju ka dhënë kod, shkruajeni këtu. Mund ta shtoni edhe më vonë, derisa të bëni porosinë e parë."
     },
     "signIn": {
       "title": "Hyr në llogari",
@@ -156,7 +158,8 @@
       "resetLinkInvalid": "Kjo lidhje ka skaduar. Kërko një të re.",
       "linkInvalid": "Lidhja nuk është më e vlefshme. Provo përsëri.",
       "notSignedIn": "Sesioni ka skaduar. Hyr përsëri.",
-      "generic": "Diçka shkoi keq. Provo përsëri."
+      "generic": "Diçka shkoi keq. Provo përsëri.",
+      "invalidReferralCode": "Ky nuk duket si kod ftese. Kodet janë në formën BIO-XXXXX."
     }
   },
   "account": {
@@ -305,6 +308,28 @@
         "checkFields": "Kontrolloni fushat e shënuara më poshtë.",
         "notFound": "Kjo adresë nuk ekziston më.",
         "generic": "Diçka shkoi keq. Ju lutemi provoni përsëri."
+      }
+    },
+    "referrals": {
+      "haveCodeTitle": "Ju ftoi ndonjë shok?",
+      "haveCodeBody": "Shkruani kodin që ju dha shoku dhe ai fiton pikë nga porositë e tuaja. Mundeni derisa të bëni porosinë e parë.",
+      "codeLabel": "Kodi i ftesës",
+      "codeHint": "Nëntë karaktere, si BIO-K7F2M. Funksionon edhe linku që ju dërguan.",
+      "claimSubmit": "Shto kodin",
+      "claimedTitle": "Kodi u shtua",
+      "claimed": "Faleminderit — regjistruam kush ju ftoi. Për porositë dhe çmimet e tuaja nuk ndryshon asgjë.",
+      "termsNote": "Lexoni <terms>kushtet e ftesave</terms>.",
+      "termsLink": "kushtet e ftesave",
+      "invitedBy": "Ftuar nga {name}.",
+      "invitedByPending": "Ftuar nga {name} — në pritje të konfirmimit.",
+      "errors": {
+        "invalid": "Këtë kod nuk mund ta përdorim. Kontrollojeni me personin që ju dha.",
+        "alreadyLinked": "Llogaria juaj ka një ftesë të regjistruar dhe ajo nuk mund të ndryshohet.",
+        "self": "Ky është kodi i juaji — duhet kodi i një shoku.",
+        "graceClosed": "Kodi i ftesës mund të shtohet vetëm para porosisë së parë.",
+        "tooManyAttempts": "Shumë përpjekje. Provoni më vonë.",
+        "notSignedIn": "Sesioni skadoi. Hyni përsëri.",
+        "generic": "Diçka shkoi keq. Provoni përsëri."
       }
     }
   },

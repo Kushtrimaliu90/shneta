@@ -45,6 +45,17 @@ export const CART_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 365;
 export const ORDER_ACCESS_COOKIE_NAME = 'biocode_order_access';
 export const ORDER_ACCESS_COOKIE_MAX_AGE_SECONDS = 60 * 30;
 
+/**
+ * docs/17 §1 — an invite code from `/r/{CODE}`, held until the visitor gets round to registering.
+ *
+ * Thirty days because that is roughly how long "I'll sign up later" lasts. `httpOnly` even though
+ * the value is a code somebody was shown on purpose: the sign-up page reads it on the server to
+ * pre-fill the field, no script needs it, and a cookie no script can read cannot be rewritten by
+ * one either — which is what would let a third-party tag substitute its own referrer.
+ */
+export const REFERRAL_COOKIE_NAME = 'biocode_ref';
+export const REFERRAL_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 30;
+
 /** docs/02 §5 — the complete cache-tag vocabulary. Nothing outside this list may be tagged. */
 export const CACHE_TAGS = {
   products: 'products',
@@ -90,4 +101,10 @@ export const RATE_LIMITS = {
    */
   merchantApply: [3, 60 * 60],
   orderLookup: [10, 60 * 60],
+  /*
+   * docs/17 §6 — ten an hour. The endpoint answers "is this a real code?" for anyone signed in, so
+   * without a limit it is a 33^5 keyspace walk at HTTP speed. A real customer submits once, or twice
+   * after a typo.
+   */
+  referralClaim: [10, 60 * 60],
 } as const satisfies Record<string, readonly [number, number]>;

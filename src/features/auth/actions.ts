@@ -1,12 +1,14 @@
 'use server';
 
-import { headers } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { getLocale } from 'next-intl/server';
 import { createClient } from '@/lib/supabase/server';
 import { localizePath } from '@/lib/i18n';
 import { clientEnv } from '@/lib/env.client';
+import { REFERRAL_COOKIE_NAME } from '@/lib/constants';
+import { normalizeReferralCode } from '@/features/referrals/schemas';
 import { limitByIp } from '@/lib/rate-limit';
 import { logger, describeError } from '@/lib/logger';
 import { fail, fromFieldErrors, ok, type ActionResult } from '@/lib/result';
@@ -150,6 +152,26 @@ export const signUp: FormAction = async (_prevState, formData) => {
     return authFail('auth.errors.tooManyAttempts');
   }
 
+  /*
+   * docs/17 §1 — the invite code travels in user metadata, and `handle_new_user` links it.
+   *
+   * Not through an RPC after sign-up: with email confirmation on, `auth.signUp` returns a user and
+   * no session, so an `auth.uid()`-keyed call would have nobody to act as. The trigger runs at the
+   * moment the profile appears and works either way.
+   *
+   * The source is derived by comparing what was submitted with what the cookie holds — the truthful
+   * way to tell "followed the share link" from "typed a code a friend read out", since the field is
+   * pre-filled from that cookie and editable. It is a label for the admin queue, so getting it
+   * wrong costs nothing; asking the browser to declare it would let the browser lie for free.
+   */
+  const cookieStore = await cookies();
+  const cookieCode = cookieStore.get(REFERRAL_COOKIE_NAME)?.value;
+  const referralCode = parsed.data.referralCode;
+  const referralSource =
+    referralCode && cookieCode && normalizeReferralCode(cookieCode) === referralCode
+      ? 'link'
+      : 'signup';
+
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signUp({
     email: parsed.data.email,
@@ -161,6 +183,9 @@ export const signUp: FormAction = async (_prevState, formData) => {
       data: {
         full_name: parsed.data.fullName,
         marketing_opt_in: parsed.data.marketingOptIn,
+        ...(referralCode
+          ? { referral_code: referralCode, referral_source: referralSource }
+          : {}),
       },
     },
   });
@@ -188,6 +213,15 @@ export const signUp: FormAction = async (_prevState, formData) => {
       logger.warn('Could not persist marketing opt-in', { cause: profileError.message });
     }
   }
+
+  /*
+   * The cookie has been spent. Clearing it stops a month-old invite reappearing in the field for the
+   * next person to register on a shared computer — a phone in a family, or a laptop in a shop.
+   *
+   * Cleared whether or not a code was submitted: reaching this line means an account was created, and
+   * an invite that the new customer chose not to use is not one to keep offering.
+   */
+  cookieStore.delete(REFERRAL_COOKIE_NAME);
 
   return authOk('auth.signUp.checkEmail');
 };

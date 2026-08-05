@@ -9,7 +9,14 @@ import { Alert } from '@/components/ui/alert';
 import { SubmitButton } from '@/components/ui/submit-button';
 import { signUp, type FormState } from '@/features/auth/actions';
 
-export function SignUpForm({ next }: { next?: string }) {
+export function SignUpForm({
+  next,
+  inviteCode,
+}: {
+  next?: string;
+  /** docs/17 §1 — pre-filled from the `/r/{CODE}` cookie, read on the server. */
+  inviteCode?: string | null;
+}) {
   const [state, formAction] = useActionState<FormState, FormData>(signUp, null);
   const t = useTranslations();
 
@@ -53,6 +60,34 @@ export function SignUpForm({ next }: { next?: string }) {
       >
         {(props) => (
           <Input {...props} name="password" type="password" autoComplete="new-password" />
+        )}
+      </Field>
+
+      {/*
+        docs/17 §1 — the invite code.
+        Last of the fields and marked optional, because it is: most people arrive without one, and a
+        code sitting above the password reads like something they were supposed to have.
+
+        The error message is the translated one, not the raw `INVALID_REFERRAL_CODE` that Zod puts in
+        `fieldErrors` — that key is used only to decide whether the field is in error.
+      */}
+      <Field
+        id="referralCode"
+        label={t('auth.fields.referralCode')}
+        hint={t('auth.fields.referralCodeHint')}
+        errors={fieldErrors?.referralCode ? [t('auth.errors.invalidReferralCode')] : undefined}
+      >
+        {(props) => (
+          <Input
+            {...props}
+            name="referralCode"
+            defaultValue={inviteCode ?? ''}
+            autoComplete="off"
+            autoCapitalize="characters"
+            spellCheck={false}
+            maxLength={64}
+            placeholder="BIO-XXXXX"
+          />
         )}
       </Field>
 

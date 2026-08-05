@@ -735,9 +735,27 @@ site and the live database on the day.
    Until there are two projects: delete `SUPABASE_TEST_PROJECT` from `.env.local` before real customers
    arrive and never set it in Vercel, and do not run the suites while anyone is shopping.
 5. **PITR / backups, an uptime monitor on `/api/health`, and a restore drill.** All three unchanged.
-6. **Legal review of both terms documents**, clause 14 most of all, and the `[BIZNESI: plotëso]` trader
+6. **Legal review of all three terms documents**, clause 14 most of all, and the `[BIZNESI: plotëso]` trader
    block. Terms are at `1.1` with no re-acceptance flow (§19).
-7. **The commercial numbers nobody has agreed to**: 15 % default commission, €2.00 shipping deduction.
+
+   The third is **`/legal/referral-terms`**, added with M13 step 3 (`supabase/seeds/15-referral-terms.sql`).
+   Same status as the others: written by engineering, accurate about what the software does, not reviewed.
+   Two things about it need a second pair of eyes specifically. Clause 6 is a **promise about what one
+   customer can learn about another**, and it is the customer-facing statement of docs/17 §0.2 — it should
+   be read against what the RPC actually returns before anybody relies on it. And clauses 4 and 5 write out
+   `1%`, `100 points = €1`, `€10` and `20,000 points` as numbers, because a customer cannot read a settings
+   table; if `settings.referral` or `settings.loyalty` is ever changed, **this page is wrong until it is
+   edited**. Its clause 9 carries the same `[BIZNESI: plotëso]` contact marker as the others.
+7. **The commercial numbers nobody has agreed to**: 15 % default commission, €2.00 shipping deduction, and
+   now the loyalty redemption rate.
+
+   docs/17 §0.1 replaced `redeem_points` + `redeem_value_cents` — a conversion rate encoded in two numbers
+   that could disagree — with a single `point_value_cents`, set to **1**. That is arithmetic, but it has a
+   commercial consequence nobody has signed off: the old pair said 100 points redeemed for €5, so a customer
+   earning 1 point per euro was getting **5 % back**; at one point = €0.01 they get **1 %**. 1 % is the rate
+   the referral programme is built around and the rate the seeded settings and both terms pages now state.
+   If 5 % was intended, `settings.loyalty.point_value_cents` is the one number to change — and
+   `/legal/referral-terms` and the loyalty terms in `messages/{sq,en}.json` have to change with it.
 8. **Photography.** The catalogue itself is now finished — 63 published products across 16 categories, 14
    brands, bilingual claim-safe copy, EUR prices benchmarked to European retail, SEO on every page (seeds
    12–13, docs/11 §11). What it has no images at all. `pnpm seed:images ./photos` uploads a folder named
