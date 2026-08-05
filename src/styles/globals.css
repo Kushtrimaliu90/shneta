@@ -192,14 +192,27 @@
   }
 }
 
-/** docs/04 §4 — Manrope, uppercase, tracked. Uses ink-500, never ink-400 (docs/13 §C). */
+/**
+ * docs/04 §4 — Manrope, uppercase, tracked.
+ *
+ * **`ink-600`, not `ink-500`.** docs/13 §C already records the rule this utility was breaking:
+ * `ink-500` clears AA on cream at 4.53:1 and misses it on the `forest-50` tint at 4.43:1, so
+ * "secondary text on a tint is ink-600, never ink-500". An eyebrow is secondary text and it is
+ * routinely put on a tint — 142 files use `bg-forest-50` — so baking `ink-500` in here meant every one
+ * of those was a latent contrast failure waiting for an axe run to reach the page.
+ *
+ * Found by axe on `/account/referrals` and `/admin/referrals`, which are simply the newest pages the
+ * pass covers. Fixed at the utility rather than at those two call sites, because the other 140 are the
+ * same bug and stepping around it leaves it for somebody else. `ink-600` clears AA on cream,
+ * `forest-50` and `forest-100` alike — asserted in `tests/unit/contrast.test.ts`.
+ */
 @utility eyebrow {
   font-family: var(--font-ui);
   font-size: var(--text-eyebrow);
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--color-ink-500);
+  color: var(--color-ink-600);
 }
 
 /** docs/04 §10 — the skip link is the first tab stop, visible only when focused. */

@@ -3277,16 +3277,20 @@ export type Database = {
       referral_links: {
         Row: {
           approved_by: string | null
+          approved_email_at: string | null
           code_used: string | null
           created_at: string
           expires_at: string | null
+          extended_count: number
           id: string
+          joined_email_at: string | null
           linked_at: string | null
           referee_id: string
           referrer_id: string
           revoke_reason: string | null
           revoked_at: string | null
           revoked_by: string | null
+          revoked_email_at: string | null
           risk_flags: string[]
           source: string
           status: Database["public"]["Enums"]["referral_link_status"]
@@ -3294,16 +3298,20 @@ export type Database = {
         }
         Insert: {
           approved_by?: string | null
+          approved_email_at?: string | null
           code_used?: string | null
           created_at?: string
           expires_at?: string | null
+          extended_count?: number
           id?: string
+          joined_email_at?: string | null
           linked_at?: string | null
           referee_id: string
           referrer_id: string
           revoke_reason?: string | null
           revoked_at?: string | null
           revoked_by?: string | null
+          revoked_email_at?: string | null
           risk_flags?: string[]
           source?: string
           status?: Database["public"]["Enums"]["referral_link_status"]
@@ -3311,16 +3319,20 @@ export type Database = {
         }
         Update: {
           approved_by?: string | null
+          approved_email_at?: string | null
           code_used?: string | null
           created_at?: string
           expires_at?: string | null
+          extended_count?: number
           id?: string
+          joined_email_at?: string | null
           linked_at?: string | null
           referee_id?: string
           referrer_id?: string
           revoke_reason?: string | null
           revoked_at?: string | null
           revoked_by?: string | null
+          revoked_email_at?: string | null
           risk_flags?: string[]
           source?: string
           status?: Database["public"]["Enums"]["referral_link_status"]
@@ -4086,6 +4098,38 @@ export type Database = {
           },
         ]
       }
+      referral_fraud_signals: {
+        Row: {
+          flag_cap_reached: number | null
+          flag_rapid_signup: number | null
+          flag_same_address: number | null
+          links_approved: number | null
+          links_last_7d: number | null
+          links_total: number | null
+          points_total: number | null
+          referees_without_orders: number | null
+          referrer_code: string | null
+          referrer_email: string | null
+          referrer_id: string | null
+          referrer_name: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referral_links_referrer_id_fkey"
+            columns: ["referrer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referral_links_referrer_id_fkey"
+            columns: ["referrer_id"]
+            isOneToOne: false
+            referencedRelation: "v_admin_customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       v_admin_coupons: {
         Row: {
           code: string | null
@@ -4337,11 +4381,51 @@ export type Database = {
       }
     }
     Functions: {
+      accrue_referral_for_order: {
+        Args: { p_order_id: string; p_reason?: string }
+        Returns: number
+      }
       admin_adjust_loyalty: {
         Args: { p_note?: string; p_points: number; p_user_id: string }
         Returns: Json
       }
       admin_anonymize_customer: { Args: { p_user_id: string }; Returns: Json }
+      admin_create_referral_link: {
+        Args: {
+          p_backdate_days?: number
+          p_code: string
+          p_ip?: string
+          p_note: string
+          p_referee_email: string
+        }
+        Returns: Json
+      }
+      admin_decide_referral: {
+        Args: {
+          p_approve: boolean
+          p_ip?: string
+          p_link_id: string
+          p_note?: string
+        }
+        Returns: Json
+      }
+      admin_extend_referral: {
+        Args: {
+          p_ip?: string
+          p_link_id: string
+          p_months: number
+          p_note: string
+        }
+        Returns: Json
+      }
+      admin_revoke_referral: {
+        Args: { p_ip?: string; p_link_id: string; p_reason: string }
+        Returns: Json
+      }
+      admin_revoke_referrals_for: {
+        Args: { p_ip?: string; p_reason: string; p_referrer_id: string }
+        Returns: number
+      }
       apply_stock_movement: {
         Args: {
           p_batch_number?: string
@@ -4360,6 +4444,7 @@ export type Database = {
         Args: { p_fulfilment_id: string; p_merchant_id: string }
         Returns: Json
       }
+      auto_approve_referral_links: { Args: never; Returns: number }
       auto_route_fulfilments: { Args: never; Returns: Json }
       build_all_merchant_payouts: {
         Args: { p_period_end: string; p_period_start: string }
@@ -4422,6 +4507,7 @@ export type Database = {
         Args: { p_batch_id: string; p_decision: string; p_note?: string }
         Returns: Json
       }
+      expire_referral_links: { Args: never; Returns: number }
       fulfilment_candidates: {
         Args: { p_fulfilment_id: string }
         Returns: {
@@ -4489,6 +4575,11 @@ export type Database = {
         Args: { p_payout_id: string; p_reference: string }
         Returns: undefined
       }
+      mark_referral_emailed: {
+        Args: { p_kind: string; p_link_id: string }
+        Returns: undefined
+      }
+      mask_person_name: { Args: { p_full_name: string }; Returns: string }
       merchant_attach_batch_images: {
         Args: { p_assignments: Json; p_batch_id: string }
         Returns: Json
@@ -4550,6 +4641,7 @@ export type Database = {
         Args: { p_fulfilment_id: string }
         Returns: number
       }
+      post_referral_earnings: { Args: { p_period?: string }; Returns: Json }
       post_refund_to_ledger: {
         Args: { p_note?: string; p_order_id: string; p_refund_cents: number }
         Returns: number
@@ -4572,6 +4664,32 @@ export type Database = {
         Returns: undefined
       }
       redeem_loyalty_points: { Args: { p_points?: number }; Returns: Json }
+      referral_links_expiring: {
+        Args: { p_days: number }
+        Returns: {
+          expires_at: string
+          link_id: string
+          points_earned: number
+          referrer_email: string
+          referrer_id: string
+          referrer_locale: string
+          referrer_name: string
+        }[]
+      }
+      referral_links_needing_email: {
+        Args: { p_kind: string }
+        Returns: {
+          link_id: string
+          referee_email: string
+          referee_locale: string
+          referee_masked_name: string
+          referrer_code: string
+          referrer_email: string
+          referrer_locale: string
+          referrer_masked_name: string
+          revoke_reason: string
+        }[]
+      }
       release_fulfilment: {
         Args: { p_fulfilment_id: string; p_reason?: string }
         Returns: undefined

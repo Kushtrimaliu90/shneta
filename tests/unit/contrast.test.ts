@@ -90,6 +90,21 @@ describe('text on filled surfaces', () => {
   });
 
   /**
+   * The status-pill palette, used by `OrderStatusPill`, `OrderStatusBadge` and the referral status
+   * chips on `/account/referrals`.
+   *
+   * The rule those components state in prose — a solid semantic fill with white text, never a tint of
+   * the same colour — is only true if white actually clears AA on each fill. `warning` is the one worth
+   * asserting: an amber light enough to look pleasant is an amber white cannot be read on, and the
+   * temptation when a designer calls it harsh is to lighten it.
+   */
+  it('white on each status fill passes AA', () => {
+    for (const name of ['success', 'warning', 'error', 'info', 'ink-600', 'forest-800']) {
+      expect(ratio('#ffffff', token(name)), name).toBeGreaterThanOrEqual(AA_TEXT);
+    }
+  });
+
+  /**
    * forest-50 is the tint on every selected card and filled panel — the checkout delivery
    * and payment options, the COD callout on the success page, the ingredient table head.
    *
@@ -105,6 +120,20 @@ describe('text on filled surfaces', () => {
 
   it('ink-600 passes comfortably on the forest-50 tint', () => {
     expect(ratio(token('ink-600'), token('forest-50'))).toBeGreaterThanOrEqual(AA_TEXT);
+  });
+
+  /**
+   * The `eyebrow` utility bakes its colour in, so it has to be the colour that is safe *everywhere* it
+   * is used — and it is used on cream, on `forest-50` and on `forest-100`.
+   *
+   * It shipped as `ink-500`, which passes on cream and fails on both tints. axe caught it on
+   * `/account/referrals`; this asserts the fix rather than the symptom, so the next person tempted to
+   * lighten it back has to fail a test instead of a page nobody re-runs axe on.
+   */
+  it('the eyebrow colour is safe on every surface it appears on', () => {
+    for (const surface of ['cream', 'forest-50', 'forest-100', 'surface']) {
+      expect(ratio(token('ink-600'), token(surface)), surface).toBeGreaterThanOrEqual(AA_TEXT);
+    }
   });
 
   /**

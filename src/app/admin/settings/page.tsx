@@ -3,6 +3,7 @@ import { getAllSettings } from '@/features/settings/queries';
 import {
   LoyaltyForm,
   PaymentsForm,
+  ReferralForm,
   StoreForm,
   TaxForm,
 } from '@/features/settings/components/settings-forms';
@@ -39,6 +40,13 @@ export default async function AdminSettingsPage() {
         description="What a point is worth, and what subscribing saves."
       >
         <LoyaltyForm loyalty={settings.loyalty} subscriptions={settings.subscriptions} />
+      </Section>
+
+      <Section
+        title="Referrals"
+        description="Who gets paid for whose spending, and when the points arrive."
+      >
+        <ReferralForm settings={settings.referral} />
       </Section>
     </div>
   );

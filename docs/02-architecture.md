@@ -18,7 +18,17 @@
 | Tests            | Vitest + Testing Library; Playwright E2E (+ axe)                                                 | docs/09                          |
 | Hosting          | Vercel (app, cron, analytics) + Supabase cloud; Sentry                                           | docs/10                          |
 
-Allowed additional deps: `date-fns`, `clsx`/`tailwind-merge` (via shadcn `cn`), `react-markdown` + `remark-gfm` + `rehype-sanitize` (article bodies), `recharts` (admin charts), `@upstash/ratelimit` + `@upstash/redis` **or** the built-in Postgres rate limiter (§9 — choose Postgres unless Upstash keys are provided), `server-only`, `zod`. Anything else requires justification (CLAUDE.md).
+Allowed additional deps: `date-fns`, `clsx`/`tailwind-merge` (via shadcn `cn`), `react-markdown` + `remark-gfm` + `rehype-sanitize` (article bodies), `recharts` (admin charts), `@upstash/ratelimit` + `@upstash/redis` **or** the built-in Postgres rate limiter (§9 — choose Postgres unless Upstash keys are provided), `server-only`, `zod`, `@paulmillr/qr` (referral QR codes — see below). Anything else requires justification (CLAUDE.md).
+
+**`@paulmillr/qr`**, added in M13 step 5 for the referral QR (docs/17 §4). The justification, since
+CLAUDE.md requires one: a QR encoder needs Reed–Solomon error correction, and a hand-rolled one that
+*most* scanners read is worse than none. The two alternatives were both worse — a QR image service is
+blocked by the CSP and would hand a customer's invite code to a third party, and inlining a
+hand-written encoder puts a subtle correctness risk in a page nobody will re-test. Zero runtime
+dependencies, MIT/Apache-2.0, native TypeScript.
+
+It costs the browser **nothing**: `referralQrDataUri()` is server-only and returns a 2 kB `data:` URI,
+so the library never enters a client bundle and `data:` is already in the `img-src` allowlist.
 
 ## 2. System overview
 

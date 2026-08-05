@@ -6,6 +6,8 @@ import { getProfile } from '@/features/auth/queries';
 import { can } from '@/features/admin/roles';
 import { formatAdminDateTime, ORDER_STATUS_LABELS } from '@/features/admin/copy';
 import { getDashboardData, type KpiWindow } from '@/features/admin/dashboard';
+import { getLoyaltySettings } from '@/features/loyalty/queries';
+import { getReferralLiability } from '@/features/referrals/admin-queries';
 
 export const metadata: Metadata = { title: 'Dashboard' };
 
@@ -27,6 +29,19 @@ export default async function AdminDashboardPage() {
   const profile = await getProfile();
   const data = await getDashboardData();
 
+  /*
+   * docs/17 §5 — the points liability, on the dashboard rather than only on the referral screen.
+   *
+   * It belongs here because it is money owed that no other figure on this page includes: with monthly
+   * posting, referral points sit earned-but-unpaid for up to a month, so the loyalty balance total
+   * understates the real obligation for most of every month. Somebody reading the dashboard should not
+   * have to know that to see it.
+   */
+  const loyalty = await getLoyaltySettings();
+  const liability = can(profile?.role, 'referrals.view')
+    ? await getReferralLiability(loyalty.pointValueCents)
+    : null;
+
   const showRevenue = can(profile?.role, 'orders.refund') || can(profile?.role, 'settings.manage');
   const showOrders = can(profile?.role, 'orders.view');
   const showStock = can(profile?.role, 'inventory.manage');
@@ -44,6 +59,19 @@ export default async function AdminDashboardPage() {
           <Kpi label="Today" window={data.today} showRevenue={showRevenue} />
           <Kpi label="Last 7 days" window={data.last7} showRevenue={showRevenue} />
           <Kpi label="Last 30 days" window={data.last30} showRevenue={showRevenue} />
+        </div>
+      )}
+
+      {liability && liability.unpostedPoints !== 0 && (
+        <div className="mt-3 rounded-lg border border-line bg-forest-50 p-4">
+          <p className="eyebrow">Points liability</p>
+          <p className="mt-1 font-display text-xl font-semibold text-forest-900" data-numeric>
+            {formatPrice(liability.unpostedCents, 'en')}
+          </p>
+          <p className="mt-1 text-xs text-ink-600">
+            {liability.unpostedPoints} referral points earned and not yet in a customer&apos;s wallet.
+            Posted on the 1st. <Link href="/admin/referrals" className="underline">Referrals</Link>
+          </p>
         </div>
       )}
 

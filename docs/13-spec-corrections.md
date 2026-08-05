@@ -2755,6 +2755,93 @@ alert unmounts before it can paint. The customer sees the settled state instead 
 the form was — which is the better confirmation. **Assert what the refresh leaves on screen, not what the
 action returned**; with server actions plus `revalidatePath` those are routinely different things.
 
+### Y7 · The `eyebrow` utility had a contrast bug in it for eleven milestones
+
+axe on `/account/referrals` reported `ink-500` on `forest-50` at **4.43:1** against a 4.5 floor. The rule
+that forbids exactly this was already written down — docs/13 §C, "secondary text on a tint is ink-600,
+never ink-500" — and the `@utility eyebrow` in `globals.css` broke it by baking the colour in:
+
+```css
+@utility eyebrow { … color: var(--color-ink-500); }
+```
+
+`ink-500` clears AA on cream at 4.53:1, so on the page backgrounds where eyebrows were first used it
+passed. **142 files use `bg-forest-50`**, and every eyebrow on one of them was a latent failure waiting
+for an axe pass to reach that page. Two new pages were simply the first ones covered.
+
+Fixed at the utility rather than at the two call sites, because the other 140 are the same bug and
+stepping around it leaves it for somebody else. The generalisation worth keeping:
+
+- **A utility that bakes in a colour has to use the colour that is safe on every surface it is used
+  on**, not the one that was safe on the first surface. `ink-600` clears AA on cream, `forest-50`,
+  `forest-100` and `surface` alike, and there is now a test that says so by name.
+- Rules recorded in prose do not enforce themselves. §C stated this rule in M5 and the utility violated
+  it the whole time, because nothing compared the two.
+
+### Y8 · Two links with the same name is a test failure and a real defect
+
+The referrals empty state offered a "referral terms" button, and the privacy note below it linked to the
+same page with the same words. Playwright's strict mode refused the ambiguity, which was the useful part:
+somebody navigating by link hears the same label twice for one destination.
+
+The fix was to delete the button. docs/04 §9 wants an empty state to say what to do next, and the body
+already did — the thing to do is share the link, which is the panel directly above. **Strict-mode
+ambiguity is worth reading as a design note rather than routing around with `.first()`.**
+
+And the mistake made while fixing it, because it costs a build every time: `{/* … */}` cannot open a
+ternary branch in JSX. `cond ? {/* c */} <X/> : …` parses the comment as an object literal and fails with
+`Expected '</', got …`. The comment goes above the expression.
+
+### Y9 · A `having` clause that read like an optimisation and encoded a false condition
+
+The monthly referral true-up looped over referrers with:
+
+```sql
+group by l.referrer_id
+having coalesce(sum(e.points), 0) <> 0   -- "skip anyone with nothing to pay"
+```
+
+That is not what needing a true-up means. The condition is `earned <> already_posted`, not `earned <> 0`,
+and the difference is exactly the case the true-up was built for:
+
+```
+earn 50  → posted, wallet holds 50
+spend 40 → wallet holds 10
+refund   → earnings net to 0
+```
+
+Owed is `0 − 50 = −50`, floored to the balance, so 10 points should come back. The `having` excluded the
+referrer — their earnings summed to zero — and the wallet kept 10 points for an order that was returned.
+**Silently and permanently**: no later run would revisit them either, because their earnings stay at zero
+for ever.
+
+Removed rather than corrected: the per-referrer `owed = 0 → continue` inside the loop already skips
+everybody with nothing to do, so the clause was a premature optimisation that happened to be a wrong
+predicate. The generalisation: **when a query filters on a proxy for the real condition, the proxy is
+what will be wrong.** `sum <> 0` was standing in for "differs from what we paid", and the two agree on
+every case except the one that matters.
+
+Found by a test written specifically to describe that sequence. It would not have been found by a test
+that only checked "earn, post, earn again, post again".
+
+### Y10 · `split_part` on a string that starts with the delimiter
+
+`mask_person_name('  Arta Berisha')` returned `një klient` — the generic label a customer with no name
+gets. `split_part('  Arta Berisha', ' ', 1)` is the **empty string**, because the first field of a string
+beginning with the delimiter is empty; `nullif(trim(''), '')` is null, the concatenation collapses to
+null, and `coalesce` falls through.
+
+So a customer who typed a leading space into their name appeared to every referrer as "a customer", and
+`'Arta   Berisha'` failed the same way one field along. Fixed by normalising before splitting:
+
+```sql
+nullif(regexp_replace(trim(coalesce(p_full_name, '')), '\s+', ' ', 'g'), '')
+```
+
+Worth remembering because the input is a free-text field a person typed on a phone, and `trim` alone is
+not enough — `split_part` cares about *internal* runs too. Any `split_part` over user-entered text wants
+whitespace collapsed first.
+
 ---
 
 ## E. Stack decisions taken at M0

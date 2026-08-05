@@ -1,9 +1,11 @@
 import 'server-only';
 import { cookies } from 'next/headers';
+import encodeQR from '@paulmillr/qr';
 import { createClient } from '@/lib/supabase/server';
 import { createPublicClient } from '@/lib/supabase/public';
 import { logger } from '@/lib/logger';
 import { REFERRAL_COOKIE_NAME } from '@/lib/constants';
+import { siteOrigin } from '@/lib/site';
 import { getCurrentUser } from '@/features/auth/queries';
 import { normalizeReferralCode } from '@/features/referrals/schemas';
 
@@ -108,5 +110,113 @@ export async function getCodeEntryState(): Promise<CodeEntryState> {
     canEnter: enabled && !source && !hasOrdered,
     source,
     suggestedCode: cookieCode,
+  };
+}
+
+/**
+ * The link a referrer shares. `https://biocode.fit/r/BIO-K7F2M`.
+ *
+ * Unprefixed, so it opens in Albanian — the default and the language of the prewritten share message.
+ * `/en/r/CODE` works identically for anyone who wants to send the English version.
+ */
+export function referralShareUrl(code: string): string {
+  return `${siteOrigin}/r/${code}`;
+}
+
+/**
+ * The same link as a QR code, for showing somebody in person.
+ *
+ * A 33×33 GIF as a `data:` URI rather than an inline SVG: the SVG form of this is 18 kB of `<rect>`
+ * elements, and this is 2 kB. It is scaled up by CSS with `image-rendering: pixelated`, which keeps the
+ * modules square instead of blurring them into something a scanner will not read.
+ *
+ * Encoded on the server, so the library never enters the browser bundle — the page costs nothing to
+ * anybody who does not open it. `data:` is already in the `img-src` allowlist (`next.config.ts`), so
+ * this needs no CSP change, and unlike a QR image service it does not hand a customer's invite code to
+ * a third party.
+ */
+export function referralQrDataUri(code: string): string {
+  const gif = encodeQR(referralShareUrl(code), 'gif', { ecc: 'medium', border: 2, scale: 1 });
+  return `data:image/gif;base64,${Buffer.from(gif).toString('base64')}`;
+}
+
+export interface ReferralListEntry {
+  /** "Arta B." — a first name and an initial, and never more (docs/17 §6). */
+  maskedName: string;
+  /** `YYYY-MM`. A month, not a date: a signup date is an identifier. */
+  joinedMonth: string;
+  status: 'pending' | 'approved' | 'revoked' | 'expired';
+  /** Days until the twelve months are up, or null when the link is not running. */
+  daysLeft: number | null;
+}
+
+export interface ReferralOverview {
+  code: string;
+  stats: {
+    approved: number;
+    pending: number;
+    expiring30d: number;
+    expired: number;
+    pointsAllTime: number;
+    pointsThisMonth: number;
+  };
+  referrals: ReferralListEntry[];
+}
+
+const STATUSES = ['pending', 'approved', 'revoked', 'expired'] as const;
+
+function toStatus(value: unknown): ReferralListEntry['status'] {
+  return (STATUSES as readonly string[]).includes(String(value))
+    ? (value as ReferralListEntry['status'])
+    : 'pending';
+}
+
+/**
+ * The referrer's whole view of the programme, from the one RPC allowed to produce it.
+ *
+ * There is no fallback to a table read here, and there could not be: `referral_links` has no referrer
+ * select policy and `referral_earnings` has no customer policy at all (docs/17 §6). If this RPC fails
+ * the page shows its error state — which is the correct outcome, because the alternative would be a
+ * second read path, and a second read path is how the first one's guarantees get quietly bypassed.
+ */
+export async function getReferralOverview(): Promise<ReferralOverview | null> {
+  const user = await getCurrentUser();
+  if (!user) return null;
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc('my_referral_overview');
+
+  if (error) {
+    logger.error('my_referral_overview failed', { cause: error.message });
+    return null;
+  }
+
+  const raw = data as {
+    code?: string | null;
+    stats?: Record<string, number>;
+    referrals?: { masked_name?: string; joined_month?: string; status?: string; days_left?: number | null }[];
+  } | null;
+
+  if (!raw?.code) return null;
+
+  const stats = raw.stats ?? {};
+  const num = (key: string) => (typeof stats[key] === 'number' ? stats[key] : 0);
+
+  return {
+    code: raw.code,
+    stats: {
+      approved: num('approved'),
+      pending: num('pending'),
+      expiring30d: num('expiring_30d'),
+      expired: num('expired'),
+      pointsAllTime: num('points_all_time'),
+      pointsThisMonth: num('points_this_month'),
+    },
+    referrals: (raw.referrals ?? []).map((row) => ({
+      maskedName: row.masked_name ?? 'Klient',
+      joinedMonth: row.joined_month ?? '',
+      status: toStatus(row.status),
+      daysLeft: typeof row.days_left === 'number' ? row.days_left : null,
+    })),
   };
 }

@@ -49,6 +49,21 @@ Framework Next.js; regions: `fra1` (closest to Kosovo). Image optimization remot
 
 (05:00 UTC = 06/07:00 CET; housekeeping: abandon stale carts, cancel unpaid card orders > 24 h, purge rate_limits older than 2 d.) All cron routes verify `Authorization: Bearer CRON_SECRET`, are idempotent, and log a summary row (email_log-style or Sentry breadcrumb).
 
+**As built**, `vercel.json` carries four: `housekeeping` (03:30), `payouts` (04:15), `referrals`
+(04:45) and `subscriptions` (05:00). Spaced fifteen minutes apart so a slow run cannot overlap the next,
+and ordered cheapest-first. `review-requests` from the spec above was folded into `housekeeping`.
+
+`referrals` (docs/17 §3) runs four passes daily: expire links whose twelve months are up, auto-approve
+flag-free links whose referee has a delivered order (off by default), post the month's points **on the
+1st only**, then send the T−30 and T−7 expiry notices. Two things worth knowing when reading its logs:
+
+- The posting pass is a **true-up** — it pays the difference between what the earnings ledger says a
+  referrer has earned and what their wallet already holds — so a replayed invocation pays nothing the
+  second time. `pointsPosted: 0` on a re-run is the correct outcome, not a failure.
+- It is restricted to the 1st **by choice, not by safety**. Running it daily would be harmless
+  arithmetically and would produce one ledger row per referrer per day, which is the purchase timeline
+  docs/17 §0.2 exists to avoid publishing to the referrer.
+
 ## 6. Monitoring & alerting
 
 Sentry (errors + performance sampling 10%); alert rules: any checkout/webhook/cron error → immediate email/Slack; error-rate spike. Uptime: external ping on `/` and `/api/health` (simple route returning db `select 1`) every minute (Better Stack/UptimeRobot). Weekly review: Core Web Vitals (Vercel), zero-result searches (add lightweight logging Phase 2), low-stock report. Admin dashboard doubles as business monitor.

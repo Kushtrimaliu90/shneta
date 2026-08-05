@@ -60,17 +60,17 @@ Legend: ✅ done and verified · 🟡 partial · ⬜ not started · ➖ not appl
 | ----------------------------------------------------- | ----- | ----------------------------------------------------------------------------------------------------------------- |
 | Next.js app builds for production                     | ✅    | `pnpm build`, 86 routes, no warnings                                                                              |
 | First Load JS within the 170 kB budget (`docs/09 §3`) | ✅    | 120–138 kB per route, enforced by `check:bundle`                                                                  |
-| Database schema applied                               | ✅    | **50** migrations on `rszbpdgfvyofvmuishmn`, Postgres 17.6                                                        |
+| Database schema applied                               | ✅    | **62** migrations on `rszbpdgfvyofvmuishmn`, Postgres 17.6                                                        |
 | RLS enabled on every public table (`docs/10 §4`)      | ✅    | `tables_without_rls()` → `[]`                                                                                     |
-| Integration suite against a real database             | ✅    | **354/354** — includes the docs/09 §5 attack suite                                                                |
-| Unit suite                                            | ✅    | **310/310**                                                                                                       |
+| Integration suite against a real database             | ✅    | **478/478** — includes the docs/09 §5 attack suite and the M13 referral suites                                     |
+| Unit suite                                            | ✅    | **351/351**                                                                                                       |
 | E2E + axe on both locales                             | ✅    | **484/484**, repeatable; zero serious/critical violations on any asserted surface                                 |
-| Generated DB types match the live schema              | ✅    | `db:types:linked` → 4803 lines, `pnpm verify` green                                                              |
+| Generated DB types match the live schema              | ✅    | `db:types:linked` → 5111 lines, `pnpm verify` green                                                              |
 | CI pipeline (quality · integration+E2E · audit)       | ✅    | `.github/workflows/ci.yml`                                                                                        |
 | Security headers (`docs/10 §5`)                       | 🟡    | asserted by an E2E test. **CSP is report-only in production** — `CSP_ENFORCE` is unset (§20)                       |
 | `/api/health` for uptime monitoring (`docs/10 §6`)    | ✅    | returns `{status:"ok",database:"ok",commit}` — the commit is how you tell which build answered                     |
 | Sitemap + robots with hreflang (`docs/08 §4`)         | ✅    | Reciprocal sq/en alternates on every URL, and no doubled slash — both asserted (§20)                               |
-| Two crons, `CRON_SECRET`-guarded                      | ✅    | housekeeping 03:30, subscription renewals 05:00; both 401 unauthenticated, 200 with token                         |
+| Four crons, `CRON_SECRET`-guarded                     | ✅    | housekeeping 03:30, payouts 04:15, referrals 04:45, subscription renewals 05:00; all 401 unauthenticated, 200 with token |
 | On-demand ISR purge, secret-guarded                   | ✅    | rejects unknown tags, 401 unauthenticated                                                                         |
 | Sentry server + edge                                  | ✅    | inert without a DSN; client SDK lazy-loaded                                                                       |
 | `vercel.json` — region `fra1`, crons                  | ✅    |                                                                                                                   |
@@ -684,6 +684,44 @@ manual step the whole marketplace depends on.
 
 The payout cron builds statements on the 1st and the 16th; it does not pay anybody. Transfers are
 manual and recorded with a bank reference on `/admin/payouts`.
+
+---
+
+
+## 19b · The referral programme (M13)
+
+Built after the marketplace, in the order docs/17 §8 lays out. What it does: a customer has a permanent
+`BIO-XXXXX` code; somebody who registers with it is linked to them for ever, and for twelve months the
+referrer earns **1% of that customer's eligible spend, paid in loyalty points**.
+
+| Item | State | Evidence |
+| --- | --- | --- |
+| Codes on every profile, generated at signup | ✅ | `generate_referral_code()`, alphabet with no O/0/I/1/S/5 |
+| Entry by three routes | ✅ | sign-up field, `/r/{CODE}` + 30-day httpOnly cookie, account until the first order |
+| One referrer per customer, for ever | ✅ | `unique (referee_id)`; self, cycle and shared-phone all refused |
+| Accrual on delivery, with clawback | ✅ | 21 integration tests; €100 → exactly 100 points; partial refunds converge |
+| `/account/referrals` | ✅ | share tools, WhatsApp/Viber, server-rendered QR, masked list, axe clean |
+| `/admin/referrals` | ✅ | queue with signup gaps, links, manual link, earnings + CSV, fraud panel; 21 tests |
+| `/api/cron/referrals` | ✅ | expire · auto-approve · monthly true-up · expiry notices · event emails; 33 tests |
+| Seven bilingual emails | ✅ | logged through `email_log`; copy privacy asserted by a unit test |
+| `/legal/referral-terms` | 🟡 | written and live, **not reviewed by a lawyer** — see §7 item 6 |
+| Referrer cannot learn what a referral spent | ✅ | no referrer policy on `referral_links`, no customer policy at all on `referral_earnings`, asserted in both directions |
+
+**The privacy design is the substance of this milestone**, and it is worth stating what it cost. docs/17
+§0.2 admits a limit that cannot be engineered away: a referrer with exactly one active referral can
+divide their own points by the rate and read that person's spend. Everything else exists to stop the
+*shape* of the data making it worse — and "everything else" is a set of **absences**, which is precisely
+what nobody notices breaking. So they are asserted directly: the RPC's payload keys, the missing
+policies, the null `order_id` on a referral ledger row, and an allowlist of the placeholders the email
+templates may use.
+
+**Two decisions are the owner's, not the code's:**
+
+1. **1% back.** §0.1 unified the point value, which took loyalty from an effective 5% to 1%. It is
+   coherent and it is a price change. See §7 item 7.
+2. **`auto_approve` ships off.** Every referral waits for a person. Turning it on approves a link once
+   the referred customer's first order is delivered — and never approves a link carrying a risk flag,
+   which is what keeps the fraud panel from becoming decorative.
 
 ---
 

@@ -119,8 +119,33 @@ loyalty earn, idempotent via the unique constraint:
    unposted for the cron. Either way the earning row exists immediately for admin.
 5. Refunds call the same function with `reason='refund'` and a negative base.
 
+Four details the implementation settled (migration 58), because each of them is a decision rather
+than a mechanic:
+
+- **The insert is the idempotency, not a preceding check.** The earning row is written before the
+  wallet moves, so a second concurrent call loses the unique `(order_id, reason)` conflict, gets no
+  row back and never posts. Posting first and deleting on conflict is the same race with extra steps.
+- **One `refund` row per order, carrying the running total.** The unique constraint means a second
+  partial refund cannot add a second row, so the row holds the cumulative clawback and only the
+  *difference* reaches the wallet. Written naively, refunding €50 of a €100 order twice would reclaim
+  only the first half's points.
+- **Referral ledger rows carry no `order_id`.** An order id on the referrer's own ledger row would
+  date a referred customer's shopping, which is exactly what §0.2 protects. The order lives on
+  `referral_earnings`, which has no customer policy at all, so there is no join to follow.
+- **A clawback is floored to the referrer's balance.** `sync_loyalty_balance` clamps the balance at
+  zero, so posting −100 against a balance of 20 would leave the balance at 0 and the ledger summing to
+  −80 — and a ledger that disagrees with the balance is worse than an under-recovered clawback.
+
 `/api/cron/referrals`, `CRON_SECRET`-guarded, daily: monthly posting on the 1st (one ledger row per
 referrer per month), expiry flips, T−30 and T−7 expiry emails, and auto-approve when enabled.
+
+**The monthly sweep must be a true-up, not a sum of unposted rows.** Because a clawback posts only
+what the balance allowed, the amount a referrer is owed is
+`sum(referral_earnings.points) − sum(posted referral loyalty_transactions)` across the whole link, not
+the total of rows whose `loyalty_transaction_id` is null. Summing unposted rows would pay a shortfall
+twice: once as an unrecovered clawback, and again the following month. `loyalty_transaction_id` marks
+a row as settled and is what stops the sweep re-paying it; the true-up is what makes the two ledgers
+agree.
 
 ## 4 · Customer experience
 
@@ -161,16 +186,44 @@ Settings. All mutations audited. `admin` full; `support` queue + revoke.
 Referrer: joined (pending) · approved · monthly earnings summary · T−30 and T−7 expiry · revoked.
 Referee: welcome mentioning the friend's code and a link to the terms. Bilingual, logged.
 
+**The rule all seven obey:** nothing about the referred customer. Not a name, not an order, not an
+amount, not a date. §0.2 spends the whole design keeping a referrer from learning what their referral
+bought, and an email is the easiest place to give it away — "Arta just ordered!" reads like a nice
+touch and is a disclosure. The subject of every sentence is the referrer and their own points.
+
+**Three are built** (`src/features/referrals/email.ts`), the three the cron sends: the monthly summary
+and the two expiry notices, which share one template because they say the same thing at different
+volumes.
+
+**Four remain**, and the delivery mechanism for them is decided rather than open, because the obvious
+one does not work. `joined`, `approved`, `revoked` and the referee's `welcome` are all triggered by a
+state change that can happen in **four different places** — the sign-up trigger inside
+`handle_new_user` (which is SQL and cannot send mail), the account claim action, the admin queue, and
+the auto-approve cron. Wiring each site separately means four call sites, three of which are easy to
+forget and one of which is impossible.
+
+So: **a sweep with a per-link flag.** Add `joined_email_at`, `approved_email_at` and
+`revoked_email_at` to `referral_links`; the daily cron selects links whose relevant column is null and
+whose state qualifies, sends, and stamps the column. One implementation, idempotent by the flag rather
+than by luck, and it covers a link however it was created — including one an admin made by hand at a
+psql prompt. The cost is up to a day's delay on a "somebody used your code" email, which is the right
+trade for a message nobody acts on urgently.
+
 ## 8 · Build order
 
 1. ~~Migration + backfill + trigger + RLS + `my_referral_overview` and its shape test.~~ **Done.**
 2. ~~Point-value unification (§0.1) across settings, loyalty UI, emails, seed.~~ **Done.**
 3. ~~Code entry: sign-up field, `/r/{CODE}` + cookie, account grace entry, validation.~~ **Done.**
-4. Accrual engine + delivered hook + refund clawback + idempotency tests.
-5. Account referrals page.
-6. Admin queue, links, manual link, revoke, earnings, fraud panel, settings.
-7. Crons: monthly posting, expiry, emails, optional auto-approve.
-8. Emails; terms page; E2E + a11y.
+4. ~~Accrual engine + delivered hook + refund clawback + idempotency tests.~~ **Done.**
+5. ~~Account referrals page.~~ **Done.**
+6. ~~Admin queue, links, manual link, revoke, earnings, fraud panel, settings.~~ **Done.**
+7. ~~Crons: monthly posting, expiry, emails, optional auto-approve.~~ **Done** — `/api/cron/referrals`,
+   four passes, with the monthly summary and both expiry notices.
+8. ~~Emails; terms page; E2E + a11y.~~ **Done.** All seven templates ship, the four event-driven ones via
+   the sweep in §7. The terms page landed with step 3. `e2e/referrals.spec.ts` is 40 checks across both
+   viewports including axe on every new screen, and `tests/unit/referral-email-copy.test.ts` holds §0.2's
+   rule against the copy table itself — an allowlist of the placeholders this feature has data for, so a
+   future template cannot describe a referred customer's spending even by accident.
 
 ## 9 · Tests
 

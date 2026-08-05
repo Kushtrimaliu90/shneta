@@ -5,6 +5,7 @@ import { Alert } from '@/components/ui/alert';
 import { SubmitButton } from '@/components/ui/submit-button';
 import {
   saveLoyaltySettings,
+  saveReferralSettings,
   savePaymentSettings,
   saveStoreSettings,
   saveTaxSettings,
@@ -12,9 +13,11 @@ import {
   type SettingsState,
 } from '@/features/settings/actions';
 import { SETTINGS_ERRORS } from '@/features/settings/copy';
+import { fromCents } from '@/lib/money';
 import type {
   CheckoutSettings,
   LoyaltySettings,
+  ReferralSettings,
   StoreSettings,
   SubscriptionSettings,
   TaxSettings,
@@ -397,6 +400,166 @@ export function LoyaltyForm({
       <div className="mt-4">
         <SubmitButton size="sm" loadingLabel="Saving…">
           Save loyalty and subscriptions
+        </SubmitButton>
+      </div>
+      <Feedback state={state} />
+    </form>
+  );
+}
+
+/**
+ * docs/17 §2 — the referral programme.
+ *
+ * Its own section rather than folded into loyalty, even though referral rewards are paid in loyalty
+ * points, because the two answer different questions: loyalty is what a point is worth, and this is who
+ * gets paid for whose spending. Mixing them would put "1% of a friend's orders" next to "points per
+ * euro" and invite somebody to change one meaning to alter the other.
+ */
+export function ReferralForm({ settings }: { settings: ReferralSettings }) {
+  const [state, action] = useActionState<SettingsState, FormData>(saveReferralSettings, null);
+
+  return (
+    <form action={action}>
+      <label className="flex items-start gap-2.5 text-sm">
+        <input
+          type="checkbox"
+          name="enabled"
+          defaultChecked={settings.enabled}
+          className="mt-0.5 size-4 shrink-0 rounded-[3px] border border-line-strong"
+        />
+        <span className="text-ink-600">
+          Run the programme. Turning it off stops new links and stops accrual; links already approved
+          keep the points they earned.
+        </span>
+      </label>
+
+      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+        <div>
+          <label htmlFor="ratePct" className={labelClass}>
+            Percent of a referred customer&apos;s spend
+          </label>
+          <input
+            id="ratePct"
+            name="ratePct"
+            type="number"
+            step="0.25"
+            min={0}
+            max={20}
+            defaultValue={settings.ratePct}
+            required
+            className={inputClass}
+            data-numeric
+          />
+          {fieldError(state, 'ratePct') && (
+            <p className="mt-1 text-[13px] text-error">{fieldError(state, 'ratePct')}</p>
+          )}
+          {/*
+            The two things an operator needs to know before changing this: it applies going forward
+            only, and the number is written out in the customer-facing terms.
+          */}
+          <p className="mt-1 text-[11px] text-ink-500">
+            Applies to future orders only. The referral terms page states this figure in words — change
+            it there too.
+          </p>
+        </div>
+
+        <div>
+          <label htmlFor="durationMonths" className={labelClass}>
+            Months a referral keeps earning
+          </label>
+          <input
+            id="durationMonths"
+            name="durationMonths"
+            type="number"
+            min={1}
+            max={60}
+            defaultValue={settings.durationMonths}
+            required
+            className={inputClass}
+            data-numeric
+          />
+          <p className="mt-1 text-[11px] text-ink-500">
+            Counted from approval, not from signup, so a slow queue costs the referrer nothing.
+          </p>
+        </div>
+
+        <div>
+          <label htmlFor="minOrderEur" className={labelClass}>
+            Smallest order that counts (€)
+          </label>
+          <input
+            id="minOrderEur"
+            name="minOrderEur"
+            type="number"
+            step="0.01"
+            min={0}
+            defaultValue={fromCents(settings.minOrderCentsToCount)}
+            required
+            className={inputClass}
+            data-numeric
+          />
+        </div>
+
+        <div>
+          <label htmlFor="maxPointsPerLinkPerYear" className={labelClass}>
+            Most one referral can earn (points)
+          </label>
+          <input
+            id="maxPointsPerLinkPerYear"
+            name="maxPointsPerLinkPerYear"
+            type="number"
+            min={0}
+            defaultValue={settings.maxPointsPerLinkPerYear}
+            required
+            className={inputClass}
+            data-numeric
+          />
+          <p className="mt-1 text-[11px] text-ink-500">
+            Reaching it pays up to the cap and flags the link for review rather than dropping the rest
+            silently.
+          </p>
+        </div>
+
+        <div>
+          <label htmlFor="accrualMode" className={labelClass}>
+            When points reach the wallet
+          </label>
+          <select
+            id="accrualMode"
+            name="accrualMode"
+            defaultValue={settings.accrualMode}
+            className={inputClass}
+          >
+            <option value="monthly">Once a month, as one entry</option>
+            <option value="immediate">As each order is delivered</option>
+          </select>
+          {/*
+            This is the privacy control, and the wording says so. Per-order posting turns a referrer's
+            own points ledger into a dated list of when a referred customer shopped (docs/17 §0.2).
+          */}
+          <p className="mt-1 text-[11px] text-ink-500">
+            Monthly is the safer default: posting per order tells the referrer the dates their friend
+            shopped.
+          </p>
+        </div>
+      </div>
+
+      <label className="mt-4 flex items-start gap-2.5 text-sm">
+        <input
+          type="checkbox"
+          name="autoApprove"
+          defaultChecked={settings.autoApprove}
+          className="mt-0.5 size-4 shrink-0 rounded-[3px] border border-line-strong"
+        />
+        <span className="text-ink-600">
+          Approve a referral automatically once the new customer&apos;s first order is delivered. Off
+          means every link waits for a person, which is the launch setting.
+        </span>
+      </label>
+
+      <div className="mt-4">
+        <SubmitButton size="sm" loadingLabel="Saving…">
+          Save referrals
         </SubmitButton>
       </div>
       <Feedback state={state} />

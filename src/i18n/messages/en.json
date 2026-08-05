@@ -176,7 +176,8 @@
       "wishlist": "Wishlist",
       "reviews": "Reviews",
       "loyalty": "Points",
-      "settings": "Settings"
+      "settings": "Settings",
+      "referrals": "Invite friends"
     },
     "overview": {
       "noOrdersYet": "You haven't ordered anything yet.",
@@ -204,7 +205,9 @@
         "redeem": "Exchanged for a coupon",
         "adjustment": "Adjustment",
         "expiry": "Expired",
-        "clawback": "Order refunded"
+        "clawback": "Order refunded",
+        "referral": "A friend you invited shopped",
+        "referral_clawback": "Referral adjustment"
       },
       "errors": {
         "signedOut": "Please sign in first.",
@@ -330,6 +333,44 @@
         "tooManyAttempts": "Too many attempts. Please try again later.",
         "notSignedIn": "Your session expired. Please sign in again.",
         "generic": "Something went wrong. Please try again."
+      },
+      "pageTitle": "Invite friends",
+      "pageIntro": "Share your code. For a year after a friend joins with it, you earn {percent}% of what they spend in points — {points} points is €1.",
+      "paused": "The invite programme is paused just now. Codes already recorded keep earning.",
+      "yourCode": "Your code",
+      "copyCode": "Copy code",
+      "copyLink": "Copy link",
+      "copied": "Copied",
+      "yourLink": "Your link",
+      "share": "Share",
+      "shareMessage": "I use BIOCODE for supplements — real labels, honest prices. Here's my invite link: {url}",
+      "qrTitle": "In person",
+      "qrAlt": "QR code for the invite link with code {code}",
+      "qrHint": "Let a friend scan it.",
+      "stats": {
+        "approved": "Active",
+        "pending": "Awaiting review",
+        "expiring": "Ending soon",
+        "expired": "Ended",
+        "pointsAllTime": "Points earned",
+        "pointsThisMonth": "This month"
+      },
+      "worth": "Worth {value}.",
+      "goToWallet": "See your points",
+      "postingNote": "Added to your points once a month.",
+      "listTitle": "Friends who joined",
+      "joinedIn": "Joined {month}",
+      "daysLeft": "{count, plural, one {# day left} other {# days left}}",
+      "status": {
+        "pending": "Awaiting review",
+        "approved": "Active",
+        "revoked": "Stopped",
+        "expired": "Ended"
+      },
+      "privacyNote": "You can see who joined and when, and nothing else — not what they bought, not what they spent. That is on purpose; the <terms>referral terms</terms> explain it.",
+      "empty": {
+        "title": "Nobody has used your code yet",
+        "body": "Send the link to one person who asks you what you take. That is usually how it starts."
       }
     }
   },

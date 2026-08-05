@@ -91,7 +91,12 @@ export type Capability =
   | 'merchants.manage'
   | 'offers.review'
   | 'routing.manage'
-  | 'payouts.manage';
+  | 'payouts.manage'
+  // docs/17 §5 — referrals. Support works the queue and can stop a link; everything that moves money
+  // or changes the rate is admin.
+  | 'referrals.view'
+  | 'referrals.review'
+  | 'referrals.manage';
 
 /**
  * Who holds each capability. `admin` is omitted from every list and granted unconditionally
@@ -132,6 +137,18 @@ const CAPABILITIES: Record<Capability, readonly UserRole[]> = {
   'offers.review': ['product_manager'],
   'routing.manage': ['support', 'warehouse_manager'],
   'payouts.manage': [],
+  /*
+   * docs/17 §5 — "`admin` full; `support` queue + revoke."
+   *
+   * Split three ways rather than two because the three actions carry different risk. Reading the queue
+   * is harmless. Approving or revoking a link is reversible and is exactly the judgement call support
+   * makes all day — "are these two the same person?" — so making them wait for an admin would leave
+   * referrals pending for days. Creating a link by hand, extending a clock, or changing the rate all
+   * mint money, and stay with admin.
+   */
+  'referrals.view': ['support'],
+  'referrals.review': ['support'],
+  'referrals.manage': [],
 };
 
 /**
@@ -265,6 +282,12 @@ const NAV: NavSection[] = [
         capability: 'compliance.approve',
       },
       { href: '/admin/coupons', label: 'Coupons', icon: 'coupons', capability: 'coupons.view' },
+      {
+        href: '/admin/referrals',
+        label: 'Referrals',
+        icon: 'customers',
+        capability: 'referrals.view',
+      },
     ],
   },
   {

@@ -263,6 +263,70 @@ export async function saveLoyaltySettings(
 }
 
 // -----------------------------------------------------------------------------
+// Referrals (docs/17 §2)
+// -----------------------------------------------------------------------------
+
+const referralSchema = z.object({
+  enabled: z.string().optional(),
+  ratePct: z.coerce.number().min(0).max(20),
+  durationMonths: z.coerce.number().int().min(1).max(60),
+  autoApprove: z.string().optional(),
+  accrualMode: z.enum(['monthly', 'immediate']),
+  minOrderEur: z.coerce.number().min(0).max(1000),
+  maxPointsPerLinkPerYear: z.coerce.number().int().min(0).max(1_000_000),
+});
+
+/**
+ * The programme's dials.
+ *
+ * Two of them deserve a word. `ratePct` changes what referrers are paid **from now on** — the terms
+ * page promises that, and an accrual already written to `referral_earnings` is not rewritten by
+ * anything here. And `accrualMode` is a privacy control rather than a performance one: `monthly`
+ * batches the wallet movement so a referrer's ledger is not a dated list of when a referred customer
+ * shopped (docs/17 §0.2). Switching it to `immediate` gives that away, which is why it is a
+ * deliberate choice on a settings screen and not a default.
+ */
+export async function saveReferralSettings(
+  _previous: SettingsState,
+  formData: FormData,
+): Promise<SettingsState> {
+  const gate = await requireCapability('settings.manage');
+  if (!gate.ok) return settingsFail(gate.error);
+
+  const parsed = referralSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) {
+    return fromFieldErrors<SettingsErrorKey, { message?: string }>(
+      'admin.settings.errors.checkFields',
+      parsed.error.flatten(),
+    );
+  }
+
+  const input = parsed.data;
+
+  /*
+   * The keys the SQL reads, spelled exactly as `accrue_referral_for_order` and `link_referral` read
+   * them. `grace` is carried through unchanged because nothing exposes it yet — the grace window is
+   * "until the first order" in code, and a settings field offering a choice the engine cannot honour
+   * would be worse than no field.
+   */
+  return writeSetting(
+    'referral',
+    {
+      enabled: input.enabled === 'on',
+      rate_pct: input.ratePct,
+      duration_months: input.durationMonths,
+      auto_approve: input.autoApprove === 'on',
+      accrual_mode: input.accrualMode,
+      min_order_cents_to_count: toCents(input.minOrderEur),
+      max_points_per_link_per_year: input.maxPointsPerLinkPerYear,
+      max_referrals_per_customer: null,
+      grace: 'until_first_order',
+    },
+    [CACHE_TAGS.settings],
+  );
+}
+
+// -----------------------------------------------------------------------------
 // Shipping methods
 // -----------------------------------------------------------------------------
 

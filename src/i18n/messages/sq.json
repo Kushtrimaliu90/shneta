@@ -176,7 +176,8 @@
       "wishlist": "Lista e dëshirave",
       "reviews": "Vlerësimet",
       "loyalty": "Pikët",
-      "settings": "Cilësimet"
+      "settings": "Cilësimet",
+      "referrals": "Ftoni shokët"
     },
     "overview": {
       "noOrdersYet": "Ende nuk ke porosi.",
@@ -204,7 +205,9 @@
         "redeem": "Shkëmbyer për kupon",
         "adjustment": "Rregullim",
         "expiry": "Skaduar",
-        "clawback": "Porosi e rimbursuar"
+        "clawback": "Porosi e rimbursuar",
+        "referral": "Një shok që ftuat bëri porosi",
+        "referral_clawback": "Korrigjim i ftesës"
       },
       "errors": {
         "signedOut": "Të lutemi kyçu më parë.",
@@ -330,6 +333,44 @@
         "tooManyAttempts": "Shumë përpjekje. Provoni më vonë.",
         "notSignedIn": "Sesioni skadoi. Hyni përsëri.",
         "generic": "Diçka shkoi keq. Provoni përsëri."
+      },
+      "pageTitle": "Ftoni shokët",
+      "pageIntro": "Shpërndani kodin tuaj. Për një vit pasi një shok regjistrohet me të, fitoni {percent}% të shpenzimit të tij në pikë — {points} pikë janë 1 €.",
+      "paused": "Programi i ftesave është i ndalur për momentin. Ftesat e regjistruara vazhdojnë të fitojnë.",
+      "yourCode": "Kodi i juaji",
+      "copyCode": "Kopjo kodin",
+      "copyLink": "Kopjo linkun",
+      "copied": "U kopjua",
+      "yourLink": "Linku i juaji",
+      "share": "Shpërndaj",
+      "shareMessage": "Suplementet i marr në BIOCODE — etiketa të vërteta, çmime të ndershme. Ky është linku i ftesës nga unë: {url}",
+      "qrTitle": "Nga dora në dorë",
+      "qrAlt": "Kod QR për linkun e ftesës me kodin {code}",
+      "qrHint": "Lëreni shokun ta skanojë.",
+      "stats": {
+        "approved": "Aktive",
+        "pending": "Në pritje",
+        "expiring": "Po përfundojnë",
+        "expired": "Përfunduar",
+        "pointsAllTime": "Pikë të fituara",
+        "pointsThisMonth": "Këtë muaj"
+      },
+      "worth": "Vlejnë {value}.",
+      "goToWallet": "Shiko pikët",
+      "postingNote": "Shtohen në pikët tuaja një herë në muaj.",
+      "listTitle": "Shokët që u regjistruan",
+      "joinedIn": "U regjistrua {month}",
+      "daysLeft": "{count, plural, one {# ditë e mbetur} other {# ditë të mbetura}}",
+      "status": {
+        "pending": "Në pritje",
+        "approved": "Aktive",
+        "revoked": "E ndalur",
+        "expired": "Përfunduar"
+      },
+      "privacyNote": "Shihni kush u regjistrua dhe kur, dhe asgjë tjetër — as çka bleu, as sa shpenzoi. Kjo është me qëllim; <terms>kushtet e ftesave</terms> e shpjegojnë.",
+      "empty": {
+        "title": "Kodin tuaj nuk e ka përdorur ende askush",
+        "body": "Dërgoni linkun njërit që ju pyet çka merrni. Ashtu zakonisht fillon."
       }
     }
   },

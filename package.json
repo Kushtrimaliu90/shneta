@@ -39,6 +39,7 @@
   },
   "dependencies": {
     "@hookform/resolvers": "5.5.7",
+    "@paulmillr/qr": "^0.3.0",
     "@sentry/nextjs": "10.69.0",
     "@supabase/ssr": "0.12.4",
     "@supabase/supabase-js": "2.111.0",

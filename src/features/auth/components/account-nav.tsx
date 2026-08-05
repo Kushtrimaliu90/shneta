@@ -2,6 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 import {
+  Gift,
   Heart,
   LayoutDashboard,
   MapPin,
@@ -31,6 +32,7 @@ interface AccountNavItem {
     | 'wishlist'
     | 'reviews'
     | 'loyalty'
+    | 'referrals'
     | 'settings';
   href: string;
   icon: LucideIcon;
@@ -45,6 +47,9 @@ const ITEMS: readonly AccountNavItem[] = [
   { key: 'wishlist', href: '/account/wishlist', icon: Heart },
   { key: 'reviews', href: '/account/reviews', icon: Star },
   { key: 'loyalty', href: '/account/loyalty', icon: Ticket },
+  // Next to loyalty rather than at the end: referral rewards are paid in points, so the two pages
+  // answer halves of the same question.
+  { key: 'referrals', href: '/account/referrals', icon: Gift },
   { key: 'settings', href: '/account/settings', icon: Settings },
 ];
 

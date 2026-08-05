@@ -16,12 +16,21 @@ import { getCurrentUser } from '@/features/auth/queries';
  * `auth.uid()`, so there is no user filter here to forget.
  */
 
+/**
+ * Every reason the ledger's check constraint allows (migration 58).
+ *
+ * The list has to match, or `toReason` quietly relabels an unknown reason as `adjustment` — so a
+ * referral reward would appear on the customer's own points page as "Adjustment", which reads like
+ * somebody at BioCode moved their balance by hand.
+ */
 export const LOYALTY_REASONS = [
   'earn_order',
   'redeem',
   'adjustment',
   'expiry',
   'clawback',
+  'referral',
+  'referral_clawback',
 ] as const;
 export type LoyaltyReason = (typeof LOYALTY_REASONS)[number];
 

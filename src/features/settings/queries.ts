@@ -19,7 +19,8 @@ export type SettingsGroup =
   | 'loyalty'
   | 'checkout'
   | 'inventory'
-  | 'subscriptions';
+  | 'subscriptions'
+  | 'referral';
 
 export interface StoreSettings {
   name: string;
@@ -43,6 +44,24 @@ export interface LoyaltySettings {
   minRedeemPoints: number;
 }
 
+/**
+ * docs/17 §2 — the referral programme's dials.
+ *
+ * `ratePct` is the only one that changes what a referrer is paid, and it changes it **prospectively**:
+ * the terms page says so, and an accrual that has already happened is a row in `referral_earnings` that
+ * nothing here rewrites.
+ */
+export interface ReferralSettings {
+  enabled: boolean;
+  ratePct: number;
+  durationMonths: number;
+  autoApprove: boolean;
+  /** `monthly` batches the wallet movement — a privacy decision, not a performance one (§0.2). */
+  accrualMode: 'monthly' | 'immediate';
+  minOrderCentsToCount: number;
+  maxPointsPerLinkPerYear: number;
+}
+
 export interface CheckoutSettings {
   maxItemQty: number;
   codEnabled: boolean;
@@ -58,6 +77,7 @@ export interface AllSettings {
   store: StoreSettings;
   tax: TaxSettings;
   loyalty: LoyaltySettings;
+  referral: ReferralSettings;
   checkout: CheckoutSettings;
   subscriptions: SubscriptionSettings;
 }
@@ -93,6 +113,7 @@ export async function getAllSettings(): Promise<AllSettings> {
   const store = byKey.get('store') ?? {};
   const tax = byKey.get('tax') ?? {};
   const loyalty = byKey.get('loyalty') ?? {};
+  const referral = byKey.get('referral') ?? {};
   const checkout = byKey.get('checkout') ?? {};
   const subscriptions = byKey.get('subscriptions') ?? {};
 
@@ -112,6 +133,15 @@ export async function getAllSettings(): Promise<AllSettings> {
       earnRatePointsPerEur: num(loyalty, 'earn_points_per_eur', num(loyalty, 'earn_rate_points_per_eur', 1)),
       pointValueCents: num(loyalty, 'point_value_cents', 1),
       minRedeemPoints: num(loyalty, 'min_redeem_points', 500),
+    },
+    referral: {
+      enabled: bool(referral, 'enabled', false),
+      ratePct: num(referral, 'rate_pct', 1),
+      durationMonths: num(referral, 'duration_months', 12),
+      autoApprove: bool(referral, 'auto_approve', false),
+      accrualMode: referral.accrual_mode === 'immediate' ? 'immediate' : 'monthly',
+      minOrderCentsToCount: num(referral, 'min_order_cents_to_count', 1000),
+      maxPointsPerLinkPerYear: num(referral, 'max_points_per_link_per_year', 20000),
     },
     checkout: {
       maxItemQty: num(checkout, 'max_item_qty', 20),
