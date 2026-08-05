@@ -380,7 +380,17 @@ export interface CatalogVariantOption {
   productName: LocalizedField;
   productSlug: string;
   brandName: string;
-  retailPriceCents: number;
+  /**
+   * BioCode's shelf price — **server-only**, and deliberately not part of what reaches the browser.
+   *
+   * The page needs it to work out what settlement pays the merchant per unit, and then sends only that
+   * figure. Marked here so the next person to widen a props object has to notice: this field is the one
+   * thing on the option a merchant is not shown (owner decision, 2026-08-05).
+   *
+   * It is not a secret — every price is on the storefront — but there is a difference between a merchant
+   * looking one up and the offer form printing it next to every search result while they price against it.
+   */
+  retailPriceCentsInternal: number;
 }
 
 /**
@@ -445,7 +455,7 @@ export async function searchCatalogVariants(
     productName: asLocalizedField(row.products.name),
     productSlug: row.products.slug,
     brandName: row.products.brands.name,
-    retailPriceCents: row.price_cents,
+    retailPriceCentsInternal: row.price_cents,
   }));
 }
 

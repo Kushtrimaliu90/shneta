@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import { fromCents } from '@/lib/money';
 import { getMyMerchant } from '@/features/merchants/queries';
 import { catalogueExport } from '@/features/merchants/proposal-queries';
 
@@ -22,8 +21,19 @@ import { catalogueExport } from '@/features/merchants/proposal-queries';
  * that layout makes: an approved merchant, or nothing. 404 rather than 403, matching the rest of the
  * portal — a status code should not confirm which URLs exist for people who may not use them.
  *
- * The data itself is public: every column is on the storefront. The gate is about who we invite to
- * download the whole catalogue in one request, not about secrecy.
+ * ── What is in it, and what is deliberately not ──
+ *
+ * Identifiers only: code, barcode, and the two names. **No price and no stock** (owner decision,
+ * 2026-08-05). Those columns existed so a merchant could see where BioCode was expensive or short, which
+ * is precisely the market intelligence they should not be handed.
+ *
+ * It does not make prices secret and nothing can — `product_variants` is world-readable for published
+ * products, because that is what serves the shop. What it removes is a sorted, machine-readable price
+ * list of the entire catalogue, produced on request. Reading prices off a website one at a time and
+ * downloading them as a spreadsheet are different activities.
+ *
+ * The remaining columns are public and this gate is about who we invite to download all of them at once,
+ * not about secrecy.
  */
 export const dynamic = 'force-dynamic';
 
@@ -42,20 +52,13 @@ export async function GET(): Promise<NextResponse> {
    * comma-separated file as one column per row. The parser accepts commas and tabs too, but the file we
    * hand out should open correctly on the merchant's machine without a dialog.
    */
-  const header = ['sku', 'barkod', 'produkti', 'varianti', 'cmimi_retail', 'ka_stok_biocode'];
+  const header = ['sku', 'barkod', 'produkti', 'varianti'];
   const quote = (value: string): string => `"${value.replace(/"/g, '""')}"`;
 
   const csv = [
     header.join(';'),
     ...rows.map((row) =>
-      [
-        row.sku,
-        row.barcode,
-        quote(row.productName),
-        quote(row.variantName),
-        fromCents(row.priceCents).replace('.', ','),
-        row.inStock ? 'po' : 'jo',
-      ].join(';'),
+      [row.sku, row.barcode, quote(row.productName), quote(row.variantName)].join(';'),
     ),
   ].join('\r\n');
 

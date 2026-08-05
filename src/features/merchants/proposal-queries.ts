@@ -230,8 +230,6 @@ export interface CatalogueRow {
   barcode: string;
   productName: string;
   variantName: string;
-  priceCents: number;
-  inStock: boolean;
 }
 
 /**
@@ -239,8 +237,15 @@ export interface CatalogueRow {
  *
  * The counterpart to `offersExport`, and the reason bulk *creation* is usable at all: a merchant cannot
  * paste `sku;price;stock` for a catalogue whose codes it has never been told, and every guess lands in the
- * report as `unknown_sku`. `inStock` is the commercially interesting column — where BioCode is short is
- * exactly where a merchant's offer wins the buy box.
+ * report as `unknown_sku`.
+ *
+ * **Identifiers only.** It carried `priceCents` and `inStock` until the owner decided merchants should not
+ * be handed BioCode's prices or stock (2026-08-05). The comment here used to call `inStock` "the
+ * commercially interesting column — where BioCode is short is exactly where a merchant's offer wins the
+ * buy box", which is an accurate description of why it had to go.
+ *
+ * It was also broken: the RPC is `security invoker` and `inventory_levels` is staff-only, so the column
+ * answered `false` for every row to every merchant who ever pulled it.
  */
 export async function catalogueExport(): Promise<CatalogueRow[]> {
   const supabase = await createClient();
@@ -257,16 +262,12 @@ export async function catalogueExport(): Promise<CatalogueRow[]> {
       barcode: string;
       product_name: string;
       variant_name: string;
-      price_cents: number;
-      in_stock: boolean;
     }[]
   ).map((row) => ({
     sku: row.sku,
     barcode: row.barcode,
     productName: row.product_name,
     variantName: row.variant_name,
-    priceCents: row.price_cents,
-    inStock: row.in_stock,
   }));
 }
 

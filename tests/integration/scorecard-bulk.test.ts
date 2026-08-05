@@ -968,7 +968,7 @@ describe('bulk offer creation (docs/16 §6.1)', () => {
     expect(result.skipped).toEqual([{ sku: product.sku, reason: 'no_matching_offer' }]);
   });
 
-  it('the catalogue export lists published variants and not drafts', async () => {
+  it('the catalogue export lists published variants, and no prices or stock', async () => {
     const published = await createProduct({ stock: 4, priceCents: 2500 });
     const draft = await createProduct({ stock: 0, priceCents: 2500, status: 'draft' });
     products.push(published, draft);
@@ -976,14 +976,30 @@ describe('bulk offer creation (docs/16 §6.1)', () => {
     const { data, error } = await serviceClient().rpc('catalogue_export');
     expect(error).toBeNull();
 
-    const rows = (data ?? []) as { sku: string; in_stock: boolean; price_cents: number }[];
-    const bySku = new Map(rows.map((row) => [row.sku, row]));
+    const rows = (data ?? []) as Record<string, unknown>[];
+    const bySku = new Map(rows.map((row) => [String(row.sku), row]));
 
     expect(bySku.has(published.sku), 'a published variant is offerable and listed').toBe(true);
     expect(bySku.has(draft.sku), 'a draft is neither').toBe(false);
-    // The column that tells a merchant where its offer would win the buy box.
-    expect(bySku.get(published.sku)?.in_stock).toBe(true);
-    expect(bySku.get(published.sku)?.price_cents).toBe(2500);
+
+    /*
+     * Identifiers only, asserted as an exact key set.
+     *
+     * It used to return `price_cents` and `in_stock` as well, and this test asserted both — the comment
+     * called `in_stock` "the column that tells a merchant where its offer would win the buy box", which
+     * is exactly why the owner had it removed (2026-08-05): a merchant should not be handed a
+     * machine-readable list of where BioCode is expensive or short.
+     *
+     * Asserted as the whole shape rather than as two absent columns, so a future addition has to be a
+     * deliberate edit here. That matters more than usual: this file is downloaded as a spreadsheet, so
+     * anything added to it leaves the building.
+     */
+    expect(Object.keys(bySku.get(published.sku) ?? {}).sort()).toEqual([
+      'barcode',
+      'product_name',
+      'sku',
+      'variant_name',
+    ]);
   });
 });
 

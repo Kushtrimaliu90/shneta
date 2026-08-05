@@ -687,6 +687,60 @@ decides revenue and cannot be seen by the party it measures is a secret.
 
 ---
 
+## 9.2 · Merchants are blind to BioCode's prices and stock
+
+**Owner decision, 2026-08-05.** A merchant must not be shown what BioCode charges for a product, or
+whether BioCode has it in stock.
+
+### What changed
+
+- `catalogue_export()` — the file and API a merchant pulls to match SKUs — returned `price_cents` and
+  `in_stock` for up to 5000 variants. Both columns are gone; it is identifiers only.
+- The offer picker printed BioCode's shelf price beside every search result. The price is still fetched,
+  because settlement is derived from it, but it stops on the server:
+  `CatalogVariantOption.retailPriceCentsInternal` is named so that widening a props object is an act
+  somebody has to notice.
+- The offer form's three-number panel is now two: what the merchant asks, and what settlement pays.
+
+### What it does not achieve, and why saying so matters
+
+**It does not make prices secret, and nothing can.** `product_variants` is world-readable for published
+products — that is what serves the shop — so a merchant can read every retail price by opening the
+storefront, or straight off the anon API. Verified against the live database rather than assumed.
+
+What was removed is the *convenience*: a sorted, machine-readable price list of the whole catalogue,
+produced on request. Reading 91 prices off a website one at a time and downloading them as a spreadsheet
+are different activities, and only the second was something BioCode was doing for merchants.
+
+Two smaller leaks are inherent and left in place, because closing them would take away something the
+merchant legitimately needs:
+
+- **Settlement implies the price.** A merchant sees what they are paid per unit and their own commission
+  rate, so the shelf price is one division away. They cannot price an offer without the first number.
+- **The buy box names the supplier.** `variant_buy_box` returns who supplies a variant and a bucketed
+  stock status — no prices, no numbers — and all of it is already on the public product page.
+
+### What was already safe
+
+Rival merchants' prices and stock were never exposed. `p_own_read on merchant_offers` scopes reads to
+`current_merchant_ids()`, so a merchant has only ever seen its own offers. `inventory_levels` is
+staff-only, so BioCode's stock *numbers* have never been readable by anyone else.
+
+### A bug this fixed on the way
+
+`in_stock` had never worked. `catalogue_export()` is `security invoker` and `inventory_levels` is
+staff-only, so the `sum(on_hand)` subquery returned null for every non-staff caller,
+`coalesce(…, 0) > 0` was false, and every merchant who pulled the catalogue was told BioCode is out of
+stock on all 71 published variants. The column's own comment called it "the most useful column in the
+file". Removing it is the fix as well as the policy.
+
+### Unchanged: merchants still upload whatever they like
+
+The other half of the same instruction — merchants upload products, admin decides what is published — is
+§4 and §9.1, and already worked that way. A proposal takes a free-text brand and form, so it is not
+limited to what BioCode already lists; the caps (twenty open proposals, 200 rows a batch, three open
+batches) are protection for the reviewer's queue, not a restriction on what may be proposed.
+
 ## 10–11 · Terms and admin surfaces — done
 
 Terms live at `/legal/marketplace-terms`, **version `1.1`**, and are recorded at submission with their

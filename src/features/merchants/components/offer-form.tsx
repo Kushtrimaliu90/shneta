@@ -27,18 +27,26 @@ import { offerErrorLeaf } from '@/features/merchants/error-keys';
  *
  * ── What the merchant is actually agreeing to, made visible ──
  *
- * The form shows **three numbers per variant** and the relationship between them, because the
- * relationship is the deal and hiding it would be the marketplace's central unfairness:
+ * The form shows **two numbers** and the relationship between them, because the relationship is the deal
+ * and hiding it would be the marketplace's central unfairness:
  *
- *   · the **retail price** BioCode charges the customer — not editable here, and not the merchant's
- *     to set: one product, one page, one price (§1);
- *   · the merchant's **asking price**, which is what it wants for the unit and what the buy box
- *     sorts on;
+ *   · the merchant's **asking price**, which is what it wants for the unit and what the buy box sorts on;
  *   · what **settlement pays**, which is the retail price less this merchant's commission.
  *
  * A merchant asking more than settlement pays is telling BioCode the margin does not work, and it is
  * better that they see that on this screen than discover it on a statement. The warning below says so
  * without blocking the submission — it may be exactly what they mean, and a rate can be renegotiated.
+ *
+ * ── It used to show three ──
+ *
+ * The third was BioCode's retail price, and it is gone by owner decision (2026-08-05): merchants should
+ * not be pricing against BioCode's number on BioCode's own screen. Nothing they need in order to decide
+ * went with it — the asking-price warning compares against settlement, which is the figure that lands in
+ * their payout.
+ *
+ * The retail price is still fetched, because the settlement figure is derived from it, but it stops on
+ * the server: `CatalogVariantOption.retailPriceCentsInternal` is named to make widening a props object
+ * an act somebody has to notice.
  */
 export function OfferForm({
   mode,
@@ -86,8 +94,18 @@ export function OfferForm({
     return result;
   }, null);
 
-  const selectedVariant = variants.find((entry) => entry.variantId === variantId);
-  const retailCents = offer?.retailPriceCents ?? selectedVariant?.retailPriceCents ?? 0;
+  /*
+   * What the merchant is paid per unit, and no longer what BioCode charges for it.
+   *
+   * The panel below showed the shelf price beside this figure. It is gone by owner decision
+   * (2026-08-05): a merchant should not be pricing against BioCode's number on BioCode's own screen. The
+   * settlement figure is theirs — it is what lands in their payout — and it is what the asking-price
+   * warning compares against, so nothing they need to decide has been taken away.
+   *
+   * Honest about the limit: commission is on their own merchant record, so anybody determined can work
+   * the shelf price back out of these two numbers. Removing it stops the form from doing that work for
+   * them; it does not make the price a secret, and the storefront never could.
+   */
   const dueCents = settlementPerUnitCents[variantId] ?? offer?.merchantDueCents ?? 0;
 
   const askingCents = Math.round(Number(asking.replace(',', '.')) * 100);
@@ -140,19 +158,8 @@ export function OfferForm({
           )
         )}
 
-        {retailCents > 0 && (
-          <dl className="grid gap-3 rounded-lg border border-line bg-surface p-4 text-sm sm:grid-cols-3">
-            <div>
-              <dt className="text-[11px] font-semibold tracking-wide text-ink-500 uppercase">
-                {t('retail')}
-              </dt>
-              <dd className="mt-0.5">
-                <span className="font-medium text-ink-900" data-numeric>
-                  {formatPrice(retailCents, locale)}
-                </span>
-                <span className="block text-[13px] text-ink-500">{t('retailHint')}</span>
-              </dd>
-            </div>
+        {dueCents > 0 && (
+          <dl className="grid gap-3 rounded-lg border border-line bg-surface p-4 text-sm sm:grid-cols-2">
             <div>
               <dt className="text-[11px] font-semibold tracking-wide text-ink-500 uppercase">
                 {t('due')}

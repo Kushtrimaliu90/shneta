@@ -1263,8 +1263,6 @@
         "variantHint": "Published BioCode products only.",
         "variantPlaceholder": "Choose a product",
         "variantLocked": "The product is fixed after creation. For a different one, create a new offer.",
-        "retail": "Shop price",
-        "retailHint": "What the customer pays. Set by BioCode.",
         "due": "You receive",
         "dueHint": "The shop price less your {pct}% commission.",
         "askingShort": "You ask",

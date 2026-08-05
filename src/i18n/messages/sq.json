@@ -1263,8 +1263,6 @@
         "variantHint": "Vetëm produkte të publikuara nga BioCode.",
         "variantPlaceholder": "Zgjidh një produkt",
         "variantLocked": "Produkti nuk ndryshohet pas krijimit. Për një produkt tjetër, krijo ofertë të re.",
-        "retail": "Çmimi në dyqan",
-        "retailHint": "Sa paguan klienti. Vendoset nga BioCode.",
         "due": "Sa merr ti",
         "dueHint": "Çmimi i dyqanit pa komisionin {pct}%.",
         "askingShort": "Kërkon",

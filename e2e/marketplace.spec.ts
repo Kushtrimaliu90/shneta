@@ -197,12 +197,19 @@ test.describe('the offer lifecycle, through the screens', () => {
     await page.locator('#variantId').selectOption({ value: product.variantId });
 
     /*
-     * The three numbers, and the relationship between them. €20.00 retail at 20% commission pays
-     * €16.00, and this assertion is what proves the form is showing the merchant the deal rather
-     * than just collecting a price from them.
+     * What settlement pays, and — deliberately — not what BioCode charges.
+     *
+     * €20.00 retail at 20% commission pays €16.00. The merchant is shown the €16.00, because that is
+     * what lands in their payout and what the asking-price warning compares against. The €20.00 is
+     * **not** shown: merchants are blind to BioCode's prices by owner decision (docs/16 §9.2), and this
+     * pair of assertions is the guard on that.
+     *
+     * Asserted on the whole page rather than on the panel, because the leak worth catching is the shelf
+     * price appearing *anywhere* on the screen — in the picker's option labels, say — not only where it
+     * used to be.
      */
-    await expect(page.getByText('€20.00').first()).toBeVisible();
     await expect(page.getByText('€16.00').first()).toBeVisible();
+    await expect(page.getByText('€20.00')).toHaveCount(0);
 
     await page.locator('#priceEuro').fill('12,50');
     await page.locator('#stockOnHand').fill('7');

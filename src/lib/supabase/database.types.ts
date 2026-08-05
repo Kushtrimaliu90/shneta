@@ -4462,8 +4462,6 @@ export type Database = {
         Args: never
         Returns: {
           barcode: string
-          in_stock: boolean
-          price_cents: number
           product_name: string
           sku: string
           variant_name: string

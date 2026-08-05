@@ -53,16 +53,19 @@ export default async function NewOfferPage({ params, searchParams }: Props) {
 
   const settlement = await settlementByUnitPrice(
     merchant.id,
-    variants.map((variant) => variant.retailPriceCents),
+    variants.map((variant) => variant.retailPriceCentsInternal),
   );
 
   /*
-   * Keyed by variant id for the form, resolved from the price map here. The form should not have to
-   * know that two variants at the same price share an answer.
+   * Keyed by variant id for the form, resolved from the price map here. The form should not have to know
+   * that two variants at the same price share an answer.
+   *
+   * This is also where BioCode's shelf price stops. The settlement figure — what the merchant is paid per
+   * unit — crosses to the client; the price it was derived from does not (owner decision, 2026-08-05).
    */
   const perVariant: Record<string, number> = {};
   for (const variant of variants) {
-    perVariant[variant.variantId] = settlement.get(variant.retailPriceCents) ?? 0;
+    perVariant[variant.variantId] = settlement.get(variant.retailPriceCentsInternal) ?? 0;
   }
 
   return (
