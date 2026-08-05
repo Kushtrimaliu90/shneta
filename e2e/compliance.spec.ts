@@ -138,3 +138,62 @@ test.describe('what search engines are told (docs/08 §4)', () => {
     }
   });
 });
+
+/**
+ * The faceted-navigation crawl trap (found 2026-08-05).
+ *
+ * The filter panel links to the current filters plus one more value, so the reachable URL set is the
+ * product of every facet — categories × brands × goals × tags × sorts × pages — and `/shop` is dynamic
+ * by design, so each combination is a live `search_products` round trip that no cache can serve twice.
+ *
+ * Measured before the fix, over the 5.6 days `pg_stat_statements` had been collecting: **4.8M of the
+ * project's 4.9M PostgREST requests were the listing query**, four hours of database CPU, on a shop with
+ * no customers. The dominant argument shapes were combinations — goal+brand, goal+brand+category+tag —
+ * in proportions no human clicking around produces.
+ *
+ * Three layers, asserted here because only the first is free and all three are one careless edit from
+ * being undone.
+ */
+test.describe('faceted listings are not a crawl space', () => {
+  test('every facet link is rel=nofollow', async ({ page }) => {
+    await page.goto('/en/shop');
+
+    /*
+     * The links that *should* be followed are the ones that go somewhere canonical: the category pages,
+     * and "clear filters" back to /shop. Everything carrying a query string is a facet combination.
+     */
+    const followable = await page
+      .locator('aside a[href*="?"]:not([rel~="nofollow"])')
+      .allTextContents();
+
+    expect(followable, 'a filter link without rel=nofollow reopens the crawl space').toEqual([]);
+    expect(await page.locator('aside a[rel~="nofollow"]').count()).toBeGreaterThan(10);
+  });
+
+  test('a filtered listing is noindex, and the plain one is not', async ({ page }) => {
+    await page.goto('/en/shop?brand=now-foods&goal=gjumi');
+    await expect(page.locator('meta[name="robots"]')).toHaveAttribute(
+      'content',
+      /noindex/,
+    );
+
+    // The page worth indexing keeps its place.
+    await page.goto('/en/shop');
+    await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', /^index/);
+  });
+
+  test('robots.txt disallows the parameterised listings and allows the real pages', async ({
+    request,
+  }) => {
+    const body = await (await request.get('/robots.txt')).text();
+
+    for (const rule of ['/shop?*', '/en/shop?*', '/*?brand=', '/*?goal=', '/*?tag=']) {
+      expect(body, `robots.txt should disallow ${rule}`).toContain(`Disallow: ${rule}`);
+    }
+
+    // The pages that carry the catalogue's SEO must stay crawlable.
+    for (const path of ['Disallow: /shop\n', 'Disallow: /brands', 'Disallow: /goals']) {
+      expect(body, `robots.txt must not block ${path}`).not.toContain(path);
+    }
+  });
+});

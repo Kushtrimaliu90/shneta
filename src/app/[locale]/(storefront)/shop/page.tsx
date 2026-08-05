@@ -9,16 +9,32 @@ type Props = {
   searchParams: Promise<RawSearchParams>;
 };
 
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
+export async function generateMetadata({ params, searchParams }: Props): Promise<Metadata> {
   const t = await getTranslations({
     locale: resolveLocale((await params).locale),
     namespace: 'shop',
   });
+
+  /*
+   * A filtered view is `noindex`, and the unfiltered `/shop` is not.
+   *
+   * The canonical below has always said the filtered views are the same page, but a canonical is a
+   * hint applied *after* the crawler has fetched the URL — which is the cost, not the indexing. So this
+   * is the third of three layers: `rel="nofollow"` on the facet links stops the walk,
+   * `robots.ts` disallows the URLs for crawlers that ignore it, and this drops anything already
+   * indexed back out.
+   *
+   * Keyed on there being any search param at all rather than on a list of filter names, so a facet
+   * added later is covered without anybody remembering this file.
+   */
+  const filtered = Object.keys(await searchParams).length > 0;
+
   return {
     title: t('title'),
     description: t('metaDescription'),
     // docs/05 §2 — canonical strips filter params; the filtered views are not separate pages.
     alternates: { canonical: '/shop', languages: { sq: '/shop', en: '/en/shop' } },
+    ...(filtered ? { robots: { index: false, follow: true } } : {}),
   };
 }
 

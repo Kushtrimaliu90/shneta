@@ -30,6 +30,33 @@ export default function robots(): MetadataRoute.Robots {
           '/en/biohack',
           '/p/',
           '/en/p/',
+          /*
+           * Faceted listing URLs.
+           *
+           * The filter panel links to the current filters plus one more value, so the reachable set is
+           * the product of every facet — categories × brands × goals × tags × sorts × pages — and
+           * `/shop` is dynamic, so each one is a live query that no cache serves twice. Measured over
+           * 5.6 days: 4.8M of 4.9M PostgREST requests were the listing query, four hours of database CPU,
+           * on a shop with no customers.
+           *
+           * The links carry `rel="nofollow"`, which is what actually stops the walk; this is the second
+           * layer, for crawlers that ignore it. The unparameterised pages stay fully crawlable — `/shop`,
+           * `/shop/[category]`, `/brands/[slug]`, `/goals/[slug]` are the pages worth indexing, and each
+           * filtered view already canonicalises to one of them.
+           *
+           * Wildcards in `Disallow` are not in the original robots standard but are honoured by Google,
+           * Bing and Yandex, which is who this is for.
+           */
+          '/shop?*',
+          '/en/shop?*',
+          '/*?brand=',
+          '/*?goal=',
+          '/*?tag=',
+          '/*?onSale=',
+          '/*?inStock=',
+          '/*?minPrice=',
+          '/*?maxPrice=',
+          '/*?minRating=',
         ],
       },
     ],

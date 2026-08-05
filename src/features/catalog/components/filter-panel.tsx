@@ -34,6 +34,25 @@ export async function FilterPanel({
   const t = await getTranslations();
   const locale = (await getLocale()) as Locale;
 
+  /*
+   * Every facet link is `rel="nofollow"`, and that is a load-bearing attribute rather than an SEO nicety.
+   *
+   * Each link is the current filters plus one more value, so the panel is a graph whose node count is the
+   * product of every facet: 16 categories × 20 brands × 9 goals × dietary tags × sorts × pages. A crawler
+   * following it walks a space with no end, and `/shop` is deliberately dynamic — "the filter
+   * combinations are unbounded", as the page says — so **every one of those URLs is a live
+   * `search_products` round trip that no cache can ever serve twice**.
+   *
+   * Measured, not theorised. Over the 5.6 days `pg_stat_statements` had been collecting, 4.8M of the
+   * project's 4.9M PostgREST requests were `search_products`, and the dominant argument shapes were
+   * combinations — goal+brand, goal+brand+category+tag — in proportions no human clicking around
+   * produces. Four hours of database CPU, on a shop with no customers yet.
+   *
+   * The canonical tag does not help: it deduplicates in the index *after* the crawler has fetched the
+   * page, which is exactly the cost being paid. `nofollow` is what stops the discovery. `robots.ts`
+   * disallows the same URLs for crawlers that ignore it, and the metadata marks filtered views
+   * `noindex` — three layers, because only the first one is free.
+   */
   const href = (change: Parameters<typeof buildQuery>[1]) =>
     `${basePath}${buildQuery(filters, change)}`;
 
@@ -84,6 +103,7 @@ export async function FilterPanel({
               <li key={brand.slug}>
                 <Link
                   href={href({ toggle: { key: 'brand', value: brand.slug } })}
+                  rel="nofollow"
                   aria-current={active ? 'true' : undefined}
                   className={option(active)}
                 >
@@ -104,6 +124,7 @@ export async function FilterPanel({
               <li key={goal.slug}>
                 <Link
                   href={href({ toggle: { key: 'goal', value: goal.slug } })}
+                  rel="nofollow"
                   aria-current={active ? 'true' : undefined}
                   className={option(active)}
                 >
@@ -124,6 +145,7 @@ export async function FilterPanel({
               <li key={tag}>
                 <Link
                   href={href({ toggle: { key: 'tag', value: tag } })}
+                  rel="nofollow"
                   aria-current={active ? 'true' : undefined}
                   className={option(active)}
                 >
@@ -141,6 +163,7 @@ export async function FilterPanel({
           <li>
             <Link
               href={href({ inStock: filters.inStock ? undefined : true })}
+              rel="nofollow"
               aria-current={filters.inStock ? 'true' : undefined}
               className={option(filters.inStock ?? false)}
             >
@@ -150,6 +173,7 @@ export async function FilterPanel({
           <li>
             <Link
               href={href({ onSale: filters.onSale ? undefined : true })}
+              rel="nofollow"
               aria-current={filters.onSale ? 'true' : undefined}
               className={option(filters.onSale ?? false)}
             >

@@ -2921,6 +2921,48 @@ the whole shop. **When a test asserts a number, check whether the number or the 
 claim.** Here the relationship was always the claim, and the number was a convenient way to spell it that
 stopped being true.
 
+### Y14 · The filter panel was an infinite crawl space, and it cost 93% of the database
+
+Vercel reported 22.8M external API requests over three days on a shop with no customers. `pg_stat_statements`
+found it in one query:
+
+| calls | statement |
+| --- | --- |
+| 1,765,834 | `search_products` — goal only |
+| 1,466,627 | `search_products` — brand + goal |
+| 557,732 | `search_products` — category + brand + goal + tags |
+| 4,796,226 | **all `search_products`, of 4,814,468 PostgREST requests total** |
+
+**93% of every database request was the product listing**, 4 hours of CPU over 5.6 days. And the shape of
+the arguments is the diagnosis: combinations like goal+brand+category+tag, in proportions no human
+clicking around produces.
+
+The filter panel renders a link per facet value, each one *the current filters plus one more*. So the
+reachable set is the product of every facet — 16 categories × 20 brands × 9 goals × tags × sorts × pages —
+and `/shop` is deliberately dynamic, because "the filter combinations are unbounded". Every node in that
+graph is a live query that no cache can ever serve twice, and something was walking it.
+
+The page already had the canonical tag pointing every filtered view back at `/shop`. **It does nothing for
+this.** A canonical deduplicates in the *index*, after the crawler has fetched the URL — and the fetch is
+the entire cost.
+
+Three layers, because only the first is free:
+
+- `rel="nofollow"` on every facet link. This is the one that stops the walk.
+- `robots.txt` disallows the parameterised listings, for crawlers that ignore `nofollow`.
+- `noindex` on any `/shop` with a search param, to drop what is already indexed. Keyed on *any* param
+  rather than a list of names, so a facet added later is covered without anybody remembering.
+
+Two things worth carrying forward:
+
+- **Measure before hypothesising.** The obvious suspects — a query in a `map`, a `useEffect` without deps,
+  a polling interval — were all absent; the client is clean and the batched helpers batch correctly.
+  `pg_stat_statements` named the culprit in about a minute, and the *argument shapes* pointed at the
+  caller more precisely than reading code would have.
+- **"Dynamic because the inputs are unbounded" and "crawlable" cannot both be true.** Either bound the
+  inputs or stop advertising them. This page had the first half of that reasoning written in a comment
+  since M3 and never drew the second half.
+
 ---
 
 ## E. Stack decisions taken at M0
