@@ -413,7 +413,12 @@
       "title": "Nuk gjetëm produkte",
       "withFilters": "Provo të heqësh një filtër ose zgjeroje kërkimin.",
       "noProducts": "Kjo kategori është bosh për momentin."
-    }
+    },
+    "closeFilters": "Mbyll filtrat",
+    "showResults": "{count, plural, =0 {Asnjë produkt} one {Shfaq # produkt} other {Shfaq # produkte}}",
+    "activeFilters": "Filtrat e zgjedhur",
+    "removeFilter": "Hiq filtrin: {name}",
+    "showAll": "Shfaq të {count}"
   },
   "product": {
     "vatIncluded": "Çmimi përfshin TVSH-në.",

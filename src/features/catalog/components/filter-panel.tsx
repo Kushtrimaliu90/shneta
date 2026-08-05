@@ -56,6 +56,19 @@ export async function FilterPanel({
   const href = (change: Parameters<typeof buildQuery>[1]) =>
     `${basePath}${buildQuery(filters, change)}`;
 
+  /*
+   * How many options a long group shows before the rest go behind a disclosure.
+   *
+   * Six is about one thumb-scroll. Categories (16) and brands (20) are the two groups that made the
+   * mobile sheet three screens tall, which is the original complaint moved indoors rather than fixed —
+   * capping them puts every group *heading* within reach, which is what lets somebody find "Goals"
+   * without reading every brand in the shop first.
+   *
+   * A plain `<details>`, so it costs no JavaScript and behaves identically on the desktop sidebar,
+   * where the same wall of names is merely less painful rather than fine.
+   */
+  const VISIBLE = 6;
+
   const group = 'border-line border-b pb-5';
   const heading = 'font-ui text-xs font-semibold tracking-[0.08em] text-ink-500 uppercase';
   const option = (active: boolean) =>
@@ -63,6 +76,18 @@ export async function FilterPanel({
       'flex min-h-9 items-center gap-2 rounded-sm px-2 text-sm transition-colors',
       active ? 'bg-forest-100 font-medium text-forest-900' : 'text-ink-600 hover:bg-forest-50',
     );
+
+  /*
+   * Split so an *active* brand is never hidden behind the disclosure — a filter you cannot see is a
+   * filter you cannot turn off, and the chips above the grid are the other half of that promise.
+   */
+  const categoryLead = categories.slice(0, VISIBLE);
+  const categoryRest = categories.slice(VISIBLE);
+  const categoryRestActive = categoryRest.some((c) => filters.category?.includes(c.slug));
+
+  const brandLead = brands.slice(0, VISIBLE);
+  const brandRest = brands.slice(VISIBLE);
+  const brandRestActive = brandRest.some((b) => filters.brand?.includes(b.slug));
 
   return (
     <aside
@@ -81,7 +106,7 @@ export async function FilterPanel({
       <div className={group}>
         <h2 className={heading}>{t('shop.categories')}</h2>
         <ul className="mt-3 flex flex-col gap-0.5">
-          {categories.map((category) => (
+          {categoryLead.map((category) => (
             <li key={category.slug}>
               <Link
                 href={`/shop/${category.slug}`}
@@ -92,27 +117,64 @@ export async function FilterPanel({
             </li>
           ))}
         </ul>
+        {categoryRest.length > 0 && (
+          <details className="mt-1" open={categoryRestActive}>
+            <summary className="flex min-h-9 cursor-pointer items-center px-2 text-sm text-forest-700">
+              {t('shop.showAll', { count: categories.length })}
+            </summary>
+            <ul className="mt-1 flex flex-col gap-0.5">
+              {categoryRest.map((category) => (
+                <li key={category.slug}>
+                  <Link
+                    href={`/shop/${category.slug}`}
+                    className={option(filters.category?.includes(category.slug) ?? false)}
+                  >
+                    {pickLocale(category.name, locale)}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </details>
+        )}
       </div>
 
       <div className={group}>
         <h2 className={heading}>{t('shop.brands')}</h2>
         <ul className="mt-3 flex flex-col gap-0.5">
-          {brands.map((brand) => {
-            const active = filters.brand?.includes(brand.slug) ?? false;
-            return (
-              <li key={brand.slug}>
-                <Link
-                  href={href({ toggle: { key: 'brand', value: brand.slug } })}
-                  rel="nofollow"
-                  aria-current={active ? 'true' : undefined}
-                  className={option(active)}
-                >
-                  {brand.name}
-                </Link>
-              </li>
-            );
-          })}
+          {brandLead.map((brand) => (
+            <li key={brand.slug}>
+              <Link
+                href={href({ toggle: { key: 'brand', value: brand.slug } })}
+                rel="nofollow"
+                aria-current={filters.brand?.includes(brand.slug) ? 'true' : undefined}
+                className={option(filters.brand?.includes(brand.slug) ?? false)}
+              >
+                {brand.name}
+              </Link>
+            </li>
+          ))}
         </ul>
+        {brandRest.length > 0 && (
+          <details className="mt-1" open={brandRestActive}>
+            <summary className="flex min-h-9 cursor-pointer items-center px-2 text-sm text-forest-700">
+              {t('shop.showAll', { count: brands.length })}
+            </summary>
+            <ul className="mt-1 flex flex-col gap-0.5">
+              {brandRest.map((brand) => (
+                <li key={brand.slug}>
+                  <Link
+                    href={href({ toggle: { key: 'brand', value: brand.slug } })}
+                    rel="nofollow"
+                    aria-current={filters.brand?.includes(brand.slug) ? 'true' : undefined}
+                    className={option(filters.brand?.includes(brand.slug) ?? false)}
+                  >
+                    {brand.name}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </details>
+        )}
       </div>
 
       <div className={group}>

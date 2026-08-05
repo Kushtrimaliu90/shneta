@@ -413,7 +413,12 @@
       "title": "No products found",
       "withFilters": "Try removing a filter or widening your search.",
       "noProducts": "This category is empty for now."
-    }
+    },
+    "closeFilters": "Close filters",
+    "showResults": "{count, plural, =0 {No products} one {Show # product} other {Show # products}}",
+    "activeFilters": "Filters you have applied",
+    "removeFilter": "Remove filter: {name}",
+    "showAll": "Show all {count}"
   },
   "product": {
     "vatIncluded": "Price includes VAT.",

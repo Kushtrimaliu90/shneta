@@ -7,6 +7,18 @@ import { expect, test, type Page } from '@playwright/test';
  */
 
 /**
+ * Opens the mobile filter sheet when there is one.
+ *
+ * Below `lg` the facets live behind a trigger instead of above the grid (docs/05 §2) — 51 links in a
+ * single column put the first product about five screens down. The trigger is `lg:hidden`, so on the
+ * desktop project this is a no-op and the same test covers both layouts.
+ */
+async function openFiltersIfMobile(page: Page): Promise<void> {
+  const trigger = page.getByRole('button', { name: /^Filters/ });
+  if (await trigger.isVisible()) await trigger.click();
+}
+
+/**
  * The result count on screen.
  *
  * Module scope because both `describe` blocks need it: the listing tests compare a filtered count with an
@@ -66,6 +78,7 @@ test.describe('product listing', () => {
     const unfiltered = await resultCount(page, /\d+ products/);
     expect(unfiltered).toBeGreaterThan(0);
 
+    await openFiltersIfMobile(page);
     await page.getByRole('link', { name: 'Vegan', exact: true }).click();
 
     // docs/05 §2 — filters are shareable URL state, not hidden client state.
@@ -320,4 +333,76 @@ test.describe('accessibility', () => {
       expect(blocking, blocking.map((v) => `${v.id}: ${v.help}`).join('\n')).toEqual([]);
     });
   }
+});
+
+/**
+ * docs/05 §2 — the mobile listing layout.
+ *
+ * The panel renders 51 links across 5 groups. In a single column that is roughly 1,900 px, so the first
+ * product card sat about five screens below the fold on a 390 px phone — you scrolled past every brand
+ * in the shop to reach a product. These assert the shape of the fix rather than its pixels: the trigger
+ * exists, the grid starts near the top, the sheet is a real dialog, and the way out is always reachable.
+ */
+test.describe('the mobile filter sheet', () => {
+  test.skip(({ viewport }) => (viewport?.width ?? 0) >= 1024, 'mobile layout only');
+
+  test('products are on the first screen, with filters behind a trigger', async ({
+    page,
+    viewport,
+  }) => {
+    await page.goto('/en/shop');
+
+    await expect(page.getByRole('button', { name: /^Filters/ })).toBeVisible();
+
+    /*
+     * Within one viewport height. A pixel budget rather than an exact number, because the header and
+     * the count line are allowed to change — what must not come back is a screenful of facets between
+     * the heading and the first product.
+     */
+    const box = await page.getByRole('article').first().boundingBox();
+    expect(box?.y ?? Infinity).toBeLessThan(viewport?.height ?? 844);
+  });
+
+  test('the sheet is a dialog, closes on Escape, and returns focus', async ({ page }) => {
+    await page.goto('/en/shop');
+    const trigger = page.getByRole('button', { name: /^Filters/ });
+
+    await trigger.click();
+    const sheet = page.getByRole('dialog', { name: 'Filters' });
+    await expect(sheet).toBeVisible();
+    await expect(trigger).toHaveAttribute('aria-expanded', 'true');
+
+    // The primary action names what you are going back to.
+    await expect(sheet.getByRole('button', { name: /Show \d+ product/ })).toBeVisible();
+
+    await page.keyboard.press('Escape');
+    await expect(sheet).toBeHidden();
+    await expect(trigger).toBeFocused();
+  });
+
+  test('an active filter is a chip that removes itself in one tap', async ({ page }) => {
+    await page.goto('/en/shop?brand=now-foods');
+
+    // Visible without opening anything — undoing a filter was four actions before this.
+    const chip = page.getByRole('link', { name: /Remove filter: NOW Foods/ });
+    await expect(chip).toBeVisible();
+    await expect(page.getByRole('button', { name: /^Filters/ })).toContainText('1');
+
+    await chip.click();
+    await expect(page).toHaveURL(/\/en\/shop$/);
+  });
+
+  test('no serious axe violations with the sheet open', async ({ page }) => {
+    await page.goto('/en/shop');
+    await page.getByRole('button', { name: /^Filters/ }).click();
+    await expect(page.getByRole('dialog', { name: 'Filters' })).toBeVisible();
+
+    const results = await new AxeBuilder({ page })
+      .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+      .analyze();
+
+    expect(
+      results.violations.filter((v) => v.impact === 'serious' || v.impact === 'critical'),
+    ).toEqual([]);
+  });
 });
