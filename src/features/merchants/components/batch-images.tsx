@@ -147,7 +147,7 @@ export function BatchImages({
 
         const { error: uploadError } = await supabase.storage
           .from('merchant-proposals')
-          .upload(path, file, { upsert: false, contentType: file.type });
+          .upload(path, file, { upsert: false, contentType: file.type, cacheControl: '31536000' });
 
         if (uploadError) {
           failures += 1;

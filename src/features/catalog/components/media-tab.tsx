@@ -89,6 +89,18 @@ export function MediaTab({
         .from('product-images')
         .uploadToSignedUrl(signed.data.path, signed.data.token, file, {
           contentType: file.type,
+          /*
+           * A year, and the reason this line exists is a bill.
+           *
+           * Without it Supabase serves the object with `Cache-Control: no-cache`, so Vercel's image
+           * optimiser revalidates against the origin on every request instead of using its own cache —
+           * measured as `X-Vercel-Cache: MISS` on a plain repeat fetch. Each miss is an outbound
+           * request to Supabase, a re-run transformation and the full image sent again.
+           *
+           * Safe because the path is `<product_id>/<uuid>.<ext>`: replacing a photograph mints a new
+           * uuid and therefore a new URL, so a cached copy can never be stale.
+           */
+          cacheControl: '31536000',
         });
 
       if (uploadError) {

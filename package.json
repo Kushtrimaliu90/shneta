@@ -35,7 +35,8 @@
     "test:integration": "vitest run --config vitest.integration.config.mts",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
-    "verify": "pnpm check:i18n && pnpm check:sql && pnpm typecheck && pnpm lint && pnpm test && pnpm build && pnpm check:bundle"
+    "verify": "pnpm check:i18n && pnpm check:sql && pnpm typecheck && pnpm lint && pnpm test && pnpm build && pnpm check:bundle",
+    "fix:image-cache": "tsx scripts/fix-image-cache.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "5.5.7",

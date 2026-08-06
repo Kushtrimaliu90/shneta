@@ -295,7 +295,16 @@ async function main(): Promise<void> {
 
     const { error: uploadError } = await db.storage
       .from('product-images')
-      .upload(target, candidate.bytes, { contentType: candidate.contentType, upsert: true });
+      .upload(target, candidate.bytes, {
+        contentType: candidate.contentType,
+        upsert: true,
+        /*
+         * A year, because the object is immutable in practice: the path carries the product id and the
+         * filename, and a replacement is an explicit `--replace`. Without it Supabase serves `no-cache`
+         * and Vercel re-fetches the source on every optimisation — 22.8M external requests' worth.
+         */
+        cacheControl: '31536000',
+      });
 
     if (uploadError) {
       console.error(`  ✗ ${candidate.file}: ${uploadError.message}`);

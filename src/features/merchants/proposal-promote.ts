@@ -166,7 +166,11 @@ async function copyImages(
 
       const { error: uploadError } = await admin.storage
         .from('product-images')
-        .upload(target, file, { upsert: true, contentType: file.type || 'image/jpeg' });
+        .upload(target, file, {
+          upsert: true,
+          contentType: file.type || 'image/jpeg',
+          cacheControl: '31536000',
+        });
 
       if (uploadError) {
         failed += 1;

@@ -105,9 +105,40 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  /**
+   * Image optimisation, tuned after Vercel billed 22.8M external API requests and 205 GB of egress on a
+   * shop with no customers.
+   *
+   * The origin was the problem: Supabase Storage serves these objects with `Cache-Control: no-cache`, so
+   * Vercel revalidated against it constantly instead of serving from its own cache — measured as
+   * `X-Vercel-Cache: MISS` on a plain repeat fetch. Every miss is an outbound request to Supabase, a
+   * re-run transformation, and the full image sent again.
+   *
+   * `cacheControl` is now set at every upload site and backfilled onto the existing objects, but this is
+   * the belt to that pair of braces: `minimumCacheTTL` is a floor Next applies **regardless of what the
+   * upstream says**, so a future upload that forgets the header costs one slow request rather than a
+   * bill.
+   */
   images: {
     remotePatterns: supabaseImagePattern(),
-    formats: ['image/avif', 'image/webp'],
+    /*
+     * WebP only. AVIF encodes far more slowly and was doubling the billed transformations — every image
+     * at every width was being produced twice — to save a few percent over WebP on photographs of
+     * supplement tubs. Universally supported since 2020.
+     */
+    formats: ['image/webp'],
+    /*
+     * A year. These paths are `<product_id>/<uuid>.<ext>`: a replacement photograph gets a new uuid and
+     * therefore a new URL, so a cached variant can never be stale. Nothing here is worth revalidating.
+     */
+    minimumCacheTTL: 31_536_000,
+    /*
+     * Next generates a variant per width in these lists, per format, and bills each one. The defaults go
+     * up to 3840px, which is a poster; the largest image this storefront renders is the PDP gallery at
+     * about 800px on a 2× screen. Trimming the top end removes transformations nothing ever requests.
+     */
+    deviceSizes: [640, 750, 828, 1080, 1200, 1920],
+    imageSizes: [48, 64, 96, 128, 256, 384],
   },
   experimental: {
     optimizePackageImports: ['lucide-react', 'date-fns'],

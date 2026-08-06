@@ -88,7 +88,7 @@ export function ProposalImages({
 
         const { error: uploadError } = await supabase.storage
           .from('merchant-proposals')
-          .upload(path, file, { upsert: false, contentType: file.type });
+          .upload(path, file, { upsert: false, contentType: file.type, cacheControl: '31536000' });
 
         if (uploadError) {
           setError(t('errors.uploadFailed', { name: file.name }));

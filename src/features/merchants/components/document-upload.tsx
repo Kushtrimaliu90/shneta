@@ -92,7 +92,7 @@ export function DocumentUpload({ merchantId }: { merchantId: string }) {
 
     const { error: uploadError } = await supabase.storage
       .from('merchant-docs')
-      .upload(path, file, { upsert: false, contentType: file.type });
+      .upload(path, file, { upsert: false, contentType: file.type, cacheControl: '31536000' });
 
     if (uploadError) {
       setError(t('errors.uploadFailed'));
