@@ -20,8 +20,26 @@ import { SearchOverlay } from '@/features/search/components/search-overlay';
 export async function Navbar() {
   const t = await getTranslations();
 
+  /*
+   * ── No `backdrop-blur` on this header, and that is correctness rather than taste ──
+   *
+   * `backdrop-filter` makes an element a **containing block for `position: fixed` descendants** — the
+   * same rule `transform` and `filter` follow. Both overlays mounted here are `fixed inset-0`, so with a
+   * blur on the header they resolved against the header's own box instead of the viewport. Measured on a
+   * 390 px phone: the mobile menu's panel came out **390 × 64**, so tapping the hamburger opened a
+   * 64-pixel strip with the page showing through beneath it. The search overlay had the same defect.
+   *
+   * Removing it cost nothing. At `bg-cream/95` the backdrop is 95% opaque, so the blur behind it was
+   * very nearly invisible — and docs/04 §6 asks for "cream, hairline bottom border, sticky", not frosted
+   * glass. A portal would also have fixed it, but removing the trap beats working around it.
+   *
+   * Anything added here later that establishes a containing block — `transform`, `filter`,
+   * `perspective`, `will-change`, `contain: paint` — breaks both overlays the same way and in a way that
+   * looks like a z-index problem. `e2e/shell.spec.ts` asserts the panel fills the viewport, so it fails
+   * rather than ships.
+   */
   return (
-    <header className="sticky top-0 z-40 border-b border-line bg-cream/95 backdrop-blur-sm">
+    <header className="sticky top-0 z-40 border-b border-line bg-cream/95">
       <div className="container-page flex h-16 items-center gap-4 lg:h-20">
         <MobileNav />
 

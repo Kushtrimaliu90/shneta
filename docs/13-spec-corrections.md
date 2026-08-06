@@ -2963,6 +2963,40 @@ Two things worth carrying forward:
   inputs or stop advertising them. This page had the first half of that reasoning written in a comment
   since M3 and never drew the second half.
 
+### Y15 · `backdrop-filter` on the header made every overlay inside it 64 pixels tall
+
+Reported from a phone: the hamburger menu "gets hidden behind the page and does not show the content".
+It reads exactly like a z-index bug. It is not one.
+
+```
+panel box: { x: 0, y: 0, width: 390, height: 64 }
+viewport : 390 x 844
+header   : { backdropFilter: "blur(8px)", position: "sticky", zIndex: "40" }
+```
+
+The panel is `fixed inset-0 z-50`, which should be the viewport. It came out **exactly the header's
+height**, because **`backdrop-filter` makes an element a containing block for `position: fixed`
+descendants** — the same rule `transform`, `filter`, `perspective`, `will-change` and `contain: paint`
+follow. `inset-0` resolved against the header's box, so the menu opened as a 64-pixel strip with the page
+showing through beneath it. The search overlay, mounted in the same header, had the identical defect and
+nobody had reported it yet.
+
+Fixed by deleting `backdrop-blur-sm`. At `bg-cream/95` the backdrop is 95% opaque, so the blur was
+very nearly invisible, and docs/04 §6 asks for "cream, hairline bottom border, sticky" — not frosted
+glass. A portal to `document.body` would also have worked and would have kept the effect; **removing the
+trap beat working around it**, because the next overlay added to this header would have hit it again.
+
+Two things worth carrying:
+
+- **When a fixed overlay is the wrong size, suspect the containing block before the stacking order.**
+  z-index cannot make an element larger than its containing block, so "hidden behind the page" and
+  "clipped to a strip" are the same symptom seen from different angles. Measuring `boundingBox()` against
+  the viewport separates them in one step; staring at z-index values never will.
+- **Assert the cause, not just the effect.** `e2e/shell.spec.ts` now checks the panel's geometry *and*
+  reads the header's computed style for every property that establishes a containing block, naming the
+  offender if one returns. The second test is what makes the failure legible to whoever adds a
+  `transform` here in a year.
+
 ---
 
 ## E. Stack decisions taken at M0
