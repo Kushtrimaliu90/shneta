@@ -139,6 +139,44 @@ export const approveMerchantSchema = z.object({
   note: z.string().trim().max(2000).optional(),
 });
 
+/**
+ * The admin editing a merchant's settlement details, at any point in their life (docs/16 §8).
+ *
+ * Separate from `approveMerchantSchema` because these are not approval-time decisions. A merchant
+ * opens a new account, an IBAN was mistyped on the application, a cash merchant asks to be paid by
+ * transfer — all of them happen to merchants who were approved months earlier, and none of them
+ * should require re-running an approval.
+ *
+ * **A blank IBAN means "leave it alone", exactly as on the merchant's own settings form.** The admin
+ * screen only ever renders the last four digits, so there is nothing safe to prefill the field with,
+ * and a blank that meant "clear it" would let someone wipe a payout destination by saving a form they
+ * only opened to fix a bank name.
+ */
+export const merchantSettlementSchema = z
+  .object({
+    merchantId: z.uuid(),
+    settlementMethod,
+    bankName: z.string().trim().max(120).optional(),
+    iban: ibanInput,
+    /** Whether the stored row already has an IBAN, so "leave it alone" can be a valid answer. */
+    hasIbanOnFile: z.coerce.boolean().optional(),
+  })
+  .superRefine((value, ctx) => {
+    const iban = (value.iban ?? '').trim();
+
+    if (iban && !IBAN_PATTERN.test(iban)) {
+      ctx.addIssue({ code: 'custom', path: ['iban'], message: 'invalid' });
+    }
+    if (value.settlementMethod !== 'bank_transfer') return;
+
+    if (!iban && !value.hasIbanOnFile) {
+      ctx.addIssue({ code: 'custom', path: ['iban'], message: 'required' });
+    }
+    if ((value.bankName ?? '').trim().length < 2) {
+      ctx.addIssue({ code: 'custom', path: ['bankName'], message: 'required' });
+    }
+  });
+
 export const rejectMerchantSchema = z.object({
   merchantId: z.string().uuid(),
   /** Required: a rejection with no reason is one the applicant cannot act on or appeal. */

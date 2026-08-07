@@ -11,6 +11,7 @@ import { audit, requireCapability } from '@/features/admin/audit';
 import {
   approveMerchantSchema,
   merchantApplicationSchema,
+  merchantSettlementSchema,
   rejectMerchantSchema,
   requestInfoSchema,
   slugFromName,
@@ -336,6 +337,91 @@ export async function approveMerchant(
     return ok({ merchantId: input.merchantId, slug: (data as { slug: string }).slug });
   } catch (error) {
     logger.error('approveMerchant threw', describeError(error));
+    return no('merchant.errors.generic');
+  }
+}
+
+/**
+ * Sets or corrects a merchant's settlement details, at any point in their life.
+ *
+ * Separate from approval on purpose. An IBAN mistyped on the application, a merchant who opens a new
+ * account, a cash merchant who now wants a transfer — all of them happen long after approval, and
+ * none should require re-running one. Until this existed the only way to fix a payout destination was
+ * for the merchant to log in and do it themselves, which is no use when they have phoned to say the
+ * number is wrong.
+ *
+ * ── Written through the admin client, and that is a decision ──
+ *
+ * The service role bypasses RLS *and* the field guard in `guard_merchant_self_update`, which is the
+ * point: `requireCapability` above is the gate, and the guard exists to stop a **merchant** editing
+ * commercial terms, not to stop an admin fixing a bank account.
+ *
+ * What it does not bypass is the audit. Migration 72 moved the `merchant.bank_changed` insert above
+ * that function's privilege check precisely so this path is recorded — the trigger fires whoever
+ * writes, and the `audit()` call below adds the admin's own intent on top.
+ */
+export async function updateMerchantSettlement(
+  _previous: MerchantState,
+  formData: FormData,
+): Promise<MerchantState> {
+  const gate = await requireCapability('merchants.manage');
+  if (!gate.ok) return no('admin.errors.forbidden');
+
+  const parsed = merchantSettlementSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return no('merchant.errors.invalid');
+
+  const input = parsed.data;
+
+  try {
+    const supabase = createAdminClient();
+
+    const { data, error } = await supabase
+      .from('merchants')
+      .update({
+        settlement_method: input.settlementMethod,
+        /*
+         * Both fields written only when supplied, matching the merchant's own settings form.
+         *
+         * The blank IBAN contract is load-bearing here: this screen renders the last four digits and
+         * nothing else, so an admin correcting a bank *name* submits an empty IBAN field — and
+         * treating that as "clear it" would wipe the payout destination of a merchant nobody meant
+         * to touch.
+         */
+        ...(input.bankName?.trim() ? { bank_name: input.bankName.trim() } : {}),
+        ...(input.iban ? { iban: input.iban } : {}),
+      })
+      .eq('id', input.merchantId)
+      .select('id')
+      .maybeSingle();
+
+    if (error) {
+      logger.error('updateMerchantSettlement failed', { cause: error.message });
+      /*
+       * The check constraint from migration 71, reached when an admin switches a merchant to bank
+       * transfer with no account on file. `hasIbanOnFile` should have caught it in the schema; this
+       * is the backstop for a stale form whose hidden field no longer matches the row.
+       */
+      return no(
+        error.message.includes('merchants_bank_details_for_transfer')
+          ? 'merchant.errors.invalid'
+          : 'merchant.errors.generic',
+      );
+    }
+    if (!data) return no('merchant.errors.invalid');
+
+    // The values themselves are not repeated here — the trigger already records the last four
+    // digits, and an audit log is not a place to keep a second copy of a bank account.
+    await audit('merchant.settlement_updated', 'merchant', input.merchantId, null, {
+      settlement_method: input.settlementMethod,
+      bank_name_changed: Boolean(input.bankName?.trim()),
+      iban_changed: Boolean(input.iban),
+    });
+
+    revalidatePath('/admin/merchants/applications');
+    revalidatePath('/admin/merchants');
+    return ok({ merchantId: input.merchantId });
+  } catch (error) {
+    logger.error('updateMerchantSettlement threw', describeError(error));
     return no('merchant.errors.generic');
   }
 }

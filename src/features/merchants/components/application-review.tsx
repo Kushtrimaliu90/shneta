@@ -9,6 +9,7 @@ import {
   approveMerchant,
   rejectMerchant,
   requestMerchantInfo,
+  updateMerchantSettlement,
   type MerchantState,
 } from '@/features/merchants/actions';
 import type { MerchantRow } from '@/features/merchants/admin-queries';
@@ -34,7 +35,7 @@ export function ApplicationReview({
   defaultCommission: number;
   defaultShipping: 'biocode' | 'merchant' | 'customer';
 }) {
-  const [panel, setPanel] = useState<'approve' | 'reject' | 'info' | null>(null);
+  const [panel, setPanel] = useState<'approve' | 'reject' | 'info' | 'settlement' | null>(null);
 
   const hasRegistration = merchant.documents.some(
     (doc) => doc.kind === 'business_registration',
@@ -145,19 +146,37 @@ export function ApplicationReview({
         </p>
       )}
 
-      {merchant.status === 'pending' && (
-        <div className="flex flex-wrap gap-2 border-t border-line pt-4">
-          <Button size="sm" onClick={() => setPanel(panel === 'approve' ? null : 'approve')}>
-            Approve
-          </Button>
-          <Button variant="secondary" size="sm" onClick={() => setPanel(panel === 'info' ? null : 'info')}>
-            Request info
-          </Button>
-          <Button variant="destructive" size="sm" onClick={() => setPanel(panel === 'reject' ? null : 'reject')}>
-            Reject
-          </Button>
-        </div>
-      )}
+      <div className="flex flex-wrap gap-2 border-t border-line pt-4">
+        {merchant.status === 'pending' && (
+          <>
+            <Button size="sm" onClick={() => setPanel(panel === 'approve' ? null : 'approve')}>
+              Approve
+            </Button>
+            <Button variant="secondary" size="sm" onClick={() => setPanel(panel === 'info' ? null : 'info')}>
+              Request info
+            </Button>
+            <Button variant="destructive" size="sm" onClick={() => setPanel(panel === 'reject' ? null : 'reject')}>
+              Reject
+            </Button>
+          </>
+        )}
+        {/*
+          Available at every status, unlike the three above.
+
+          None of the reasons to touch settlement details are approval-time: an IBAN mistyped on the
+          application, a merchant who opens a new account, a cash merchant who now wants a transfer.
+          All of them happen to merchants approved months earlier, and before this the only remedy was
+          asking the merchant to log in and do it themselves — no use at all when they have phoned to
+          say the number is wrong.
+        */}
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={() => setPanel(panel === 'settlement' ? null : 'settlement')}
+        >
+          Edit settlement
+        </Button>
+      </div>
 
       {panel === 'approve' && (
         <ApproveForm
@@ -169,7 +188,104 @@ export function ApplicationReview({
       )}
       {panel === 'reject' && <NoteForm merchantId={merchant.id} kind="reject" onDone={() => setPanel(null)} />}
       {panel === 'info' && <NoteForm merchantId={merchant.id} kind="info" onDone={() => setPanel(null)} />}
+      {panel === 'settlement' && (
+        <SettlementForm merchant={merchant} onDone={() => setPanel(null)} />
+      )}
     </article>
+  );
+}
+
+/**
+ * Setting or correcting how a merchant is paid.
+ *
+ * **The IBAN field is empty and stays empty**, exactly as on the merchant's own settings screen. This
+ * page only ever receives the last four digits — the full number is never sent to a browser — so
+ * there is nothing to prefill with that is both safe and correct. An empty field therefore means
+ * "leave it alone", which is the only version that cannot wipe a payout destination when an admin
+ * opens the form to fix a bank name and saves.
+ *
+ * `hasIbanOnFile` travels as a hidden field so the schema can tell "no IBAN was typed because one
+ * already exists" from "no IBAN exists at all" — the second is the case that must be refused when
+ * switching a merchant to bank transfer.
+ */
+function SettlementForm({ merchant, onDone }: { merchant: MerchantRow; onDone: () => void }) {
+  const [method, setMethod] = useState(merchant.settlementMethod);
+  const [state, action] = useActionState<MerchantState, FormData>(async (previous, formData) => {
+    const result = await updateMerchantSettlement(previous, formData);
+    if (result?.ok) onDone();
+    return result;
+  }, null);
+
+  return (
+    <form
+      action={action}
+      className="flex flex-col gap-3 rounded-md border border-line-strong bg-cream p-4"
+    >
+      <input type="hidden" name="merchantId" value={merchant.id} />
+      <input type="hidden" name="hasIbanOnFile" value={merchant.ibanLast4 ? 'true' : ''} />
+
+      <p className="text-sm font-medium text-ink-900">How this merchant is paid</p>
+
+      <fieldset className="flex flex-col gap-1.5">
+        <legend className="sr-only">Settlement method</legend>
+        {(['bank_transfer', 'cash'] as const).map((option) => (
+          <label key={option} className="flex items-center gap-2 text-sm text-ink-900">
+            <input
+              type="radio"
+              name="settlementMethod"
+              value={option}
+              checked={method === option}
+              onChange={() => setMethod(option)}
+              className="size-4 accent-forest-700"
+            />
+            {option === 'cash' ? 'Cash — settled in person' : 'Bank transfer'}
+          </label>
+        ))}
+      </fieldset>
+
+      {method === 'bank_transfer' && (
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="font-medium text-ink-900">Bank name</span>
+            <input
+              name="bankName"
+              defaultValue={merchant.bankName ?? ''}
+              className="h-10 rounded-md border border-line-strong bg-surface px-2.5 text-sm"
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="font-medium text-ink-900">IBAN</span>
+            <input
+              name="iban"
+              autoComplete="off"
+              placeholder={
+                merchant.ibanLast4
+                  ? `On file, ending ${merchant.ibanLast4} — leave blank to keep`
+                  : 'Required'
+              }
+              className="h-10 rounded-md border border-line-strong bg-surface px-2.5 text-sm"
+            />
+          </label>
+        </div>
+      )}
+
+      {state && !state.ok && (
+        <p className="text-sm text-error">
+          {state.error === 'admin.errors.forbidden'
+            ? 'Your role cannot change settlement details.'
+            : state.error === 'merchant.errors.invalid'
+              ? 'Check the fields — a bank transfer needs a bank name and a valid IBAN on file.'
+              : 'Something went wrong. Try again.'}
+        </p>
+      )}
+
+      <div className="flex gap-2">
+        <SubmitButton size="sm">Save settlement</SubmitButton>
+        <Button type="button" variant="ghost" size="sm" onClick={onDone}>
+          Cancel
+        </Button>
+      </div>
+    </form>
   );
 }
 
