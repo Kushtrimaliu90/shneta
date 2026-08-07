@@ -344,6 +344,7 @@ export type Database = {
       }
       banners: {
         Row: {
+          code: string | null
           created_at: string
           cta_href: string | null
           cta_label: Json
@@ -359,6 +360,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          code?: string | null
           created_at?: string
           cta_href?: string | null
           cta_label?: Json
@@ -374,6 +376,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          code?: string | null
           created_at?: string
           cta_href?: string | null
           cta_label?: Json
@@ -942,6 +945,75 @@ export type Database = {
           slug?: string
           sort_order?: number
           tagline?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      hero_slides: {
+        Row: {
+          created_at: string
+          cta_primary_href: string | null
+          cta_primary_label: Json
+          cta_secondary_href: string | null
+          cta_secondary_label: Json
+          ends_at: string | null
+          eyebrow: Json
+          headline: Json
+          id: string
+          image_desktop_alt: Json
+          image_desktop_path: string | null
+          image_mobile_alt: Json
+          image_mobile_path: string | null
+          is_pinned: boolean
+          position: number
+          starts_at: string | null
+          status: string
+          subhead: Json
+          text_variant: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          cta_primary_href?: string | null
+          cta_primary_label?: Json
+          cta_secondary_href?: string | null
+          cta_secondary_label?: Json
+          ends_at?: string | null
+          eyebrow?: Json
+          headline?: Json
+          id?: string
+          image_desktop_alt?: Json
+          image_desktop_path?: string | null
+          image_mobile_alt?: Json
+          image_mobile_path?: string | null
+          is_pinned?: boolean
+          position?: number
+          starts_at?: string | null
+          status?: string
+          subhead?: Json
+          text_variant?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          cta_primary_href?: string | null
+          cta_primary_label?: Json
+          cta_secondary_href?: string | null
+          cta_secondary_label?: Json
+          ends_at?: string | null
+          eyebrow?: Json
+          headline?: Json
+          id?: string
+          image_desktop_alt?: Json
+          image_desktop_path?: string | null
+          image_mobile_alt?: Json
+          image_mobile_path?: string | null
+          is_pinned?: boolean
+          position?: number
+          starts_at?: string | null
+          status?: string
+          subhead?: Json
+          text_variant?: string
           updated_at?: string
         }
         Relationships: []

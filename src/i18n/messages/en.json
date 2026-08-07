@@ -39,7 +39,14 @@
       "subtitle": "Unlock your potential with supplements chosen for what your body is actually asking for — every ingredient disclosed, every dose explained, nothing hidden behind a proprietary blend.",
       "ctaPrimary": "Shop the range",
       "ctaSecondary": "Decode your routine",
-      "imageAlt": "The BIOCODE range — plant protein, a daily multivitamin, a greens blend and a shaker, on a wooden table with fresh fruit."
+      "imageAlt": "The BIOCODE range — plant protein, a daily multivitamin, a greens blend and a shaker, on a wooden table with fresh fruit.",
+      "carouselLabel": "Featured",
+      "slideLabel": "Slide {index} of {total}",
+      "goToSlide": "Go to slide {index} of {total}",
+      "previous": "Previous slide",
+      "next": "Next slide",
+      "chooseSlide": "Choose a slide",
+      "freeShipping": "Free shipping over {threshold}"
     },
     "trust": {
       "shipping": {
@@ -70,6 +77,29 @@
     "placeholder": {
       "title": "Catalogue coming next",
       "body": "The shell is in place. Products, categories and articles appear as soon as the database is connected."
+    },
+    "intent": {
+      "heading": "Where to start",
+      "goals": {
+        "title": "Shop by health goal",
+        "body": "Sleep, energy, immunity and more."
+      },
+      "bestsellers": {
+        "title": "Bestsellers",
+        "body": "What people are buying most."
+      },
+      "offers": {
+        "title": "Offers",
+        "body": "Current bundles and reductions."
+      },
+      "biohack": {
+        "title": "Build your BioHack Protocol",
+        "body": "A routine matched to your answers."
+      }
+    },
+    "announcement": {
+      "cta": "Shop now",
+      "dismiss": "Dismiss announcement"
     }
   },
   "footer": {

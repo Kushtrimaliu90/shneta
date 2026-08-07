@@ -103,7 +103,9 @@ export type Capability =
    * look. Changing what search *does* is catalogue work and stays with the people who own the catalogue.
    */
   | 'search.view'
-  | 'search.manage';
+  | 'search.manage'
+  // The homepage hero: slides, carousel settings, trust strip, announcement bar. Content work.
+  | 'hero.manage';
 
 /**
  * Who holds each capability. `admin` is omitted from every list and granted unconditionally
@@ -160,6 +162,7 @@ const CAPABILITIES: Record<Capability, readonly UserRole[]> = {
   // question they hear first; changing synonyms or ranking is catalogue work.
   'search.view': ['support', 'product_manager', 'content_manager'],
   'search.manage': ['product_manager', 'content_manager'],
+  'hero.manage': ['content_manager'],
 };
 
 /**
@@ -257,6 +260,7 @@ const NAV: NavSection[] = [
       },
       { href: '/admin/goals', label: 'Health goals', icon: 'goals', capability: 'content.manage' },
       { href: '/admin/search', label: 'Search', icon: 'products', capability: 'search.view' },
+      { href: '/admin/hero', label: 'Homepage hero', icon: 'content', capability: 'hero.manage' },
       {
         href: '/admin/biohack',
         label: 'BioHack',

@@ -73,6 +73,8 @@ export const CACHE_TAGS = {
   shipping: 'shipping',
   /** Synonym groups, merchandising rules and query redirects — the search console's output. */
   search: 'search',
+  /** Hero slides, carousel settings, trust strip and the announcement bar. */
+  hero: 'hero',
 } as const;
 
 /**

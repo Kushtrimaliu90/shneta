@@ -6,6 +6,8 @@ import { WishlistProvider } from '@/features/wishlist/components/wishlist-provid
 import { CompareProvider } from '@/features/compare/components/compare-provider';
 import { CompareBar } from '@/features/compare/components/compare-bar';
 import { CookieConsent } from '@/features/content/components/cookie-consent';
+import { AnnouncementBarView } from '@/features/hero/components/announcement-bar';
+import { getAnnouncement } from '@/features/hero/queries';
 
 /**
  * Storefront chrome (docs/05 §17). `main` carries the landmark and the skip-link target
@@ -28,8 +30,17 @@ export default async function StorefrontLayout({
   children: React.ReactNode;
   params: Promise<{ locale: string }>;
 }) {
-  setRequestLocale(resolveLocale((await params).locale));
+  const locale = resolveLocale((await params).locale);
+  setRequestLocale(locale);
   const t = await getTranslations('common');
+
+  /*
+   * Read here rather than inside the bar so the layout stays a server component with no
+   * request-scoped input: `getAnnouncement` is a cached, anonymous read, exactly like the catalogue
+   * queries. Whether *this* visitor has dismissed it is decided client-side before first paint —
+   * see the note in `announcement-bar.tsx` for why that cannot be a `cookies()` call here.
+   */
+  const announcement = await getAnnouncement();
 
   return (
     <>
@@ -38,6 +49,7 @@ export default async function StorefrontLayout({
       </a>
       <WishlistProvider>
         <CompareProvider>
+          <AnnouncementBarView announcement={announcement} locale={locale} />
           <Navbar />
           <main id="main" className="flex-1">
             {children}

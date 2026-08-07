@@ -39,7 +39,14 @@
       "subtitle": "Zhbllokoje potencialin tënd me suplemente të zgjedhura për atë që trupi yt kërkon vërtet — çdo përbërës i deklaruar, çdo dozë e shpjeguar, asgjë e fshehur pas një përzierjeje pronësore.",
       "ctaPrimary": "Shiko produktet",
       "ctaSecondary": "Deshifro rutinën tënde",
-      "imageAlt": "Gama e produkteve BIOCODE — proteinë bimore, multivitaminë ditore, përzierje jeshile dhe shaker, mbi një tavolinë druri me fruta të freskëta."
+      "imageAlt": "Gama e produkteve BIOCODE — proteinë bimore, multivitaminë ditore, përzierje jeshile dhe shaker, mbi një tavolinë druri me fruta të freskëta.",
+      "carouselLabel": "Të veçuara",
+      "slideLabel": "Sllajdi {index} nga {total}",
+      "goToSlide": "Shko te sllajdi {index} nga {total}",
+      "previous": "Sllajdi i mëparshëm",
+      "next": "Sllajdi tjetër",
+      "chooseSlide": "Zgjidh një sllajd",
+      "freeShipping": "Transport falas mbi {threshold}"
     },
     "trust": {
       "shipping": {
@@ -70,6 +77,29 @@
     "placeholder": {
       "title": "Katalogu vjen së shpejti",
       "body": "Skeleti i faqes është gati. Produktet, kategoritë dhe artikujt shfaqen sapo të lidhet baza e të dhënave."
+    },
+    "intent": {
+      "heading": "Ku të fillosh",
+      "goals": {
+        "title": "Blej sipas qëllimit",
+        "body": "Gjumë, energji, imunitet e më shumë."
+      },
+      "bestsellers": {
+        "title": "Më të shiturat",
+        "body": "Çfarë blejnë më shumë të tjerët."
+      },
+      "offers": {
+        "title": "Oferta",
+        "body": "Pakot dhe uljet aktuale."
+      },
+      "biohack": {
+        "title": "Krijo Protokollin BioHack",
+        "body": "Një rutinë e përshtatur me përgjigjet e tua."
+      }
+    },
+    "announcement": {
+      "cta": "Bli tani",
+      "dismiss": "Mbyll njoftimin"
     }
   },
   "footer": {
