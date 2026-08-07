@@ -32,7 +32,13 @@ const schema = z.object({
   addressLine: z.string().trim().min(3, 'required').max(200),
   city: z.string().trim().min(2, 'required').max(80),
   postalCode: z.string().trim().max(16).optional().or(z.literal('')),
-  bankName: z.string().trim().min(2, 'required').max(120),
+  /**
+   * How BioCode settles. Switchable here, because a merchant who started on cash and opened a
+   * business account should not have to reapply to be paid into it.
+   */
+  settlementMethod: z.enum(['bank_transfer', 'cash']).default('bank_transfer'),
+  /** Required for a transfer, irrelevant for cash — enforced below, where the method is known. */
+  bankName: z.string().trim().max(120).optional(),
   /**
    * The IBAN, optional on this form — an empty value means "leave it alone".
    *
@@ -52,7 +58,8 @@ export type ProfileErrorKey =
   | 'merchant.settings.errors.generic'
   | 'merchant.settings.errors.invalid'
   | 'merchant.settings.errors.notMerchant'
-  | 'merchant.settings.errors.locked';
+  | 'merchant.settings.errors.locked'
+  | 'merchant.settings.errors.bankRequired';
 
 export type ProfileState = ActionResult<{ saved: true }, ProfileErrorKey> | null;
 
@@ -71,6 +78,23 @@ export async function updateMerchantProfile(
   }
   const input = parsed.data;
 
+  /*
+   * Whether the bank details are sufficient cannot be decided by the schema alone.
+   *
+   * An empty IBAN on this form means "leave it alone" — the portal only ever holds the last four
+   * digits, so it cannot prefill the field — which makes "is there an IBAN?" a question about the
+   * *stored* row rather than the submitted one. A merchant already on bank transfer may therefore
+   * save with the field blank; a merchant switching **to** bank transfer with nothing on file may
+   * not. `ibanLast4` is the portal's only view of it, and null there means no IBAN exists.
+   */
+  if (input.settlementMethod === 'bank_transfer') {
+    const hasIban = Boolean(input.iban) || Boolean(merchant.ibanLast4);
+    const hasBankName = (input.bankName ?? '').trim().length >= 2;
+    if (!hasIban || !hasBankName) {
+      return fail<ProfileErrorKey, { saved: true }>('merchant.settings.errors.bankRequired');
+    }
+  }
+
   try {
     const supabase = await createClient();
 
@@ -79,7 +103,7 @@ export async function updateMerchantProfile(
       .update({
         contact_name: input.contactName,
         contact_phone: input.contactPhone,
-        bank_name: input.bankName,
+        settlement_method: input.settlementMethod,
         address: {
           line1: input.addressLine,
           city: input.city,
@@ -87,11 +111,20 @@ export async function updateMerchantProfile(
           country_code: 'XK',
         } as unknown as Json,
         /*
-         * Only when they actually typed a new one — see the note on the field. Spread rather than a
-         * mutable `patch` object, because the generated update type rejects an index signature: it
-         * checks for excess properties, and `Record<string, unknown>` could carry any of the columns
-         * the self-update guard exists to refuse. Building the literal keeps that check working.
+         * Both bank fields follow the same rule: written only when the form actually supplied one.
+         *
+         * For the IBAN that is the pre-existing "empty means leave it alone" contract — see the note
+         * on the field. For the bank name it is what makes switching reversible: choosing cash
+         * unmounts both inputs, so neither key reaches the FormData, and blanking them on that basis
+         * would silently discard details the merchant has to retype the day they switch back. Cash
+         * simply stops the details being *used*; it is not an instruction to forget them.
+         *
+         * Spread rather than a mutable `patch` object, because the generated update type rejects an
+         * index signature: it checks for excess properties, and `Record<string, unknown>` could carry
+         * any of the columns the self-update guard exists to refuse. Building the literal keeps that
+         * check working.
          */
+        ...(input.bankName?.trim() ? { bank_name: input.bankName.trim() } : {}),
         ...(input.iban ? { iban: input.iban } : {}),
       })
       .eq('id', merchant.id)

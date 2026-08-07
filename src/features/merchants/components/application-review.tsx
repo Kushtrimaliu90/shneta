@@ -64,10 +64,24 @@ export function ApplicationReview({
             .filter(Boolean)
             .join(', ') || '—'}
         </Row>
+        {/*
+          Settlement first, because it decides whether the line below is a gap or an answer.
+          A blank bank row on a cash merchant is what they asked for; on a bank-transfer merchant it
+          could not happen — the check constraint in migration 71 refuses that combination.
+        */}
+        <Row label="Settlement">
+          {merchant.settlementMethod === 'cash' ? 'Cash' : 'Bank transfer'}
+        </Row>
         <Row label="Bank">
-          {merchant.bankName ?? '—'}
-          {/* Last four only. A review screen gets screenshotted; the full IBAN stays in the row. */}
-          {merchant.ibanLast4 && ` · IBAN ••••${merchant.ibanLast4}`}
+          {merchant.settlementMethod === 'cash' && !merchant.bankName ? (
+            <span className="text-ink-500">Not applicable — settles in cash</span>
+          ) : (
+            <>
+              {merchant.bankName ?? '—'}
+              {/* Last four only. A review screen gets screenshotted; the full IBAN stays in the row. */}
+              {merchant.ibanLast4 && ` · IBAN ••••${merchant.ibanLast4}`}
+            </>
+          )}
         </Row>
         <Row label="Portal account">
           {merchant.ownerEmails.length > 0 ? merchant.ownerEmails.join(', ') : 'not linked yet'}

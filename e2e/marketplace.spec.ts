@@ -458,6 +458,35 @@ test.describe('unauthenticated', () => {
     expect(response?.status()).toBe(200);
     await expect(page.getByRole('heading', { name: /Sell on BioCode/i })).toBeVisible();
   });
+
+  /**
+   * Bank details follow the settlement choice (docs/16 §8).
+   *
+   * The form used to demand a bank name and an IBAN from everyone, which is the wrong question for a
+   * merchant who intends to settle in cash. The fields are now *unmounted* rather than made optional,
+   * so the keys never reach the FormData — which is what lets a blank IBAN mean "settles in cash"
+   * instead of "might have forgotten".
+   *
+   * Read-only: it asserts the fields appear and disappear and submits nothing, because a real
+   * submission would leave a pending merchant row in the queue for the next run to trip over.
+   */
+  test('choosing cash removes the bank fields, choosing transfer brings them back', async ({
+    page,
+  }) => {
+    await page.goto('/en/merchant/apply');
+
+    const iban = page.getByLabel(/IBAN/i);
+    await expect(iban).toBeVisible();
+
+    await page.getByRole('radio', { name: /Cash/i }).check();
+    await expect(iban).toBeHidden();
+
+    await page.getByRole('radio', { name: /Bank transfer/i }).check();
+    await expect(iban).toBeVisible();
+    // Still mandatory for the merchants who do want a transfer — optional for everyone would have
+    // let them submit without one and find out at their first payout.
+    await expect(iban).toHaveAttribute('required', '');
+  });
 });
 
 /** Guards against the fixture users leaking if `afterAll` never runs. */

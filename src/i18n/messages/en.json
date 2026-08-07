@@ -1156,7 +1156,13 @@
       "errorGeneric": "Something went wrong. Try again shortly.",
       "errorTooMany": "Too many applications from this connection. Wait an hour and try again.",
       "errorDuplicate": "We already have an application for this business number. Contact info@biocode.fit.",
-      "errorInvalid": "Check the marked fields — something is not filled in correctly."
+      "errorInvalid": "Check the marked fields — something is not filled in correctly.",
+      "settlementTitle": "How you want to be paid",
+      "settlementHint": "You can change this later from your merchant settings.",
+      "settlementBank": "Bank transfer",
+      "settlementBankHint": "We pay your balance into your account each payout period.",
+      "settlementCash": "Cash",
+      "settlementCashHint": "We settle in person. No bank details needed."
     },
     "portal": {
       "skipToContent": "Skip to content",
@@ -1363,8 +1369,15 @@
         "generic": "Something went wrong. Try again shortly.",
         "invalid": "Check the highlighted fields.",
         "notMerchant": "This account is not linked to a seller.",
-        "locked": "That field cannot be changed from the portal."
-      }
+        "locked": "That field cannot be changed from the portal.",
+        "bankRequired": "Add a bank name and IBAN before choosing bank transfer."
+      },
+      "settlementTitle": "Settlement",
+      "settlementIntro": "How BioCode pays your balance. Switching to bank transfer needs an account on file.",
+      "settlementBank": "Bank transfer",
+      "settlementBankHint": "Paid into your account each payout period.",
+      "settlementCash": "Cash",
+      "settlementCashHint": "Settled in person. Your bank details are kept but not used."
     },
     "fulfilments": {
       "title": "Orders",

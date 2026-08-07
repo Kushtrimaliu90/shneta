@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState } from 'react';
+import { useActionState, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import { Alert } from '@/components/ui/alert';
@@ -31,6 +31,7 @@ export function MerchantApplyForm({ commissionDefault }: { commissionDefault: nu
     submitMerchantApplication,
     null,
   );
+  const [settlement, setSettlement] = useState<'bank_transfer' | 'cash'>('bank_transfer');
 
   if (state?.ok) {
     return (
@@ -72,9 +73,38 @@ export function MerchantApplyForm({ commissionDefault }: { commissionDefault: nu
         <Checkbox name="imports" label={t('imports')} hint={t('importsHint')} />
       </Section>
 
-      <Section title={t('bankTitle')} hint={t('bankHint')}>
-        <Field name="bankName" label={t('bankName')} required />
-        <Field name="iban" label={t('iban')} hint={t('ibanHint')} required />
+      {/*
+        The bank fields render only for a transfer, rather than rendering greyed out or optional.
+
+        A merchant who intends to settle in cash has no account number to give, and a form that keeps
+        asking for one reads as "you are the wrong sort of applicant". Unmounting them also keeps the
+        FormData honest: the keys are simply absent rather than present-and-empty, which is why the
+        schema treats them as `optional()` instead of allowing `''`.
+      */}
+      <Section title={t('settlementTitle')} hint={t('settlementHint')}>
+        <Radio
+          name="settlementMethod"
+          value="bank_transfer"
+          checked={settlement === 'bank_transfer'}
+          onChange={() => setSettlement('bank_transfer')}
+          label={t('settlementBank')}
+          hint={t('settlementBankHint')}
+        />
+        <Radio
+          name="settlementMethod"
+          value="cash"
+          checked={settlement === 'cash'}
+          onChange={() => setSettlement('cash')}
+          label={t('settlementCash')}
+          hint={t('settlementCashHint')}
+        />
+
+        {settlement === 'bank_transfer' && (
+          <>
+            <Field name="bankName" label={t('bankName')} required />
+            <Field name="iban" label={t('iban')} hint={t('ibanHint')} required />
+          </>
+        )}
       </Section>
 
       <Section title={t('agreeTitle')}>
@@ -197,6 +227,48 @@ function Field({
         </span>
       )}
     </label>
+  );
+}
+
+/**
+ * A radio in the same shape as `Checkbox`, controlled so the form can show or hide the bank fields.
+ *
+ * Controlled rather than `defaultChecked`: the visibility of another fieldset depends on this value,
+ * so React has to know it. Both radios share a `name`, which is what makes them one group to the
+ * browser and to assistive technology — arrow keys move between them and only one submits.
+ */
+function Radio({
+  name,
+  value,
+  checked,
+  onChange,
+  label,
+  hint,
+}: {
+  name: string;
+  value: string;
+  checked: boolean;
+  onChange: () => void;
+  label: string;
+  hint?: string;
+}) {
+  return (
+    <div className="sm:col-span-2">
+      <label className="flex items-start gap-2.5 text-sm">
+        <input
+          type="radio"
+          name={name}
+          value={value}
+          checked={checked}
+          onChange={onChange}
+          className="mt-0.5 size-4 shrink-0 accent-forest-700"
+        />
+        <span className="flex flex-col gap-0.5">
+          <span className="text-ink-900">{label}</span>
+          {hint && <span className="text-xs text-ink-600">{hint}</span>}
+        </span>
+      </label>
+    </div>
   );
 }
 

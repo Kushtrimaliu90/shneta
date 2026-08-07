@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState } from 'react';
+import { useActionState, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Alert } from '@/components/ui/alert';
 import { Field } from '@/components/ui/field';
@@ -30,6 +30,8 @@ export function MerchantSettingsForm({ merchant }: { merchant: MyMerchant }) {
     async (previous, formData) => updateMerchantProfile(previous, formData),
     null,
   );
+
+  const [settlement, setSettlement] = useState(merchant.settlementMethod);
 
   const { address } = merchant;
 
@@ -89,29 +91,72 @@ export function MerchantSettingsForm({ merchant }: { merchant: MyMerchant }) {
 
         <section aria-labelledby="bank" className="flex flex-col gap-4">
           <h3 id="bank" className="font-display text-lg font-semibold text-forest-900">
-            {t('bankTitle')}
+            {t('settlementTitle')}
           </h3>
-          <p className="text-sm text-ink-600">{t('bankIntro')}</p>
+          <p className="text-sm text-ink-600">{t('settlementIntro')}</p>
 
-          <div className="grid gap-5 sm:grid-cols-2">
-            <Field id="bankName" label={t('bankName')} required>
-              {(field) => <Input {...field} name="bankName" defaultValue={merchant.bankName ?? ''} />}
-            </Field>
+          {/*
+            Switchable, because a merchant who started on cash and later opened a business account
+            should not have to reapply to be paid into it. Switching *to* bank transfer with nothing
+            on file is refused by the action — the portal holds only the last four digits, so whether
+            an IBAN exists is a question about the stored row, not this form.
+          */}
+          <fieldset className="flex flex-col gap-2">
+            <legend className="sr-only">{t('settlementTitle')}</legend>
+            {(['bank_transfer', 'cash'] as const).map((method) => (
+              <label key={method} className="flex items-start gap-2.5 text-sm">
+                <input
+                  type="radio"
+                  name="settlementMethod"
+                  value={method}
+                  checked={settlement === method}
+                  onChange={() => setSettlement(method)}
+                  className="mt-0.5 size-4 shrink-0 accent-forest-700"
+                />
+                <span className="flex flex-col gap-0.5">
+                  <span className="text-ink-900">
+                    {method === 'cash' ? t('settlementCash') : t('settlementBank')}
+                  </span>
+                  <span className="text-xs text-ink-600">
+                    {method === 'cash' ? t('settlementCashHint') : t('settlementBankHint')}
+                  </span>
+                </span>
+              </label>
+            ))}
+          </fieldset>
 
-            <Field
-              id="iban"
-              label={t('iban')}
-              hint={
-                merchant.ibanLast4
-                  ? t('ibanHintOnFile', { last4: merchant.ibanLast4 })
-                  : t('ibanHintNone')
-              }
-            >
-              {(field) => (
-                <Input {...field} name="iban" autoComplete="off" placeholder={t('ibanPlaceholder')} />
-              )}
-            </Field>
-          </div>
+          {settlement === 'bank_transfer' && (
+            <>
+              <p className="text-sm text-ink-600">{t('bankIntro')}</p>
+
+              <div className="grid gap-5 sm:grid-cols-2">
+                <Field id="bankName" label={t('bankName')} required>
+                  {(field) => (
+                    <Input {...field} name="bankName" defaultValue={merchant.bankName ?? ''} />
+                  )}
+                </Field>
+
+                <Field
+                  id="iban"
+                  label={t('iban')}
+                  hint={
+                    merchant.ibanLast4
+                      ? t('ibanHintOnFile', { last4: merchant.ibanLast4 })
+                      : t('ibanHintNone')
+                  }
+                >
+                  {(field) => (
+                    <Input
+                      {...field}
+                      name="iban"
+                      autoComplete="off"
+                      placeholder={t('ibanPlaceholder')}
+                    />
+                  )}
+                </Field>
+              </div>
+            </>
+          )}
         </section>
 
         {state?.ok && (

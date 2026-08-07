@@ -1156,7 +1156,13 @@
       "errorGeneric": "Diçka shkoi keq. Provo sërish pas pak.",
       "errorTooMany": "Shumë aplikime nga kjo lidhje. Prit një orë dhe provo sërish.",
       "errorDuplicate": "Për këtë numër biznesi kemi një aplikim. Kontakto info@biocode.fit.",
-      "errorInvalid": "Kontrollo fushat e shënuara — diçka nuk është plotësuar si duhet."
+      "errorInvalid": "Kontrollo fushat e shënuara — diçka nuk është plotësuar si duhet.",
+      "settlementTitle": "Si dëshironi të paguheni",
+      "settlementHint": "Mund ta ndryshoni më vonë te cilësimet e shitësit.",
+      "settlementBank": "Transfer bankar",
+      "settlementBankHint": "Bilancin ua paguajmë në llogari çdo periudhë pagese.",
+      "settlementCash": "Para në dorë",
+      "settlementCashHint": "Shlyhemi personalisht. Nuk nevojiten të dhëna bankare."
     },
     "portal": {
       "skipToContent": "Kalo në përmbajtje",
@@ -1363,8 +1369,15 @@
         "generic": "Diçka shkoi keq. Provo sërish pas pak.",
         "invalid": "Kontrollo fushat e shënuara.",
         "notMerchant": "Kjo llogari nuk lidhet me një shitës.",
-        "locked": "Kjo fushë nuk mund të ndryshohet nga portali."
-      }
+        "locked": "Kjo fushë nuk mund të ndryshohet nga portali.",
+        "bankRequired": "Shtoni emrin e bankës dhe IBAN-in para se të zgjidhni transferin bankar."
+      },
+      "settlementTitle": "Shlyerja",
+      "settlementIntro": "Si ua paguan BioCode bilancin. Kalimi në transfer bankar kërkon një llogari të regjistruar.",
+      "settlementBank": "Transfer bankar",
+      "settlementBankHint": "Paguhet në llogarinë tuaj çdo periudhë pagese.",
+      "settlementCash": "Para në dorë",
+      "settlementCashHint": "Shlyhet personalisht. Të dhënat bankare ruhen por nuk përdoren."
     },
     "fulfilments": {
       "title": "Porositë",

@@ -41,6 +41,8 @@ export interface MyMerchant {
   address: { line1: string; city: string; postalCode: string };
   bankName: string | null;
   ibanLast4: string | null;
+  /** How BioCode settles the balance. Cash merchants legitimately have no bank details. */
+  settlementMethod: 'bank_transfer' | 'cash';
   /** The reviewer's note: a rejection reason, or what a pending application is still missing. */
   reviewerNote: string | null;
   termsVersion: string | null;
@@ -69,7 +71,7 @@ export async function getMyMerchant(): Promise<MyMerchant | null> {
     .select(
       `id, slug, display_name, legal_name, status, commission_pct, shipping_borne_by,
        ships_own, collects_cash, contact_name, contact_email, contact_phone, address,
-       bank_name, iban, rejection_note, terms_version, rating_avg, rating_count,
+       bank_name, iban, settlement_method, rejection_note, terms_version, rating_avg, rating_count,
        created_at, approved_at`,
     )
     .order('created_at', { ascending: true })
@@ -98,6 +100,7 @@ export async function getMyMerchant(): Promise<MyMerchant | null> {
     address: Record<string, unknown> | null;
     bank_name: string | null;
     iban: string | null;
+    settlement_method: string | null;
     rejection_note: string | null;
     terms_version: string | null;
     rating_avg: number;
@@ -131,6 +134,7 @@ export async function getMyMerchant(): Promise<MyMerchant | null> {
      * anybody can read, and there is nothing on it they need the full number to verify.
      */
     ibanLast4: row.iban ? row.iban.slice(-4) : null,
+    settlementMethod: row.settlement_method === 'cash' ? 'cash' : 'bank_transfer',
     reviewerNote: row.rejection_note,
     termsVersion: row.terms_version,
     ratingAvg: Number(row.rating_avg ?? 0),

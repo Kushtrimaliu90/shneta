@@ -31,11 +31,54 @@ const businessNo = z
  * well-formed number belonging to somebody else, so it buys precision that does not matter here.
  * The first payout is the real test, and it is a manual bank transfer somebody watches.
  */
-const iban = z
+export const IBAN_PATTERN = /^[A-Z]{2}[0-9]{2}[A-Z0-9]{11,30}$/;
+
+/**
+ * IBAN as entered — normalised, not yet required.
+ *
+ * Whether it is mandatory depends on the settlement method, which is a cross-field question and so
+ * belongs in `superRefine` rather than here. What this still does unconditionally is normalise
+ * spacing and case, and it stays `optional()` because the field is not rendered at all for a merchant
+ * settling in cash and therefore never reaches the FormData.
+ */
+const ibanInput = z
   .string()
   .trim()
   .transform((value) => value.replace(/\s+/g, '').toUpperCase())
-  .pipe(z.string().regex(/^[A-Z]{2}[0-9]{2}[A-Z0-9]{11,30}$/, 'invalid'));
+  .optional();
+
+/**
+ * How BioCode settles with the merchant.
+ *
+ * `bank_transfer` is the default and stays the common case; a missing field means transfer rather
+ * than an error, so an older client or a curl post cannot accidentally create a cash merchant.
+ */
+const settlementMethod = z.enum(['bank_transfer', 'cash']).default('bank_transfer');
+
+/**
+ * Bank details are required for a transfer and irrelevant for cash — and an IBAN that *is* supplied
+ * must be well-formed either way, because a merchant who types one into the cash flow has told us
+ * something and storing it malformed helps nobody.
+ *
+ * Shared by the application and the settings form so the two cannot drift into disagreeing about
+ * when an account number is needed.
+ */
+export function checkSettlementDetails(
+  value: { settlementMethod?: 'bank_transfer' | 'cash'; bankName?: string; iban?: string },
+  ctx: z.RefinementCtx,
+): void {
+  const iban = (value.iban ?? '').trim();
+  const bankName = (value.bankName ?? '').trim();
+
+  if (iban && !IBAN_PATTERN.test(iban)) {
+    ctx.addIssue({ code: 'custom', path: ['iban'], message: 'invalid' });
+  }
+
+  if ((value.settlementMethod ?? 'bank_transfer') !== 'bank_transfer') return;
+
+  if (!iban) ctx.addIssue({ code: 'custom', path: ['iban'], message: 'required' });
+  if (bankName.length < 2) ctx.addIssue({ code: 'custom', path: ['bankName'], message: 'required' });
+}
 
 const phone = z.string().trim().min(6, 'tooShort').max(32, 'tooLong');
 
@@ -53,8 +96,14 @@ export const merchantApplicationSchema = z.object({
   city: z.string().trim().min(2, 'required').max(80),
   postalCode: z.string().trim().max(16).optional().or(z.literal('')),
 
-  bankName: z.string().trim().min(2, 'required').max(120),
-  iban,
+  /*
+   * Settlement. Bank details are conditionally required — see `checkSettlementDetails` on the
+   * `superRefine` below — because a merchant settling in cash has no account to give us and being
+   * asked for one is the form telling them they are the wrong sort of applicant.
+   */
+  settlementMethod,
+  bankName: z.string().trim().max(120).optional(),
+  iban: ibanInput,
 
   /** Free text: which categories they intend to sell, and roughly how much. */
   categories: z.string().trim().min(3, 'required').max(400),
@@ -70,7 +119,7 @@ export const merchantApplicationSchema = z.object({
    */
   acceptsTerms: z.literal('on', { message: 'required' }),
   acceptsCommission: z.literal('on', { message: 'required' }),
-});
+}).superRefine(checkSettlementDetails);
 
 export type MerchantApplication = z.infer<typeof merchantApplicationSchema>;
 

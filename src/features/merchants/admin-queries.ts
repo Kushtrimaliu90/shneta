@@ -29,6 +29,7 @@ export interface MerchantRow {
   collectsCash: boolean;
   bankName: string | null;
   ibanLast4: string | null;
+  settlementMethod: 'bank_transfer' | 'cash';
   applicationNote: string | null;
   reviewerNote: string | null;
   termsVersion: string | null;
@@ -58,7 +59,7 @@ export async function listMerchants(status?: MerchantStatus): Promise<MerchantRo
       `id, slug, legal_name, display_name, business_no, vat_no,
        contact_name, contact_email, contact_phone, address, status,
        commission_pct, shipping_borne_by, ships_own, collects_cash,
-       bank_name, iban, application_note, rejection_note,
+       bank_name, iban, settlement_method, application_note, rejection_note,
        terms_version, terms_accepted_at, created_at, approved_at,
        merchant_documents ( id, kind, verified, storage_path ),
        merchant_offers ( id ),
@@ -93,6 +94,7 @@ export async function listMerchants(status?: MerchantStatus): Promise<MerchantRo
     collects_cash: boolean;
     bank_name: string | null;
     iban: string | null;
+    settlement_method: string | null;
     application_note: string | null;
     rejection_note: string | null;
     terms_version: string | null;
@@ -122,6 +124,7 @@ export async function listMerchants(status?: MerchantStatus): Promise<MerchantRo
     collectsCash: row.collects_cash,
     bankName: row.bank_name,
     ibanLast4: row.iban ? row.iban.slice(-4) : null,
+    settlementMethod: row.settlement_method === 'cash' ? 'cash' : 'bank_transfer',
     applicationNote: row.application_note,
     reviewerNote: row.rejection_note,
     termsVersion: row.terms_version,

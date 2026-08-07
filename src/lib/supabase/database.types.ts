@@ -1493,6 +1493,7 @@ export type Database = {
           rating_avg: number
           rating_count: number
           rejection_note: string | null
+          settlement_method: Database["public"]["Enums"]["merchant_settlement_method"]
           shipping_borne_by:
             | Database["public"]["Enums"]["shipping_borne_by"]
             | null
@@ -1525,6 +1526,7 @@ export type Database = {
           rating_avg?: number
           rating_count?: number
           rejection_note?: string | null
+          settlement_method?: Database["public"]["Enums"]["merchant_settlement_method"]
           shipping_borne_by?:
             | Database["public"]["Enums"]["shipping_borne_by"]
             | null
@@ -1557,6 +1559,7 @@ export type Database = {
           rating_avg?: number
           rating_count?: number
           rejection_note?: string | null
+          settlement_method?: Database["public"]["Enums"]["merchant_settlement_method"]
           shipping_borne_by?:
             | Database["public"]["Enums"]["shipping_borne_by"]
             | null
@@ -5126,6 +5129,7 @@ export type Database = {
         | "cancelled"
         | "returned"
       height_band: "nen_160" | "160_169" | "170_179" | "180_189" | "190_plus"
+      merchant_settlement_method: "bank_transfer" | "cash"
       merchant_status: "pending" | "approved" | "suspended" | "rejected"
       offer_status:
         | "draft"
@@ -5354,6 +5358,7 @@ export const Constants = {
         "returned",
       ],
       height_band: ["nen_160", "160_169", "170_179", "180_189", "190_plus"],
+      merchant_settlement_method: ["bank_transfer", "cash"],
       merchant_status: ["pending", "approved", "suspended", "rejected"],
       offer_status: [
         "draft",

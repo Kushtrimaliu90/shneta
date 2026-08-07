@@ -129,8 +129,15 @@ export async function submitMerchantApplication(
         display_name: input.displayName,
         business_no: input.businessNo,
         vat_no: input.vatNo || null,
-        bank_name: input.bankName,
-        iban: input.iban,
+        settlement_method: input.settlementMethod,
+        /*
+         * NULL, not the empty string, when a cash merchant leaves these out. The check constraint in
+         * migration 71 tests `nullif(btrim(...), '')` precisely because a form post can supply `''`
+         * and `''` is not a bank account — but storing the blank would still leave the admin panel
+         * rendering an empty field where "settles in cash" is the honest answer.
+         */
+        bank_name: input.bankName?.trim() || null,
+        iban: input.iban?.trim() || null,
         contact_name: input.contactName,
         contact_email: input.contactEmail,
         contact_phone: input.contactPhone,
