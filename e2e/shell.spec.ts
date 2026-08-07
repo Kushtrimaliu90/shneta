@@ -62,6 +62,51 @@ test.describe('app shell', () => {
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('Nuk e gjetëm këtë faqe');
   });
 
+  /**
+   * The marketplace has a front door, and it is reachable without knowing the URL.
+   *
+   * `/merchant/apply` shipped with M12 public, indexable and linked from **nowhere** — no footer
+   * entry, no sitemap entry, no inbound link at all. It was discoverable only by someone who had
+   * already been told where it was, which is not an onboarding funnel. Both halves of the fix are
+   * asserted here because either one alone leaves the page effectively invisible: a human needs the
+   * link, a crawler needs the sitemap.
+   */
+  test('the Partners column leads a prospective merchant to the application', async ({ page }) => {
+    await page.goto('/en');
+
+    const partners = page.getByRole('navigation', { name: 'Partners' });
+    await expect(partners).toBeVisible();
+
+    await partners.getByRole('link', { name: 'Sell on BioCode' }).click();
+
+    // Reachable signed out — it is the one page under /merchant the middleware exempts, and an
+    // applicant by definition has no account yet.
+    await expect(page).toHaveURL(/\/en\/merchant\/apply$/);
+    await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+  });
+
+  test('the merchant portal link sends a signed-out visitor to sign-in, not an error', async ({
+    page,
+  }) => {
+    await page.goto('/en');
+    await page
+      .getByRole('navigation', { name: 'Partners' })
+      .getByRole('link', { name: 'Merchant portal' })
+      .click();
+
+    await expect(page).toHaveURL(/\/auth\/sign-in\?next=/);
+  });
+
+  test('the sitemap advertises the application page', async ({ request }) => {
+    const response = await request.get('/sitemap.xml');
+    expect(response.status()).toBe(200);
+
+    const xml = await response.text();
+    expect(xml, 'a crawler has no other route to it').toContain('/merchant/apply');
+    // Linked from the footer, so it needs an entry for the same reason — the gap one level down.
+    expect(xml).toContain('/legal/marketplace-terms');
+  });
+
   test('serves the security headers from docs/10 §5', async ({ page }) => {
     const response = await page.goto('/');
     const headers = response?.headers() ?? {};

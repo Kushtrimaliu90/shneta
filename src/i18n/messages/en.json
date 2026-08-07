@@ -99,7 +99,11 @@
     "payments": "Payment methods",
     "codBadge": "Cash on delivery",
     "rights": "All rights reserved.",
-    "disclaimer": "Food supplements are not a substitute for a balanced diet and a healthy lifestyle."
+    "disclaimer": "Food supplements are not a substitute for a balanced diet and a healthy lifestyle.",
+    "partners": "Partners",
+    "sellWithUs": "Sell on BioCode",
+    "merchantPortal": "Merchant portal",
+    "marketplaceTerms": "Marketplace terms"
   },
   "auth": {
     "fields": {

@@ -67,6 +67,21 @@ const STATIC_ROUTES: MetadataRoute.Sitemap = [
   entry('/legal/terms', { changeFrequency: 'yearly', priority: 0.2 }),
   entry('/legal/privacy', { changeFrequency: 'yearly', priority: 0.2 }),
   entry('/legal/shipping-returns', { changeFrequency: 'yearly', priority: 0.3 }),
+  /*
+   * The marketplace, for the audience that is not a shopper.
+   *
+   * `/merchant/apply` is the only page under `/merchant` that is public — the rest is the portal and
+   * sits behind a session — and it shipped with M12 listed nowhere: no footer link, no sitemap entry,
+   * no inbound link of any kind. It sets its own canonical and hreflang and is not disallowed, so it
+   * was indexable in principle and undiscoverable in practice.
+   *
+   * Priority above the legal pages because "sell supplements online in Kosovo" is a search a
+   * prospective merchant actually makes, and this is the page that answers it. The marketplace terms
+   * follow it here for the same reason they follow it in the footer: a page linked from the chrome
+   * but missing from the sitemap is the identical gap, one level down.
+   */
+  entry('/merchant/apply', { changeFrequency: 'monthly', priority: 0.6 }),
+  entry('/legal/marketplace-terms', { changeFrequency: 'yearly', priority: 0.2 }),
 ];
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {

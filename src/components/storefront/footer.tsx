@@ -6,11 +6,20 @@ import { PRIMARY_NAV } from '@/components/storefront/nav-links';
 import { NewsletterStatus } from '@/components/storefront/newsletter-status';
 
 /**
- * docs/04 §6 — forest-950 ground, cream text; five columns, newsletter, payment badges,
- * legal row. The mandatory supplement disclaimer (docs/08 §7.3) sits above the legal row.
+ * docs/04 §6 — forest-950 ground, cream text; brand block plus link columns, newsletter,
+ * payment badges, legal row. The mandatory supplement disclaimer (docs/08 §7.3) sits above
+ * the legal row.
  *
  * The newsletter form posts to `/api/newsletter` so it degrades without JavaScript; the
  * double-opt-in action itself lands in M8 (docs/12).
+ *
+ * ── Why Partners is here at all ──
+ *
+ * `/merchant/apply` shipped with M12, is public, indexable, and carries its own canonical and
+ * hreflang — and **nothing linked to it**. Not the footer, not the sitemap, not the home page. A
+ * page reachable only by someone who already knows the URL is not an onboarding funnel, and with
+ * no inbound links and no sitemap entry a crawler had no route to it either. This column and the
+ * matching `sitemap.ts` entry are the two halves of that fix.
  */
 export async function Footer() {
   const t = await getTranslations();
@@ -48,12 +57,35 @@ export async function Footer() {
         { href: '/legal/shipping-returns', label: t('footer.shippingReturns') },
       ],
     },
+    {
+      heading: t('footer.partners'),
+      links: [
+        /*
+         * Selling first, because this column exists for the person who has not applied yet. The
+         * portal link is for merchants who already have an account and is the second thing they
+         * need; the terms are what a prospective one reads before deciding.
+         */
+        { href: '/merchant/apply', label: t('footer.sellWithUs') },
+        { href: '/merchant', label: t('footer.merchantPortal') },
+        { href: '/legal/marketplace-terms', label: t('footer.marketplaceTerms') },
+      ],
+    },
   ];
 
   return (
     <footer className="mt-auto bg-forest-950 text-cream" data-print="hide">
       <div className="container-page py-14 lg:py-20">
-        <div className="grid gap-10 lg:grid-cols-[1.4fr_repeat(4,1fr)]">
+        {/*
+          `1.8fr` and a tighter gap, not `1.4fr` with the old one.
+
+          A fifth link column has to come out of somewhere. Splitting the 1200 px content width six
+          ways at the previous ratio would have taken the brand block from ~270 px to ~219 px, and
+          that block holds the newsletter's input *and* its button side by side — the input would
+          have lost roughly a third of its width to make room for three links. Widening the ratio and
+          closing the gap to 2 rem keeps the brand block at ~275 px and spends the difference on the
+          link columns, where a long label wraps to a second line and nothing breaks.
+        */}
+        <div className="grid gap-10 lg:grid-cols-[1.8fr_repeat(5,1fr)] lg:gap-8">
           <div className="max-w-xs">
             {/*
               The kit's reverse lockup, which exists for exactly this ground (forest-950 is the

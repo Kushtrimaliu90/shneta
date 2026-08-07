@@ -99,7 +99,11 @@
     "payments": "Mënyrat e pagesës",
     "codBadge": "Pagesa në dorëzim",
     "rights": "Të gjitha të drejtat e rezervuara.",
-    "disclaimer": "Suplementet ushqimore nuk zëvendësojnë një dietë të balancuar dhe një mënyrë jetese të shëndetshme."
+    "disclaimer": "Suplementet ushqimore nuk zëvendësojnë një dietë të balancuar dhe një mënyrë jetese të shëndetshme.",
+    "partners": "Partnerët",
+    "sellWithUs": "Shit në BioCode",
+    "merchantPortal": "Portali i shitësit",
+    "marketplaceTerms": "Kushtet e tregut"
   },
   "auth": {
     "fields": {
