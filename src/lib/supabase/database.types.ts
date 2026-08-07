@@ -3600,6 +3600,270 @@ export type Database = {
           },
         ]
       }
+      search_events: {
+        Row: {
+          clicked_at: string | null
+          clicked_position: number | null
+          clicked_product_id: string | null
+          created_at: string
+          did_you_mean: string | null
+          id: string
+          locale: string
+          query: string
+          query_norm: string
+          relaxed: boolean
+          result_count: number
+          source: string
+        }
+        Insert: {
+          clicked_at?: string | null
+          clicked_position?: number | null
+          clicked_product_id?: string | null
+          created_at?: string
+          did_you_mean?: string | null
+          id?: string
+          locale: string
+          query: string
+          query_norm: string
+          relaxed?: boolean
+          result_count: number
+          source: string
+        }
+        Update: {
+          clicked_at?: string | null
+          clicked_position?: number | null
+          clicked_product_id?: string | null
+          created_at?: string
+          did_you_mean?: string | null
+          id?: string
+          locale?: string
+          query?: string
+          query_norm?: string
+          relaxed?: boolean
+          result_count?: number
+          source?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "search_events_clicked_product_id_fkey"
+            columns: ["clicked_product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "search_events_clicked_product_id_fkey"
+            columns: ["clicked_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_admin_inventory"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "search_events_clicked_product_id_fkey"
+            columns: ["clicked_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_low_stock"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "search_events_clicked_product_id_fkey"
+            columns: ["clicked_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_merchant_offer_detail"
+            referencedColumns: ["product_id"]
+          },
+        ]
+      }
+      search_redirects: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          destination_path: string
+          id: string
+          is_active: boolean
+          match_type: string
+          note: string | null
+          query: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          destination_path: string
+          id?: string
+          is_active?: boolean
+          match_type?: string
+          note?: string | null
+          query: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          destination_path?: string
+          id?: string
+          is_active?: boolean
+          match_type?: string
+          note?: string | null
+          query?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "search_redirects_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "search_redirects_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "v_admin_customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      search_rules: {
+        Row: {
+          action: Database["public"]["Enums"]["search_rule_action"]
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          match_type: string
+          note: string | null
+          pin_position: number | null
+          product_id: string
+          query: string | null
+          updated_at: string
+          weight: number
+        }
+        Insert: {
+          action: Database["public"]["Enums"]["search_rule_action"]
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          match_type?: string
+          note?: string | null
+          pin_position?: number | null
+          product_id: string
+          query?: string | null
+          updated_at?: string
+          weight?: number
+        }
+        Update: {
+          action?: Database["public"]["Enums"]["search_rule_action"]
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          match_type?: string
+          note?: string | null
+          pin_position?: number | null
+          product_id?: string
+          query?: string | null
+          updated_at?: string
+          weight?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "search_rules_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "search_rules_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "v_admin_customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "search_rules_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "search_rules_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "v_admin_inventory"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "search_rules_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "v_low_stock"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "search_rules_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "v_merchant_offer_detail"
+            referencedColumns: ["product_id"]
+          },
+        ]
+      }
+      search_synonym_groups: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          label: string
+          match_query: unknown
+          note: string | null
+          terms: string[]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          label: string
+          match_query?: unknown
+          note?: string | null
+          terms: string[]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          label?: string
+          match_query?: unknown
+          note?: string | null
+          terms?: string[]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      search_vocabulary: {
+        Row: {
+          doc_count: number
+          term: string
+          updated_at: string
+        }
+        Insert: {
+          doc_count?: number
+          term: string
+          updated_at?: string
+        }
+        Update: {
+          doc_count?: number
+          term?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       settings: {
         Row: {
           key: string
@@ -4130,6 +4394,21 @@ export type Database = {
           },
         ]
       }
+      search_query_report: {
+        Row: {
+          avg_results: number | null
+          best_click_position: number | null
+          click_rate_pct: number | null
+          clicks: number | null
+          example_query: string | null
+          last_searched_at: string | null
+          query_norm: string | null
+          relaxed_results: number | null
+          searches: number | null
+          zero_results: number | null
+        }
+        Relationships: []
+      }
       v_admin_coupons: {
         Row: {
           code: string | null
@@ -4540,6 +4819,7 @@ export type Database = {
         Args: { roles: Database["public"]["Enums"]["user_role"][] }
         Returns: boolean
       }
+      immutable_unaccent: { Args: { p_text: string }; Returns: string }
       is_admin: { Args: never; Returns: boolean }
       is_merchant: { Args: never; Returns: boolean }
       is_service_role: { Args: never; Returns: boolean }
@@ -4567,6 +4847,21 @@ export type Database = {
           p_entity_type: string
           p_ip?: string
         }
+        Returns: undefined
+      }
+      log_search: {
+        Args: {
+          p_did_you_mean?: string
+          p_locale: string
+          p_query: string
+          p_relaxed?: boolean
+          p_result_count: number
+          p_source: string
+        }
+        Returns: string
+      }
+      log_search_click: {
+        Args: { p_event_id: string; p_position: number; p_product_id: string }
         Returns: undefined
       }
       mark_payout_paid: {
@@ -4644,10 +4939,15 @@ export type Database = {
         Args: { p_note?: string; p_order_id: string; p_refund_cents: number }
         Returns: number
       }
+      product_search_document: {
+        Args: { p_row: Database["public"]["Tables"]["products"]["Row"] }
+        Returns: string
+      }
       promote_proposal_to_draft: {
         Args: { p_proposal_id: string }
         Returns: Json
       }
+      prune_search_events: { Args: { p_days?: number }; Returns: number }
       recompute_all_merchant_ratings: { Args: never; Returns: Json }
       recompute_merchant_rating: {
         Args: { p_merchant_id: string }
@@ -4688,6 +4988,12 @@ export type Database = {
           revoke_reason: string
         }[]
       }
+      refresh_product_search: {
+        Args: { p_product_id: string }
+        Returns: undefined
+      }
+      refresh_search_vocabulary: { Args: never; Returns: number }
+      reindex_products_search: { Args: never; Returns: number }
       release_fulfilment: {
         Args: { p_fulfilment_id: string; p_reason?: string }
         Returns: undefined
@@ -4714,6 +5020,18 @@ export type Database = {
           waiting_hours: number
         }[]
       }
+      search_any_query: { Args: { p_query: string }; Returns: unknown }
+      search_did_you_mean: { Args: { p_query: string }; Returns: string }
+      search_ingredients: {
+        Args: { p_limit?: number; p_query: string }
+        Returns: {
+          name: Json
+          slug: string
+        }[]
+      }
+      search_normalize: { Args: { p_text: string }; Returns: string }
+      search_plain_query: { Args: { p_query: string }; Returns: unknown }
+      search_prefix_query: { Args: { p_query: string }; Returns: unknown }
       search_products: {
         Args: {
           p_brand_slugs?: string[]
@@ -4724,6 +5042,8 @@ export type Database = {
           p_in_stock_only?: boolean
           p_ingredient_slugs?: string[]
           p_limit?: number
+          p_locale?: string
+          p_match_mode?: string
           p_max_price_cents?: number
           p_min_price_cents?: number
           p_min_rating?: number
@@ -4755,6 +5075,12 @@ export type Database = {
           variant_id: string
         }[]
       }
+      search_suggest: {
+        Args: { p_limit?: number; p_locale?: string; p_query: string }
+        Returns: Json
+      }
+      search_terms_query: { Args: { p_terms: string[] }; Returns: unknown }
+      search_tokens: { Args: { p_query: string }; Returns: string[] }
       set_auto_routing: { Args: { p_enabled: boolean }; Returns: boolean }
       skip_subscription_cycle: {
         Args: { p_subscription_id: string }
@@ -4843,6 +5169,7 @@ export type Database = {
         | "revoked"
         | "expired"
       review_status: "pending" | "approved" | "rejected"
+      search_rule_action: "pin" | "boost" | "bury" | "hide"
       sex_band: "femer" | "mashkull" | "pa_percaktuar"
       shipping_borne_by: "biocode" | "merchant" | "customer"
       stock_movement_type:
@@ -5075,6 +5402,7 @@ export const Constants = {
         "expired",
       ],
       review_status: ["pending", "approved", "rejected"],
+      search_rule_action: ["pin", "boost", "bury", "hide"],
       sex_band: ["femer", "mashkull", "pa_percaktuar"],
       shipping_borne_by: ["biocode", "merchant", "customer"],
       stock_movement_type: [

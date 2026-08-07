@@ -139,6 +139,14 @@ export interface ProductFilters {
   onSale?: boolean;
   sort?: ProductSort;
   page?: number;
+  /**
+   * Which locale's product name the ranking should weight highest.
+   *
+   * Not a URL filter — it comes from the request, not the query string — but it belongs here because it
+   * changes the result *order*, so it has to be part of the cache key. Leaving it out would let an
+   * Albanian visitor's ranking be served to an English one.
+   */
+  locale?: Locale;
 }
 
 export const PRODUCT_SORTS = ['relevance', 'newest', 'price_asc', 'price_desc', 'rating'] as const;
@@ -156,6 +164,13 @@ export interface ProductListResult {
   total: number;
   page: number;
   pageCount: number;
+  /**
+   * True when strict matching found nothing and these rows came from the relaxed pass.
+   *
+   * The UI must say so. "No exact matches for X — showing related products" is the truth, and it is more
+   * useful than either an empty page or a silent substitution the shopper has to work out for themselves.
+   */
+  relaxed: boolean;
 }
 
 /** Helper for components that need a locale-aware display name in one call. */

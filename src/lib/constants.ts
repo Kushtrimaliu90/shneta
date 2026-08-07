@@ -71,6 +71,8 @@ export const CACHE_TAGS = {
   banners: 'banners',
   settings: 'settings',
   shipping: 'shipping',
+  /** Synonym groups, merchandising rules and query redirects — the search console's output. */
+  search: 'search',
 } as const;
 
 /**

@@ -39,7 +39,7 @@ function toRecord(value: unknown): Record<string, string> {
 }
 
 function emptyList(page: number): ProductListResult {
-  return { items: [], total: 0, page, pageCount: 0 };
+  return { items: [], total: 0, page, pageCount: 0, relaxed: false };
 }
 
 /**
@@ -61,10 +61,14 @@ function emptyList(page: number): ProductListResult {
  */
 export const listProducts = cache(
   async (filters: ProductFilters = {}): Promise<ProductListResult> => {
-    return unstable_cache(() => fetchProducts(filters), ['products', JSON.stringify(filters)], {
-      tags: [CACHE_TAGS.products],
-      revalidate: ISR_REVALIDATE_SECONDS,
-    })();
+    return unstable_cache(
+      () => fetchProductsWithFallback(filters),
+      ['products', JSON.stringify(filters)],
+      {
+        tags: [CACHE_TAGS.products],
+        revalidate: ISR_REVALIDATE_SECONDS,
+      },
+    )();
   },
 );
 
@@ -98,46 +102,76 @@ export function mapProductRow(row: Record<string, unknown>): ProductListItem {
   };
 }
 
-const fetchProducts = cache(async (filters: ProductFilters = {}): Promise<ProductListResult> => {
-  const page = Math.max(1, filters.page ?? 1);
-  const supabase = createPublicClient();
+const fetchProducts = cache(
+  async (
+    filters: ProductFilters = {},
+    matchMode: 'strict' | 'relaxed' = 'strict',
+  ): Promise<ProductListResult> => {
+    const page = Math.max(1, filters.page ?? 1);
+    const supabase = createPublicClient();
 
-  const { data, error } = await supabase.rpc('search_products', {
-    p_query: filters.q ?? undefined,
-    p_category_slugs: filters.category?.length ? filters.category : undefined,
-    p_brand_slugs: filters.brand?.length ? filters.brand : undefined,
-    p_goal_slugs: filters.goal?.length ? filters.goal : undefined,
-    p_ingredient_slugs: filters.ingredient?.length ? filters.ingredient : undefined,
-    p_dietary_tags: filters.tag?.length ? filters.tag : undefined,
-    p_forms: undefined,
-    p_min_price_cents: filters.minPrice ?? undefined,
-    p_max_price_cents: filters.maxPrice ?? undefined,
-    p_min_rating: filters.minRating ?? undefined,
-    p_in_stock_only: filters.inStock ?? false,
-    p_on_sale_only: filters.onSale ?? false,
-    p_sort: filters.sort ?? 'relevance',
-    p_limit: PRODUCTS_PER_PAGE,
-    p_offset: (page - 1) * PRODUCTS_PER_PAGE,
-  });
+    const { data, error } = await supabase.rpc('search_products', {
+      p_query: filters.q ?? undefined,
+      p_category_slugs: filters.category?.length ? filters.category : undefined,
+      p_brand_slugs: filters.brand?.length ? filters.brand : undefined,
+      p_goal_slugs: filters.goal?.length ? filters.goal : undefined,
+      p_ingredient_slugs: filters.ingredient?.length ? filters.ingredient : undefined,
+      p_dietary_tags: filters.tag?.length ? filters.tag : undefined,
+      p_forms: undefined,
+      p_min_price_cents: filters.minPrice ?? undefined,
+      p_max_price_cents: filters.maxPrice ?? undefined,
+      p_min_rating: filters.minRating ?? undefined,
+      p_in_stock_only: filters.inStock ?? false,
+      p_on_sale_only: filters.onSale ?? false,
+      p_sort: filters.sort ?? 'relevance',
+      p_limit: PRODUCTS_PER_PAGE,
+      p_offset: (page - 1) * PRODUCTS_PER_PAGE,
+      p_locale: filters.locale ?? 'sq',
+      p_match_mode: matchMode,
+    });
 
-  if (error) {
-    logger.error('search_products failed', { cause: error.message });
-    return emptyList(page);
-  }
+    if (error) {
+      logger.error('search_products failed', { cause: error.message });
+      return emptyList(page);
+    }
 
-  const rows = (data ?? []) as unknown as Record<string, unknown>[];
-  // `total_count` rides along as a window function, so the count costs no second query.
-  const total = Number(rows[0]?.total_count ?? 0);
+    const rows = (data ?? []) as unknown as Record<string, unknown>[];
+    // `total_count` rides along as a window function, so the count costs no second query.
+    const total = Number(rows[0]?.total_count ?? 0);
 
-  const items: ProductListItem[] = rows.map(mapProductRow);
+    const items: ProductListItem[] = rows.map(mapProductRow);
 
-  return {
-    items,
-    total,
-    page,
-    pageCount: Math.max(1, Math.ceil(total / PRODUCTS_PER_PAGE)),
-  };
-});
+    return {
+      items,
+      total,
+      page,
+      pageCount: Math.max(1, Math.ceil(total / PRODUCTS_PER_PAGE)),
+      relaxed: matchMode === 'relaxed',
+    };
+  },
+);
+
+/**
+ * Strict first; relax only if strict found nothing.
+ *
+ * `plainto_tsquery` requires every term, so "vitamin d3 1000" can be a perfectly reasonable query that
+ * matches no document. The alternative — OR the terms in the base query — buys recall by wrecking
+ * precision and, worse, by lying: "vitamin c" would report 47 results of which three are relevant.
+ *
+ * So the second pass is **conditional**. Cost is paid only on the zero-result path, which is rare, and
+ * `total` stays honest in the common case. `relaxed` travels with the result so the page can say what
+ * happened rather than silently substituting.
+ *
+ * Only for keyword searches. An empty result from a *filter* combination is a real answer — "no vegan
+ * capsules under €10" means there are none, and quietly widening it would misreport the catalogue.
+ */
+async function fetchProductsWithFallback(filters: ProductFilters): Promise<ProductListResult> {
+  const strict = await fetchProducts(filters, 'strict');
+  if (strict.total > 0 || !filters.q?.trim()) return strict;
+
+  const relaxed = await fetchProducts(filters, 'relaxed');
+  return relaxed.total > 0 ? relaxed : strict;
+}
 
 /** docs/05 §3 — everything the PDP renders, in one round trip. */
 /**

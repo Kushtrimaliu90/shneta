@@ -96,7 +96,14 @@ export type Capability =
   // or changes the rate is admin.
   | 'referrals.view'
   | 'referrals.review'
-  | 'referrals.manage';
+  | 'referrals.manage'
+  /*
+   * The search console. Reading the report is a merchandising and catalogue question — what are people
+   * asking for that we do not stock, and which queries return results nobody wants — so support gets to
+   * look. Changing what search *does* is catalogue work and stays with the people who own the catalogue.
+   */
+  | 'search.view'
+  | 'search.manage';
 
 /**
  * Who holds each capability. `admin` is omitted from every list and granted unconditionally
@@ -149,6 +156,10 @@ const CAPABILITIES: Record<Capability, readonly UserRole[]> = {
   'referrals.view': ['support'],
   'referrals.review': ['support'],
   'referrals.manage': [],
+  // Support reads the report because "what are people searching for that we don't sell" is a customer
+  // question they hear first; changing synonyms or ranking is catalogue work.
+  'search.view': ['support', 'product_manager', 'content_manager'],
+  'search.manage': ['product_manager', 'content_manager'],
 };
 
 /**
@@ -245,6 +256,7 @@ const NAV: NavSection[] = [
         capability: 'catalog.manage',
       },
       { href: '/admin/goals', label: 'Health goals', icon: 'goals', capability: 'content.manage' },
+      { href: '/admin/search', label: 'Search', icon: 'products', capability: 'search.view' },
       {
         href: '/admin/biohack',
         label: 'BioHack',

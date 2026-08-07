@@ -728,10 +728,18 @@
     "emptyQuery": "What are you looking for?",
     "tabs": {
       "products": "Products",
-      "ingredients": "Ingredients"
+      "ingredients": "Ingredients",
+      "suggestions": "Suggestions",
+      "brands": "Brands",
+      "categories": "Categories"
     },
     "counts": "{count}",
-    "browseShop": "Browse the shop"
+    "browseShop": "Browse the shop",
+    "relaxedNotice": "No exact matches for “{query}”. These are the closest products we have.",
+    "didYouMean": "Did you mean <suggestion>{query}</suggestion>?",
+    "didYouMeanShort": "Try “{query}”",
+    "popularTitle": "Popular right now",
+    "popularBody": "While you are here — these are what other people are buying."
   },
   "compare": {
     "title": "Compare",

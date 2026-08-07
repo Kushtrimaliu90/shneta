@@ -728,10 +728,18 @@
     "emptyQuery": "Çfarë po kërkon?",
     "tabs": {
       "products": "Produkte",
-      "ingredients": "Përbërës"
+      "ingredients": "Përbërës",
+      "suggestions": "Sugjerime",
+      "brands": "Markat",
+      "categories": "Kategoritë"
     },
     "counts": "{count}",
-    "browseShop": "Shfleto dyqanin"
+    "browseShop": "Shfleto dyqanin",
+    "relaxedNotice": "Nuk gjetëm përputhje të saktë për “{query}”. Këto janë produktet më të afërta.",
+    "didYouMean": "Mos keni menduar <suggestion>{query}</suggestion>?",
+    "didYouMeanShort": "Provoni “{query}”",
+    "popularTitle": "Më të kërkuarat",
+    "popularBody": "Ndërkohë që jeni këtu — këto po i blejnë të tjerët."
   },
   "compare": {
     "title": "Krahaso",

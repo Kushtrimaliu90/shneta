@@ -2999,6 +2999,123 @@ Two things worth carrying:
 
 ---
 
+## Z. What rebuilding search taught us
+
+The search audit found nine gaps. Fixing them turned up five things worth recording, three of which were
+only visible by measuring against the live catalogue rather than by reading the SQL.
+
+### Z1 · The audit was wrong twice, and reading the whole function is what corrected it
+
+Two findings in the written audit did not survive contact with the source. Out-of-stock **was** already
+demoted — `f.in_stock desc` is the first `order by` key — and `p_limit` **was** already capped at 100.
+Both had been asserted from fragments quoted earlier in conversation rather than from the file.
+
+The habit that catches this is cheap: before writing a finding about a function, open the function. The
+cost of skipping it is a remediation plan with two items that were never broken, which is how trust in the
+other seven gets spent.
+
+### Z2 · `word_similarity` borrows trigrams across word boundaries
+
+Replacing whole-string `similarity` with `word_similarity` was right — the old comparison scored
+`similarity('Magnesium Bisglycinate 400mg 120 Capsules', 'magnesium') ≈ 0.22`, barely over the 0.2
+threshold for a perfect single-word match on a long supplement name.
+
+But searching **"magnesium"** then ranked a calcium-and-magnesium blend above two pure magnesium products:
+
+```
+word_similarity('magnesium', 'solgar kalcium magnez plus d3') = 0.700
+word_similarity('magnesium', 'solgar magnez bisglicinat')     = 0.500
+```
+
+`word_similarity` lets the matching extent begin and end anywhere, **including mid-word**. "magnesium"
+wants `mag agn gne nes esi siu ium`; "magnez" supplies the first four and the extent reaches back into
+**kalciUM** for the `ium`. The blend won on a coincidence in the tail of an unrelated word.
+
+`strict_word_similarity` requires word-boundary alignment and removes it — both score 0.417, a tie, which
+is the honest answer since neither name contains "magnesium". Genuine matches are untouched (1.000 for
+"vitamina c" against "Solgar Vitamina C 1000 mg") and noise falls (0.091 → 0.053).
+
+**The rejected fix is the more useful record.** Adding whole-string `similarity` back as a "focus"
+tiebreak — short single-subject names being more *about* the query — made it worse, and for the same
+reason: `similarity('magnesium', 'solgar kalcium magnez plus d3') = 0.212` against `0.161` for the pure
+product. `kalcium` contaminates both measures; two readings of the same error do not cancel.
+
+The tie now falls through to rating, featured, and then to the merchandising rules and the query report —
+which is the correct place for it. Distinguishing "primarily magnesium" from "contains magnesium" needs
+ingredient-primacy data the schema does not model, and inventing a weight for it against zero traffic is
+exactly the unfalsifiable tuning the logging exists to replace.
+
+### Z3 · pg_trgm's GUCs do not exist until its module loads
+
+`create function … set pg_trgm.word_similarity_threshold = '0.45'` fails with *unrecognized configuration
+parameter* in any session that has not yet touched pg_trgm. The extension being installed is not enough —
+the GUCs are registered when the shared library loads, which happens on first use.
+
+Migration 68 carried such a `SET` and applied cleanly, but only because it shared a push, and therefore a
+session, with migration 65, which force-loads the module. Migration 70 was pushed alone and failed on the
+first attempt for precisely this reason. Both now carry their own:
+
+```sql
+do $trgm$ begin perform extensions.show_trgm('biocode'); end $trgm$;
+```
+
+The general shape: a migration that depends on session state established by an earlier migration is
+correct only under `db reset`, and `db push` is free to disprove it later.
+
+### Z4 · `unaccent` is STABLE, which is why half the matcher ignored accents
+
+The FTS path folded ë and ç on both sides; the trigram fallback compared raw text, and the trigram indexes
+were built on raw text too. So the two halves of the matcher disagreed about diacritics — on a market
+whose phone keyboards mostly omit them.
+
+The cause is that `unaccent(text)` is declared STABLE (it resolves its dictionary through `search_path`),
+and a STABLE function cannot appear in an index expression. The fix is the standard wrapper around the
+two-argument form, where the dictionary is explicit and the `::regdictionary` cast on a literal folds to an
+OID at parse time:
+
+```sql
+create function public.immutable_unaccent(p_text text) returns text
+language sql immutable strict parallel safe
+as $$ select extensions.unaccent('extensions.unaccent'::regdictionary, p_text) $$;
+```
+
+Index and query must then use the *same* expression — `search_normalize(name->>'sq')` in both — or the
+index is silently unused, and the only symptom is a sequential scan nobody notices until the catalogue is
+large enough to hurt.
+
+### Z5 · A comment claimed a behaviour the code never had
+
+`searchIngredients` selected `other_names`, carried a docstring saying it matched "the synonyms in
+`other_names`", and filtered on `name->>sq`, `name->>en` and `slug` only. It had never searched the
+aliases. So "acid askorbik" did not find ascorbic acid, "vaj peshku" did not find omega-3 and
+"kolekalciferol" did not find vitamin D3 — with every one of those aliases sitting in the row that should
+have matched.
+
+Selecting a column is not evidence that it is used. Where a docstring makes a behavioural claim, the
+cheapest guard is a test that fails when the claim stops being true.
+
+### Z6 · Measured outcome
+
+Recall against the live catalogue — old matcher and old document versus new:
+
+| query | before | after |
+| --- | --- | --- |
+| `acid askorbik` | 0 | 6 |
+| `hirre` (whey) | 0 | 5 |
+| `energji` | 0 | 21 |
+| `vaj peshku` | 1 | 5 |
+| `gjume` | 1 | 5 |
+| `sleep` | 1 | 5 |
+| `kolagjen` | 3 | 4 |
+| `magnez` | 4 | 7 |
+| `proteina` | 6 | 11 |
+| `kapsula` | 12 | 24 |
+
+The three zeroes are the point. Each was a shopper describing what they wanted in the ordinary word for
+it, and being told the shop did not sell it.
+
+---
+
 ## E. Stack decisions taken at M0
 
 | Item          | Spec                  | Built as            | Why                                                                                               |

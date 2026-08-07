@@ -1300,6 +1300,44 @@ test.describe('compliance queue (docs/06 §14)', () => {
   });
 });
 
+/**
+ * The search console (docs/06) — the panel that makes ranking improvable rather than tuned once.
+ *
+ * **Read path only, deliberately.** Saving a synonym group fires a statement trigger that re-indexes the
+ * entire catalogue, so a write left behind by a test would quietly change the results every later
+ * assertion in this suite depends on. The write path is covered by unit tests over the schemas, where it
+ * costs nothing global.
+ */
+test.describe('search console (docs/06)', () => {
+  test('reports queries and lists the seeded synonyms and redirects', async ({ page }) => {
+    const user = await staffUser('product_manager');
+    await signIn(page, user.email, user.password);
+    await page.goto('/admin/search');
+
+    await expect(page.getByRole('heading', { level: 1, name: 'Search' })).toBeVisible();
+    await expect(page.getByRole('tab', { name: 'Query report' })).toBeVisible();
+
+    await page.getByRole('tab', { name: 'Redirects' }).click();
+    // Seeded in migration 69, so this doubles as the assertion that they survived deployment.
+    await expect(page.getByText('/legal/shipping-returns').first()).toBeVisible();
+
+    await page.getByRole('tab', { name: 'Synonyms' }).click();
+    await expect(page.getByText('magnez, magnesium', { exact: false }).first()).toBeVisible();
+  });
+
+  test('support may read the report but not change anything', async ({ page }) => {
+    const user = await staffUser('support');
+    await signIn(page, user.email, user.password);
+    await page.goto('/admin/search');
+
+    await expect(page.getByRole('heading', { level: 1, name: 'Search' })).toBeVisible();
+    await page.getByRole('tab', { name: 'Synonyms' }).click();
+    // The capability split: reading the report is a customer question support hears first; changing
+    // what search does is catalogue work.
+    await expect(page.getByRole('button', { name: 'Save group' })).toBeDisabled();
+  });
+});
+
 test.describe('admin accessibility', () => {
   test('axe finds no serious or critical violations on the dashboard', async ({ page }) => {
     const user = await staffUser('admin');

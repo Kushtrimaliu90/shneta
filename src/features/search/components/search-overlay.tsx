@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, useTransition } from 'react';
+import { useCallback, useEffect, useRef, useState, useTransition } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { Loader2, Search, X } from 'lucide-react';
 import { Link, useRouter } from '@/i18n/routing';
@@ -8,9 +8,14 @@ import { formatPrice } from '@/lib/money';
 import { pickLocale } from '@/lib/i18n';
 import type { Locale } from '@/lib/constants';
 import { ProductImage } from '@/components/storefront/product-image';
-import { searchQuick, type QuickResults } from '@/features/search/actions';
+import {
+  logSearch,
+  logSearchClick,
+  searchQuick,
+  type QuickProduct,
+  type QuickResults,
+} from '@/features/search/actions';
 import { MIN_QUERY_LENGTH } from '@/features/search/constants';
-import { cn } from '@/lib/utils';
 
 /**
  * docs/05 §8 — the instant search overlay behind the navbar's magnifier.
@@ -22,6 +27,13 @@ import { cn } from '@/lib/utils';
  * "vit" request lands last and replaces the right answer with the wrong one. `latest` guards
  * that: each request records the query it was for, and a response for anything other than what
  * is currently in the box is dropped.
+ *
+ * ── Five kinds of result, not one ──
+ *
+ * A dropdown that only lists products makes the shopper guess. Typing "sol" should offer **Solgar** as
+ * a brand rather than five Solgar products in whatever order the grid picked; typing "magne" should
+ * offer **magnesium** as a completion before it has to guess what you meant. Completions, brands,
+ * categories and ingredients all come back in the same round trip as the products.
  */
 export function SearchOverlay() {
   const t = useTranslations('search');
@@ -63,13 +75,42 @@ export function SearchOverlay() {
 
     const timer = setTimeout(() => {
       startTransition(async () => {
-        const next = await searchQuick(trimmed);
+        const next = await searchQuick(trimmed, locale);
         if (latest.current === trimmed) setResults(next);
       });
     }, 250);
 
     return () => clearTimeout(timer);
-  }, [query, open]);
+  }, [query, open, locale]);
+
+  /**
+   * A product opened straight from the dropdown.
+   *
+   * Logged here and **only** here, because this is the search that never reaches `/search` and would
+   * otherwise be invisible: the shopper typed, saw what they wanted and left. Submitting the form is
+   * deliberately not logged — the results page logs that one, and counting it twice would inflate every
+   * volume figure in the report.
+   *
+   * Not awaited. Navigation is client-side, so the requests finish alongside it, and a lost analytics
+   * row is the correct thing to lose.
+   */
+  const trackDropdownClick = useCallback(
+    (product: QuickProduct, index: number, total: number) => {
+      const submitted = query.trim();
+      if (!submitted) return;
+
+      void (async () => {
+        const eventId = await logSearch({
+          query: submitted,
+          locale,
+          source: 'overlay',
+          resultCount: total,
+        });
+        if (eventId) await logSearchClick(eventId, product.id, index + 1);
+      })();
+    },
+    [query, locale],
+  );
 
   function submit(event: React.FormEvent) {
     event.preventDefault();
@@ -77,6 +118,11 @@ export function SearchOverlay() {
     // docs/05 §8 — an empty query goes to the shop rather than an empty results page.
     router.push(trimmed ? `/search?q=${encodeURIComponent(trimmed)}` : '/shop');
     setOpen(false);
+  }
+
+  function go(href: string) {
+    setOpen(false);
+    router.push(href);
   }
 
   if (!open) {
@@ -91,6 +137,14 @@ export function SearchOverlay() {
       </button>
     );
   }
+
+  const empty =
+    results !== null &&
+    results.products.length === 0 &&
+    results.ingredients.length === 0 &&
+    results.brands.length === 0 &&
+    results.categories.length === 0 &&
+    results.terms.length === 0;
 
   return (
     <>
@@ -137,21 +191,58 @@ export function SearchOverlay() {
               <p className="py-2 text-sm text-ink-600">{t('hint')}</p>
             )}
 
-            {results && results.products.length === 0 && results.ingredients.length === 0 && (
-              <p className="py-2 text-sm text-ink-600">{t('noResults', { query: query.trim() })}</p>
+            {empty && (
+              <div className="py-2">
+                <p className="text-sm text-ink-600">{t('noResults', { query: query.trim() })}</p>
+                {results?.didYouMean && (
+                  <button
+                    type="button"
+                    onClick={() => setQuery(results.didYouMean ?? '')}
+                    className="mt-1 rounded-sm text-sm font-medium text-forest-800 underline underline-offset-4"
+                  >
+                    {t('didYouMeanShort', { query: results.didYouMean })}
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/*
+              Completions first. They are the cheapest useful thing on screen: one tap replaces a
+              half-typed word with a real one and re-runs everything below.
+            */}
+            {results && results.terms.length > 0 && (
+              <section>
+                <h2 className="eyebrow">{t('tabs.suggestions')}</h2>
+                <ul className="mt-1.5 flex flex-wrap gap-1.5">
+                  {results.terms.map((term) => (
+                    <li key={term}>
+                      <button
+                        type="button"
+                        onClick={() => setQuery(term)}
+                        className="inline-flex rounded-sm border border-line px-2.5 py-1 text-sm text-ink-900 hover:bg-forest-50"
+                      >
+                        {term}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </section>
             )}
 
             {results && results.products.length > 0 && (
-              <section>
+              <section className="mt-3">
                 <h2 className="eyebrow">{t('tabs.products')}</h2>
                 <ul className="mt-1.5 flex flex-col">
-                  {results.products.map((product) => {
+                  {results.products.map((product, index) => {
                     const name = pickLocale(product.name, locale);
                     return (
                       <li key={product.slug}>
                         <Link
                           href={`/product/${product.slug}`}
-                          onClick={() => setOpen(false)}
+                          onClick={() => {
+                            trackDropdownClick(product, index, results.productTotal);
+                            setOpen(false);
+                          }}
                           className="flex items-center gap-3 rounded-md p-2 hover:bg-forest-50"
                         >
                           <div className="size-10 shrink-0 overflow-hidden rounded-sm bg-cream">
@@ -173,6 +264,44 @@ export function SearchOverlay() {
                       </li>
                     );
                   })}
+                </ul>
+              </section>
+            )}
+
+            {results && results.brands.length > 0 && (
+              <section className="mt-3">
+                <h2 className="eyebrow">{t('tabs.brands')}</h2>
+                <ul className="mt-1.5 flex flex-wrap gap-1.5">
+                  {results.brands.map((brand) => (
+                    <li key={brand.slug}>
+                      <button
+                        type="button"
+                        onClick={() => go(`/brands/${brand.slug}`)}
+                        className="inline-flex rounded-sm border border-line px-2.5 py-1 text-sm text-ink-900 hover:bg-forest-50"
+                      >
+                        {brand.name}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
+
+            {results && results.categories.length > 0 && (
+              <section className="mt-3">
+                <h2 className="eyebrow">{t('tabs.categories')}</h2>
+                <ul className="mt-1.5 flex flex-wrap gap-1.5">
+                  {results.categories.map((category) => (
+                    <li key={category.slug}>
+                      <button
+                        type="button"
+                        onClick={() => go(`/shop?category=${encodeURIComponent(category.slug)}`)}
+                        className="inline-flex rounded-sm border border-line px-2.5 py-1 text-sm text-ink-900 hover:bg-forest-50"
+                      >
+                        {pickLocale(category.name, locale)}
+                      </button>
+                    </li>
+                  ))}
                 </ul>
               </section>
             )}
@@ -200,9 +329,7 @@ export function SearchOverlay() {
               <Link
                 href={`/search?q=${encodeURIComponent(query.trim())}`}
                 onClick={() => setOpen(false)}
-                className={cn(
-                  'mt-3 inline-block rounded-sm text-sm font-medium text-forest-800 underline underline-offset-4',
-                )}
+                className="mt-3 inline-block rounded-sm text-sm font-medium text-forest-800 underline underline-offset-4"
               >
                 {t('seeAll', { query: query.trim() })}
               </Link>

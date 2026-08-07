@@ -56,6 +56,62 @@ test.describe('journey 10 — search, compare, wishlist (docs/09 §1)', () => {
     await page.goto('/en/search?q=zzzqqqxxx');
     await expect(page.getByText(/Nothing matched/)).toBeVisible();
     await expect(page.getByRole('link', { name: 'Browse the shop' })).toBeVisible();
+
+    // Better than a blank page, and labelled as a fallback rather than dressed up as results.
+    await expect(page.getByRole('heading', { name: 'Popular right now' })).toBeVisible({
+      timeout: ACTION_TIMEOUT,
+    });
+  });
+
+  /**
+   * The recall ceiling that the widened search document removed.
+   *
+   * `products.search_text` used to hold name, subtitle, dietary tags and brand — and nothing else. In a
+   * supplements shop the ingredient *is* the query, so any of these found a product only when the word
+   * happened to appear in a marketing name. Ingredients, health goals, categories, forms and SKUs are all
+   * in the document now (migration 65).
+   *
+   * Asserted as "at least one result" rather than an exact count: the point is that the query reaches the
+   * catalogue at all, and a literal count would break the next time a product is added.
+   */
+  for (const { query, why } of [
+    { query: 'kolagjen', why: 'the Albanian noun, where the data says "Peptidet e kolagjenit"' },
+    { query: 'acid+askorbik', why: 'an ingredient alias from other_names' },
+    { query: 'vaj+peshku', why: 'the everyday Albanian name for fish oil' },
+    { query: 'gjume', why: 'a health goal, typed without its diacritic' },
+    { query: 'hirre', why: 'the Albanian word for whey, which appears nowhere in the data' },
+  ]) {
+    test(`"${decodeURIComponent(query)}" finds products — ${why}`, async ({ page }) => {
+      await page.goto(`/search?q=${query}`);
+      await expect(page.getByRole('article').first()).toBeVisible({ timeout: ACTION_TIMEOUT });
+    });
+  }
+
+  test('a query about shipping goes to the shipping page, not an empty grid', async ({ page }) => {
+    /*
+     * "transporti" is a real search on a shop and it returns zero products, which reads as "we do not do
+     * that" rather than "that is on the shipping page". The redirect table (migration 66) catches it
+     * before anything is searched.
+     */
+    await page.goto('/en/search?q=sa+kushton+transporti');
+    await expect(page).toHaveURL(/\/en\/legal\/shipping-returns$/);
+  });
+
+  test('the overlay offers completions, brands and ingredients — not just products', async ({
+    page,
+  }) => {
+    await page.goto('/en/shop');
+    await page.getByRole('button', { name: 'Open search' }).click();
+
+    // A half-typed word. The point of a completion is that it arrives before you finish.
+    await page.locator('#site-search').fill('magne');
+
+    await expect(page.getByRole('heading', { name: 'Products' })).toBeVisible({
+      timeout: ACTION_TIMEOUT,
+    });
+    // "magne" → "magnesium" comes from `search_vocabulary`, which is derived from the published
+    // catalogue rather than authored, so this also proves the vocabulary was built.
+    await expect(page.getByRole('heading', { name: 'Suggestions' })).toBeVisible();
   });
 
   test('three products compare, and the URL reproduces the table', async ({ page, browser }) => {

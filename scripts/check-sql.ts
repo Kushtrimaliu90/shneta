@@ -219,8 +219,21 @@ function sqlFunctionBodies(sql: string): { name: string; body: string }[] {
   return found;
 }
 
-/** Table names a function body reads from, minus CTEs and non-application schemas. */
-function referencedTables(body: string): string[] {
+/**
+ * Comments removed, so prose is never mistaken for code.
+ *
+ * Without this, a function body explaining that "the tail comes **from the** shopper" reports a missing
+ * table called `the`. Comments in these files carry most of the reasoning, so they are long and they are
+ * full of the word "from".
+ */
+function stripComments(body: string): string {
+  return body.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/--[^\n]*/g, ' ');
+}
+
+/** Table names a function body reads from, minus CTEs, function calls and non-application schemas. */
+function referencedTables(rawBody: string): string[] {
+  const body = stripComments(rawBody);
+
   /*
    * CTE names, so a `with` clause is not mistaken for a table that does not exist.
    *
@@ -231,15 +244,32 @@ function referencedTables(body: string): string[] {
    * reported as a missing table. `variant_buy_box` (migration 32) has four, and three were flagged.
    *
    * `\s*` rather than `\s+` after the comma for the same reason: `,biocode as (` is legal SQL.
+   *
+   * `(?:not\s+)?materialized` because `with q as not materialized (` is how you force the planner to
+   * inline a CTE referenced more than once — which `search_products` needs, or its trigram predicates
+   * stop matching their indexes. Without this branch the CTE went unrecognised and was reported as a
+   * missing table.
    */
   const ctes = new Set(
-    [...body.matchAll(/(?:\bwith\b(?:\s+recursive\b)?|,)\s*([a-z_]\w*)\s+as\s*\(/gi)].map((m) =>
-      (m[1] ?? '').toLowerCase(),
-    ),
+    [
+      ...body.matchAll(
+        /(?:\bwith\b(?:\s+recursive\b)?|,)\s*([a-z_]\w*)\s+as\s*(?:(?:not\s+)?materialized\s*)?\(/gi,
+      ),
+    ].map((m) => (m[1] ?? '').toLowerCase()),
   );
 
   const tables = new Set<string>();
-  for (const match of body.matchAll(/\b(?:from|join)\s+(?!\()([a-z_][\w.]*)/gi)) {
+  /*
+   * `(?!\s*\()` skips set-returning functions in the FROM list — `from unnest(...)`,
+   * `from generate_series(...)`, `from jsonb_array_elements(...)`. A table is never followed by an
+   * open paren, so this needs no allowlist and stays correct as new SRFs are used.
+   *
+   * `(?![\w.])` has to come first, and it is not decoration. `[\w.]*` is greedy but backtracks: with
+   * only the paren lookahead, `unnest(` fails at the full name, the engine retreats to `unnes`, finds
+   * `t` rather than `(` — and happily reports a missing table called "unnes". Requiring the identifier
+   * to be complete removes the shorter alternatives the engine would otherwise settle for.
+   */
+  for (const match of body.matchAll(/\b(?:from|join)\s+(?!\()([a-z_][\w.]*)(?![\w.])(?!\s*\()/gi)) {
     const raw = (match[1] ?? '').toLowerCase();
     // Catalogs and other schemas are outside the migration sequence.
     if (raw.startsWith('pg_') || raw.includes('.') || ctes.has(raw)) continue;
