@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { heroSettingsSchema, heroSlideSchema } from '@/features/hero/admin-schemas';
+import {
+  announcementSchema,
+  heroSettingsSchema,
+  heroSlideSchema,
+} from '@/features/hero/admin-schemas';
 
 /**
  * The publish rules, which are the part of the hero an operator can get wrong at 11pm.
@@ -95,5 +99,39 @@ describe('carousel settings', () => {
     expect(parsed.success).toBe(true);
     expect(parsed.success && parsed.data.intervalSeconds).toBe(6);
     expect(parsed.success && parsed.data.transition).toBe('fade');
+  });
+});
+
+/**
+ * Optional fields, where blank and whitespace must mean the same thing.
+ *
+ * `.optional().or(z.literal(''))` is the obvious spelling and is subtly wrong: a union tests each
+ * branch against the **raw** input, so `z.literal('')` sees `' '` rather than the trimmed value. One
+ * stray space in a field the operator never knowingly filled in then failed the save — and, before
+ * the field errors were rendered, failed it silently.
+ */
+describe('optional hero fields', () => {
+  it('accepts a blank link', () => {
+    expect(announcementSchema.safeParse({ href: '' }).success).toBe(true);
+  });
+
+  it('accepts a whitespace-only link as blank', () => {
+    expect(announcementSchema.safeParse({ href: '   ' }).success).toBe(true);
+  });
+
+  it('accepts the field being absent entirely', () => {
+    // A control that is not rendered submits nothing at all, which must not read as invalid.
+    expect(announcementSchema.safeParse({}).success).toBe(true);
+  });
+
+  it('still refuses a link that is not a site path', () => {
+    const result = announcementSchema.safeParse({ href: 'offers' });
+    expect(result.success).toBe(false);
+    expect(result.success === false && result.error.issues[0]?.message).toContain('/offers');
+  });
+
+  it('still refuses an off-site link', () => {
+    expect(announcementSchema.safeParse({ href: 'https://evil.example' }).success).toBe(false);
+    expect(announcementSchema.safeParse({ href: '//evil.example' }).success).toBe(false);
   });
 });

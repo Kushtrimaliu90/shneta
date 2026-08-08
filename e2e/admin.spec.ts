@@ -1402,3 +1402,43 @@ test.describe('hero slide editor (docs/06)', () => {
     await expect(page.locator('#eyebrowEn')).toHaveValue('TEST');
   });
 });
+
+/**
+ * The announcement bar panel, which had the same two faults as the slide editor.
+ *
+ * Safe against a real database: this submits an invalid link, so the save is rejected and nothing is
+ * written. That is also precisely what is being tested.
+ */
+test.describe('hero announcement panel (docs/06)', () => {
+  test('a rejected save names the field and keeps what was typed', async ({ page }) => {
+    const user = await staffUser('content_manager');
+    await signIn(page, user.email, user.password);
+    await page.goto('/admin/hero');
+    await page.getByRole('tab', { name: 'Announcement bar' }).click();
+
+    await page.locator('#ann-sq').fill('15% zbritje në porosinë e parë');
+    await page.locator('#ann-en').fill('15% off your first order');
+    await page.locator('#ann-code').fill('MIRESEVINI15');
+
+    /*
+     * The mistake the placeholder invites: the field shows "/offers" and somebody types "offers".
+     * It fails the site-path rule — a field error, which is exactly the class that used to produce
+     * "Check the highlighted fields" with nothing highlighted.
+     */
+    await page.locator('#ann-href').fill('offers');
+    await page.getByRole('button', { name: 'Save announcement' }).click();
+
+    const summary = page.getByRole('alert').filter({ hasText: 'Not saved' });
+    await expect(summary).toBeVisible();
+    await expect(summary).toContainText('Link');
+    await expect(summary).toContainText('/offers');
+
+    await expect(page.locator('#ann-href')).toHaveAttribute('aria-invalid', 'true');
+
+    // And nothing was wiped — the reason this was reported twice.
+    await expect(page.locator('#ann-sq')).toHaveValue('15% zbritje në porosinë e parë');
+    await expect(page.locator('#ann-en')).toHaveValue('15% off your first order');
+    await expect(page.locator('#ann-code')).toHaveValue('MIRESEVINI15');
+  });
+
+});

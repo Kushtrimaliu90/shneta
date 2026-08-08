@@ -9,12 +9,47 @@ import { z } from 'zod';
  */
 
 const trimmed = z.string().trim();
-const localized = (max: number) => trimmed.max(max).optional().or(z.literal(''));
 
-/** Site-relative only. These strings go straight into a `<Link href>`. */
-const sitePath = trimmed
-  .max(200)
-  .regex(/^\/(?!\/)[\w\-/?=&.%]*$/, 'Must be a site path beginning with a single “/”.');
+/**
+ * An optional text field, where blank means absent.
+ *
+ * Not `.optional().or(z.literal(''))`, which is the obvious spelling and is subtly wrong: the union
+ * branches each receive the **raw** input, so `z.literal('')` is tested against ` ` rather than
+ * against the trimmed value. One stray space in an optional field then fails validation with a message
+ * about a field the operator did not knowingly fill in.
+ *
+ * Blanking to `undefined` before anything else runs makes whitespace and empty identical, which is
+ * what an operator means by both.
+ */
+const blankToUndefined = z
+  .string()
+  .optional()
+  /*
+   * `.optional()` on the *input*, not after the pipe. `.pipe(x.optional())` only makes the piped
+   * stage tolerant — the outer field is still required, so an absent key errors with "expected
+   * string, received undefined". A checkbox that is not ticked and a field that is not rendered both
+   * arrive absent, so that distinction matters more than it looks.
+   */
+  .transform((value) => {
+    const text = (value ?? '').trim();
+    return text === '' ? undefined : text;
+  });
+
+const localized = (max: number) => blankToUndefined.pipe(z.string().max(max).optional());
+
+/**
+ * Site-relative only, and optional. These strings go straight into a `<Link href>`.
+ *
+ * The message names the shape rather than reciting the rule, because the mistake it catches is
+ * someone typing `offers` where the placeholder shows `/offers`.
+ */
+const sitePath = blankToUndefined.pipe(
+  z
+    .string()
+    .max(200)
+    .regex(/^\/(?!\/)[\w\-/?=&.%]*$/, 'Must start with a single “/” — for example /offers.')
+    .optional(),
+);
 
 export const IMAGE_MAX_BYTES = 4 * 1024 * 1024;
 export const IMAGE_TYPES = ['image/webp', 'image/jpeg', 'image/png', 'image/avif'] as const;
@@ -38,10 +73,10 @@ export const heroSlideSchema = z
 
     ctaPrimaryLabelSq: localized(40),
     ctaPrimaryLabelEn: localized(40),
-    ctaPrimaryHref: sitePath.optional().or(z.literal('')),
+    ctaPrimaryHref: sitePath,
     ctaSecondaryLabelSq: localized(40),
     ctaSecondaryLabelEn: localized(40),
-    ctaSecondaryHref: sitePath.optional().or(z.literal('')),
+    ctaSecondaryHref: sitePath,
 
     imageDesktopPath: localized(300),
     imageDesktopAltSq: localized(200),
@@ -54,8 +89,8 @@ export const heroSlideSchema = z
     isPinned: z.coerce.boolean().default(false),
     status: z.enum(['draft', 'published']).default('draft'),
 
-    startAt: trimmed.optional().or(z.literal('')),
-    endAt: trimmed.optional().or(z.literal('')),
+    startAt: blankToUndefined,
+    endAt: blankToUndefined,
   })
   .superRefine((value, ctx) => {
     const has = (field: string | undefined) => Boolean(field?.trim());
@@ -140,9 +175,9 @@ export const trustStripSchema = z.object({
 
 export const announcementSchema = z.object({
   id: z.uuid().optional(),
-  titleSq: trimmed.max(160).optional().or(z.literal('')),
-  titleEn: trimmed.max(160).optional().or(z.literal('')),
-  code: trimmed.max(40).optional().or(z.literal('')),
-  href: sitePath.optional().or(z.literal('')),
+  titleSq: localized(160),
+  titleEn: localized(160),
+  code: localized(40),
+  href: sitePath,
   isActive: z.coerce.boolean().default(false),
 });

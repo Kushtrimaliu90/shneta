@@ -45,6 +45,90 @@ const TAB_LABEL: Record<Tab, string> = {
   announcement: 'Announcement bar',
 };
 
+/**
+ * Keeps a rejected submission in the form, and surfaces its field errors.
+ *
+ * React 19 resets an uncontrolled form after a function  completes — success or failure, it
+ * makes no distinction — so a panel that failed validation came back blank and had to be retyped.
+ * The submission is captured and re-seeded, keyed on the attempt so the inputs remount carrying the
+ * echoed values rather than the saved row's.
+ *
+ * The field errors were being returned by every one of these actions and rendered by none of them,
+ * which is how the panels came to say "Check the highlighted fields" while highlighting nothing.
+ */
+function useResilientForm(action: typeof saveAnnouncement) {
+  const [draft, setDraft] = useState<Record<string, string> | null>(null);
+  const [attempt, setAttempt] = useState(0);
+
+  const [state, formAction] = useActionState(async (previous: HeroState, formData: FormData) => {
+    const submitted = Object.fromEntries(
+      [...formData.entries()].map(([key, value]) => [key, typeof value === 'string' ? value : '']),
+    );
+    const result = await action(previous, formData);
+    if (!result?.ok) {
+      setDraft(submitted);
+      setAttempt((current) => current + 1);
+    }
+    return result;
+  }, null);
+
+  const fieldErrors = state?.ok === false ? (state.fieldErrors ?? {}) : {};
+
+  return {
+    state,
+    formAction,
+    attempt,
+    fieldErrors,
+    val: (name: string, fallback: string) => draft?.[name] ?? fallback,
+    checked: (name: string, fallback: boolean) => (draft ? draft[name] !== undefined : fallback),
+  };
+}
+
+const FIELD_LABELS: Record<string, string> = {
+  titleSq: 'Albanian',
+  titleEn: 'English',
+  code: 'Code',
+  href: 'Link',
+  intervalSeconds: 'Interval',
+};
+
+/**
+ * What is wrong, by name, rather than a sentence pointing at fields it does not identify.
+ *
+ * Falls back to the shared sentence when no field owns the failure — a permission refusal or a
+ * database error has no input to attach itself to, and an empty list would be worse than a sentence.
+ */
+function Summary({ state, fieldErrors }: { state: HeroState; fieldErrors: Record<string, string[]> }) {
+  if (!state) return null;
+  if (state.ok) return <Feedback state={state} />;
+
+  const named = Object.entries(fieldErrors);
+  if (named.length === 0) return <Feedback state={state} />;
+
+  return (
+    <Alert tone="error" className="mt-3" title="Not saved">
+      <p>Nothing has been lost — what you typed is still in the form. Fix these and save again:</p>
+      <ul className="mt-2 list-disc pl-5">
+        {named.map(([field, messages]) => (
+          <li key={field}>
+            <span className="font-medium">{FIELD_LABELS[field] ?? field}</span> — {messages.join(' ')}
+          </li>
+        ))}
+      </ul>
+    </Alert>
+  );
+}
+
+/** The message under a field, wired to its input through `aria-describedby`. */
+function FieldError({ id, messages }: { id: string; messages?: string[] }) {
+  if (!messages || messages.length === 0) return null;
+  return (
+    <span id={id} role="alert" className="text-xs text-error">
+      {messages.join(' ')}
+    </span>
+  );
+}
+
 const ICON_CHOICES = ['truck', 'clock', 'flask', 'rotate', 'badge', 'wallet'] as const;
 const SELECT = 'h-11 w-full rounded-md border border-line bg-surface px-3 text-sm text-ink-900';
 
@@ -227,7 +311,8 @@ function SlidesPanel({ slides }: { slides: AdminHeroSlide[] }) {
 }
 
 function SettingsPanel({ settings }: { settings: HeroSettings }) {
-  const [state, action] = useActionState(saveHeroSettings, null);
+  const { state, formAction, attempt, fieldErrors, val, checked } =
+    useResilientForm(saveHeroSettings);
 
   return (
     <Card className="mt-4">
@@ -235,12 +320,12 @@ function SettingsPanel({ settings }: { settings: HeroSettings }) {
         <CardTitle>Carousel behaviour</CardTitle>
       </CardHeader>
       <CardContent>
-        <form action={action} className="grid gap-4 sm:grid-cols-2">
+        <form action={formAction} key={attempt} className="grid gap-4 sm:grid-cols-2">
           <label className="flex items-center gap-2 text-sm text-ink-900">
             <input
               type="checkbox"
               name="autoplay"
-              defaultChecked={settings.autoplay}
+              defaultChecked={checked('autoplay', settings.autoplay)}
               className="size-4"
             />
             Auto-advance
@@ -254,20 +339,25 @@ function SettingsPanel({ settings }: { settings: HeroSettings }) {
               type="number"
               min={3}
               max={15}
-              defaultValue={settings.intervalSeconds}
+              defaultValue={val('intervalSeconds', String(settings.intervalSeconds))}
             />
           </label>
 
           <label htmlFor="hero-transition" className="flex flex-col gap-1 text-sm">
             <span className="font-medium text-ink-900">Transition</span>
-            <select id="hero-transition" name="transition" defaultValue={settings.transition} className={SELECT}>
+            <select id="hero-transition" name="transition" defaultValue={val('transition', settings.transition)} className={SELECT}>
               <option value="fade">Crossfade</option>
               <option value="slide">Slide</option>
             </select>
           </label>
 
           <label className="flex items-center gap-2 text-sm text-ink-900">
-            <input type="checkbox" name="loop" defaultChecked={settings.loop} className="size-4" />
+            <input
+              type="checkbox"
+              name="loop"
+              defaultChecked={checked('loop', settings.loop)}
+              className="size-4"
+            />
             Loop back to the first slide
           </label>
 
@@ -276,7 +366,7 @@ function SettingsPanel({ settings }: { settings: HeroSettings }) {
               <input
                 type="checkbox"
                 name="shuffle"
-                defaultChecked={settings.shuffle}
+                defaultChecked={checked('shuffle', settings.shuffle)}
                 className="mt-0.5 size-4"
               />
               <span>
@@ -295,14 +385,14 @@ function SettingsPanel({ settings }: { settings: HeroSettings }) {
           </div>
         </form>
 
-        <Feedback state={state} />
+        <Summary state={state} fieldErrors={fieldErrors} />
       </CardContent>
     </Card>
   );
 }
 
 function TrustPanel({ items }: { items: TrustItem[] }) {
-  const [state, action] = useActionState(saveTrustStrip, null);
+  const { state, formAction, attempt, fieldErrors, val } = useResilientForm(saveTrustStrip);
   const rows = [0, 1, 2, 3].map((index) => items[index] ?? { icon: 'badge', sq: '', en: '' });
 
   return (
@@ -321,7 +411,7 @@ function TrustPanel({ items }: { items: TrustItem[] }) {
           rather than leaving it advertising an old number.
         </p>
 
-        <form action={action} className="mt-4 flex flex-col gap-4">
+        <form action={formAction} key={attempt} className="mt-4 flex flex-col gap-4">
           {rows.map((row, index) => (
             <div key={index} className="grid gap-3 sm:grid-cols-[8rem_1fr_1fr]">
               <label htmlFor={`trust-icon-${index}`} className="flex flex-col gap-1 text-sm">
@@ -336,11 +426,21 @@ function TrustPanel({ items }: { items: TrustItem[] }) {
               </label>
               <label htmlFor={`trust-sq-${index}`} className="flex flex-col gap-1 text-sm">
                 <span className="font-medium text-ink-900">Albanian</span>
-                <Input id={`trust-sq-${index}`} name={`sq-${index}`} defaultValue={row.sq} maxLength={80} />
+                <Input
+                  id={`trust-sq-${index}`}
+                  name={`sq-${index}`}
+                  defaultValue={val(`sq-${index}`, row.sq)}
+                  maxLength={80}
+                />
               </label>
               <label htmlFor={`trust-en-${index}`} className="flex flex-col gap-1 text-sm">
                 <span className="font-medium text-ink-900">English</span>
-                <Input id={`trust-en-${index}`} name={`en-${index}`} defaultValue={row.en} maxLength={80} />
+                <Input
+                  id={`trust-en-${index}`}
+                  name={`en-${index}`}
+                  defaultValue={val(`en-${index}`, row.en)}
+                  maxLength={80}
+                />
               </label>
             </div>
           ))}
@@ -350,14 +450,15 @@ function TrustPanel({ items }: { items: TrustItem[] }) {
           </div>
         </form>
 
-        <Feedback state={state} />
+        <Summary state={state} fieldErrors={fieldErrors} />
       </CardContent>
     </Card>
   );
 }
 
 function AnnouncementPanel({ announcement }: { announcement: AdminAnnouncement | null }) {
-  const [state, action] = useActionState(saveAnnouncement, null);
+  const { state, formAction, attempt, fieldErrors, val, checked } =
+    useResilientForm(saveAnnouncement);
 
   return (
     <Card className="mt-4">
@@ -371,7 +472,7 @@ function AnnouncementPanel({ announcement }: { announcement: AdminAnnouncement |
           everyone rather than staying hidden for people who closed the last one.
         </p>
 
-        <form action={action} className="mt-4 grid gap-4 sm:grid-cols-2">
+        <form action={formAction} key={attempt} className="mt-4 grid gap-4 sm:grid-cols-2">
           {announcement && <input type="hidden" name="id" value={announcement.id} />}
 
           <label htmlFor="ann-sq" className="flex flex-col gap-1 text-sm">
@@ -379,29 +480,50 @@ function AnnouncementPanel({ announcement }: { announcement: AdminAnnouncement |
             <Input
               id="ann-sq"
               name="titleSq"
-              defaultValue={pickLocale(announcement?.title ?? {}, 'sq')}
+              defaultValue={val('titleSq', pickLocale(announcement?.title ?? {}, 'sq'))}
               maxLength={160}
               placeholder="15% zbritje në porosinë e parë"
+              aria-invalid={Boolean(fieldErrors.titleSq)}
+              aria-describedby={fieldErrors.titleSq ? 'ann-sq-error' : undefined}
             />
+            <FieldError id="ann-sq-error" messages={fieldErrors.titleSq} />
           </label>
           <label htmlFor="ann-en" className="flex flex-col gap-1 text-sm">
             <span className="font-medium text-ink-900">English</span>
             <Input
               id="ann-en"
               name="titleEn"
-              defaultValue={pickLocale(announcement?.title ?? {}, 'en')}
+              defaultValue={val('titleEn', pickLocale(announcement?.title ?? {}, 'en'))}
               maxLength={160}
               placeholder="15% off your first order"
+              aria-invalid={Boolean(fieldErrors.titleEn)}
+              aria-describedby={fieldErrors.titleEn ? 'ann-en-error' : undefined}
             />
+            <FieldError id="ann-en-error" messages={fieldErrors.titleEn} />
           </label>
 
           <label htmlFor="ann-code" className="flex flex-col gap-1 text-sm">
             <span className="font-medium text-ink-900">Code</span>
-            <Input id="ann-code" name="code" defaultValue={announcement?.code ?? ''} maxLength={40} />
+            <Input
+              id="ann-code"
+              name="code"
+              defaultValue={val('code', announcement?.code ?? '')}
+              maxLength={40}
+              aria-invalid={Boolean(fieldErrors.code)}
+            />
+            <FieldError id="ann-code-error" messages={fieldErrors.code} />
           </label>
           <label htmlFor="ann-href" className="flex flex-col gap-1 text-sm">
             <span className="font-medium text-ink-900">Link (optional)</span>
-            <Input id="ann-href" name="href" defaultValue={announcement?.href ?? ''} placeholder="/offers" />
+            <Input
+              id="ann-href"
+              name="href"
+              defaultValue={val('href', announcement?.href ?? '')}
+              placeholder="/offers"
+              aria-invalid={Boolean(fieldErrors.href)}
+              aria-describedby={fieldErrors.href ? 'ann-href-error' : undefined}
+            />
+            <FieldError id="ann-href-error" messages={fieldErrors.href} />
           </label>
 
           <div className="sm:col-span-2 flex items-center gap-4">
@@ -409,7 +531,7 @@ function AnnouncementPanel({ announcement }: { announcement: AdminAnnouncement |
               <input
                 type="checkbox"
                 name="isActive"
-                defaultChecked={announcement?.isActive ?? false}
+                defaultChecked={checked('isActive', announcement?.isActive ?? false)}
                 className="size-4"
               />
               Show the bar
@@ -418,7 +540,7 @@ function AnnouncementPanel({ announcement }: { announcement: AdminAnnouncement |
           </div>
         </form>
 
-        <Feedback state={state} />
+        <Summary state={state} fieldErrors={fieldErrors} />
       </CardContent>
     </Card>
   );
