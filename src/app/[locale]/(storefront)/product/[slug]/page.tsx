@@ -29,7 +29,8 @@ export async function generateStaticParams() {
   return result.items.slice(0, 200).map((product) => ({ slug: product.slug }));
 }
 
-export const revalidate = 300;
+// Keep in sync with `ISR_REVALIDATE_SECONDS` — segment config must be a literal.
+export const revalidate = 3600;
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { locale: rawLocale, slug } = await params;

@@ -763,6 +763,15 @@ site and the live database on the day.
    after a real order rather than trusting a settings screen.**
 2. **`CSP_ENFORCE=true`.** Production serves `content-security-policy-report-only` today — the policy is
    correct and nothing enforces it. Flip it after watching the report endpoint for a few days.
+
+2b. **`SEO_INDEXING=on` — the switch that makes the shop visible to Google.** Added 8 Aug 2026 after the
+   project paused itself on a spend limit (docs/13 §AC). It defaults to **off**, so until it is set in
+   Vercel, `robots.txt` is `Disallow: /` and every response carries `X-Robots-Tag: noindex, nofollow`.
+   Nothing is indexed and no crawler spend accrues.
+
+   Do not flip it before the photography (item 8) and the `[BIZNESI: plotëso]` blocks (item 6) are done.
+   The whole point of the default is that it stops you paying to have placeholder art and an unfinished
+   trader notice indexed. Flipping it is a redeploy, and the rollback is unsetting it.
 3. **`SENTRY_DSN` / `NEXT_PUBLIC_SENTRY_DSN`.** Both unset, so the SDK is inert and nothing reports.
 4. **Separate the test project from production (§7).** This moved from "risky" to "actively visible" during
    the audit: a report of *test-related names in the category list* turned out to be E2E fixtures — `Emri

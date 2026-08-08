@@ -1,9 +1,25 @@
 import type { MetadataRoute } from 'next';
 import { clientEnv } from '@/lib/env.client';
+import { serverEnv } from '@/lib/env.server';
 
 /** docs/08 §4 — allow everything except the private and non-indexable surfaces. */
 export default function robots(): MetadataRoute.Robots {
   const origin = clientEnv.NEXT_PUBLIC_SITE_URL;
+
+  /*
+   * Pre-launch, nothing is crawlable at all.
+   *
+   * Crawler traffic was the whole of the 8 Aug 2026 spend that paused the deployment, and the pages
+   * being crawled are 48 of 63 products showing a placeholder instead of a photograph plus three
+   * legal documents still carrying `[BIZNESI: plotëso]`. Paying to have that indexed is worse than
+   * paying nothing to have it ignored.
+   *
+   * No `sitemap` line either: advertising 140 URLs while refusing to serve them is a mixed signal,
+   * and the sitemap is the thing that invites the deep crawl in the first place.
+   */
+  if (serverEnv.SEO_INDEXING !== 'on') {
+    return { rules: [{ userAgent: '*', disallow: '/' }] };
+  }
 
   return {
     rules: [

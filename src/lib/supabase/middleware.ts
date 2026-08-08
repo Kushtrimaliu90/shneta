@@ -13,10 +13,41 @@ import type { Database } from '@/lib/supabase/database.types';
  * A Supabase outage must not 500 the storefront: failures degrade to "unauthenticated",
  * which is the safe default because every guard denies on null.
  */
+/**
+ * Is there anything to refresh?
+ *
+ * `@supabase/ssr` stores the session in cookies named `sb-<project-ref>-auth-token`, chunked as
+ * `.0`, `.1`, … when the JWT is long. No such cookie means no session, and `getUser()` on a request
+ * carrying none is a network round-trip to the auth server whose only possible answer is `null`.
+ *
+ * Prefix-matched rather than reconstructed from the project ref: the ref would have to be parsed out
+ * of the Supabase URL, and a mismatch there would silently skip the refresh for *signed-in* users —
+ * a much worse failure than the one this avoids.
+ */
+function hasAuthCookie(request: NextRequest): boolean {
+  return request.cookies.getAll().some((c) => c.name.startsWith('sb-') && c.name.includes('auth-token'));
+}
+
 export async function refreshSession(
   request: NextRequest,
   response: NextResponse,
 ): Promise<User | null> {
+  /*
+   * The single largest saving in the 8 Aug 2026 cost work.
+   *
+   * This ran on every request the matcher admitted — every page view, every crawler fetch, every
+   * `/api` call — and each one built an SSR client and asked the auth server to validate a JWT that,
+   * for an anonymous visitor, was not there. Fluid Active CPU was the top line on the bill at $2.44,
+   * and this is a network wait inside a billed function on a shop whose visitors are almost entirely
+   * anonymous.
+   *
+   * Returning `null` early is not a weaker guarantee: with no auth cookie, `getUser()` returns `null`
+   * too, so every downstream check — the `/admin` redirect, `needsSession`, and RLS underneath both —
+   * reaches the same decision by the same route. Nothing is cached and no cookie is written, so a
+   * visitor who signs in gets the full path on their very next request.
+   */
+  if (!hasAuthCookie(request)) return null;
+
   const supabase = createServerClient<Database>(
     clientEnv.NEXT_PUBLIC_SUPABASE_URL,
     clientEnv.NEXT_PUBLIC_SUPABASE_ANON_KEY,

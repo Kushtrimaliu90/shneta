@@ -19,7 +19,8 @@ import { ShareButton } from '@/features/content/components/share-button';
 
 type Props = { params: Promise<{ locale: string; slug: string }> };
 
-export const revalidate = 300;
+// Keep in sync with `STATIC_REVALIDATE_SECONDS` — segment config must be a literal.
+export const revalidate = 86400;
 
 /** docs/02 §5 — every published article is prebuilt; new ones render on demand. */
 export async function generateStaticParams() {

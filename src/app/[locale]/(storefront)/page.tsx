@@ -26,7 +26,8 @@ import { cn } from '@/lib/utils';
  * Must be a literal: Next statically analyses segment config and rejects an imported
  * identifier. Keep in sync with `ISR_REVALIDATE_SECONDS` in lib/constants.ts.
  */
-export const revalidate = 300;
+// Keep in sync with `ISR_REVALIDATE_SECONDS` — segment config must be a literal.
+export const revalidate = 3600;
 
 /**
  * Home (docs/05 §1).

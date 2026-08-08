@@ -17,7 +17,8 @@ type Props = {
 };
 
 /** docs/02 §5 — content is ISR with tag purging, like the catalogue. */
-export const revalidate = 300;
+// Keep in sync with `STATIC_REVALIDATE_SECONDS` — segment config must be a literal.
+export const revalidate = 86400;
 
 function first(value: string | string[] | undefined): string | undefined {
   const raw = Array.isArray(value) ? value[0] : value;

@@ -72,7 +72,20 @@ const CSP_ENFORCED = [...CSP_BASE, `script-src 'self' 'unsafe-inline'${DEV_EVAL}
 /** Report-only. What we would enforce if inline script were avoidable. */
 const CSP_STRICT = [...CSP_BASE, `script-src 'self'${DEV_EVAL}`].join('; ');
 
+/*
+ * The second half of the pre-launch crawl block, for crawlers that fetch anyway.
+ *
+ * `robots.txt` asks politely and most obey. This is the instruction that binds the ones that do not,
+ * and it is the one that removes a URL already in the index — a `Disallow` alone cannot, because a
+ * crawler forbidden from fetching the page never reads the header telling it to drop the page. That
+ * is the known trade-off of blocking rather than `noindex`-ing: it stops the spend immediately and
+ * leaves any already-indexed URL showing as "indexed, though blocked" until the block lifts. With 48
+ * of 63 products still on placeholder art, stopping the spend is the right side of it.
+ */
+const INDEXING_ON = process.env.SEO_INDEXING === 'on';
+
 const securityHeaders = [
+  ...(INDEXING_ON ? [] : [{ key: 'X-Robots-Tag', value: 'noindex, nofollow' }]),
   { key: 'X-Frame-Options', value: 'DENY' },
   { key: 'X-Content-Type-Options', value: 'nosniff' },
   { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },

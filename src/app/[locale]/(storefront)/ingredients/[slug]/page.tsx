@@ -13,7 +13,8 @@ import { getIngredientBySlug, listIngredients, listProducts } from '@/features/c
 
 type Props = { params: Promise<{ locale: string; slug: string }> };
 
-export const revalidate = 300;
+// Keep in sync with `STATIC_REVALIDATE_SECONDS` — segment config must be a literal.
+export const revalidate = 86400;
 
 export async function generateStaticParams() {
   const ingredients = await listIngredients();

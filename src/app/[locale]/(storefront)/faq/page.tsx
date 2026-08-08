@@ -13,7 +13,8 @@ import type { Locale } from '@/lib/constants';
 
 type Props = { params: Promise<{ locale: string }> };
 
-export const revalidate = 300;
+// Keep in sync with `STATIC_REVALIDATE_SECONDS` — segment config must be a literal.
+export const revalidate = 86400;
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const locale = resolveLocale((await params).locale);

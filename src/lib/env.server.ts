@@ -26,6 +26,22 @@ const serverSchema = z.object({
   // Observability.
   SENTRY_DSN: z.string().optional(),
 
+  /*
+   * Search-engine indexing, **off unless explicitly switched on**.
+   *
+   * The default is the unusual part and it is deliberate. On 8 Aug 2026 the project paused itself on
+   * a spend limit; the day's bill was $7.02, 85 % of it in four line items that are all the same
+   * event — a page being generated on the server — and the only thing generating them was crawler
+   * traffic against a shop with no customers. robots.ts had already been narrowed once for the same
+   * reason (4.8M of 4.9M PostgREST requests over 5.6 days were the faceted listing query).
+   *
+   * A fail-open default would mean one unset variable in one environment quietly restores the bill.
+   * Fail-closed costs a launch-day step instead, which is on the checklist in docs/14 §20 and is
+   * cheap to get wrong in the recoverable direction: a day unindexed is survivable, a month of
+   * crawler spend on placeholder pages is not.
+   */
+  SEO_INDEXING: z.enum(['on', 'off']).default('off'),
+
   // Post-v1 — bank virtual POS (docs/07 §6.3).
   BANK_POS_MERCHANT_ID: z.string().optional(),
   BANK_POS_SECRET: z.string().optional(),

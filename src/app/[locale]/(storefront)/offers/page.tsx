@@ -14,7 +14,8 @@ import { CouponCard } from '@/features/content/components/coupon-card';
 
 type Props = { params: Promise<{ locale: string }> };
 
-export const revalidate = 300;
+// Keep in sync with `ISR_REVALIDATE_SECONDS` — segment config must be a literal.
+export const revalidate = 3600;
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const locale = resolveLocale((await params).locale);

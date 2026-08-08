@@ -3316,3 +3316,70 @@ It was exempt as a discount code, which is locale-neutral; as prose it is not, a
 sees whatever the author typed. Kept as-is because the brief scoped the change to the display label and
 help text, and `banners.cta_label` already exists as unused jsonb on this placement — the upgrade path
 is to read that instead, copying `link_label` into both locales.
+
+---
+
+## AC. The day the shop paused itself
+
+On 8 Aug 2026 every route began returning `503 DEPLOYMENT_PAUSED`. Not a deploy, not a regression —
+Vercel spend management had hit its limit. The day's bill was **$7.02** on a shop with no customers:
+
+| line | | |
+| --- | --- | --- |
+| Fluid Active CPU | $2.44 | 35 % |
+| Fast Origin Transfer | $1.74 | 25 % |
+| ISR Writes | $0.97 | 14 % |
+| Function Invocations | $0.82 | 12 % |
+| Build CPU Minutes | $0.48 | 7 % |
+| Fluid Provisioned Memory | $0.46 | 7 % |
+
+The first four are $5.97 of it and they are not four problems. They are four meters on one event: a
+page being generated on the server. ISR Writes is the only line named after it, and reading the bill
+by largest line would have sent you to "CPU" and told you nothing.
+
+### What was actually generating them
+
+1. **`revalidate = 300` on ~140 routes.** Every content page regenerated every five minutes for as
+   long as anything kept asking. Tag-based revalidation already purges correctly on every mutation —
+   17 `revalidateTag` call sites — so the timer was never the mechanism, only a backstop against
+   edits made outside the app. Five minutes was two orders of magnitude too eager for that job.
+2. **A session refresh on every request.** `refreshSession` built an SSR client and called
+   `getUser()` — a network round-trip to the auth server — for every page view the matcher admitted,
+   including every anonymous crawler fetch, where the only possible answer was `null`.
+3. **Crawlers, with nothing worth crawling.** `robots.txt` allowed everything and the sitemap
+   advertised all 63 products, 48 of which show a placeholder instead of a photograph.
+
+Not the cause, despite being the obvious suspects: image optimization was already tuned (WebP only,
+one-year `minimumCacheTTL`, trimmed size lists — AVIF had been removed earlier for doubling billed
+transformations), and the crons are four invocations a day. The listing query was already inside a
+tagged `unstable_cache`, so `/shop` was not re-querying the database on every hit — it was
+re-*rendering*, which is a different meter.
+
+### The fixes
+
+- **Tiered TTLs.** `STATIC_REVALIDATE_SECONDS = 86_400` for the thirteen pages with no price and no
+  stock on them; `ISR_REVALIDATE_SECONDS` 300 → 3600 for the three that have both. Segment config
+  must be a literal, so the constants document the intent and the pages carry the number.
+- **`SEO_INDEXING`, defaulting to `off`.** `robots.txt` returns `Disallow: /` and every response
+  carries `X-Robots-Tag: noindex, nofollow` until it is explicitly switched on. Fail-closed is the
+  unusual choice and the deliberate one: a fail-open default means one unset variable in one
+  environment quietly restores the bill, whereas the cost of forgetting the switch is a day
+  unindexed. It is now a launch-day step in docs/14 §20.
+- **Short-circuit the session refresh** when the request carries no `sb-*-auth-token` cookie. Not a
+  weaker guarantee — with no cookie `getUser()` returns `null` too, so `/admin`, `needsSession` and
+  RLS all reach the same decision by the same route. Anonymous TTFB measured 4–20 ms afterwards.
+
+### The one that got away
+
+An order depletes stock **without purging `CACHE_TAGS.products`** — checkout calls
+`revalidatePath('/', 'layout')`, which does not clear a tagged `unstable_cache` entry. So `in_stock`
+on a listing is only ever as fresh as the catalogue timer, which is why the catalogue got one hour
+rather than one day and why the split exists at all. The real fix is purging the affected
+`product:slug` tags when an order is placed; then both tiers can be a day and this note can go.
+
+### What this cost to learn
+
+Some of the 8 Aug spend was this session's own automation — Playwright loads with `networkidle`,
+deploy-polling every fifteen seconds, a twenty-route curl sweep. A burst rather than a baseline, but
+it landed on the day the limit was reached. Verification against the live site is not free, and on a
+metered origin it belongs against a local server unless the live one is the thing being tested.

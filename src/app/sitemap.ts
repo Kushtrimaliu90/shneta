@@ -16,7 +16,8 @@ import { logger } from '@/lib/logger';
  */
 // Literal, not `ISR_REVALIDATE_SECONDS`: Next statically analyses segment config and
 // rejects an imported identifier. Keep in sync with lib/constants.ts.
-export const revalidate = 300;
+// Keep in sync with `STATIC_REVALIDATE_SECONDS` — segment config must be a literal.
+export const revalidate = 86400;
 
 const ORIGIN = clientEnv.NEXT_PUBLIC_SITE_URL;
 

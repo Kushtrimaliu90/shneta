@@ -86,7 +86,28 @@ export const CACHE_TAGS = {
  * analyses segment config and rejects an imported identifier. Write `= 300` there and keep
  * it in sync with this value, which exists for non-segment uses (cache headers, tests).
  */
-export const ISR_REVALIDATE_SECONDS = 300;
+export const ISR_REVALIDATE_SECONDS = 3600;
+
+/**
+ * Content with no price and no stock in it: legal, about, FAQ, knowledge, ingredients, taxonomy.
+ *
+ * Split from `ISR_REVALIDATE_SECONDS` on 8 Aug 2026, after the project paused itself on a spend
+ * limit. The day cost $7.02 and 85 % of it sat in four line items — Fluid Active CPU, Fast Origin
+ * Transfer, ISR Writes, Function Invocations — which are four names for the same event: a page being
+ * generated on the server. At 300 s, ~140 routes regenerated every five minutes for as long as
+ * anything kept asking, and the only things asking were crawlers.
+ *
+ * These pages change when somebody edits them, and editing them calls `revalidatePublic`. The timer
+ * is only a backstop for a change made outside the app, so a day is the right order of magnitude and
+ * five minutes was two orders out.
+ *
+ * Why the catalogue does **not** get this number: an order depletes stock without purging
+ * `CACHE_TAGS.products` — checkout calls `revalidatePath('/', 'layout')`, which does not clear a
+ * tagged `unstable_cache` entry — so `in_stock` on a listing is only ever as fresh as this timer.
+ * One hour is the compromise; a day would advertise sold-out stock. The real fix is purging the
+ * affected `product:slug` tags when an order is placed, and then this distinction goes away.
+ */
+export const STATIC_REVALIDATE_SECONDS = 86_400;
 
 /** docs/02 §9 — rate limits, as [max, windowSeconds]. */
 export const RATE_LIMITS = {
