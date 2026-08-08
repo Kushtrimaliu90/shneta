@@ -42,11 +42,49 @@ export function SlideEditor({
   slide: AdminHeroSlide | null;
   onDone: () => void;
 }) {
-  const [state, action] = useActionState(async (previous: Awaited<ReturnType<typeof saveHeroSlide>>, formData: FormData) => {
-    const result = await saveHeroSlide(previous, formData);
-    if (result?.ok) onDone();
-    return result;
-  }, null);
+  /**
+   * What the operator last typed, kept so a rejected save does not wipe the form.
+   *
+   * React 19 **resets an uncontrolled form after a function `action` completes** — success or
+   * failure, it does not distinguish. So a slide that failed validation came back blank and had to be
+   * retyped from scratch, which is the worst possible response to "one field is wrong": it punishes
+   * the person hardest when they are closest to being finished.
+   *
+   * The fix is to capture the submission and re-seed from it. `attempt` bumps on every failure and
+   * keys the fieldset, so the inputs remount carrying the echoed values rather than the row's — an
+   * uncontrolled input reads `defaultValue` only when it mounts, so without the key the new defaults
+   * would be ignored.
+   */
+  const [draft, setDraft] = useState<Record<string, string> | null>(null);
+  const [attempt, setAttempt] = useState(0);
+
+  const [state, action] = useActionState(
+    async (previous: Awaited<ReturnType<typeof saveHeroSlide>>, formData: FormData) => {
+      const submitted = Object.fromEntries(
+        [...formData.entries()].map(([key, value]) => [key, typeof value === 'string' ? value : '']),
+      );
+
+      const result = await saveHeroSlide(previous, formData);
+      if (result?.ok) {
+        onDone();
+        return result;
+      }
+
+      setDraft(submitted);
+      setAttempt((current) => current + 1);
+      return result;
+    },
+    null,
+  );
+
+  /** The last submitted value for a field, falling back to the saved row. */
+  const val = (name: string, fallback: string): string => draft?.[name] ?? fallback;
+  /** Checkboxes are absent from FormData when unticked, so a draft means "not ticked". */
+  const checked = (name: string, fallback: boolean): boolean =>
+    draft ? draft[name] !== undefined : fallback;
+
+  const fieldErrors = state?.ok === false ? (state.fieldErrors ?? {}) : {};
+  const errorsFor = (name: string): string[] | undefined => fieldErrors[name];
 
   const [desktopPath, setDesktopPath] = useState(slide?.imageDesktopPath ?? '');
   const [mobilePath, setMobilePath] = useState(slide?.imageMobilePath ?? '');
@@ -114,7 +152,7 @@ export function SlideEditor({
 
   return (
     <Card>
-      <form action={action} className="flex flex-col gap-6 p-5">
+      <form action={action} key={attempt} className="flex flex-col gap-6 p-5">
         {slide && <input type="hidden" name="id" value={slide.id} />}
         <input type="hidden" name="imageDesktopPath" value={desktopPath} />
         <input type="hidden" name="imageMobilePath" value={mobilePath} />
@@ -125,6 +163,8 @@ export function SlideEditor({
           nameEn="eyebrowEn"
           slide={slide}
           field="eyebrow"
+          draft={draft}
+          fieldErrors={fieldErrors}
           onEn={(value) => setPreview((p) => ({ ...p, eyebrow: value }))}
         />
         <Pair
@@ -134,6 +174,8 @@ export function SlideEditor({
           slide={slide}
           field="headline"
           required
+          draft={draft}
+          fieldErrors={fieldErrors}
           onEn={(value) => setPreview((p) => ({ ...p, headline: value }))}
         />
         <Pair
@@ -143,6 +185,8 @@ export function SlideEditor({
           slide={slide}
           field="subhead"
           textarea
+          draft={draft}
+          fieldErrors={fieldErrors}
           onEn={(value) => setPreview((p) => ({ ...p, subhead: value }))}
         />
 
@@ -154,11 +198,20 @@ export function SlideEditor({
             slide={slide}
             field="ctaPrimaryLabel"
             required
+            draft={draft}
+            fieldErrors={fieldErrors}
             onEn={(value) => setPreview((p) => ({ ...p, cta: value }))}
           />
           <label htmlFor="cta-primary-href" className="flex flex-col gap-1 text-sm">
             <span className="font-medium text-ink-900">Primary CTA link</span>
-            <Input id="cta-primary-href" name="ctaPrimaryHref" defaultValue={slide?.ctaPrimaryHref ?? ''} placeholder="/shop" />
+            <Input
+              id="cta-primary-href"
+              name="ctaPrimaryHref"
+              defaultValue={val('ctaPrimaryHref', slide?.ctaPrimaryHref ?? '')}
+              placeholder="/shop"
+              aria-invalid={Boolean(errorsFor('ctaPrimaryHref'))}
+            />
+            <FieldError id="ctaPrimaryHref-error" messages={errorsFor('ctaPrimaryHref')} />
           </label>
         </div>
 
@@ -169,15 +222,19 @@ export function SlideEditor({
             nameEn="ctaSecondaryLabelEn"
             slide={slide}
             field="ctaSecondaryLabel"
+            draft={draft}
+            fieldErrors={fieldErrors}
           />
           <label htmlFor="cta-secondary-href" className="flex flex-col gap-1 text-sm">
             <span className="font-medium text-ink-900">Secondary CTA link</span>
             <Input
               id="cta-secondary-href"
               name="ctaSecondaryHref"
-              defaultValue={slide?.ctaSecondaryHref ?? ''}
+              defaultValue={val('ctaSecondaryHref', slide?.ctaSecondaryHref ?? '')}
               placeholder="/biohack"
+              aria-invalid={Boolean(errorsFor('ctaSecondaryHref'))}
             />
+            <FieldError id="ctaSecondaryHref-error" messages={errorsFor('ctaSecondaryHref')} />
           </label>
         </div>
 
@@ -189,8 +246,9 @@ export function SlideEditor({
           onFile={(file) => void upload(file, 'desktop')}
           altSqName="imageDesktopAltSq"
           altEnName="imageDesktopAltEn"
-          altSq={pickLocale(slide?.imageDesktopAlt ?? {}, 'sq')}
-          altEn={pickLocale(slide?.imageDesktopAlt ?? {}, 'en')}
+          altSq={val('imageDesktopAltSq', pickLocale(slide?.imageDesktopAlt ?? {}, 'sq'))}
+          altErrorSq={errorsFor('imageDesktopAltSq')}
+          altEn={val('imageDesktopAltEn', pickLocale(slide?.imageDesktopAlt ?? {}, 'en'))}
         />
         <ImageSlot
           title="Mobile image"
@@ -200,8 +258,9 @@ export function SlideEditor({
           onFile={(file) => void upload(file, 'mobile')}
           altSqName="imageMobileAltSq"
           altEnName="imageMobileAltEn"
-          altSq={pickLocale(slide?.imageMobileAlt ?? {}, 'sq')}
-          altEn={pickLocale(slide?.imageMobileAlt ?? {}, 'en')}
+          altSq={val('imageMobileAltSq', pickLocale(slide?.imageMobileAlt ?? {}, 'sq'))}
+          altErrorSq={errorsFor('imageMobileAltSq')}
+          altEn={val('imageMobileAltEn', pickLocale(slide?.imageMobileAlt ?? {}, 'en'))}
         />
 
         {uploadError && <Alert tone="error">{uploadError}</Alert>}
@@ -212,7 +271,7 @@ export function SlideEditor({
             <select
               id="slide-variant"
               name="textVariant"
-              defaultValue={slide?.textVariant ?? 'dark'}
+              defaultValue={val('textVariant', slide?.textVariant ?? 'dark')}
               onChange={(event) =>
                 setPreview((p) => ({ ...p, variant: event.target.value === 'light' ? 'light' : 'dark' }))
               }
@@ -228,12 +287,19 @@ export function SlideEditor({
               id="slide-start"
               name="startAt"
               type="datetime-local"
-              defaultValue={toLocalInput(slide?.startAt)}
+              defaultValue={val('startAt', toLocalInput(slide?.startAt))}
             />
           </label>
           <label htmlFor="slide-end" className="flex flex-col gap-1 text-sm">
             <span className="font-medium text-ink-900">Show until</span>
-            <Input id="slide-end" name="endAt" type="datetime-local" defaultValue={toLocalInput(slide?.endAt)} />
+            <Input
+              id="slide-end"
+              name="endAt"
+              type="datetime-local"
+              defaultValue={val('endAt', toLocalInput(slide?.endAt))}
+              aria-invalid={Boolean(errorsFor('endAt'))}
+            />
+            <FieldError id="endAt-error" messages={errorsFor('endAt')} />
           </label>
         </div>
 
@@ -242,7 +308,7 @@ export function SlideEditor({
             <input
               type="checkbox"
               name="isPinned"
-              defaultChecked={slide?.isPinned ?? false}
+              defaultChecked={checked('isPinned', slide?.isPinned ?? false)}
               className="size-4"
             />
             Pin as first slide
@@ -252,7 +318,7 @@ export function SlideEditor({
               type="checkbox"
               name="status"
               value="published"
-              defaultChecked={slide?.status === 'published'}
+              defaultChecked={checked('status', slide?.status === 'published')}
               className="size-4"
             />
             Published
@@ -268,7 +334,7 @@ export function SlideEditor({
           </Button>
         </div>
 
-        <Feedback state={state} />
+        <ErrorSummary state={state} fieldErrors={fieldErrors} />
       </form>
     </Card>
   );
@@ -284,6 +350,8 @@ function Pair({
   required,
   textarea,
   onEn,
+  draft,
+  fieldErrors,
 }: {
   label: string;
   nameSq: string;
@@ -293,7 +361,10 @@ function Pair({
   required?: boolean;
   textarea?: boolean;
   onEn?: (value: string) => void;
+  draft: Record<string, string> | null;
+  fieldErrors: Record<string, string[]>;
 }) {
+  const seed = (name: string, fallback: string) => draft?.[name] ?? fallback;
   const box =
     'w-full rounded-md border border-line bg-surface px-3 py-2 text-sm text-ink-900 focus:outline-none focus:ring-2 focus:ring-forest-600';
 
@@ -307,10 +378,26 @@ function Pair({
       <label htmlFor={nameSq} className="flex flex-col gap-1 text-sm">
         <span className="text-xs text-ink-500">Albanian</span>
         {textarea ? (
-          <textarea id={nameSq} name={nameSq} rows={3} defaultValue={pickLocale(slide?.[field] ?? {}, 'sq')} className={box} />
+          <textarea
+            id={nameSq}
+            name={nameSq}
+            rows={3}
+            defaultValue={seed(nameSq, pickLocale(slide?.[field] ?? {}, 'sq'))}
+            aria-invalid={Boolean(fieldErrors[nameSq])}
+            aria-describedby={fieldErrors[nameSq] ? `${nameSq}-error` : undefined}
+            className={cn(box, fieldErrors[nameSq] && invalid)}
+          />
         ) : (
-          <input id={nameSq} name={nameSq} defaultValue={pickLocale(slide?.[field] ?? {}, 'sq')} className={cn(box, 'h-11')} />
+          <input
+            id={nameSq}
+            name={nameSq}
+            defaultValue={seed(nameSq, pickLocale(slide?.[field] ?? {}, 'sq'))}
+            aria-invalid={Boolean(fieldErrors[nameSq])}
+            aria-describedby={fieldErrors[nameSq] ? `${nameSq}-error` : undefined}
+            className={cn(box, 'h-11', fieldErrors[nameSq] && invalid)}
+          />
         )}
+        <FieldError id={`${nameSq}-error`} messages={fieldErrors[nameSq]} />
       </label>
 
       <label htmlFor={nameEn} className="flex flex-col gap-1 text-sm">
@@ -320,21 +407,49 @@ function Pair({
             id={nameEn}
             name={nameEn}
             rows={3}
-            defaultValue={pickLocale(slide?.[field] ?? {}, 'en')}
+            defaultValue={seed(nameEn, pickLocale(slide?.[field] ?? {}, 'en'))}
             onChange={(event) => onEn?.(event.target.value)}
-            className={box}
+            aria-invalid={Boolean(fieldErrors[nameEn])}
+            aria-describedby={fieldErrors[nameEn] ? `${nameEn}-error` : undefined}
+            className={cn(box, fieldErrors[nameEn] && invalid)}
           />
         ) : (
           <input
             id={nameEn}
             name={nameEn}
-            defaultValue={pickLocale(slide?.[field] ?? {}, 'en')}
+            defaultValue={seed(nameEn, pickLocale(slide?.[field] ?? {}, 'en'))}
             onChange={(event) => onEn?.(event.target.value)}
-            className={cn(box, 'h-11')}
+            aria-invalid={Boolean(fieldErrors[nameEn])}
+            aria-describedby={fieldErrors[nameEn] ? `${nameEn}-error` : undefined}
+            className={cn(box, 'h-11', fieldErrors[nameEn] && invalid)}
           />
         )}
+        <FieldError id={`${nameEn}-error`} messages={fieldErrors[nameEn]} />
       </label>
     </fieldset>
+  );
+}
+
+/** A red border, so "highlighted fields" means something. */
+const invalid = 'border-error focus:ring-error';
+
+/**
+ * The message under a field.
+ *
+ * The action has always returned `fieldErrors` — `fromFieldErrors` builds them from the Zod flatten
+ * and they travelled all the way to the component, where nothing rendered them. So the panel said
+ * "Check the highlighted fields" and highlighted nothing, which is a worse failure than no message at
+ * all: it tells the operator there is something to find and then hides it.
+ *
+ * `role="alert"` so the text is announced when it appears, and it is wired to the input through
+ * `aria-describedby` rather than merely sitting near it.
+ */
+function FieldError({ id, messages }: { id: string; messages?: string[] }) {
+  if (!messages || messages.length === 0) return null;
+  return (
+    <span id={id} role="alert" className="text-xs text-error">
+      {messages.join(' ')}
+    </span>
   );
 }
 
@@ -348,6 +463,7 @@ function ImageSlot({
   altEnName,
   altSq,
   altEn,
+  altErrorSq,
 }: {
   title: string;
   hint: string;
@@ -358,6 +474,7 @@ function ImageSlot({
   altEnName: string;
   altSq: string;
   altEn: string;
+  altErrorSq?: string[];
 }) {
   const src = path ? (path.startsWith('/') ? path : storageUrl('content', path)) : null;
 
@@ -401,7 +518,14 @@ function ImageSlot({
       <div className="mt-3 grid gap-3 sm:grid-cols-2">
         <label htmlFor={altSqName} className="flex flex-col gap-1 text-sm">
           <span className="text-xs text-ink-500">Alt text — Albanian{path && ' *'}</span>
-          <Input id={altSqName} name={altSqName} defaultValue={altSq} maxLength={200} />
+          <Input
+            id={altSqName}
+            name={altSqName}
+            defaultValue={altSq}
+            maxLength={200}
+            aria-invalid={Boolean(altErrorSq)}
+          />
+          <FieldError id={`${altSqName}-error`} messages={altErrorSq} />
         </label>
         <label htmlFor={altEnName} className="flex flex-col gap-1 text-sm">
           <span className="text-xs text-ink-500">Alt text — English</span>
@@ -496,4 +620,75 @@ function toLocalInput(iso: string | null | undefined): string {
 
 function Card({ children }: { children: React.ReactNode }) {
   return <div className="rounded-lg border border-forest-500/40 bg-forest-50/30">{children}</div>;
+}
+
+/** Field name → what the operator called it, so the summary reads like the form. */
+const FIELD_LABELS: Record<string, string> = {
+  eyebrowSq: 'Eyebrow (Albanian)',
+  eyebrowEn: 'Eyebrow (English)',
+  headlineSq: 'Headline (Albanian)',
+  headlineEn: 'Headline (English)',
+  subheadSq: 'Subhead (Albanian)',
+  subheadEn: 'Subhead (English)',
+  ctaPrimaryLabelSq: 'Primary CTA label (Albanian)',
+  ctaPrimaryLabelEn: 'Primary CTA label (English)',
+  ctaPrimaryHref: 'Primary CTA link',
+  ctaSecondaryLabelSq: 'Secondary CTA label (Albanian)',
+  ctaSecondaryLabelEn: 'Secondary CTA label (English)',
+  ctaSecondaryHref: 'Secondary CTA link',
+  imageDesktopPath: 'Desktop image',
+  imageDesktopAltSq: 'Desktop alt text (Albanian)',
+  imageMobileAltSq: 'Mobile alt text (Albanian)',
+  startAt: 'Show from',
+  endAt: 'Show until',
+};
+
+/**
+ * What is wrong, by name, above the buttons.
+ *
+ * The panel used to say "Check the highlighted fields" and highlight nothing — the worst of both,
+ * because it tells the operator there is something to find and then hides it. The field-level
+ * messages are the real fix; this is the index, because the form is long enough that a red border
+ * three screens up is easy to scroll past.
+ *
+ * Only rendered on failure, and it names the fields rather than restating the generic sentence.
+ * `role="alert"` so a screen-reader user hears the list rather than discovering it.
+ */
+function ErrorSummary({
+  state,
+  fieldErrors,
+}: {
+  state: Awaited<ReturnType<typeof saveHeroSlide>>;
+  fieldErrors: Record<string, string[]>;
+}) {
+  if (!state) return null;
+
+  if (state.ok) {
+    return (
+      <Alert tone="success" className="mt-1">
+        {state.data.message ?? 'Saved.'}
+      </Alert>
+    );
+  }
+
+  const named = Object.entries(fieldErrors);
+
+  if (named.length === 0) {
+    // No field owns this one — a permission refusal, a pin clash, a database constraint. The shared
+    // `Feedback` already translates those into a sentence.
+    return <Feedback state={state} />;
+  }
+
+  return (
+    <Alert tone="error" className="mt-1" title="This slide was not saved">
+      <p>Nothing has been lost — your text is still in the form. Fix these and save again:</p>
+      <ul className="mt-2 list-disc pl-5">
+        {named.map(([field, messages]) => (
+          <li key={field}>
+            <span className="font-medium">{FIELD_LABELS[field] ?? field}</span> — {messages.join(' ')}
+          </li>
+        ))}
+      </ul>
+    </Alert>
+  );
 }

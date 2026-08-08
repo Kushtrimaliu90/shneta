@@ -1355,3 +1355,50 @@ test.describe('admin accessibility', () => {
     expect(blocking, blocking.map((v) => `${v.id}: ${v.help}`).join('\n')).toEqual([]);
   });
 });
+
+/**
+ * The hero slide editor's failure path.
+ *
+ * Safe to run against a real database: a rejected save writes nothing, which is the whole point of
+ * what is being tested. The success path would create a slide and change the live homepage, so it is
+ * covered by unit tests over the schema instead.
+ */
+test.describe('hero slide editor (docs/06)', () => {
+  test('a rejected save names the problem and keeps what was typed', async ({ page }) => {
+    const user = await staffUser('content_manager');
+    await signIn(page, user.email, user.password);
+    await page.goto('/admin/hero');
+
+    await page.getByRole('button', { name: 'New slide' }).click();
+
+    const headlineSq = page.locator('#headlineSq');
+    const headlineEn = page.locator('#headlineEn');
+    await headlineSq.fill('Vaj ulliri premium');
+    await headlineEn.fill('Premium Olive Oil');
+    await page.locator('#eyebrowEn').fill('TEST');
+
+    /*
+     * An off-site CTA link. It fails the site-path rule, which is a *field* error — exactly the class
+     * of failure that previously produced "Check the highlighted fields" with nothing highlighted.
+     */
+    await page.locator('#cta-primary-href').fill('https://evil.example');
+    await page.getByRole('button', { name: 'Save slide' }).click();
+
+    // 1. The summary names the field rather than gesturing at the form.
+    const summary = page.getByRole('alert').filter({ hasText: 'This slide was not saved' });
+    await expect(summary).toBeVisible();
+    await expect(summary).toContainText('Primary CTA link');
+
+    // 2. The offending input is marked, so "highlighted" is true.
+    await expect(page.locator('#cta-primary-href')).toHaveAttribute('aria-invalid', 'true');
+
+    /*
+     * 3. And nothing was wiped. React 19 resets an uncontrolled form after a function action
+     * completes — success or failure — so the whole slide used to come back blank and have to be
+     * retyped. This is the assertion that would have caught that.
+     */
+    await expect(page.locator('#headlineSq')).toHaveValue('Vaj ulliri premium');
+    await expect(page.locator('#headlineEn')).toHaveValue('Premium Olive Oil');
+    await expect(page.locator('#eyebrowEn')).toHaveValue('TEST');
+  });
+});
