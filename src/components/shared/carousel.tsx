@@ -242,7 +242,20 @@ export function Carousel<T extends { id: string }>({
          * Desktop keeps the overlay: there the slide is tall enough that the dots sit in dead space
          * below the copy, and pulling them into flow would add height to a hero that does not need it.
          */
-        className="relative z-20 mt-2 flex justify-center gap-2 sm:absolute sm:inset-x-0 sm:bottom-3 sm:mt-0 lg:bottom-4"
+        /*
+         * The band the dots live in, which has to belong to the carousel rather than to whatever
+         * follows it.
+         *
+         * The first version had `mt-2` and no bottom margin, which measured 20 px above the dots and
+         * **0 px** below: the trust strip began on the dots' bottom edge, so an 8 px row of dots and a
+         * 116 px band of icons read as one crowded strip. Reported from a phone, and the measurement
+         * agreed exactly.
+         *
+         * Slightly tighter above and a real gap below. The asymmetry is the point — a control sits
+         * closer to the thing it controls, so 16/12 reads as "these belong to the carousel" where
+         * 20/0 read as "these belong to the trust strip".
+         */
+        className="relative z-20 mt-1 mb-3 flex justify-center gap-2 sm:absolute sm:inset-x-0 sm:bottom-3 sm:mt-0 sm:mb-0 lg:bottom-4"
       >
         {items.map((item, index) => (
           <button

@@ -86,7 +86,12 @@ export function HeroSlideView({
          * exists to catch, and it did catch it. Each step restores at `sm`, so tablet and desktop are
          * untouched.
          */
-        'min-h-[24rem] py-3 sm:py-4 lg:min-h-[min(34rem,calc(100svh-14rem))] lg:py-10',
+        /*
+         * `pt-2` rather than `pt-3` funds the dots' new bottom margin. The sticky header already
+         * separates the hero from the top of the window, so the top gap is the cheapest 4 px on the
+         * page — and it buys the one place that needed it, between the dots and the trust strip.
+         */
+        'min-h-[24rem] pt-2 pb-3 sm:py-4 lg:min-h-[min(34rem,calc(100svh-14rem))] lg:py-10',
       )}
     >
       <div className="container-page grid w-full items-center gap-4 sm:gap-6 lg:grid-cols-[1.05fr_0.95fr] lg:gap-12">
