@@ -765,7 +765,8 @@
       "ingredients": "Ingredients",
       "suggestions": "Suggestions",
       "brands": "Brands",
-      "categories": "Categories"
+      "categories": "Categories",
+      "knowledge": "Knowledge"
     },
     "counts": "{count}",
     "browseShop": "Browse the shop",
@@ -773,7 +774,11 @@
     "didYouMean": "Did you mean <suggestion>{query}</suggestion>?",
     "didYouMeanShort": "Try “{query}”",
     "popularTitle": "Popular right now",
-    "popularBody": "While you are here — these are what other people are buying."
+    "popularBody": "While you are here — these are what other people are buying.",
+    "resultCount": "{count, plural, =0 {No results} one {1 result} other {# results}}",
+    "errorState": "Search is unavailable right now. Try again.",
+    "recent": "Recent searches",
+    "clearRecent": "Clear"
   },
   "compare": {
     "title": "Compare",

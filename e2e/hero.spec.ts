@@ -1,5 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
+import { ACTION_TIMEOUT } from './helpers/storefront';
 
 /**
  * The homepage hero carousel (docs/05 §1).
@@ -107,5 +108,74 @@ test.describe('hero admin', () => {
   test('a signed-out visitor cannot reach it', async ({ page }) => {
     await page.goto('/admin/hero');
     await expect(page).toHaveURL(/\/auth\/sign-in/);
+  });
+});
+
+/**
+ * The persistent header search (Part 3).
+ *
+ * The engine behind this shipped earlier — synonyms, promoted terms, diacritic folding, zero-result
+ * logging. What is new is the field, so what is tested here is the field: that it is visible without a
+ * tap, that the keyboard can drive it end to end, and that the combobox contract is intact.
+ */
+test.describe('header search', () => {
+  test('is visible without a tap, on both layouts', async ({ page }) => {
+    await page.goto('/');
+    // Two instances render — one inline for desktop, one row for mobile — and CSS shows exactly one.
+    await expect(page.getByRole('combobox').filter({ visible: true })).toHaveCount(1);
+  });
+
+  test('"/" focuses it from anywhere on the page', async ({ page }) => {
+    await page.goto('/');
+    await page.locator('body').press('/');
+    await expect(page.getByRole('combobox').filter({ visible: true })).toBeFocused();
+  });
+
+  test('typing opens a listbox and the arrow keys move the active option', async ({ page }) => {
+    await page.goto('/');
+    const box = page.getByRole('combobox').filter({ visible: true });
+    await box.fill('magnez');
+
+    const list = page.getByRole('listbox');
+    await expect(list).toBeVisible({ timeout: ACTION_TIMEOUT });
+    await expect(box).toHaveAttribute('aria-expanded', 'true');
+
+    /*
+     * The combobox contract: focus stays in the input and `aria-activedescendant` points at the
+     * option. If focus moved to the option instead, a screen reader would lose the text being typed.
+     */
+    await box.press('ArrowDown');
+    await expect(box).toBeFocused();
+    await expect(box).toHaveAttribute('aria-activedescendant', /option-0$/);
+
+    await box.press('ArrowDown');
+    await expect(box).toHaveAttribute('aria-activedescendant', /option-1$/);
+  });
+
+  test('Escape closes the dropdown', async ({ page }) => {
+    await page.goto('/');
+    const box = page.getByRole('combobox').filter({ visible: true });
+    await box.fill('magnez');
+    await expect(page.getByRole('listbox')).toBeVisible({ timeout: ACTION_TIMEOUT });
+
+    await box.press('Escape');
+    await expect(page.getByRole('listbox')).toBeHidden();
+  });
+
+  test('Enter on a bare query goes to the results page', async ({ page }) => {
+    await page.goto('/');
+    const box = page.getByRole('combobox').filter({ visible: true });
+    await box.fill('kolagjen');
+    await box.press('Enter');
+    await expect(page).toHaveURL(/\/search\?q=kolagjen$/);
+  });
+
+  test('an Albanian query typed without diacritics still finds products', async ({ page }) => {
+    await page.goto('/');
+    const box = page.getByRole('combobox').filter({ visible: true });
+    // "gjume" for "gjumë" — the normal case on a phone keyboard here.
+    await box.fill('gjume');
+    await expect(page.getByRole('listbox')).toBeVisible({ timeout: ACTION_TIMEOUT });
+    await expect(page.getByRole('option').first()).toBeVisible();
   });
 });

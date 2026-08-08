@@ -765,7 +765,8 @@
       "ingredients": "Përbërës",
       "suggestions": "Sugjerime",
       "brands": "Markat",
-      "categories": "Kategoritë"
+      "categories": "Kategoritë",
+      "knowledge": "Njohuri"
     },
     "counts": "{count}",
     "browseShop": "Shfleto dyqanin",
@@ -773,7 +774,11 @@
     "didYouMean": "Mos keni menduar <suggestion>{query}</suggestion>?",
     "didYouMeanShort": "Provoni “{query}”",
     "popularTitle": "Më të kërkuarat",
-    "popularBody": "Ndërkohë që jeni këtu — këto po i blejnë të tjerët."
+    "popularBody": "Ndërkohë që jeni këtu — këto po i blejnë të tjerët.",
+    "resultCount": "{count, plural, =0 {Asnjë rezultat} one {1 rezultat} other {# rezultate}}",
+    "errorState": "Kërkimi nuk është i disponueshëm tani. Provoni sërish.",
+    "recent": "Kërkimet e fundit",
+    "clearRecent": "Pastro"
   },
   "compare": {
     "title": "Krahaso",

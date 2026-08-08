@@ -1,7 +1,7 @@
 import 'server-only';
 import { cache } from 'react';
 import { unstable_cache } from 'next/cache';
-import { CACHE_TAGS, ISR_REVALIDATE_SECONDS } from '@/lib/constants';
+import { CACHE_TAGS, ISR_REVALIDATE_SECONDS, type Locale } from '@/lib/constants';
 import { createPublicClient } from '@/lib/supabase/public';
 import { logger } from '@/lib/logger';
 import { normalizeQuery, type SearchRedirect } from '@/features/search/redirects';
@@ -73,3 +73,44 @@ export async function getDidYouMean(rawQuery: string): Promise<string | null> {
   const suggestion = typeof data === 'string' ? data.trim() : '';
   return suggestion && suggestion !== normalizeQuery(query) ? suggestion : null;
 }
+
+/**
+ * The rotating placeholder examples, per locale.
+ *
+ * Content rather than code, so "teach catalogue breadth" stays true as the catalogue changes — the
+ * examples an operator picks in January are not the ones that make sense in June. Cached under the
+ * `search` tag alongside the synonyms and redirects, so the console purges all three together.
+ */
+const fetchPlaceholders = cache(async (): Promise<{ sq: string[]; en: string[] }> => {
+  const supabase = createPublicClient();
+  const { data, error } = await supabase
+    .from('settings')
+    .select('value')
+    .eq('key', 'search_placeholders')
+    .maybeSingle();
+
+  if (error) {
+    logger.error('search placeholders failed', { cause: error.message });
+    return { sq: [], en: [] };
+  }
+
+  const raw = ((data as { value: Record<string, unknown> } | null)?.value ?? {}) as Record<
+    string,
+    unknown
+  >;
+  const list = (key: string): string[] =>
+    Array.isArray(raw[key])
+      ? (raw[key] as unknown[]).filter((v): v is string => typeof v === 'string' && v.length > 0)
+      : [];
+
+  return { sq: list('sq'), en: list('en') };
+});
+
+export const getSearchPlaceholders = cache(async (locale: Locale): Promise<string[]> => {
+  const all = await unstable_cache(() => fetchPlaceholders(), ['search-placeholders'], {
+    tags: [CACHE_TAGS.search],
+    revalidate: ISR_REVALIDATE_SECONDS,
+  })();
+
+  return locale === 'en' ? all.en : all.sq;
+});

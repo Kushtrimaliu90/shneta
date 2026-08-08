@@ -6,7 +6,10 @@ import { MobileNav } from '@/components/storefront/mobile-nav';
 import { PRIMARY_NAV } from '@/components/storefront/nav-links';
 import { LocaleSwitcher } from '@/components/shared/locale-switcher';
 import { CartBadge } from '@/features/cart/components/cart-badge';
-import { SearchOverlay } from '@/features/search/components/search-overlay';
+import { HeaderSearch } from '@/features/search/components/header-search';
+import { getSearchPlaceholders } from '@/features/search/queries';
+import { getLocale } from 'next-intl/server';
+import type { Locale } from '@/lib/constants';
 
 /**
  * docs/04 §6 — cream, hairline bottom border, sticky; logo left, nav centre, actions right.
@@ -15,10 +18,21 @@ import { SearchOverlay } from '@/features/search/components/search-overlay';
  * component is rendered by the storefront layout, so one `cookies()` call here opts every
  * catalogue page beneath it out of static rendering — which is exactly what happened between M4
  * and M11 (docs/13 §M1). The cart count is per-visitor, so it lives in `CartBadge`, which
- * fetches it after mount.
+ * fetches it after mount. The search field's recent-searches cookie is read the same way, on the
+ * client, for the same reason.
+ *
+ * ── Search is inline, not behind a magnifier ──
+ *
+ * On a marketplace, search is primary navigation. It occupies roughly a third of the header on
+ * desktop and its own full-width row on a phone, where it is always visible rather than one tap
+ * away. The nav links drop out at `lg` before the field does — if something has to give at a
+ * middle width it is the links, which are duplicated in the mobile sheet and the footer, not the
+ * field, which is duplicated nowhere.
  */
 export async function Navbar() {
   const t = await getTranslations();
+  const locale = (await getLocale()) as Locale;
+  const placeholders = await getSearchPlaceholders(locale);
 
   /*
    * ── No `backdrop-blur` on this header, and that is correctness rather than taste ──
@@ -40,47 +54,38 @@ export async function Navbar() {
    */
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-cream/95">
-      <div className="container-page flex h-16 items-center gap-4 lg:h-20">
+      <div className="container-page flex h-14 items-center gap-3 lg:h-20 lg:gap-4">
         <MobileNav />
 
-        <Link href="/" className="rounded-sm" aria-label={t('common.brand')}>
+        <Link href="/" className="shrink-0 rounded-sm" aria-label={t('common.brand')}>
           <BrandMark />
         </Link>
 
-        <nav aria-label={t('nav.primary')} className="mx-auto hidden lg:block">
+        <nav aria-label={t('nav.primary')} className="hidden lg:block">
           <ul className="flex items-center gap-1">
             {PRIMARY_NAV.map((link) => (
               <li key={link.key}>
                 <Link
                   href={link.href}
-                  className="inline-flex h-11 items-center rounded-md px-3.5 text-[15px] font-medium text-ink-900 transition-colors hover:bg-forest-50 hover:text-forest-800"
+                  className="inline-flex h-11 items-center rounded-md px-3 text-[15px] font-medium text-ink-900 transition-colors hover:bg-forest-50 hover:text-forest-800"
                 >
                   {t(`nav.${link.key}`)}
                 </Link>
               </li>
             ))}
-            {/*
-              BioHack sits outside `PRIMARY_NAV` and is styled apart from it.
-              `PRIMARY_NAV` is the catalogue taxonomy — the footer renders the same list under
-              "Shop" — and the generator is not a category. It is the one link here that starts
-              something rather than listing something, which is also why it carries the accent.
-            */}
-            <li>
-              <Link
-                href="/biohack"
-                className="ml-1 inline-flex h-11 items-center rounded-md border border-lime-500/60 bg-lime-500/10 px-3.5 text-[15px] font-semibold text-forest-800 transition-colors hover:bg-lime-500/20"
-              >
-                {t('nav.biohack')}
-              </Link>
-            </li>
           </ul>
         </nav>
 
-        <div className="ml-auto flex items-center gap-1 lg:ml-0">
-          <LocaleSwitcher className="mr-1 hidden sm:flex" />
+        {/*
+          The field takes the slack between the nav and the actions. `max-w-md` keeps it from
+          sprawling on a wide monitor; `flex-1` is what gives it real presence at 1280.
+        */}
+        <div className="ml-auto hidden min-w-0 flex-1 justify-end lg:flex">
+          <HeaderSearch placeholders={placeholders} className="w-full max-w-md" />
+        </div>
 
-          {/* docs/05 §8 — the magnifier opens the instant overlay rather than navigating. */}
-          <SearchOverlay />
+        <div className="ml-auto flex shrink-0 items-center gap-1 lg:ml-2">
+          <LocaleSwitcher className="mr-1 hidden sm:flex" />
 
           <Link
             href="/account"
@@ -96,8 +101,19 @@ export async function Navbar() {
             It arrives after mount; see the note above.
           */}
           <CartBadge />
-
         </div>
+      </div>
+
+      {/*
+        Its own row below the logo on a phone, always visible.
+
+        Not behind a tap-to-expand icon, which is the arrangement this replaces: on a catalogue of
+        ninety products the field is how people navigate, and hiding it behind an affordance costs a
+        tap on every single search. It costs about 56 px of vertical space, which is why the hero was
+        re-measured at 393 × 852 after this landed rather than before.
+      */}
+      <div className="container-page pb-2 lg:hidden">
+        <HeaderSearch placeholders={placeholders} />
       </div>
     </header>
   );

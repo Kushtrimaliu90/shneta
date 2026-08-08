@@ -20,7 +20,7 @@ import { cn } from '@/lib/utils';
  *
  * Three changes fix it and none of them is a magic number:
  *
- *   1. **The media has its own aspect ratio** (`4/5` desktop, `2/1` mobile) with `object-cover`, so
+ *   1. **The media has its own aspect ratio** (`4/5` desktop, `7/3` mobile) with `object-cover`, so
  *      the image fills a box the layout chose instead of dictating one. A future slide with a
  *      different source file cannot reintroduce the problem. The phone gets the *wider* crop, which
  *      is the opposite of the usual instinct and is what buys the trust strip its place on screen.
@@ -81,7 +81,7 @@ export function HeroSlideView({
          * the brief names**. Desktop was never the problem; the phone is where 742 px of usable
          * height has to hold an image, four blocks of copy, two buttons and the strip.
          */
-        'min-h-[26rem] py-5 lg:min-h-[min(34rem,calc(100svh-14rem))] lg:py-10',
+        'min-h-[24rem] py-4 lg:min-h-[min(34rem,calc(100svh-14rem))] lg:py-10',
       )}
     >
       <div className="container-page grid w-full items-center gap-6 lg:grid-cols-[1.05fr_0.95fr] lg:gap-12">
@@ -175,10 +175,11 @@ export function HeroSlideView({
             */}
             {/*
               A wider crop on the phone than on the desktop, which is the opposite of the usual
-              instinct and is what makes the fold fit: 16/11 at 353 px wide is 243 px tall, 2/1 is 176.
-              The 67 px saved is most of what put the trust strip back on screen.
+              instinct and is what makes the fold fit: 16/11 at 353 px wide is 243 px tall, 7/3 is 151.
+              The 92 px saved is most of what keeps the trust strip on screen once the mobile search row
+              has taken its own 54 px out of the same budget.
             */}
-            <div className="relative mx-auto aspect-[2/1] w-full max-w-md overflow-hidden rounded-xl border border-line/60 lg:aspect-[4/5] lg:max-w-sm">
+            <div className="relative mx-auto aspect-[7/3] w-full max-w-md overflow-hidden rounded-xl border border-line/60 lg:aspect-[4/5] lg:max-w-sm">
               {/*
                 One element when both breakpoints use the same file, two only when the admin has
                 actually supplied a separate mobile crop.

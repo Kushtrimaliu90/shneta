@@ -192,15 +192,27 @@ test.describe('header overlays escape the header', () => {
     expect(trapping, 'the header traps its fixed overlays').toBe('');
   });
 
-  test('the search overlay opens over the page', async ({ page, viewport }) => {
+  /**
+   * The search field spans its own row on a phone, and needs no tap to reach.
+   *
+   * This used to assert that a *fixed overlay* opened over the page, which was the shape that made the
+   * `backdrop-filter` bug above so nasty. There is no overlay any more — the field is part of the
+   * header — so the geometry worth protecting changed with it: full width, always present, and inside
+   * the header rather than escaping it.
+   */
+  test('the search field fills its own row without a tap', async ({ page, viewport }) => {
     await page.goto('/shop');
-    await page.getByRole('button', { name: 'Hap kërkimin' }).click();
 
-    const form = page.getByRole('search');
-    await expect(form).toBeVisible();
+    await expect(page.getByRole('combobox').filter({ visible: true })).toBeVisible();
 
-    // Spans the screen rather than being boxed into the header's content width.
-    const box = await form.boundingBox();
-    expect(box?.width ?? 0).toBeGreaterThan((viewport?.width ?? 390) * 0.8);
+    /*
+     * The **form**, not the input. `getByRole('combobox')` returns the `<input>`, which is 300 px of a
+     * 353 px field once the magnifier, the gap and the horizontal padding are taken out — measuring it
+     * tests the icon's width as much as the layout. The bordered box is what "fills its own row" means
+     * to someone looking at the page.
+     */
+    const field = page.getByRole('search').filter({ visible: true });
+    const rect = await field.boundingBox();
+    expect(rect?.width ?? 0).toBeGreaterThan((viewport?.width ?? 390) * 0.8);
   });
 });

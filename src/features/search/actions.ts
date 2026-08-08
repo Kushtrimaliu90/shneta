@@ -20,9 +20,10 @@ import { MIN_QUERY_LENGTH } from '@/features/search/constants';
  * differently from the page it links to, and "I saw it in the dropdown and it wasn't on the page" is a
  * worse bug than a few milliseconds.
  *
- * **Articles are absent, deliberately.** docs/05 §8 lists them as the second result group, and
- * `/knowledge/[slug]` did not exist when this was written. Ingredients took their place and have kept it:
- * a shopper searching "magnesium" is often after the ingredient rather than one product.
+ * **Articles are here now.** This note used to say they were absent on purpose, because
+ * `/knowledge/[slug]` did not exist when the overlay was written and a result linking to a 404 is worse
+ * than a missing group. That route shipped with M8; the comment outlived the constraint, which is how a
+ * deliberate omission quietly becomes an accidental gap. Migration 75 added the group.
  */
 
 export interface QuickProduct {
@@ -33,6 +34,9 @@ export interface QuickProduct {
   imagePath: string | null;
   priceCents: number;
   inStock: boolean;
+  /** The short descriptor beside the price — 'Capsules', 'Powder'. */
+  form: string | null;
+  subtitle: LocalizedField;
 }
 
 export interface QuickTaxon {
@@ -40,8 +44,14 @@ export interface QuickTaxon {
   name: LocalizedField;
 }
 
+export interface QuickArticle {
+  slug: string;
+  title: LocalizedField;
+}
+
 export interface QuickResults {
   products: QuickProduct[];
+  articles: QuickArticle[];
   /** Completions for the word still being typed — "magne" → "magnesium". */
   terms: string[];
   brands: { slug: string; name: string }[];
@@ -53,6 +63,7 @@ export interface QuickResults {
 
 const EMPTY: QuickResults = {
   products: [],
+  articles: [],
   terms: [],
   brands: [],
   categories: [],
@@ -83,6 +94,12 @@ function readSuggest(value: unknown): QuickResults {
       imagePath: r.imagePath == null ? null : String(r.imagePath),
       priceCents: Number(r.priceCents ?? 0),
       inStock: Boolean(r.inStock),
+      form: r.form == null ? null : String(r.form),
+      subtitle: asLocalizedField(r.subtitle),
+    })),
+    articles: rows('articles').map((r) => ({
+      slug: String(r.slug ?? ''),
+      title: asLocalizedField(r.title),
     })),
     terms: Array.isArray(raw.terms) ? raw.terms.filter((t): t is string => typeof t === 'string') : [],
     brands: rows('brands').map((r) => ({ slug: String(r.slug ?? ''), name: String(r.name ?? '') })),

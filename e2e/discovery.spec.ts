@@ -38,15 +38,13 @@ test.describe('journey 10 — search, compare, wishlist (docs/09 §1)', () => {
 
   test('the overlay searches as you type and leads to the full page', async ({ page }) => {
     await page.goto('/en/shop');
-    await page.getByRole('button', { name: 'Open search' }).click();
 
-    const input = page.locator('#site-search');
+    // No button to press: the field is part of the header now, not behind a magnifier.
+    const input = page.getByRole('combobox').filter({ visible: true });
     await input.fill('vitamin');
 
     // Debounced at 250 ms, so the wait is real rather than an artefact of the test.
-    await expect(page.getByRole('heading', { name: 'Products' })).toBeVisible({
-      timeout: ACTION_TIMEOUT,
-    });
+    await expect(page.getByRole('listbox')).toBeVisible({ timeout: ACTION_TIMEOUT });
 
     await input.press('Enter');
     await expect(page).toHaveURL(/\/en\/search\?q=vitamin$/);
@@ -101,17 +99,14 @@ test.describe('journey 10 — search, compare, wishlist (docs/09 §1)', () => {
     page,
   }) => {
     await page.goto('/en/shop');
-    await page.getByRole('button', { name: 'Open search' }).click();
 
     // A half-typed word. The point of a completion is that it arrives before you finish.
-    await page.locator('#site-search').fill('magne');
+    await page.getByRole('combobox').filter({ visible: true }).fill('magne');
 
-    await expect(page.getByRole('heading', { name: 'Products' })).toBeVisible({
-      timeout: ACTION_TIMEOUT,
-    });
+    await expect(page.getByRole('listbox')).toBeVisible({ timeout: ACTION_TIMEOUT });
     // "magne" → "magnesium" comes from `search_vocabulary`, which is derived from the published
     // catalogue rather than authored, so this also proves the vocabulary was built.
-    await expect(page.getByRole('heading', { name: 'Suggestions' })).toBeVisible();
+    await expect(page.getByRole('option').first()).toBeVisible();
   });
 
   test('three products compare, and the URL reproduces the table', async ({ page, browser }) => {
