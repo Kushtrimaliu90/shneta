@@ -30,8 +30,16 @@ export const PLACEMENT_IMAGE_TYPES = ['image/webp', 'image/jpeg', 'image/png', '
  * A 5:1 slot at 1200 px wide on a 2× screen wants 2400 px of source. Accepting a 600 px file means
  * an advertiser pays for a banner that renders blurry, notices, and blames the shop — so the floor is
  * enforced at upload rather than discovered in production.
+ *
+ * Lowered 1600 → 1400 on 8 Aug 2026, because the floor was rejecting real creatives that partners
+ * actually had. It is a sharpness threshold, not a correctness one, and the arithmetic supports the
+ * change: `container-page` is 77.5 rem, so the slot is **1240 px** at its widest. 1400 px still
+ * oversamples a 1× screen and lands at 1.13× on a 2× one — visibly softer than 1600 px if you look
+ * for it, and far better than turning away the only artwork a brand has. The number that would
+ * actually be right for a retina slot is 2480 px, which no partner in this market supplies, so every
+ * value here is already a compromise; this one just admits it.
  */
-export const PLACEMENT_MIN_DESKTOP_WIDTH = 1600;
+export const PLACEMENT_MIN_DESKTOP_WIDTH = 1400;
 export const PLACEMENT_MIN_MOBILE_WIDTH = 750;
 
 export const placementUploadSchema = z.object({
