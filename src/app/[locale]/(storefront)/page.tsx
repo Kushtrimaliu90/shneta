@@ -84,7 +84,6 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
           slides={slides}
           settings={heroSettings}
           locale={locale}
-          freeShippingLabel={threshold ? t('home.hero.freeShipping', { threshold }) : undefined}
         />
       )}
 

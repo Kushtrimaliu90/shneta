@@ -41,7 +41,6 @@ export function HeroSlideView({
   active,
   isHeading,
   priority,
-  freeShippingLabel,
 }: {
   slide: HeroSlide;
   locale: Locale;
@@ -49,7 +48,6 @@ export function HeroSlideView({
   /** Only one slide's headline may be the `<h1>`. */
   isHeading: boolean;
   priority: boolean;
-  freeShippingLabel?: string;
 }) {
   const light = slide.textVariant === 'light';
 
@@ -154,16 +152,6 @@ export function HeroSlideView({
             )}
           </div>
 
-          {/*
-            The free-shipping line reads the *real* threshold from the cheapest active shipping
-            method. The old homepage hardcoded "over €30" in a message string while the cart read the
-            actual number, so changing a shipping method left the hero advertising the old one.
-          */}
-          {freeShippingLabel && (
-            <p className={cn('mt-4 text-sm', light ? 'text-cream/60' : 'text-ink-500')}>
-              {freeShippingLabel}
-            </p>
-          )}
         </div>
 
         {desktopSrc && (

@@ -35,12 +35,10 @@ export function HeroCarousel({
   slides,
   settings,
   locale,
-  freeShippingLabel,
 }: {
   slides: HeroSlide[];
   settings: HeroSettings;
   locale: Locale;
-  freeShippingLabel?: string;
 }) {
   const t = useTranslations('home.hero');
   const [active, setActive] = useState(0);
@@ -210,7 +208,6 @@ export function HeroCarousel({
         active
         isHeading
         priority
-        freeShippingLabel={freeShippingLabel}
       />
     );
   }
@@ -264,7 +261,6 @@ export function HeroCarousel({
                    under shuffle, so this does not migrate after hydration. */
                 isHeading={index === 0}
                 priority={index === 0}
-                freeShippingLabel={freeShippingLabel}
               />
             </div>
           );

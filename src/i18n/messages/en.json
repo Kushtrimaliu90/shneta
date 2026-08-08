@@ -45,8 +45,7 @@
       "goToSlide": "Go to slide {index} of {total}",
       "previous": "Previous slide",
       "next": "Next slide",
-      "chooseSlide": "Choose a slide",
-      "freeShipping": "Free shipping over {threshold}"
+      "chooseSlide": "Choose a slide"
     },
     "trust": {
       "shipping": {

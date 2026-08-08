@@ -45,8 +45,7 @@
       "goToSlide": "Shko te sllajdi {index} nga {total}",
       "previous": "Sllajdi i mëparshëm",
       "next": "Sllajdi tjetër",
-      "chooseSlide": "Zgjidh një sllajd",
-      "freeShipping": "Transport falas mbi {threshold}"
+      "chooseSlide": "Zgjidh një sllajd"
     },
     "trust": {
       "shipping": {
