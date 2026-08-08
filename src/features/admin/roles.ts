@@ -260,7 +260,6 @@ const NAV: NavSection[] = [
       },
       { href: '/admin/goals', label: 'Health goals', icon: 'goals', capability: 'content.manage' },
       { href: '/admin/search', label: 'Search', icon: 'products', capability: 'search.view' },
-      { href: '/admin/hero', label: 'Homepage hero', icon: 'content', capability: 'hero.manage' },
       {
         href: '/admin/biohack',
         label: 'BioHack',
@@ -289,6 +288,13 @@ const NAV: NavSection[] = [
   {
     heading: 'Content and trust',
     items: [
+      /*
+       * Above Content, because it is the page an operator opens most and the one a campaign starts
+       * from. It sits under "Content and trust" rather than "Catalogue": a hero slide is copy, imagery
+       * and a schedule, which is the content manager's work — the capability is `hero.manage` and it
+       * is granted to exactly that role.
+       */
+      { href: '/admin/hero', label: 'Homepage hero', icon: 'content', capability: 'hero.manage' },
       { href: '/admin/content', label: 'Content', icon: 'content', capability: 'content.manage' },
       { href: '/admin/reviews', label: 'Reviews', icon: 'reviews', capability: 'reviews.moderate' },
       {
@@ -387,7 +393,26 @@ const IMPLEMENTED = new Set([
   '/admin/merchants/proposals',
   '/admin/routing',
   '/admin/payouts',
+  /*
+   * These three shipped with their pages and were left out of this list, so the sidebar filtered
+   * them away and each was reachable only by typing the URL — `/admin/referrals` since M13, and the
+   * other two on the day they were built.
+   *
+   * The comment above says "extend it in the same commit that adds the page", which is exactly the
+   * kind of instruction that gets followed until it doesn't. `tests/unit/admin-nav.test.ts` now
+   * cross-checks this list against the filesystem, so the next omission fails a test rather than
+   * quietly hiding a page for a milestone.
+   */
+  '/admin/referrals',
+  '/admin/search',
+  '/admin/hero',
 ]);
+
+/** Exported for `tests/unit/admin-nav.test.ts`, which is the guard described above. */
+export const IMPLEMENTED_ROUTES: ReadonlySet<string> = IMPLEMENTED;
+
+/** Exported for the same test: every nav item, unfiltered. */
+export const ALL_NAV_ITEMS: readonly NavItem[] = NAV.flatMap((section) => section.items);
 
 /** The sections and items this role may see, with empty sections dropped. */
 export function visibleNav(role: string | null | undefined): NavSection[] {
