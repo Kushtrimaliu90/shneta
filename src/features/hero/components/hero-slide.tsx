@@ -20,7 +20,7 @@ import { cn } from '@/lib/utils';
  *
  * Three changes fix it and none of them is a magic number:
  *
- *   1. **The media has its own aspect ratio** ( desktop,  mobile) with `object-cover`, so
+ *   1. **The media has its own aspect ratio** (`4/5` desktop, `16/9` mobile) with `object-cover`, so
  *      the image fills a box the layout chose instead of dictating one. A future slide with a
  *      different source file cannot reintroduce the problem. The phone gets the *wider* crop, which
  *      is the opposite of the usual instinct and is what buys the trust strip its place on screen.
@@ -78,11 +78,18 @@ export function HeroSlideView({
          * and a 16/11 image the strip landed at 873–999, i.e. **below the fold on the exact device
          * the brief names**. Desktop was never the problem; the phone is where 742 px of usable
          * height has to hold an image, four blocks of copy, two buttons and the strip.
+         *
+         * `py-3` under `sm` rather than `py-4`, and the same one-step trim on every gap below, pays for
+         * the two mobile fixes above. Stacking the CTAs cost 14 px and moving the dots into flow cost
+         * 24 px; production had **17 px** of headroom at 390 × 844, so without repaying it the trust
+         * strip drops off the first viewport — the exact regression this file's own E2E assertion
+         * exists to catch, and it did catch it. Each step restores at `sm`, so tablet and desktop are
+         * untouched.
          */
-        'min-h-[24rem] py-4 lg:min-h-[min(34rem,calc(100svh-14rem))] lg:py-10',
+        'min-h-[24rem] py-3 sm:py-4 lg:min-h-[min(34rem,calc(100svh-14rem))] lg:py-10',
       )}
     >
-      <div className="container-page grid w-full items-center gap-6 lg:grid-cols-[1.05fr_0.95fr] lg:gap-12">
+      <div className="container-page grid w-full items-center gap-4 sm:gap-6 lg:grid-cols-[1.05fr_0.95fr] lg:gap-12">
         <div>
           {eyebrow && (
             <p className={cn('eyebrow', light && 'text-lime-400')}>{eyebrow}</p>
@@ -90,7 +97,7 @@ export function HeroSlideView({
 
           <Headline
             className={cn(
-              'mt-3 font-display text-[2.25rem] leading-[1.05] font-semibold tracking-tight text-balance sm:text-[2.5rem] lg:text-[3.25rem]',
+              'mt-2 sm:mt-3 font-display text-[2.25rem] leading-[1.05] font-semibold tracking-tight text-balance sm:text-[2.5rem] lg:text-[3.25rem]',
               light ? 'text-cream' : 'text-forest-900',
             )}
           >
@@ -100,7 +107,7 @@ export function HeroSlideView({
           {subhead && (
             <p
               className={cn(
-                'mt-3 max-w-xl text-base text-pretty lg:mt-4 lg:text-lg',
+                'mt-2 max-w-xl text-base text-pretty sm:mt-3 lg:mt-4 lg:text-lg',
                 light ? 'text-cream/80' : 'text-ink-600',
               )}
             >
@@ -110,14 +117,20 @@ export function HeroSlideView({
 
           {/* `data-hero-cta` is the marker `measure:vitals` reads to check the fold. */}
           {/*
-            Side by side from the smallest width, not stacked.
+            Stacked and full width on a phone; side by side, auto width, from `sm` up.
 
-            Stacking cost 116 px on a phone — two 52 px buttons plus the gap — against a usable
-            height of about 742 px. Sharing one row costs 52 px and reads no worse; the labels are
-            two or three words. `min-w-0` so a long Albanian label wraps inside its button rather
-            than forcing the row wider than the screen.
+            They shared a row on mobile first, to save height. It cost less than stacking and looked
+            worse: at 390 px each button got about 168 px, which is not enough for "Krijo Protokollin
+            BioHack" — it broke onto three lines, and the two buttons then differed in width by the
+            two pixels the flex gap could not divide evenly. A label that wraps to three lines inside
+            a 168 px box is the signal that the row is the wrong container, not that the label is too
+            long.
+
+            Full width gives it one line and makes both buttons identical by construction rather than
+            by arithmetic. It costs about 16 px against the fold budget, which the measurement said
+            was there.
           */}
-          <div data-hero-cta className="mt-6 flex flex-row flex-wrap gap-3">
+          <div data-hero-cta className="mt-4 flex flex-col gap-3 sm:mt-6 sm:flex-row sm:flex-wrap">
             {slide.ctaPrimaryHref && primaryLabel && (
               <Link
                 href={slide.ctaPrimaryHref}
@@ -130,7 +143,7 @@ export function HeroSlideView({
                 tabIndex={active ? undefined : -1}
                 className={cn(
                   buttonVariants({ size: 'lg' }),
-                  'h-auto min-w-0 flex-1 py-3 text-center leading-snug whitespace-normal sm:flex-none',
+                  'h-auto w-full min-w-0 py-3 text-center leading-snug whitespace-normal sm:w-auto sm:flex-none',
                   light && 'bg-lime-500 text-lime-950 hover:bg-lime-400',
                 )}
               >
@@ -143,7 +156,7 @@ export function HeroSlideView({
                 tabIndex={active ? undefined : -1}
                 className={cn(
                   buttonVariants({ variant: 'secondary', size: 'lg' }),
-                  'h-auto min-w-0 flex-1 py-3 text-center leading-snug whitespace-normal sm:flex-none',
+                  'h-auto w-full min-w-0 py-3 text-center leading-snug whitespace-normal sm:w-auto sm:flex-none',
                   light && 'border-cream/30 bg-transparent text-cream hover:bg-cream/10',
                 )}
               >

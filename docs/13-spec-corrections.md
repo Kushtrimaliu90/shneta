@@ -3209,3 +3209,51 @@ changes is where the library is mounted.
 3. **CSP.** `10 §5` specifies `'self'`-based CSP. Next.js needs `'unsafe-inline'` for styles, or a
    per-request nonce, which forces dynamic rendering and defeats the ISR strategy in `02 §5`.
    Ship `style-src 'self' 'unsafe-inline'` and keep `script-src` nonce-free but strict; revisit at M11.
+
+---
+
+## AA. The mobile hero dot, and what it actually was
+
+Three defects were reported from a phone. One of them was two symptoms of a single cause, one was
+already correct, and one did not reproduce. Recorded because the diagnosis matters more than the fix.
+
+1. **"The dot overlaps the buttons" and "the primary button has one squared corner" were the same
+   bug.** The dot strip was `absolute … bottom-3` at every width. On a phone the slide is short enough
+   that it landed *on* the CTA row, and because the active dot is `forest-800` — the same token as the
+   primary button's background — it did not read as a dot on a button. It read as the button having a
+   squared-off bottom-right corner. Both buttons already computed `border-radius: 12px` on all four
+   corners, measured; there was never a radius bug. Fixed by putting the dots in normal flow under
+   `sm` and keeping the overlay from `sm` up, where the two-column layout leaves dead space below the
+   copy. Not by z-index: stacking only decides which of the two sits on top, and a decorative dot has
+   no business over a tap target either way.
+2. **"No padding" was already false.** The buttons computed `12px 28px`. No change.
+3. **Unequal width was real.** Side by side at 390 px each button got ~168 px, which is not enough for
+   "Krijo Protokollin BioHack" — it wrapped to three lines and the two boxes then differed by the pixel
+   the flex gap could not divide evenly. A label that wraps to three lines is the signal that the row
+   is the wrong container. Stacked and full width under `sm`: one line each, identical by construction.
+4. **"The headline is too large" did not reproduce.** Lines cleared the right edge by 105/141/156/196 px
+   at 320/375/390/430, and the hero's left padding (20 px) already matched the trust strip's. Reported
+   rather than shrunk — there was nothing to fix.
+
+### The bill for fixing it
+
+Stacking the CTAs cost 14 px of height and moving the dots into flow cost 24 px. Production had
+**17 px** of headroom at 390 × 844, so the fix pushed the trust strip off the first viewport — the
+regression `e2e/hero.spec.ts` exists to catch, and it caught it. Repaid with a one-step trim on each
+mobile gap (`py-4→py-3`, `gap-6→gap-4`, headline/subhead `mt-3→mt-2`, CTA `mt-6→mt-4`, dots `mt-4→mt-2`),
+each restoring at `sm`. Net result is 2 px *better* than production at every mobile width.
+
+`no carousel dot sits on a hero CTA` asserts the two rectangles do not intersect, and was verified to
+fail under the old positioning before being trusted.
+
+### Still open, and pre-existing
+
+- **640–1023 px keeps the overlap.** The brief scoped the change to below `sm` and required tablet to
+  stay pixel-identical, which it is. But the absolute dots still land on the CTA row at those widths
+  for the same reason they did on a phone — the layout only goes two-column at `lg`. Moving the
+  breakpoint from `sm:` to `lg:` fixes it in one token when the tablet freeze lifts.
+- **Short viewports (≤ 375 × 812) put the trust strip below the fold.** True in production too, now by
+  2 px less. The header is 109 px and the strip is 116 px; the remedy is a shorter mobile strip, not
+  more hero trimming.
+- **19 px of horizontal overflow at 320 px** comes from the footer newsletter block (`max-w-xs`),
+  byte-identical in production and unrelated to the hero.

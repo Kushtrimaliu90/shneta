@@ -231,7 +231,18 @@ export function Carousel<T extends { id: string }>({
       <div
         role="tablist"
         aria-label={labels.choose}
-        className="absolute inset-x-0 bottom-3 z-20 flex justify-center gap-2 lg:bottom-4"
+        /*
+         * In normal flow on a phone, absolutely positioned from sm up.
+         *
+         * Overlaid, the active dot landed **on** the hero CTA row — and because it is forest-800, the
+         * same colour as the primary button, it merged into it and read as a squared-off bottom-right
+         * corner rather than as a dot. Two reported defects, one cause. z-index would only have
+         * decided which of them sat on top; the dot has no business over a tap target at all.
+         *
+         * Desktop keeps the overlay: there the slide is tall enough that the dots sit in dead space
+         * below the copy, and pulling them into flow would add height to a hero that does not need it.
+         */
+        className="relative z-20 mt-2 flex justify-center gap-2 sm:absolute sm:inset-x-0 sm:bottom-3 sm:mt-0 lg:bottom-4"
       >
         {items.map((item, index) => (
           <button
@@ -242,7 +253,9 @@ export function Carousel<T extends { id: string }>({
             aria-label={fill(labels.goTo, index)}
             onClick={() => go(index, true)}
             className={cn(
-              'h-2 rounded-full transition-all',
+              'relative',
+              // A 24 px hit area around a 8 px dot: the visual stays small, the target does not.
+              'h-2 rounded-full transition-all before:absolute before:-inset-2 before:content-[""]',
               index === active ? 'w-6 bg-forest-800' : 'w-2 bg-forest-800/30 hover:bg-forest-800/60',
             )}
           />

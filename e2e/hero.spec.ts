@@ -40,6 +40,29 @@ test.describe('hero carousel', () => {
     expect((box?.y ?? 0) + (box?.height ?? 0)).toBeLessThanOrEqual(viewport?.height ?? 900);
   });
 
+  test('no carousel dot sits on a hero CTA', async ({ page, viewport }) => {
+    test.skip((viewport?.width ?? 0) >= 640, 'the dots are deliberately overlaid from sm up');
+    await page.goto('/');
+
+    const dots = page.getByRole('tablist', { name: /slide/i });
+    // One published slide means no dots at all, which is a pass rather than a skip.
+    if ((await dots.count()) === 0) return;
+
+    const strip = await dots.boundingBox();
+    const cta = await page.locator('[data-hero-cta]').first().boundingBox();
+    if (!strip || !cta) throw new Error('hero CTA row or dot strip missing');
+
+    /*
+     * The reported defect, as geometry. The active dot is `forest-800` — the same colour as the
+     * primary button — so when it landed on the CTA row it did not read as a dot on a button, it read
+     * as the button having one squared-off corner. Two bug reports, one overlap.
+     *
+     * Asserted as rectangles rather than fixed by z-index: stacking would only have decided which of
+     * the two sat on top, and a decorative dot has no business over a tap target either way.
+     */
+    expect(strip.y).toBeGreaterThanOrEqual(cta.y + cta.height);
+  });
+
   test('the trust strip is present and does not rotate', async ({ page }) => {
     await page.goto('/');
 
