@@ -1418,7 +1418,7 @@ test.describe('hero announcement panel (docs/06)', () => {
 
     await page.locator('#ann-sq').fill('15% zbritje në porosinë e parë');
     await page.locator('#ann-en').fill('15% off your first order');
-    await page.locator('#ann-code').fill('MIRESEVINI15');
+    await page.locator('#ann-link-label').fill('BioPartner');
 
     /*
      * The mistake the placeholder invites: the field shows "/offers" and somebody types "offers".
@@ -1438,7 +1438,7 @@ test.describe('hero announcement panel (docs/06)', () => {
     // And nothing was wiped — the reason this was reported twice.
     await expect(page.locator('#ann-sq')).toHaveValue('15% zbritje në porosinë e parë');
     await expect(page.locator('#ann-en')).toHaveValue('15% off your first order');
-    await expect(page.locator('#ann-code')).toHaveValue('MIRESEVINI15');
+    await expect(page.locator('#ann-link-label')).toHaveValue('BioPartner');
   });
 
 });

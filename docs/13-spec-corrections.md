@@ -3257,3 +3257,62 @@ fail under the old positioning before being trusted.
   more hero trimming.
 - **19 px of horizontal overflow at 320 px** comes from the footer newsletter block (`max-w-xs`),
   byte-identical in production and unrelated to the hero.
+
+---
+
+## AB. The announcement bar's pill was the link all along
+
+The bar rendered `[message] [code pill] [hardcoded "Shop now"] [X]`, where the link text came from
+`home.announcement.cta`. The live row was the whole bug in one line:
+
+```
+cta_href = /merchant/apply   code = "BioPartner"   → rendered "Bli tani"
+```
+
+The author had already written the right words — into a column nothing displayed — while the only
+visible link said "Shop now" and pointed at a merchant-onboarding form. The pill and the link were
+never two things.
+
+`code` became `link_label` by `alter table banners rename column`, not add-copy-drop: a catalog-only
+operation, atomic and instant, with no window in which the value exists in one place and not the
+other. Nothing else referenced it — no view, no RPC, no policy, and `seed.sql` never set it. Verified
+by reading the row back: `link_label = "BioPartner"`.
+
+### The four shapes, and why they left the component
+
+Which of the two author fields are filled decides what renders, and deciding it inside an `async`
+server component made the matrix untestable — proving the label-only case would have meant writing to
+the `banners` row that is live on screen. `announcement-parts.ts` takes the row and the locale and
+returns the decision as a plain object, so the cases are Vitest assertions instead:
+
+| label | link | renders |
+| --- | --- | --- |
+| ✓ | ✓ | clickable pill; message stays plain |
+| ✓ | — | pill as plain text, no hover |
+| — | ✓ | the message itself is the link |
+| — | — | message only, no pill |
+
+Whitespace counts as absent in both fields. A pill is never an empty outline — an outlined box with
+nothing in it looks like a design rather than the bug it is. And the two branches are exclusive by
+construction: with both fields filled the pill takes the link, because a second anchor on the message
+would announce the same destination twice to a screen reader and cost a keyboard user a tab stop.
+
+### 44 px on a 22 px pill
+
+Growing the pill to meet the tap-target floor would make the bar taller on every device to fix a
+problem that only exists on a touchscreen. A `before:h-11` pseudo-element centred on the pill claims
+the height without occupying any — it is positioned, so it contributes nothing to layout, and the
+row's existing `min-h-11` already has the room for it. Measured 44 px at 320/375/390 against a 22 px
+pill.
+
+`focus-visible` is spelled out on the pill rather than left to the global rule in `globals.css`, whose
+outer halo layer is tuned for a cream page and disappears on forest-900. It paints a 2 px lime-400
+outline at 2 px offset, with the global box-shadow suppressed.
+
+### Not localised, and deliberately so
+
+`link_label` is plain `text`, not the `jsonb {sq, en}` that convention 3 requires of content fields.
+It was exempt as a discount code, which is locale-neutral; as prose it is not, and an Albanian visitor
+sees whatever the author typed. Kept as-is because the brief scoped the change to the display label and
+help text, and `banners.cta_label` already exists as unused jsonb on this placement — the upgrade path
+is to read that instead, copying `link_label` into both locales.

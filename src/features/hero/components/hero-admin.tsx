@@ -87,7 +87,7 @@ function useResilientForm(action: typeof saveAnnouncement) {
 const FIELD_LABELS: Record<string, string> = {
   titleSq: 'Albanian',
   titleEn: 'English',
-  code: 'Code',
+  linkLabel: 'Link label',
   href: 'Link',
   intervalSeconds: 'Interval',
 };
@@ -502,16 +502,22 @@ function AnnouncementPanel({ announcement }: { announcement: AdminAnnouncement |
             <FieldError id="ann-en-error" messages={fieldErrors.titleEn} />
           </label>
 
-          <label htmlFor="ann-code" className="flex flex-col gap-1 text-sm">
-            <span className="font-medium text-ink-900">Code</span>
+          <label htmlFor="ann-link-label" className="flex flex-col gap-1 text-sm">
+            <span className="font-medium text-ink-900">Link label</span>
             <Input
-              id="ann-code"
-              name="code"
-              defaultValue={val('code', announcement?.code ?? '')}
+              id="ann-link-label"
+              name="linkLabel"
+              defaultValue={val('linkLabel', announcement?.linkLabel ?? '')}
               maxLength={40}
-              aria-invalid={Boolean(fieldErrors.code)}
+              placeholder="Become a partner"
+              aria-invalid={Boolean(fieldErrors.linkLabel)}
+              aria-describedby="ann-link-label-help"
             />
-            <FieldError id="ann-code-error" messages={fieldErrors.code} />
+            <p id="ann-link-label-help" className="text-xs text-ink-600">
+              The text on the clickable pill. Name it after where the link goes — e.g. “Become a
+              partner”, “BioPartner”, “Shop now”. Leave the link empty to show it as plain text.
+            </p>
+            <FieldError id="ann-link-label-error" messages={fieldErrors.linkLabel} />
           </label>
           <label htmlFor="ann-href" className="flex flex-col gap-1 text-sm">
             <span className="font-medium text-ink-900">Link (optional)</span>

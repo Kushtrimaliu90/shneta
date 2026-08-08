@@ -46,6 +46,7 @@ export interface TrustItem {
 export interface AnnouncementBar {
   id: string;
   title: LocalizedField;
-  code: string | null;
+  /** Text on the clickable pill. Was `code` until migration 77 — see that file for why. */
+  linkLabel: string | null;
   href: string | null;
 }

@@ -135,3 +135,42 @@ describe('optional hero fields', () => {
     expect(announcementSchema.safeParse({ href: '//evil.example' }).success).toBe(false);
   });
 });
+
+/**
+ * The announcement pill, as the four states it can be in.
+ *
+ * The label was called `code` and sat next to a **hardcoded** "Shop now" link, so a bar pointing at
+ * `/merchant/apply` said "Shop now" — which is what the live row was doing, with a label of
+ * "BioPartner" already in the column it was never rendered as. The pill and the link are one thing now,
+ * and which of the two fields is filled decides what renders.
+ */
+describe('the announcement pill', () => {
+  const parse = (input: Record<string, unknown>) => {
+    const result = announcementSchema.safeParse(input);
+    if (!result.success) throw new Error('expected these inputs to validate');
+    return result.data;
+  };
+
+  it('keeps a label and a link together — a clickable pill', () => {
+    const v = parse({ linkLabel: 'BioPartner', href: '/merchant/apply' });
+    expect(v.linkLabel).toBe('BioPartner');
+    expect(v.href).toBe('/merchant/apply');
+  });
+
+  it('blanks a label-only bar to no link, so the pill renders as plain text', () => {
+    expect(parse({ linkLabel: 'BioPartner' }).href).toBeUndefined();
+  });
+
+  it('blanks a link-only bar to no label, so the message itself becomes the link', () => {
+    expect(parse({ href: '/merchant/apply' }).linkLabel).toBeUndefined();
+  });
+
+  it('treats a whitespace-only label as absent, so no empty pill outline can render', () => {
+    // The outlined box with nothing in it is the failure mode worth naming: it looks like a design.
+    expect(parse({ linkLabel: '   ', href: '/offers' }).linkLabel).toBeUndefined();
+  });
+
+  it('holds the label to 40 characters', () => {
+    expect(announcementSchema.safeParse({ linkLabel: 'x'.repeat(41) }).success).toBe(false);
+  });
+});

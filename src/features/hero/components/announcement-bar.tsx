@@ -1,9 +1,10 @@
 import { getTranslations } from 'next-intl/server';
 import { Link } from '@/i18n/routing';
-import { pickLocale } from '@/lib/i18n';
 import type { Locale } from '@/lib/constants';
+import { announcementParts } from '@/features/hero/announcement-parts';
 import type { AnnouncementBar as Announcement } from '@/features/hero/types';
 import { AnnouncementDismiss } from '@/features/hero/components/announcement-dismiss';
+import { cn } from '@/lib/utils';
 
 /**
  * The dismissible announcement bar above the navbar.
@@ -31,6 +32,27 @@ import { AnnouncementDismiss } from '@/features/hero/components/announcement-dis
  */
 export const ANNOUNCEMENT_COOKIE = 'biocode_announcement';
 
+/**
+ * The pill outline, shared by the anchor and the plain-text branches so the two are indistinguishable
+ * until you hover one.
+ */
+const PILL =
+  'rounded-sm border border-cream/30 px-2 py-0.5 font-ui text-xs font-semibold tracking-wide';
+
+/**
+ * A 44 px tap target on a pill that is nowhere near 44 px tall.
+ *
+ * Growing the pill to meet the floor would make the bar taller on every device to fix a problem that
+ * only exists on a touchscreen. A pseudo-element centred on the pill claims the height without
+ * occupying any: `before` is positioned, so it contributes nothing to layout, and the parent's
+ * `min-h-11` (44 px) already guarantees the row has the room for it to expand into.
+ *
+ * `focus-visible` is spelled out rather than left to the global rule in `globals.css`, which paints a
+ * three-layer halo tuned for a cream page. On forest-900 the outer layer disappears.
+ */
+const TAP =
+  'relative rounded-sm before:absolute before:inset-x-0 before:top-1/2 before:h-11 before:-translate-y-1/2 before:content-[""] focus-visible:shadow-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime-400';
+
 export async function AnnouncementBarView({
   announcement,
   locale,
@@ -40,9 +62,11 @@ export async function AnnouncementBarView({
 }) {
   if (!announcement) return null;
 
+  const parts = announcementParts(announcement, locale);
+  if (!parts) return null;
+
+  const { message, label, href, messageIsLink, pillIsLink } = parts;
   const t = await getTranslations('home.announcement');
-  const message = pickLocale(announcement.title, locale);
-  if (!message) return null;
 
   const elementId = `announcement-${announcement.id}`;
 
@@ -54,22 +78,32 @@ export async function AnnouncementBarView({
         data-announcement-id={announcement.id}
       >
         <div className="container-page flex min-h-11 flex-wrap items-center justify-center gap-x-3 gap-y-1 py-2 text-center text-sm">
-          <span>{message}</span>
-
-          {announcement.code && (
-            <span className="rounded-sm border border-cream/30 px-2 py-0.5 font-ui text-xs font-semibold tracking-wide">
-              {announcement.code}
-            </span>
-          )}
-
-          {announcement.href && (
-            <Link
-              href={announcement.href}
-              className="rounded-sm underline underline-offset-4 hover:text-white"
-            >
-              {t('cta')}
+          {/*
+            The message is the link only when there is no label to carry it. A bar with both would
+            otherwise offer two anchors to the same URL, which a screen reader reads out twice.
+          */}
+          {messageIsLink && href ? (
+            <Link href={href} className={cn(TAP, 'underline underline-offset-4 hover:text-white')}>
+              {message}
             </Link>
+          ) : (
+            <span className="min-w-0">{message}</span>
           )}
+
+          {/*
+            The pill. Same outline either way — what changes is whether it is an anchor.
+
+            An empty label renders nothing at all: an outlined box with no text inside is a rendering
+            bug that looks like a design, and there is no state in which it helps a shopper.
+          */}
+          {label &&
+            (pillIsLink && href ? (
+              <Link href={href} className={cn(PILL, TAP, 'hover:border-cream/60 hover:bg-cream/10')}>
+                {label}
+              </Link>
+            ) : (
+              <span className={PILL}>{label}</span>
+            ))}
 
           <AnnouncementDismiss
             announcementId={announcement.id}

@@ -171,7 +171,7 @@ const fetchAnnouncement = cache(async (): Promise<AnnouncementBar | null> => {
 
   const { data, error } = await supabase
     .from('banners')
-    .select('id, title, cta_href, code, starts_at, ends_at')
+    .select('id, title, cta_href, link_label, starts_at, ends_at')
     .eq('placement', 'announcement')
     .eq('is_active', true)
     .or(`starts_at.is.null,starts_at.lte.${now}`)
@@ -188,7 +188,7 @@ const fetchAnnouncement = cache(async (): Promise<AnnouncementBar | null> => {
   return {
     id: data.id,
     title: asLocalizedField(data.title),
-    code: data.code,
+    linkLabel: data.link_label,
     href: data.cta_href,
   };
 });

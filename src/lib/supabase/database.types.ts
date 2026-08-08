@@ -483,7 +483,6 @@ export type Database = {
       }
       banners: {
         Row: {
-          code: string | null
           created_at: string
           cta_href: string | null
           cta_label: Json
@@ -491,6 +490,7 @@ export type Database = {
           id: string
           image_path: string | null
           is_active: boolean
+          link_label: string | null
           placement: string
           position: number
           starts_at: string | null
@@ -499,7 +499,6 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          code?: string | null
           created_at?: string
           cta_href?: string | null
           cta_label?: Json
@@ -507,6 +506,7 @@ export type Database = {
           id?: string
           image_path?: string | null
           is_active?: boolean
+          link_label?: string | null
           placement: string
           position?: number
           starts_at?: string | null
@@ -515,7 +515,6 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          code?: string | null
           created_at?: string
           cta_href?: string | null
           cta_label?: Json
@@ -523,6 +522,7 @@ export type Database = {
           id?: string
           image_path?: string | null
           is_active?: boolean
+          link_label?: string | null
           placement?: string
           position?: number
           starts_at?: string | null

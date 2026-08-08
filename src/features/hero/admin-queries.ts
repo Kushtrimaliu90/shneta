@@ -40,7 +40,7 @@ export interface AdminHeroSlide {
 export interface AdminAnnouncement {
   id: string;
   title: LocalizedField;
-  code: string | null;
+  linkLabel: string | null;
   href: string | null;
   isActive: boolean;
 }
@@ -138,7 +138,7 @@ export async function getAdminAnnouncement(): Promise<AdminAnnouncement | null> 
   const supabase = await createClient();
   const { data } = await supabase
     .from('banners')
-    .select('id, title, code, cta_href, is_active')
+    .select('id, title, link_label, cta_href, is_active')
     .eq('placement', 'announcement')
     .order('position', { ascending: true })
     .limit(1)
@@ -148,7 +148,7 @@ export async function getAdminAnnouncement(): Promise<AdminAnnouncement | null> 
   return {
     id: data.id,
     title: asLocalizedField(data.title),
-    code: data.code,
+    linkLabel: data.link_label,
     href: data.cta_href,
     isActive: data.is_active,
   };

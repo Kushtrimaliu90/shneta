@@ -467,7 +467,7 @@ export async function saveAnnouncement(_previous: HeroState, formData: FormData)
     id: formData.get('id') || undefined,
     titleSq: formData.get('titleSq') ?? '',
     titleEn: formData.get('titleEn') ?? '',
-    code: formData.get('code') ?? '',
+    linkLabel: formData.get('linkLabel') ?? '',
     href: formData.get('href') ?? '',
     isActive: formData.get('isActive') === 'on',
   });
@@ -479,7 +479,7 @@ export async function saveAnnouncement(_previous: HeroState, formData: FormData)
   const row = {
     placement: 'announcement',
     title: localized(v.titleSq, v.titleEn),
-    code: v.code?.trim() || null,
+    link_label: v.linkLabel?.trim() || null,
     cta_href: v.href?.trim() || null,
     is_active: v.isActive,
   };
@@ -497,7 +497,7 @@ export async function saveAnnouncement(_previous: HeroState, formData: FormData)
 
     await audit('hero.announcement.update', 'banner', v.id ?? null, null, {
       active: v.isActive,
-      code: v.code || null,
+      linkLabel: v.linkLabel || null,
     });
     purge();
     return ok({ message: 'Announcement saved.' });

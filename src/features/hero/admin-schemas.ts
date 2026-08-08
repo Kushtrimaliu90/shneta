@@ -177,7 +177,7 @@ export const announcementSchema = z.object({
   id: z.uuid().optional(),
   titleSq: localized(160),
   titleEn: localized(160),
-  code: localized(40),
+  linkLabel: localized(40),
   href: sitePath,
   isActive: z.coerce.boolean().default(false),
 });
