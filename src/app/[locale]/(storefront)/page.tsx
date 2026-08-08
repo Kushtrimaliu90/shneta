@@ -93,7 +93,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
 
       {/* docs/05 §1.5 — bestsellers */}
       {products.length > 0 && (
-        <section aria-labelledby="bestsellers-heading" className="bg-forest-50/50 section-y">
+        <section aria-labelledby="bestsellers-heading" className="bg-forest-50/50 py-12 lg:py-16">
           <div className="container-page">
             <h2
               id="bestsellers-heading"
@@ -126,7 +126,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
 
       {/* docs/05 §1.6 — category showcase */}
       {categories.length > 0 && (
-        <section aria-labelledby="categories-heading" className="section-y">
+        <section aria-labelledby="categories-heading" className="py-12 lg:py-16">
           <div className="container-page">
             <h2
               id="categories-heading"

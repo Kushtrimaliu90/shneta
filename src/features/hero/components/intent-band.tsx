@@ -30,7 +30,7 @@ export async function IntentBand() {
   const t = await getTranslations('home.intent');
 
   return (
-    <section aria-labelledby="intent-heading" className="section-y">
+    <section aria-labelledby="intent-heading" className="pt-9 pb-11 lg:pt-10 lg:pb-12">
       <div className="container-page">
         <h2 id="intent-heading" className="sr-only">
           {t('heading')}
