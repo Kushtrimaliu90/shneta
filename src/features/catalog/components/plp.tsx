@@ -9,6 +9,7 @@ import { ProductGrid } from '@/features/catalog/components/product-grid';
 import { buildQuery, hasActiveFilters, SORT_OPTIONS } from '@/features/catalog/filters';
 import { getCategoryTree, listBrands, listGoals, listProducts } from '@/features/catalog/queries';
 import type { ProductFilters } from '@/features/catalog/types';
+import { PlacementSlot } from '@/features/placements/components/placement-slot';
 import { cn } from '@/lib/utils';
 
 /**
@@ -21,11 +22,16 @@ export async function ProductListingPage({
   basePath,
   title,
   intro,
+  placementCategorySlug,
+  placementBrandSlug,
 }: {
   filters: ProductFilters;
   basePath: string;
   title: string;
   intro?: LocalizedField;
+  /** Targeting for the sponsored slot. A category page passes its slug; /shop passes neither. */
+  placementCategorySlug?: string | null;
+  placementBrandSlug?: string | null;
 }) {
   const [result, categories, brands, goals] = await Promise.all([
     listProducts(filters),
@@ -67,6 +73,16 @@ export async function ProductListingPage({
         </p>
         {introText && <p className="mt-4 max-w-2xl text-ink-600">{introText}</p>}
       </header>
+
+      {/*
+        The sponsored slot, between the title and the filter+grid area.
+
+        Here rather than above the title because the page has to say what it is before it says who
+        paid to be on it, and below the grid it would be worth nothing to an advertiser. It renders
+        nothing at all when no placement qualifies — see `PlacementSlot` for the fallback order —
+        so the common case costs no height.
+      */}
+      <PlacementSlot categorySlug={placementCategorySlug} brandSlug={placementBrandSlug} />
 
       <div className="flex flex-col gap-8 lg:flex-row lg:gap-12">
         {/*

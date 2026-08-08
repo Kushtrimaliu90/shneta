@@ -39,6 +39,145 @@ export type Database = {
   }
   public: {
     Tables: {
+      ad_placement_stats: {
+        Row: {
+          clicks: number
+          day: string
+          impressions: number
+          placement_id: string
+        }
+        Insert: {
+          clicks?: number
+          day: string
+          impressions?: number
+          placement_id: string
+        }
+        Update: {
+          clicks?: number
+          day?: string
+          impressions?: number
+          placement_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ad_placement_stats_placement_id_fkey"
+            columns: ["placement_id"]
+            isOneToOne: false
+            referencedRelation: "ad_placement_report"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ad_placement_stats_placement_id_fkey"
+            columns: ["placement_id"]
+            isOneToOne: false
+            referencedRelation: "ad_placements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ad_placements: {
+        Row: {
+          advertiser_name: string
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          cta_label: Json
+          destination_url: string
+          ends_at: string | null
+          headline: Json
+          id: string
+          image_desktop_alt: Json
+          image_desktop_path: string | null
+          image_mobile_alt: Json
+          image_mobile_path: string | null
+          internal_note: string | null
+          is_paid: boolean
+          merchant_id: string | null
+          open_in_new_tab: boolean
+          starts_at: string | null
+          status: Database["public"]["Enums"]["ad_placement_status"]
+          subhead: Json
+          target_brand_slugs: string[]
+          target_category_slugs: string[]
+          updated_at: string
+          weight: number
+        }
+        Insert: {
+          advertiser_name: string
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          cta_label?: Json
+          destination_url: string
+          ends_at?: string | null
+          headline?: Json
+          id?: string
+          image_desktop_alt?: Json
+          image_desktop_path?: string | null
+          image_mobile_alt?: Json
+          image_mobile_path?: string | null
+          internal_note?: string | null
+          is_paid?: boolean
+          merchant_id?: string | null
+          open_in_new_tab?: boolean
+          starts_at?: string | null
+          status?: Database["public"]["Enums"]["ad_placement_status"]
+          subhead?: Json
+          target_brand_slugs?: string[]
+          target_category_slugs?: string[]
+          updated_at?: string
+          weight?: number
+        }
+        Update: {
+          advertiser_name?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          cta_label?: Json
+          destination_url?: string
+          ends_at?: string | null
+          headline?: Json
+          id?: string
+          image_desktop_alt?: Json
+          image_desktop_path?: string | null
+          image_mobile_alt?: Json
+          image_mobile_path?: string | null
+          internal_note?: string | null
+          is_paid?: boolean
+          merchant_id?: string | null
+          open_in_new_tab?: boolean
+          starts_at?: string | null
+          status?: Database["public"]["Enums"]["ad_placement_status"]
+          subhead?: Json
+          target_brand_slugs?: string[]
+          target_category_slugs?: string[]
+          updated_at?: string
+          weight?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ad_placements_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ad_placements_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "v_admin_customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ad_placements_merchant_id_fkey"
+            columns: ["merchant_id"]
+            isOneToOne: false
+            referencedRelation: "merchants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       addresses: {
         Row: {
           city: string
@@ -4395,6 +4534,23 @@ export type Database = {
       }
     }
     Views: {
+      ad_placement_report: {
+        Row: {
+          advertiser_name: string | null
+          clicks: number | null
+          ctr_pct: number | null
+          ends_at: string | null
+          first_day: string | null
+          id: string | null
+          impressions: number | null
+          is_paid: boolean | null
+          last_day: string | null
+          starts_at: string | null
+          status: Database["public"]["Enums"]["ad_placement_status"] | null
+          weight: number | null
+        }
+        Relationships: []
+      }
       proposals_awaiting_promotion: {
         Row: {
           batch_id: string | null
@@ -4903,6 +5059,22 @@ export type Database = {
         Args: { p_code: string; p_referee_id: string; p_source: string }
         Returns: string
       }
+      list_live_placements: {
+        Args: { p_brand_slug?: string; p_category_slug?: string }
+        Returns: {
+          cta_label: Json
+          destination_url: string
+          headline: Json
+          id: string
+          image_desktop_alt: Json
+          image_desktop_path: string
+          image_mobile_alt: Json
+          image_mobile_path: string
+          is_paid: boolean
+          open_in_new_tab: boolean
+          subhead: Json
+        }[]
+      }
       list_public_coupons: {
         Args: never
         Returns: {
@@ -5027,6 +5199,11 @@ export type Database = {
       recompute_merchant_rating: {
         Args: { p_merchant_id: string }
         Returns: number
+      }
+      record_ad_click: { Args: { p_placement_id: string }; Returns: undefined }
+      record_ad_impression: {
+        Args: { p_placement_id: string }
+        Returns: undefined
       }
       record_subscription_failure: {
         Args: { p_subscription_id: string }
@@ -5184,6 +5361,7 @@ export type Database = {
     }
     Enums: {
       activity_band: "ulur" | "i_lehte" | "i_rregullt" | "intensiv"
+      ad_placement_status: "draft" | "pending_review" | "approved"
       age_band: "nen_18" | "18_29" | "30_39" | "40_49" | "50_64" | "65_plus"
       article_status: "draft" | "in_review" | "published" | "archived"
       article_type: "article" | "guide" | "recipe" | "research" | "news"
@@ -5412,6 +5590,7 @@ export const Constants = {
   public: {
     Enums: {
       activity_band: ["ulur", "i_lehte", "i_rregullt", "intensiv"],
+      ad_placement_status: ["draft", "pending_review", "approved"],
       age_band: ["nen_18", "18_29", "30_39", "40_49", "50_64", "65_plus"],
       article_status: ["draft", "in_review", "published", "archived"],
       article_type: ["article", "guide", "recipe", "research", "news"],

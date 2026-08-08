@@ -105,7 +105,13 @@ export type Capability =
   | 'search.view'
   | 'search.manage'
   // The homepage hero: slides, carousel settings, trust strip, announcement bar. Content work.
-  | 'hero.manage';
+  | 'hero.manage'
+  /*
+   * Sponsored placements. Content work rather than marketplace work: the judgement an advertiser's
+   * creative needs is the health-claim review in docs/08 §7, which is the content manager's job — and
+   * approving a paid banner is not something a merchant should be able to do for themselves.
+   */
+  | 'placements.manage';
 
 /**
  * Who holds each capability. `admin` is omitted from every list and granted unconditionally
@@ -163,6 +169,7 @@ const CAPABILITIES: Record<Capability, readonly UserRole[]> = {
   'search.view': ['support', 'product_manager', 'content_manager'],
   'search.manage': ['product_manager', 'content_manager'],
   'hero.manage': ['content_manager'],
+  'placements.manage': ['content_manager'],
 };
 
 /**
@@ -295,6 +302,12 @@ const NAV: NavSection[] = [
        * is granted to exactly that role.
        */
       { href: '/admin/hero', label: 'Homepage hero', icon: 'content', capability: 'hero.manage' },
+      {
+        href: '/admin/placements',
+        label: 'Sponsored slots',
+        icon: 'coupons',
+        capability: 'placements.manage',
+      },
       { href: '/admin/content', label: 'Content', icon: 'content', capability: 'content.manage' },
       { href: '/admin/reviews', label: 'Reviews', icon: 'reviews', capability: 'reviews.moderate' },
       {
@@ -406,6 +419,7 @@ const IMPLEMENTED = new Set([
   '/admin/referrals',
   '/admin/search',
   '/admin/hero',
+  '/admin/placements',
 ]);
 
 /** Exported for `tests/unit/admin-nav.test.ts`, which is the guard described above. */

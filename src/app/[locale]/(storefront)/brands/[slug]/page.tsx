@@ -74,6 +74,8 @@ export default async function BrandPage({ params, searchParams }: Props) {
         basePath={`/brands/${slug}`}
         title={brand.name}
         intro={brand.description}
+        /* Targeting: a placement scoped to this brand's page qualifies here and nowhere else. */
+        placementBrandSlug={slug}
       />
     </>
   );

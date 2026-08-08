@@ -1736,5 +1736,14 @@
         "tooManyOpen": "Ke tri fleta në pritje të përgjigjes. Prit një nga ato para se të dërgosh tjetër."
       }
     }
+  },
+  "placements": {
+    "sponsored": "I sponsorizuar",
+    "regionLabel": "Promocione",
+    "slideLabel": "Promocioni {index} nga {total}",
+    "goToSlide": "Shko te promocioni {index} nga {total}",
+    "previous": "Promocioni i mëparshëm",
+    "next": "Promocioni tjetër",
+    "choose": "Zgjidh një promocion"
   }
 }

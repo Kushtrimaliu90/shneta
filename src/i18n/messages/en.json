@@ -1736,5 +1736,14 @@
         "tooManyOpen": "You have three sheets waiting for an answer. Wait for one of them before sending another."
       }
     }
+  },
+  "placements": {
+    "sponsored": "Sponsored",
+    "regionLabel": "Promotions",
+    "slideLabel": "Promotion {index} of {total}",
+    "goToSlide": "Go to promotion {index} of {total}",
+    "previous": "Previous promotion",
+    "next": "Next promotion",
+    "choose": "Choose a promotion"
   }
 }

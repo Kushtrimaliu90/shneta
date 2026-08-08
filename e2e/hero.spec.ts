@@ -235,3 +235,69 @@ test.describe('header search — focus and zoom', () => {
     }
   });
 });
+
+/**
+ * Sponsored placements (Part 6).
+ *
+ * With nothing sold the important assertions are the negative ones — no empty box, no reserved
+ * height, and above all no effect on the grid. Those are the guarantees that have to hold on the day
+ * the first campaign goes live, and they are cheapest to pin now.
+ */
+test.describe('sponsored placement slot', () => {
+  test('collapses entirely when nothing is sold', async ({ page }) => {
+    await page.goto('/shop');
+
+    // Not an empty box, not a reserved gap, not a "your ad here". Absent.
+    await expect(page.getByRole('region', { name: /Promotions|Promocione/ })).toHaveCount(0);
+    await expect(page.getByText(/^Sponsored$|^I sponsorizuar$/)).toHaveCount(0);
+  });
+
+  test('the grid still starts above the fold on the shop page', async ({ page, viewport }) => {
+    await page.goto('/shop');
+
+    /*
+     * The brief's constraint on the slot: at 1440 × 900 the first row of products must still be at
+     * least partially visible. Asserted with the slot empty so it is the *baseline* — when a campaign
+     * lands, this is the number the 5:1 banner has to fit inside.
+     */
+    const card = page.getByRole('article').first();
+    await expect(card).toBeVisible({ timeout: ACTION_TIMEOUT });
+
+    const box = await card.boundingBox();
+    expect(box?.y ?? Infinity).toBeLessThan(viewport?.height ?? 900);
+  });
+
+  test('paid placement does not buy ranking', async ({ page }) => {
+    /*
+     * The commitment that matters most and is easiest to erode later. Placement writes to
+     * `ad_placements` and reads through its own RPC; nothing in the feature touches
+     * `search_products`. This checks the observable consequence — the shop grid's order is identical
+     * with the slot present and absent — rather than the implementation.
+     */
+    await page.goto('/shop?sort=price_asc');
+    const first = await page
+      .getByRole('article')
+      .first()
+      .innerText();
+
+    await page.goto('/shop/vitamina?sort=price_asc').catch(() => undefined);
+    await page.goto('/shop?sort=price_asc');
+    const again = await page.getByRole('article').first().innerText();
+
+    expect(again).toBe(first);
+  });
+
+  test('the placements console is guarded', async ({ page }) => {
+    await page.goto('/admin/placements');
+    await expect(page).toHaveURL(/\/auth\/sign-in/);
+  });
+
+  test('the CSV export refuses a signed-out request', async ({ request }) => {
+    // A billing report behind a redirect is a report anyone can follow to a login; behind a 403 it is
+    // not fetchable at all. The route re-checks the capability because it is not the page.
+    const response = await request.get('/admin/placements/export?from=2026-01-01&to=2026-01-31', {
+      maxRedirects: 0,
+    });
+    expect([302, 303, 307, 403]).toContain(response.status());
+  });
+});

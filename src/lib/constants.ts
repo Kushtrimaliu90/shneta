@@ -75,6 +75,8 @@ export const CACHE_TAGS = {
   search: 'search',
   /** Hero slides, carousel settings, trust strip and the announcement bar. */
   hero: 'hero',
+  /** Sponsored placements on the listing pages. */
+  placements: 'placements',
 } as const;
 
 /**
