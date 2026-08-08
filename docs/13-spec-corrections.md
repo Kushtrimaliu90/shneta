@@ -3383,3 +3383,51 @@ Some of the 8 Aug spend was this session's own automation — Playwright loads w
 deploy-polling every fifteen seconds, a twenty-route curl sweep. A burst rather than a baseline, but
 it landed on the day the limit was reached. Verification against the live site is not free, and on a
 metered origin it belongs against a local server unless the live one is the thing being tested.
+
+---
+
+## AD. A category in two kinds of URL
+
+Reported as "the × on the active-filter chip does not clear the filter". Three hrefs from one page
+are the whole diagnosis:
+
+```
+on /shop/vitaminat?brand=now-foods
+  "Vitaminat"   -> /shop/vitaminat?brand=now-foods    ← identical to the current URL
+  "NOW Foods"   -> /shop/vitaminat?category=vitaminat ← the category, now in the query too
+  "Hiq filtrat" -> /shop/vitaminat                    ← clears the brand, keeps the category
+```
+
+`/shop/[category]` scopes the listing by **path** and expresses that by injecting the slug into the
+filters object — `{ ...parseFilters(searchParams), category: [slug] }` — with `basePath` set to
+`/shop/<slug>`. `buildQuery` serialises filters into a **query string** and returns only the `?…`
+part; it cannot rewrite a path. One mismatch, three symptoms: removing the category edited a value
+that was never in the query and produced the URL it was already on; removing anything else
+re-serialised the injected category into the query; and clear-all pointed at the scoped path.
+
+Fixed at the mismatch rather than at the chip. `unscopeCategory(filters, scopedCategory)` yields the
+filters that may legitimately become query state, every link on a scoped page is built from those,
+and the scoped category is removed by navigating to `SHOP_PATH` — the one move that reaches the path.
+`filters` still drives the database query, because the category is a real filter.
+
+### What the report got wrong, and why it was reasonable
+
+It said the failure hit every filter type on desktop and mobile. It does not: on `/shop?brand=…` and
+`/shop?category=…` removal always worked. Only the category page was broken.
+
+Worth recording because **my own first reproduction agreed with the report** — it showed the sidebar
+links and the brand chip failing too. That was a measurement artifact: a soft navigation fires no
+load event, so `waitForLoadState('networkidle')` returned before the transition finished and every
+assertion sampled the old DOM. Re-running with an explicit wait for `location.href` to change left
+exactly one failure standing. A reproduction that confirms the reported scope too neatly deserves a
+second look before it becomes the diagnosis.
+
+`tests/unit/filter-scoping.test.ts` pins the hrefs as strings, because every one of them looked
+plausible alone — the bug was only visible when the chip's href was placed next to the current URL.
+
+### Found while verifying
+
+`catalog.spec.ts` still asserted a "Shop by goal" heading on the home page. The goals grid became the
+intent band, whose heading is `sr-only` "Where to start", so the test had been failing since that
+change and nobody had run it. It now asserts the tile link a visitor actually clicks, which is a
+stronger thing to pin than a hidden string.

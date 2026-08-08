@@ -2,7 +2,13 @@ import { getLocale, getTranslations } from 'next-intl/server';
 import { Link } from '@/i18n/routing';
 import { pickLocale, type LocalizedField } from '@/lib/i18n';
 import type { Locale } from '@/lib/constants';
-import { buildQuery, DIETARY_TAGS, hasActiveFilters } from '@/features/catalog/filters';
+import {
+  buildQuery,
+  unscopeCategory,
+  DIETARY_TAGS,
+  hasActiveFilters,
+  SHOP_PATH,
+} from '@/features/catalog/filters';
 import type { CategoryNode, ProductFilters } from '@/features/catalog/types';
 import { cn } from '@/lib/utils';
 
@@ -21,12 +27,15 @@ import { cn } from '@/lib/utils';
 export async function FilterPanel({
   filters,
   basePath,
+  scopedCategory,
   categories,
   brands,
   goals,
 }: {
   filters: ProductFilters;
   basePath: string;
+  /** The category held in the URL path on `/shop/[category]`. See `unscopeCategory`. */
+  scopedCategory?: string;
   categories: CategoryNode[];
   brands: { slug: string; name: string }[];
   goals: { slug: string; name: LocalizedField }[];
@@ -53,8 +62,14 @@ export async function FilterPanel({
    * disallows the same URLs for crawlers that ignore it, and the metadata marks filtered views
    * `noindex` — three layers, because only the first one is free.
    */
+  /*
+   * Built from the filters minus the path-scoped category, so a brand or tag link on
+   * `/shop/vitaminat` no longer emits `?category=vitaminat` beside the path segment that already
+   * says it. See `unscopeCategory`.
+   */
+  const queryFilters = unscopeCategory(filters, scopedCategory);
   const href = (change: Parameters<typeof buildQuery>[1]) =>
-    `${basePath}${buildQuery(filters, change)}`;
+    `${basePath}${buildQuery(queryFilters, change)}`;
 
   /*
    * How many options a long group shows before the rest go behind a disclosure.
@@ -94,9 +109,10 @@ export async function FilterPanel({
       aria-label={t('shop.filters')}
       className="flex w-full flex-col gap-5 lg:w-60 lg:shrink-0"
     >
-      {hasActiveFilters(filters) && (
+      {(hasActiveFilters(filters) || scopedCategory) && (
         <Link
-          href={basePath}
+          /* Clearing on a scoped page must leave the category behind, and it lives in the path. */
+          href={scopedCategory ? SHOP_PATH : basePath}
           className="rounded-sm text-sm text-forest-700 underline underline-offset-4"
         >
           {t('shop.clearFilters')}

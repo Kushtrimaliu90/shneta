@@ -56,6 +56,38 @@ export function parseFilters(params: RawSearchParams): ProductFilters {
   };
 }
 
+/** The unscoped listing — where a category page escapes to when its category is removed. */
+export const SHOP_PATH = '/shop';
+
+/**
+ * The filters minus the category that lives in the URL **path**.
+ *
+ * `/shop/[category]` renders the listing scoped to one category, and it expresses that by injecting
+ * the slug into the filters object: `{ ...parseFilters(searchParams), category: [slug] }`. That is
+ * convenient for querying and wrong for linking, because `buildQuery` serialises filters into a query
+ * string and cannot touch the path. Two bugs came out of the same mismatch:
+ *
+ *   · **Removing the category did nothing.** The chip deleted a value that was never in the query, so
+ *     the href came out identical to the current URL — `/shop/vitaminat` → `/shop/vitaminat`. Clicking
+ *     re-rendered the same page, which re-derived the category from the path. Reported as "the × does
+ *     not clear the filter", and it was not a click handler: the chip is a plain `<Link>` and works
+ *     everywhere the category is genuinely query state.
+ *   · **Removing anything else duplicated it.** `buildQuery` re-serialised the injected category into
+ *     the query, so the brand chip pointed at `/shop/vitaminat?category=vitaminat` — the same filter in
+ *     the path and the query at once. Sort and pagination links had it too.
+ *
+ * So every link built on a scoped page uses these filters, and the scoped category is removed by
+ * navigating to `SHOP_PATH` instead — the one change that reaches the path.
+ */
+export function unscopeCategory(
+  filters: ProductFilters,
+  scopedCategory: string | undefined,
+): ProductFilters {
+  if (!scopedCategory) return filters;
+  const rest = (filters.category ?? []).filter((slug) => slug !== scopedCategory);
+  return { ...filters, category: rest.length ? rest : undefined };
+}
+
 /**
  * Builds a query string with one value changed. Used by every filter chip, sort control and
  * pagination link, so toggling a filter always resets to page 1 — landing on page 4 of a

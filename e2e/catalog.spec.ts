@@ -302,8 +302,18 @@ test.describe('home', () => {
     await page.goto('/en');
 
     await expect(page.getByRole('heading', { name: 'Bestsellers' })).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Shop by goal' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Categories' })).toBeVisible();
+
+    /*
+     * "Shop by goal" was a section heading until the goals grid became the intent band, which
+     * carries a visually-hidden "Where to start" heading and links out to `/goals` from a tile. The
+     * test kept asserting the old heading and had been failing since — caught while verifying an
+     * unrelated fix, which is the only reason it surfaced at all.
+     *
+     * Asserted as the link a visitor actually uses rather than the heading, because the heading is
+     * `sr-only` now and a hidden string is a weaker thing to pin than a working route.
+     */
+    await expect(page.getByRole('link', { name: /Shop by health goal/ })).toBeVisible();
 
     // Eight product cards, each linking to a PDP.
     const cards = page.locator('#main article');

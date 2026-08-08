@@ -79,6 +79,11 @@ export default async function CategoryPage({ params, searchParams }: Props) {
       <ProductListingPage
         filters={filters}
         basePath={`/shop/${slug}`}
+        /*
+         * The category is in the path, not the query. Every link on the page needs to know that:
+         * without it, removing this chip rebuilt the URL it was already on. See `unscopeCategory`.
+         */
+        scopedCategory={slug}
         title={name}
         intro={category.description}
         /* Targeting: a placement scoped to this category qualifies here and nowhere else. */

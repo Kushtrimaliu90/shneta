@@ -6,7 +6,13 @@ import { ActiveFilters } from '@/features/catalog/components/active-filters';
 import { FilterPanel } from '@/features/catalog/components/filter-panel';
 import { FilterShell } from '@/features/catalog/components/filter-shell';
 import { ProductGrid } from '@/features/catalog/components/product-grid';
-import { buildQuery, hasActiveFilters, SORT_OPTIONS } from '@/features/catalog/filters';
+import {
+  buildQuery,
+  hasActiveFilters,
+  unscopeCategory,
+  SHOP_PATH,
+  SORT_OPTIONS,
+} from '@/features/catalog/filters';
 import { getCategoryTree, listBrands, listGoals, listProducts } from '@/features/catalog/queries';
 import type { ProductFilters } from '@/features/catalog/types';
 import { PlacementSlot } from '@/features/placements/components/placement-slot';
@@ -24,11 +30,19 @@ export async function ProductListingPage({
   intro,
   placementCategorySlug,
   placementBrandSlug,
+  scopedCategory,
 }: {
   filters: ProductFilters;
   basePath: string;
   title: string;
   intro?: LocalizedField;
+  /**
+   * The category carried by the URL **path** rather than the query, on `/shop/[category]`.
+   *
+   * Every link on the page is built from `queryFilters` below, which excludes it — see
+   * `unscopeCategory` for the two bugs that came of serialising a path segment into a query string.
+   */
+  scopedCategory?: string;
   /** Targeting for the sponsored slot. A category page passes its slug; /shop passes neither. */
   placementCategorySlug?: string | null;
   placementBrandSlug?: string | null;
@@ -44,9 +58,17 @@ export async function ProductListingPage({
   const locale = (await getLocale()) as Locale;
   const introText = intro ? pickLocale(intro, locale) : '';
 
+  /*
+   * `filters` still drives the *query* to the database — the scoped category is a real filter and the
+   * listing must stay narrowed by it. `queryFilters` drives every *link*, because the path already
+   * carries it and repeating it in the query string is what produced
+   * `/shop/vitaminat?category=vitaminat`.
+   */
+  const queryFilters = unscopeCategory(filters, scopedCategory);
+
   const sortHref = (sort: (typeof SORT_OPTIONS)[number]) =>
-    `${basePath}${buildQuery(filters, { sort })}`;
-  const pageHref = (page: number) => `${basePath}${buildQuery(filters, { page })}`;
+    `${basePath}${buildQuery(queryFilters, { sort })}`;
+  const pageHref = (page: number) => `${basePath}${buildQuery(queryFilters, { page })}`;
   const activeSort = filters.sort ?? 'relevance';
 
   /*
@@ -93,6 +115,7 @@ export async function ProductListingPage({
           <FilterPanel
             filters={filters}
             basePath={basePath}
+            scopedCategory={scopedCategory}
             categories={categories}
             brands={brands}
             goals={goals}
@@ -140,6 +163,7 @@ export async function ProductListingPage({
           <ActiveFilters
             filters={filters}
             basePath={basePath}
+            scopedCategory={scopedCategory}
             categories={categories}
             brands={brands}
             goals={goals}
@@ -148,7 +172,12 @@ export async function ProductListingPage({
           <ProductGrid
             result={result}
             hasFilters={hasActiveFilters(filters)}
-            clearHref={basePath}
+            /*
+             * "Clear filters" from the empty state has to clear the category too, and on a scoped
+             * page that lives in the path — `basePath` would leave the visitor on the same empty
+             * category, which is the state they are trying to escape.
+             */
+            clearHref={scopedCategory ? SHOP_PATH : basePath}
           />
 
           {/*

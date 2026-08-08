@@ -3,7 +3,7 @@ import { X } from 'lucide-react';
 import { Link } from '@/i18n/routing';
 import { pickLocale, type LocalizedField } from '@/lib/i18n';
 import type { Locale } from '@/lib/constants';
-import { buildQuery } from '@/features/catalog/filters';
+import { buildQuery, unscopeCategory, SHOP_PATH } from '@/features/catalog/filters';
 import type { CategoryNode, ProductFilters } from '@/features/catalog/types';
 
 /**
@@ -25,12 +25,15 @@ import type { CategoryNode, ProductFilters } from '@/features/catalog/types';
 export async function ActiveFilters({
   filters,
   basePath,
+  scopedCategory,
   categories,
   brands,
   goals,
 }: {
   filters: ProductFilters;
   basePath: string;
+  /** The category held in the URL path on `/shop/[category]`. See `unscopeCategory`. */
+  scopedCategory?: string;
   categories: CategoryNode[];
   brands: { slug: string; name: string }[];
   goals: { slug: string; name: LocalizedField }[];
@@ -57,14 +60,25 @@ export async function ActiveFilters({
   const goalName = new Map(goals.map((g) => [g.slug, pickLocale(g.name, locale)]));
 
   const chips: { key: string; label: string; href: string }[] = [];
+
+  /*
+   * Links are built from the filters *minus* the path-scoped category, and removing that category is
+   * a navigation to `SHOP_PATH` rather than a query edit — the only move that can reach the path.
+   * `unscopeCategory` carries the full account of the bug this fixes.
+   */
+  const queryFilters = unscopeCategory(filters, scopedCategory);
   const remove = (change: Parameters<typeof buildQuery>[1]) =>
-    `${basePath}${buildQuery(filters, change)}`;
+    `${basePath}${buildQuery(queryFilters, change)}`;
 
   for (const slug of filters.category ?? []) {
     chips.push({
       key: `category-${slug}`,
       label: categoryName.get(slug) ?? slug,
-      href: remove({ toggle: { key: 'category', value: slug } }),
+      href:
+        slug === scopedCategory
+          ? // Off the category page entirely, keeping every other filter the visitor chose.
+            `${SHOP_PATH}${buildQuery(queryFilters, {})}`
+          : remove({ toggle: { key: 'category', value: slug } }),
     });
   }
   for (const slug of filters.brand ?? []) {
@@ -124,7 +138,7 @@ export async function ActiveFilters({
 
       {chips.length > 1 && (
         <Link
-          href={basePath}
+          href={scopedCategory ? SHOP_PATH : basePath}
           rel="nofollow"
           className="min-h-9 rounded-sm px-1 py-1 text-sm text-forest-700 underline underline-offset-4"
         >
