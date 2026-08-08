@@ -179,3 +179,59 @@ test.describe('header search', () => {
     await expect(page.getByRole('option').first()).toBeVisible();
   });
 });
+
+/**
+ * Two bugs the header search shipped with, both reported from a phone and a screenshot.
+ */
+test.describe('header search — focus and zoom', () => {
+  test('the focus ring is on the field, not nested inside it', async ({ page }) => {
+    await page.goto('/');
+    const box = page.getByRole('combobox').filter({ visible: true });
+    await box.focus();
+
+    /*
+     * `globals.css` gives every `:focus-visible` element a three-layer box-shadow ending in
+     * `lime-400`. On an input sitting inside a bordered box that painted a bright green rectangle
+     * *within* a grey one — two frames around one control. The ring belongs to the field.
+     */
+    const shadow = await box.evaluate((el) => getComputedStyle(el).boxShadow);
+    const painted = /rgba?\((?!0,\s*0,\s*0,\s*0)/.test(shadow);
+    expect(painted, `the input paints its own ring: ${shadow}`).toBe(false);
+
+    // …and the field still shows focus, because removing the indicator entirely is the other bug.
+    const fieldShadow = await page
+      .getByRole('search')
+      .filter({ visible: true })
+      .locator('> div')
+      .evaluate((el) => getComputedStyle(el).boxShadow);
+    expect(fieldShadow, 'the field must show focus somewhere').not.toBe('none');
+  });
+
+  test('the input is at least 16px on mobile, so iOS does not zoom', async ({ page, viewport }) => {
+    test.skip((viewport?.width ?? 0) >= 1024, 'the zoom only happens on a phone');
+    await page.goto('/');
+
+    /*
+     * iOS Safari magnifies the page whenever a focused input is under 16 px, and the layout then
+     * runs off both edges. The other way to stop it is `maximum-scale=1`, which disables pinch-zoom
+     * for everyone — WCAG 1.4.4 traded for a styling preference.
+     */
+    const size = await page
+      .getByRole('combobox')
+      .filter({ visible: true })
+      .evaluate((el) => parseFloat(getComputedStyle(el).fontSize));
+    expect(size).toBeGreaterThanOrEqual(16);
+  });
+
+  test('pinch-zoom is still allowed', async ({ page }) => {
+    await page.goto('/');
+    const content = await page
+      .locator('meta[name="viewport"]')
+      .getAttribute('content')
+      .catch(() => null);
+    if (content) {
+      expect(content).not.toContain('maximum-scale');
+      expect(content).not.toContain('user-scalable=no');
+    }
+  });
+});

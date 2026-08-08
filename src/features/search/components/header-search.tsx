@@ -290,7 +290,22 @@ export function HeaderSearch({
           {t('label')}
         </label>
 
-        <div className="flex h-11 items-center gap-2 rounded-md border border-line bg-surface px-3 transition-colors focus-within:border-forest-500">
+        {/*
+          The focus ring belongs to the **field**, not the input inside it.
+
+          `globals.css` gives every `:focus-visible` element a three-layer box-shadow — a background
+          halo, the forest focus colour, then `lime-400`. That is right for a button, and wrong here:
+          the input sits inside a box that already has a border, so the ring was drawn *within* it and
+          the result was a bright green rounded rectangle nested inside a grey one. Two frames around
+          one control, and the loudest colour in the palette on the calmest element in the header.
+
+          So the input's own ring is suppressed and the container takes it: one quiet ring around the
+          whole field. `focus-within` rather than `has-[:focus-visible]` on purpose — a text input
+          shows a caret and a keyboard user has to see which field it is in, so the indicator should
+          appear for pointer focus too. A 2 px forest ring against cream clears the contrast bar; it
+          is quieter than the global treatment, not absent.
+        */}
+        <div className="flex h-11 items-center gap-2 rounded-md border border-line bg-surface px-3 transition-colors focus-within:border-forest-600 focus-within:ring-2 focus-within:ring-forest-600/25">
           <Search className="size-4 shrink-0 text-ink-500" aria-hidden="true" />
           <input
             ref={inputRef}
@@ -310,7 +325,20 @@ export function HeaderSearch({
             }}
             onFocus={() => setOpen(true)}
             onKeyDown={onKeyDown}
-            className="h-full min-w-0 flex-1 bg-transparent text-sm text-ink-900 placeholder:text-ink-500 focus:outline-none"
+            /*
+             * `text-base` on mobile is not a typographic choice — it is the fix for the zoom.
+             *
+             * iOS Safari zooms the page whenever a focused input's font-size is under 16 px, and
+             * `text-sm` is 14. Tapping search magnified the viewport and the layout ran off both
+             * edges, which is what "covers the sides" was. The other way to stop it is
+             * `maximum-scale=1` in the viewport meta, and that fixes the symptom by disabling
+             * pinch-zoom for everybody — a WCAG 1.4.4 failure traded for a styling preference. 16 px
+             * on the phone, 14 back on the desktop where no browser zooms and the header is tighter.
+             *
+             * `focus-visible:shadow-none` is what actually removes the global triple ring; Tailwind
+             * utilities sit in a later layer than the `base` rule that sets it.
+             */
+            className="h-full min-w-0 flex-1 bg-transparent text-base text-ink-900 placeholder:text-ink-500 focus:outline-none focus-visible:shadow-none focus-visible:outline-none lg:text-sm"
           />
           {pending && <Loader2 className="size-4 shrink-0 animate-spin text-ink-500" aria-hidden="true" />}
           {query && !pending && (
