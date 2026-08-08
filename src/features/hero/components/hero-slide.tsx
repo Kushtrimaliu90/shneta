@@ -20,9 +20,10 @@ import { cn } from '@/lib/utils';
  *
  * Three changes fix it and none of them is a magic number:
  *
- *   1. **The media has its own aspect ratio** (`4/5` desktop, `16/11` mobile) with `object-cover`, so
+ *   1. **The media has its own aspect ratio** (`4/5` desktop, `2/1` mobile) with `object-cover`, so
  *      the image fills a box the layout chose instead of dictating one. A future slide with a
- *      different source file cannot reintroduce the problem.
+ *      different source file cannot reintroduce the problem. The phone gets the *wider* crop, which
+ *      is the opposite of the usual instinct and is what buys the trust strip its place on screen.
  *   2. **The section is `min-h`, not padding-driven.** Content is centred inside a box sized to leave
  *      room for the trust strip under it.
  *   3. **Top padding is small.** The sticky header already separates the hero from the top of the
@@ -71,12 +72,19 @@ export function HeroSlideView({
       className={cn(
         'flex items-center',
         light ? 'bg-forest-950' : 'bg-cream',
-        // Sized to leave the trust strip room inside the first viewport. `svh` rather than `vh` so
-        // a mobile browser's collapsing address bar does not push the CTAs off-screen.
-        'min-h-[30rem] py-8 lg:min-h-[min(34rem,calc(100svh-14rem))] lg:py-10',
+        /*
+         * Sized to leave the trust strip room inside the first viewport. `svh` rather than `vh` so a
+         * mobile browser's collapsing address bar does not push the CTAs off-screen.
+         *
+         * The mobile padding is deliberately mean. Measured on production at 393 × 852: with `py-8`
+         * and a 16/11 image the strip landed at 873–999, i.e. **below the fold on the exact device
+         * the brief names**. Desktop was never the problem; the phone is where 742 px of usable
+         * height has to hold an image, four blocks of copy, two buttons and the strip.
+         */
+        'min-h-[26rem] py-5 lg:min-h-[min(34rem,calc(100svh-14rem))] lg:py-10',
       )}
     >
-      <div className="container-page grid w-full items-center gap-8 lg:grid-cols-[1.05fr_0.95fr] lg:gap-12">
+      <div className="container-page grid w-full items-center gap-6 lg:grid-cols-[1.05fr_0.95fr] lg:gap-12">
         <div>
           {eyebrow && (
             <p className={cn('eyebrow', light && 'text-lime-400')}>{eyebrow}</p>
@@ -94,7 +102,7 @@ export function HeroSlideView({
           {subhead && (
             <p
               className={cn(
-                'mt-4 max-w-xl text-base text-pretty lg:text-lg',
+                'mt-3 max-w-xl text-base text-pretty lg:mt-4 lg:text-lg',
                 light ? 'text-cream/80' : 'text-ink-600',
               )}
             >
@@ -103,7 +111,15 @@ export function HeroSlideView({
           )}
 
           {/* `data-hero-cta` is the marker `measure:vitals` reads to check the fold. */}
-          <div data-hero-cta className="mt-7 flex flex-col gap-3 sm:flex-row">
+          {/*
+            Side by side from the smallest width, not stacked.
+
+            Stacking cost 116 px on a phone — two 52 px buttons plus the gap — against a usable
+            height of about 742 px. Sharing one row costs 52 px and reads no worse; the labels are
+            two or three words. `min-w-0` so a long Albanian label wraps inside its button rather
+            than forcing the row wider than the screen.
+          */}
+          <div data-hero-cta className="mt-6 flex flex-row flex-wrap gap-3">
             {slide.ctaPrimaryHref && primaryLabel && (
               <Link
                 href={slide.ctaPrimaryHref}
@@ -116,7 +132,7 @@ export function HeroSlideView({
                 tabIndex={active ? undefined : -1}
                 className={cn(
                   buttonVariants({ size: 'lg' }),
-                  'sm:w-auto',
+                  'min-w-0 flex-1 sm:flex-none',
                   light && 'bg-lime-500 text-lime-950 hover:bg-lime-400',
                 )}
               >
@@ -129,7 +145,7 @@ export function HeroSlideView({
                 tabIndex={active ? undefined : -1}
                 className={cn(
                   buttonVariants({ variant: 'secondary', size: 'lg' }),
-                  'sm:w-auto',
+                  'min-w-0 flex-1 sm:flex-none',
                   light && 'border-cream/30 bg-transparent text-cream hover:bg-cream/10',
                 )}
               >
@@ -157,7 +173,12 @@ export function HeroSlideView({
               from setting the row height, and it reserves the space before the file resolves — the
               baseline was CLS 0.0000 and this keeps it there.
             */}
-            <div className="relative mx-auto aspect-[16/11] w-full max-w-md overflow-hidden rounded-xl border border-line/60 lg:aspect-[4/5] lg:max-w-sm">
+            {/*
+              A wider crop on the phone than on the desktop, which is the opposite of the usual
+              instinct and is what makes the fold fit: 16/11 at 353 px wide is 243 px tall, 2/1 is 176.
+              The 67 px saved is most of what put the trust strip back on screen.
+            */}
+            <div className="relative mx-auto aspect-[2/1] w-full max-w-md overflow-hidden rounded-xl border border-line/60 lg:aspect-[4/5] lg:max-w-sm">
               {/*
                 One element when both breakpoints use the same file, two only when the admin has
                 actually supplied a separate mobile crop.

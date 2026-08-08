@@ -20,7 +20,23 @@ test.describe('hero carousel', () => {
      */
     const box = await page.locator('[data-hero-cta]').first().boundingBox();
     expect(box, 'the hero CTAs must render').not.toBeNull();
-    expect(box!.y + box!.height).toBeLessThanOrEqual(viewport?.height ?? 900);
+    expect(box?.y ?? Infinity).toBeLessThan(viewport?.height ?? 900);
+    expect((box?.y ?? 0) + (box?.height ?? 0)).toBeLessThanOrEqual(viewport?.height ?? 900);
+  });
+
+  test('the trust strip is inside the first viewport too', async ({ page, viewport }) => {
+    await page.goto('/');
+
+    /*
+     * The brief lists the strip as part of the first-viewport requirement, and it is the assertion
+     * that actually failed: measured on production at 393 × 852 the strip landed at 873–999, well
+     * below the fold, while every desktop width was comfortable. A phone has roughly 742 px of usable
+     * height once the header is out, and the first version spent it on a tall image and two stacked
+     * buttons.
+     */
+    const box = await page.locator('[data-trust-strip]').boundingBox();
+    expect(box, 'the trust strip must render').not.toBeNull();
+    expect((box?.y ?? 0) + (box?.height ?? 0)).toBeLessThanOrEqual(viewport?.height ?? 900);
   });
 
   test('the trust strip is present and does not rotate', async ({ page }) => {
