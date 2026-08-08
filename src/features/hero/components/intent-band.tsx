@@ -44,13 +44,24 @@ export async function IntentBand() {
                 pattern where the visible target and the real target disagree, and on a phone the
                 difference is most of the tile.
               */}
+              {/*
+                Horizontal on a phone, stacked from `sm` up.
+
+                As four stacked cards these were about 250 px each — a thousand pixels of pure
+                navigation between the hero and the first product, measured on a 393 × 852 screen.
+                Icon beside the text instead of above it takes each row to roughly a quarter of that
+                and reads better besides: on a narrow screen a list scans faster than a column of
+                cards, and the tile is still one tap target either way.
+              */}
               <Link
                 href={href}
-                className="group flex w-full flex-col gap-2 rounded-lg border border-line bg-surface p-5 transition-colors hover:border-forest-500 hover:bg-forest-50/40"
+                className="group flex w-full items-center gap-3 rounded-lg border border-line bg-surface p-4 transition-colors hover:border-forest-500 hover:bg-forest-50/40 sm:flex-col sm:items-start sm:gap-2 sm:p-5"
               >
-                <Icon className="size-5 text-forest-500" aria-hidden="true" />
-                <span className="font-medium text-ink-900">{t(`${key}.title`)}</span>
-                <span className="text-sm text-ink-500">{t(`${key}.body`)}</span>
+                <Icon className="size-5 shrink-0 text-forest-500" aria-hidden="true" />
+                <span className="min-w-0">
+                  <span className="block font-medium text-ink-900">{t(`${key}.title`)}</span>
+                  <span className="mt-0.5 block text-sm text-ink-500">{t(`${key}.body`)}</span>
+                </span>
               </Link>
             </li>
           ))}

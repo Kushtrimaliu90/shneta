@@ -43,9 +43,15 @@ export async function Navbar() {
    * 390 px phone: the mobile menu's panel came out **390 × 64**, so tapping the hamburger opened a
    * 64-pixel strip with the page showing through beneath it. The search overlay had the same defect.
    *
-   * Removing it cost nothing. At `bg-cream/95` the backdrop is 95% opaque, so the blur behind it was
-   * very nearly invisible — and docs/04 §6 asks for "cream, hairline bottom border, sticky", not frosted
-   * glass. A portal would also have fixed it, but removing the trap beats working around it.
+   * Removing it cost nothing: at 95% opacity the blur behind it was very nearly invisible, and
+   * docs/04 §6 asks for "cream, hairline bottom border, sticky", not frosted glass. A portal would
+   * also have fixed it, but removing the trap beats working around it.
+   *
+   * **The background is now fully opaque, which is the other half of that fix.** The 95% existed to
+   * let the blur show through; with the blur gone it was translucency with nothing behind it — and on
+   * the two-row mobile header the page scrolled visibly *through* the chrome, with product names
+   * ghosting behind the wordmark on every screen. That reads as a rendering fault rather than a
+   * style, which is exactly how it was reported.
    *
    * Anything added here later that establishes a containing block — `transform`, `filter`,
    * `perspective`, `will-change`, `contain: paint` — breaks both overlays the same way and in a way that
@@ -53,7 +59,7 @@ export async function Navbar() {
    * rather than ships.
    */
   return (
-    <header className="sticky top-0 z-40 border-b border-line bg-cream/95">
+    <header className="sticky top-0 z-40 border-b border-line bg-cream">
       <div className="container-page flex h-14 items-center gap-3 lg:h-20 lg:gap-4">
         <MobileNav />
 

@@ -20,7 +20,7 @@ import { cn } from '@/lib/utils';
  *
  * Three changes fix it and none of them is a magic number:
  *
- *   1. **The media has its own aspect ratio** (`4/5` desktop, `7/3` mobile) with `object-cover`, so
+ *   1. **The media has its own aspect ratio** ( desktop,  mobile) with `object-cover`, so
  *      the image fills a box the layout chose instead of dictating one. A future slide with a
  *      different source file cannot reintroduce the problem. The phone gets the *wider* crop, which
  *      is the opposite of the usual instinct and is what buys the trust strip its place on screen.
@@ -130,7 +130,7 @@ export function HeroSlideView({
                 tabIndex={active ? undefined : -1}
                 className={cn(
                   buttonVariants({ size: 'lg' }),
-                  'min-w-0 flex-1 sm:flex-none',
+                  'h-auto min-w-0 flex-1 py-3 text-center leading-snug whitespace-normal sm:flex-none',
                   light && 'bg-lime-500 text-lime-950 hover:bg-lime-400',
                 )}
               >
@@ -143,7 +143,7 @@ export function HeroSlideView({
                 tabIndex={active ? undefined : -1}
                 className={cn(
                   buttonVariants({ variant: 'secondary', size: 'lg' }),
-                  'min-w-0 flex-1 sm:flex-none',
+                  'h-auto min-w-0 flex-1 py-3 text-center leading-snug whitespace-normal sm:flex-none',
                   light && 'border-cream/30 bg-transparent text-cream hover:bg-cream/10',
                 )}
               >
@@ -163,11 +163,20 @@ export function HeroSlideView({
             */}
             {/*
               A wider crop on the phone than on the desktop, which is the opposite of the usual
-              instinct and is what makes the fold fit: 16/11 at 353 px wide is 243 px tall, 7/3 is 151.
-              The 92 px saved is most of what keeps the trust strip on screen once the mobile search row
-              has taken its own 54 px out of the same budget.
+              instinct and is what makes the fold fit: the original 16/11 was 243 px tall at 353 px
+              wide, and 16/9 is 198.
+
+              It went to 7/3 (151 px) first, which fit beautifully and sliced the tops off the product
+              tubs — reported from a phone, and it looked careless rather than tight. `object-contain`
+              was the next attempt and was worse: a portrait source contained in a 7/3 box is a
+              postage stamp floating in empty margins. 16/9 with `cover` is the compromise that keeps
+              the subject intact and still leaves the trust strip 138 px of room.
+
+              The real answer for this slide is a **mobile creative** composed for the ratio; the slot
+              exists and is empty. When one is supplied it gets `cover` in the branch above, and none
+              of this applies.
             */}
-            <div className="relative mx-auto aspect-[7/3] w-full max-w-md overflow-hidden rounded-xl border border-line/60 lg:aspect-[4/5] lg:max-w-sm">
+            <div className="relative mx-auto aspect-[16/9] w-full max-w-md overflow-hidden rounded-xl border border-line/60 lg:aspect-[4/5] lg:max-w-sm">
               {/*
                 One element when both breakpoints use the same file, two only when the admin has
                 actually supplied a separate mobile crop.
@@ -201,6 +210,17 @@ export function HeroSlideView({
                   />
                 </>
               ) : (
+                /*
+                 * `contain` on the phone when there is no dedicated mobile crop, `cover` on desktop.
+                 *
+                 * A 7:3 cover crop of a portrait product photograph slices the tops and bottoms off
+                 * the tubs — reported from a phone, and it looks careless rather than tight. The
+                 * desktop box is 4:5 and close enough to the source that cover is right there.
+                 *
+                 * This applies only to the fallback path. When an admin has supplied a **mobile
+                 * creative** it was composed for 7:3 and gets `cover` in the branch above, which is
+                 * the better answer and the reason that slot exists.
+                 */
                 <Image
                   src={desktopSrc}
                   alt={desktopAlt}

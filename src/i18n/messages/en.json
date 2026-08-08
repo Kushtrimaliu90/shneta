@@ -71,7 +71,8 @@
       "categories": "Categories",
       "subscribe": "Subscribe and save",
       "knowledge": "From the Knowledge Center",
-      "brands": "Brands we carry"
+      "brands": "Brands we carry",
+      "allProducts": "See all products"
     },
     "placeholder": {
       "title": "Catalogue coming next",
@@ -910,7 +911,7 @@
   },
   "consent": {
     "title": "Cookies",
-    "body": "We use only what the shop needs to work. With your permission we also measure which pages are useful.",
+    "body": "Only what the shop needs to work, plus — with your permission — which pages help.",
     "accept": "Accept",
     "reject": "Only what is needed",
     "privacyLink": "Privacy policy"

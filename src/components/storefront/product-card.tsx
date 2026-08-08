@@ -101,7 +101,16 @@ export function ProductCard({
         <PriceTag
           priceCents={product.priceCents}
           compareAtPriceCents={product.compareAtPriceCents}
-          className="mt-auto pt-1"
+          /*
+           * A reserved two-line box, so prices line up across a row.
+           *
+           * On a 2-up mobile grid the price, the struck compare-at and the discount badge do not fit
+           * on one line, so a discounted card wraps to two while its neighbour stays at one.
+           * `mt-auto` pins the *block* to the bottom of the card, which then put the prices at
+           * different heights — visible and untidy on the phone. Reserving the taller of the two
+           * shapes on every card puts the price line itself at a consistent y.
+           */
+          className="mt-auto min-h-[3rem] content-start pt-1"
         />
       </div>
     </article>

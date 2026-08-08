@@ -113,8 +113,12 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
                 </li>
               ))}
             </ol>
+            {/*
+              Not the section's own heading, which is what this said: 'Më të shiturat' as a title and
+              'Më të shiturat' again as the button under it reads as a bug rather than as a link.
+            */}
             <Link href="/shop" className={cn(buttonVariants({ variant: 'secondary' }), 'mt-8')}>
-              {t('home.sections.bestsellers')}
+              {t('home.sections.allProducts')}
             </Link>
           </div>
         </section>

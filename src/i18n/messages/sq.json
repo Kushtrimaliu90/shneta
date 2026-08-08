@@ -71,7 +71,8 @@
       "categories": "Kategoritë",
       "subscribe": "Abonohu dhe kurse",
       "knowledge": "Nga Qendra e Njohurive",
-      "brands": "Markat që mbajmë"
+      "brands": "Markat që mbajmë",
+      "allProducts": "Shiko të gjitha produktet"
     },
     "placeholder": {
       "title": "Katalogu vjen së shpejti",
@@ -910,7 +911,7 @@
   },
   "consent": {
     "title": "Cookies",
-    "body": "Përdorim vetëm atë që i duhet dyqanit për të funksionuar. Me lejen tënde matim edhe cilat faqe janë të dobishme.",
+    "body": "Vetëm ato që i duhen dyqanit, plus — me lejen tënde — cilat faqe ndihmojnë.",
     "accept": "Prano",
     "reject": "Vetëm të domosdoshmet",
     "privacyLink": "Politika e privatësisë"
