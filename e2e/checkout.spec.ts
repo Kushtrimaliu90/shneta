@@ -335,6 +335,19 @@ test.describe('journey 4 — guest order lookup', () => {
     const response = await page.goto('/robots.txt');
     const body = (await response?.text()) ?? '';
 
+    /*
+     * Two legitimate shapes, because `SEO_INDEXING` gates crawling entirely (docs/13 §AC).
+     *
+     * Pre-launch the whole file is `Disallow: /`, which covers every money path more strictly than the
+     * per-path lines do. This test asserted only the per-path form and so failed the moment the crawl
+     * block went live — reporting a *stronger* robots.txt as a regression. The guarantee being pinned is
+     * "these paths are not crawlable", and a blanket disallow satisfies it.
+     */
+    if (/^\s*Disallow:\s*\/\s*$/m.test(body)) {
+      expect(body).not.toContain('Allow: /');
+      return;
+    }
+
     for (const path of ['/cart', '/checkout', '/account', '/admin', '/api']) {
       expect(body, `robots.txt must disallow ${path}`).toContain(`Disallow: ${path}`);
     }

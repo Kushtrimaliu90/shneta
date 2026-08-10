@@ -8,7 +8,7 @@ import {
   findPartiallyShippedOrders,
   sendPartialShipmentNotice,
 } from '@/features/merchants/partial-shipment-email';
-import { sweepApprovedProposals } from '@/features/merchants/proposal-sweep';
+import { sweepApprovedProposals, sweepProposalOffers } from '@/features/merchants/proposal-sweep';
 
 /**
  * docs/10 §5 — nightly housekeeping, 03:30 UTC.
@@ -22,6 +22,7 @@ import { sweepApprovedProposals } from '@/features/merchants/proposal-sweep';
  *   · tell customers whose order is arriving in more than one parcel (docs/16 §7)
  *   · auto-route unassigned merchant fulfilments, if that setting is on (docs/16 §6)
  *   · turn approved proposals into draft products, 15 a night (docs/16 §9.1)
+ *   · mint the merchant offer for each promoted proposal, 25 a night (docs/16 §9)
  *
  * Service-role by design — cron jobs are one of the six sanctioned uses (docs/02 §6).
  * Idempotent: every step is bounded by a timestamp predicate, so re-running it the same
@@ -63,6 +64,8 @@ export async function GET(request: NextRequest) {
     autoRouted: 0,
     proposalsPromoted: 0,
     proposalsAwaiting: 0,
+    offersMinted: 0,
+    offersAwaiting: 0,
   };
   const failures: string[] = [];
 
@@ -232,6 +235,23 @@ export async function GET(request: NextRequest) {
     summary.proposalsPromoted = swept.promoted;
     summary.proposalsAwaiting = swept.remaining;
     if (swept.failed > 0) failures.push(`promotion: ${swept.failed} row(s) failed`);
+  }
+  /*
+   * 9b · Mint the merchant offer for any promoted proposal that has not got one yet (docs/16 §9).
+   *
+   * A second phase over the same rows rather than part of the one above, because the work is not
+   * comparable: promotion copies photographs, this is one INSERT. Fused, a malformed asking price would
+   * roll back a product that was fine and jam the promotion queue.
+   *
+   * `failed` is NOT pushed onto `failures`. The view caps retries at three attempts and records the
+   * reason in `offer_error`, so a permanently invalid row goes quiet by design — turning it into an
+   * HTTP 500 would make one bad proposal fail the whole nightly cron every night, which is exactly the
+   * failure mode the separate queue exists to avoid. It is logged and reported in the summary instead.
+   */
+  {
+    const swept = await sweepProposalOffers(25);
+    summary.offersMinted = swept.minted;
+    summary.offersAwaiting = swept.remaining;
   }
 
   if (failures.length > 0) {

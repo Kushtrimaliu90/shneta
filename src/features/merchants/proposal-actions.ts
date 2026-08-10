@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
+import { proposalOfferSchema } from '@/features/merchants/proposal-schemas';
 import { createClient } from '@/lib/supabase/server';
 import { logger, describeError } from '@/lib/logger';
 import { fail, ok, type ActionResult } from '@/lib/result';
@@ -9,6 +10,7 @@ import { audit, requireCapability } from '@/features/admin/audit';
 import { getMyMerchant } from '@/features/merchants/queries';
 import { sendProposalDecided } from '@/features/merchants/email';
 import { promoteProposal } from '@/features/merchants/proposal-promote';
+import { createOfferFromProposal } from '@/features/merchants/proposal-offer';
 import type { Json } from '@/lib/supabase/database.types';
 
 /**
@@ -47,27 +49,6 @@ function no(error: ProposalErrorKey): ProposalState {
   return fail<ProposalErrorKey, { proposalId?: string }>(error);
 }
 
-const proposalSchema = z.object({
-  productName: z.string().trim().min(2, 'required').max(160),
-  brandName: z.string().trim().min(2, 'required').max(120),
-  /** Free text: capsules, powder, drops. Not an enum, because a merchant knows forms BioCode does not. */
-  form: z.string().trim().max(80).optional().or(z.literal('')),
-  variantName: z.string().trim().max(120).optional().or(z.literal('')),
-  /** EAN or UPC. Optional, and not validated as a checksum: a supplement box often has neither. */
-  barcode: z.string().trim().max(32).optional().or(z.literal('')),
-  sourceUrl: z.string().trim().url('invalid').max(500).optional().or(z.literal('')),
-  /** What they hold and what they would ask, so a reviewer can judge whether it is worth listing. */
-  stockOnHand: z.coerce.number().int().min(0).max(1_000_000),
-  askingPriceEuro: z
-    .string()
-    .trim()
-    .min(1, 'required')
-    .transform((value) => Number(value.replace(',', '.')))
-    .refine((value) => Number.isFinite(value) && value > 0 && value <= 100_000, 'range')
-    .transform((euro) => Math.round(euro * 100)),
-  note: z.string().trim().min(10, 'required').max(2000),
-});
-
 const decisionSchema = z.object({
   proposalId: z.string().uuid(),
   decision: z.enum(['approve', 'reject', 'needs_info']),
@@ -89,7 +70,7 @@ export async function submitProposal(
   if (!merchant || merchant.status !== 'approved')
     return no('merchant.proposals.errors.notMerchant');
 
-  const parsed = proposalSchema.safeParse(Object.fromEntries(formData));
+  const parsed = proposalOfferSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return no('merchant.proposals.errors.invalid');
   const input = parsed.data;
 
@@ -163,6 +144,10 @@ export async function submitProposal(
           source_url: input.sourceUrl || null,
           stock_on_hand: input.stockOnHand,
           asking_price_cents: input.askingPriceEuro,
+          // Read back by `create_offer_from_proposal`, which regex-guards every cast.
+          low_stock_threshold: input.lowStockThreshold,
+          handling_days: input.handlingDays,
+          merchant_sku: input.merchantSku || null,
           note: input.note,
           images: imagePaths,
         } as unknown as Json,
@@ -259,10 +244,29 @@ export async function decideProposal(
      * hand, and losing the recorded decision would be worse.
      */
     let promotion: Awaited<ReturnType<typeof promoteProposal>> = null;
+    let offer: Awaited<ReturnType<typeof createOfferFromProposal>> = null;
     if (status === 'approved') {
       promotion = await promoteProposal(input.proposalId);
       if (!promotion) {
         logger.error('proposal approved but not promoted', { proposalId: input.proposalId });
+      }
+
+      /*
+       * The offer, minted from the terms the reviewer has just read.
+       *
+       * Only when promotion produced a product, because the offer hangs off its variant. And it
+       * follows the same rule as promotion above: a failure here does not fail the approval. The
+       * decision is recorded, the merchant is told, and `proposals_awaiting_offer` picks the row up on
+       * the nightly sweep — which is the whole reason that queue is derived rather than flagged.
+       */
+      if (promotion?.productId) {
+        offer = await createOfferFromProposal(input.proposalId);
+        if (!offer?.created) {
+          logger.warn('proposal promoted but offer not minted', {
+            proposalId: input.proposalId,
+            reason: offer?.reason ?? 'rpc_failed',
+          });
+        }
       }
     }
 
@@ -272,6 +276,7 @@ export async function decideProposal(
       product_id: promotion?.productId ?? null,
       images_copied: promotion?.imagesCopied ?? 0,
       images_failed: promotion?.imagesFailed ?? 0,
+      offer_id: offer?.offerId ?? null,
     } as unknown as Json);
 
     /*

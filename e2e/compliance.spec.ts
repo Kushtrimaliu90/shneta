@@ -94,6 +94,14 @@ test.describe('what search engines are told (docs/08 §4)', () => {
   test('robots.txt points at a well-formed sitemap', async ({ request }) => {
     const body = await (await request.get('/robots.txt')).text();
 
+    /*
+     * Skipped while the pre-launch crawl block is on (docs/13 §AC). `SEO_INDEXING` defaults to off, so
+     * robots.txt is `Disallow: /` with no sitemap line and no per-path rules to assert. What follows
+     * describes the *indexable* configuration, which is what launch day turns on — so it is skipped
+     * rather than deleted or weakened into something that passes either way.
+     */
+    test.skip(/^\s*Disallow:\s*\/\s*$/m.test(body), 'crawling is blocked pre-launch');
+
     const sitemap = /Sitemap:\s*(\S+)/.exec(body)?.[1] ?? '';
     expect(sitemap, 'robots.txt names no sitemap').toContain('/sitemap.xml');
     expect(sitemap.replace(/^https?:\/\//, ''), 'doubled slash in the sitemap URL').not.toContain(
@@ -186,6 +194,9 @@ test.describe('faceted listings are not a crawl space', () => {
     request,
   }) => {
     const body = await (await request.get('/robots.txt')).text();
+
+    // Same reason as the sitemap assertion above: `Disallow: /` has no facet rules to inspect.
+    test.skip(/^\s*Disallow:\s*\/\s*$/m.test(body), 'crawling is blocked pre-launch');
 
     for (const rule of ['/shop?*', '/en/shop?*', '/*?brand=', '/*?goal=', '/*?tag=']) {
       expect(body, `robots.txt should disallow ${rule}`).toContain(`Disallow: ${rule}`);

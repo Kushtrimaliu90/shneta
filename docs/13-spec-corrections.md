@@ -3431,3 +3431,83 @@ plausible alone — the bug was only visible when the chip's href was placed nex
 intent band, whose heading is `sr-only` "Where to start", so the test had been failing since that
 change and nobody had run it. It now asserts the tile link a visitor actually clicks, which is a
 stronger thing to pin than a hidden string.
+
+---
+
+## AE. Two steps for one intention, and a picker that hid the catalogue
+
+Two reports from the merchant portal, one session. They turned out to be four faults.
+
+### The offer picker showed 20 of 72, and could not search
+
+`searchCatalogVariants` capped at 20 rows ordered by `sku`. Measured on production: **72 live variants
+across 15 brands**, of which the unsearched page reached 20 variants across **6** — BIOCODE,
+BioTechUSA, Garden of Life, Jamieson, Lamberts, MyProtein. Every brand whose SKU sorts later, NOW Foods
+and Optimum Nutrition among them, was unreachable.
+
+The search could not recover them, because it searched the wrong column:
+
+```ts
+.or('sku.ilike.X,name->>sq.ilike.X,name->>en.ilike.X')   // against product_variants
+```
+
+A bare column inside a PostgREST `.or()` binds to the **queried table**, so `name` was the variant's
+size label — "750 ml e zezë", "60 kapsula" — never the product title. `product_variants.name` is jsonb,
+so it did not error; it matched nothing. Measured: `whey` matched **0** variant names and **8** product
+names.
+
+No argument to `.or()` fixes it — PostgREST cannot OR a parent column together with an embedded
+resource — so the product title has to *be* a column. `v_catalogue_variant_search` (migration 78)
+flattens the join with one prebuilt lowercase haystack over brand, product name, variant name, SKU and
+barcode. `security_invoker`, so RLS still applies and deactivating a brand still withdraws its variants
+from every picker — the owner's supply lever, now depended on deliberately.
+
+After: 72 variants, 15 brands, whey 0→8, solgar 0→5, magnez 0→3.
+
+### Approval created a product and stopped
+
+A proposal already carried stock and an asking price. Approval created a draft product, and the merchant
+then had to find it in the picker and re-type stock, price, SKU and handling days it had already stated.
+For a 200-row batch that is 200 forms after the approval.
+
+The proposal now carries all five offer terms and approval mints the offer (migration 79). The owner's
+decision is that it is **live the moment compliance publishes** — defensible because the reviewer
+approving the proposal has just read those exact terms.
+
+### The invariant that made it safe was not written down
+
+An offer minted this way is `approved` against a product that is still `draft`. That was safe only
+because no caller happened to pass a draft variant id to `variant_buy_box` — a property of today's call
+sites, not a guarantee, and this change is precisely the one that starts creating such offers. The
+function is `security definer`, so it is the one place RLS is not doing the work; it now requires the
+product to be published itself.
+
+Proven in a transaction that rolled back: an `approved` offer on a draft product exists
+(`offers_on_variant = 1`) and `variant_buy_box` returns `source = none`.
+
+### Separate queues, because they fail differently
+
+`create_offer_from_proposal` is its own RPC, not part of `promote_proposal_to_draft`. Promotion copies
+every photograph between buckets — many round trips, not transactional. Minting is one INSERT behind two
+CHECKs. Fused, a malformed asking price would roll back a product that was fine, return the row to
+`proposals_awaiting_promotion` with `created_product_id is null`, and — because the housekeeping cron
+turns a push failure into an HTTP 500 — leave one poison row failing every night while holding a slot at
+the head of a `limit(15)` queue.
+
+Idempotency is keyed on `offer_created_at`, never on `created_offer_id`: the FK is
+`on delete set null`, so keying on the id would have the nightly sweep recreate an offer the merchant
+deliberately deleted. `offer_attempts` caps retry at three and `offer_error` records why, so a row whose
+terms can never satisfy the CHECKs goes quiet instead of failing loudly forever. The cron deliberately
+does **not** push offer failures onto `failures` for the same reason.
+
+`approved_by` stays NULL. The only candidate is `auth.uid()`, which is NULL when the cron calls as the
+service role — so half the offers from one decision would name an approver and half would not.
+
+### Caught while verifying: three tests asserting the old robots.txt
+
+`checkout.spec.ts` and two in `compliance.spec.ts` asserted per-path `Disallow` lines and a `Sitemap:`
+line. The pre-launch crawl block (§AC) makes robots.txt `Disallow: /`, which covers those paths *more*
+strictly — so the suite was reporting a stronger robots.txt as a regression. I shipped §AC without
+running these, which is the actual mistake. The money-path test now accepts either shape; the two that
+describe the indexable configuration skip while the block is on, rather than being weakened into
+assertions that pass either way.

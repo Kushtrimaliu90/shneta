@@ -2630,9 +2630,13 @@ export type Database = {
         Row: {
           batch_id: string | null
           created_at: string
+          created_offer_id: string | null
           created_product_id: string | null
           id: string
           merchant_id: string
+          offer_attempts: number
+          offer_created_at: string | null
+          offer_error: string | null
           payload: Json
           reviewed_at: string | null
           reviewed_by: string | null
@@ -2643,9 +2647,13 @@ export type Database = {
         Insert: {
           batch_id?: string | null
           created_at?: string
+          created_offer_id?: string | null
           created_product_id?: string | null
           id?: string
           merchant_id: string
+          offer_attempts?: number
+          offer_created_at?: string | null
+          offer_error?: string | null
           payload: Json
           reviewed_at?: string | null
           reviewed_by?: string | null
@@ -2656,9 +2664,13 @@ export type Database = {
         Update: {
           batch_id?: string | null
           created_at?: string
+          created_offer_id?: string | null
           created_product_id?: string | null
           id?: string
           merchant_id?: string
+          offer_attempts?: number
+          offer_created_at?: string | null
+          offer_error?: string | null
           payload?: Json
           reviewed_at?: string | null
           reviewed_by?: string | null
@@ -2672,6 +2684,20 @@ export type Database = {
             columns: ["batch_id"]
             isOneToOne: false
             referencedRelation: "proposal_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_proposals_created_offer_id_fkey"
+            columns: ["created_offer_id"]
+            isOneToOne: false
+            referencedRelation: "merchant_offers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_proposals_created_offer_id_fkey"
+            columns: ["created_offer_id"]
+            isOneToOne: false
+            referencedRelation: "v_merchant_offer_detail"
             referencedColumns: ["id"]
           },
           {
@@ -4600,6 +4626,66 @@ export type Database = {
         }
         Relationships: []
       }
+      proposals_awaiting_offer: {
+        Row: {
+          created_product_id: string | null
+          id: string | null
+          merchant_id: string | null
+          offer_attempts: number | null
+          reviewed_at: string | null
+        }
+        Insert: {
+          created_product_id?: string | null
+          id?: string | null
+          merchant_id?: string | null
+          offer_attempts?: number | null
+          reviewed_at?: string | null
+        }
+        Update: {
+          created_product_id?: string | null
+          id?: string | null
+          merchant_id?: string | null
+          offer_attempts?: number | null
+          reviewed_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_proposals_created_product_id_fkey"
+            columns: ["created_product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_proposals_created_product_id_fkey"
+            columns: ["created_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_admin_inventory"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "product_proposals_created_product_id_fkey"
+            columns: ["created_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_low_stock"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "product_proposals_created_product_id_fkey"
+            columns: ["created_product_id"]
+            isOneToOne: false
+            referencedRelation: "v_merchant_offer_detail"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "product_proposals_merchant_id_fkey"
+            columns: ["merchant_id"]
+            isOneToOne: false
+            referencedRelation: "merchants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       proposals_awaiting_promotion: {
         Row: {
           batch_id: string | null
@@ -5139,6 +5225,10 @@ export type Database = {
           p_subject: string
         }
         Returns: string
+      }
+      create_offer_from_proposal: {
+        Args: { p_proposal_id: string }
+        Returns: Json
       }
       current_merchant_ids: { Args: never; Returns: string[] }
       decide_proposal_batch: {

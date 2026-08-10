@@ -79,6 +79,33 @@ export function ProposalForm({ merchantId }: { merchantId: string }) {
             <Input {...field} name="askingPriceEuro" type="text" inputMode="decimal" autoComplete="off" />
           )}
         </Field>
+
+        {/*
+          The rest of the offer, asked here so approval can mint it.
+
+          Stock and asking price were already on this form — they are two of the five things an offer
+          needs, and a reviewer needs them to judge whether the product is worth listing at all. The
+          other three used to be re-typed into the offer form *after* approval, which for a 200-row
+          batch was 200 forms for a decision the merchant had already made.
+
+          Both carry defaults matching the offer table's own (3 and 1), so a merchant who ignores them
+          still gets a working offer rather than a validation wall.
+        */}
+        <Field id="handlingDays" label={t('handling')} hint={t('handlingHint')}>
+          {(field) => (
+            <Input {...field} name="handlingDays" type="number" min={0} max={30} step={1} defaultValue={1} />
+          )}
+        </Field>
+
+        <Field id="lowStockThreshold" label={t('threshold')} hint={t('thresholdHint')}>
+          {(field) => (
+            <Input {...field} name="lowStockThreshold" type="number" min={0} step={1} defaultValue={3} />
+          )}
+        </Field>
+
+        <Field id="merchantSku" label={t('sku')} hint={t('skuHint')}>
+          {(field) => <Input {...field} name="merchantSku" autoComplete="off" />}
+        </Field>
       </div>
 
       <Field id="note" label={t('note')} hint={t('noteHint')} required>

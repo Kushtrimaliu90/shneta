@@ -2,6 +2,7 @@ import 'server-only';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { logger, describeError } from '@/lib/logger';
 import { promoteProposal } from '@/features/merchants/proposal-promote';
+import { createOfferFromProposal } from '@/features/merchants/proposal-offer';
 
 /**
  * docs/16 §9.1 — draining the promotion queue.
@@ -108,4 +109,69 @@ async function countRemaining(batchId?: string): Promise<number> {
     return 0;
   }
   return count ?? 0;
+}
+
+/**
+ * docs/16 §9 — draining the *offer* queue, which is a second phase over the same rows.
+ *
+ * Promotion and offer-minting are separate queues because they fail differently. Promotion copies
+ * photographs — many storage round trips, not transactional. This is one INSERT behind two CHECK
+ * constraints. A malformed asking price must not be able to roll back a product that was fine, and it
+ * must not sit at the head of the promotion queue failing every night.
+ *
+ * `proposals_awaiting_offer` is derived exactly like its sibling — approved, promoted, no
+ * `offer_created_at`, under the retry cap — so a row leaves by being done and two overlapping sweeps
+ * are harmless: the second call gets `created: false`.
+ *
+ * The retry cap is why the view filters `offer_attempts < 3`. A proposal whose terms can never satisfy
+ * `merchant_offers` (an asking price of zero written straight into `payload` from psql, say) goes quiet
+ * with the reason recorded in `offer_error`, rather than turning the nightly cron red forever.
+ */
+export interface OfferSweepResult {
+  minted: number;
+  failed: number;
+  remaining: number;
+}
+
+export async function sweepProposalOffers(limit = 25): Promise<OfferSweepResult> {
+  const empty: OfferSweepResult = { minted: 0, failed: 0, remaining: 0 };
+  try {
+    const admin = createAdminClient();
+    const { data, error } = await admin
+      .from('proposals_awaiting_offer')
+      .select('id')
+      .limit(limit);
+
+    if (error) {
+      logger.error('sweepProposalOffers read failed', { cause: error.message });
+      return empty;
+    }
+
+    const ids = ((data ?? []) as { id: string }[]).map((row) => row.id);
+    let minted = 0;
+    let failed = 0;
+
+    /*
+     * Higher limit than the promotion sweep (25 against 15) because the work is not comparable: one
+     * INSERT against a photograph copy. Both numbers exist to fit inside the cron's shared 60 s.
+     */
+    for (const id of ids) {
+      const result = await createOfferFromProposal(id);
+      if (result?.created) minted += 1;
+      else failed += 1;
+    }
+
+    const { count } = await admin
+      .from('proposals_awaiting_offer')
+      .select('id', { count: 'exact', head: true });
+
+    if (minted > 0 || failed > 0) {
+      logger.info('proposal offer sweep', { minted, failed, remaining: count ?? 0 });
+    }
+
+    return { minted, failed, remaining: count ?? 0 };
+  } catch (error) {
+    logger.error('sweepProposalOffers threw', describeError(error));
+    return empty;
+  }
 }
