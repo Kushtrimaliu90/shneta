@@ -1,16 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import {
-  Banknote,
-  FileText,
-  LayoutDashboard,
-  Lightbulb,
-  Package,
-  Settings,
-  Truck,
-  Upload,
-} from 'lucide-react';
+import { Banknote, FileText, LayoutDashboard, Lightbulb, Package, Settings, Sheet, Truck, Upload } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { Link, usePathname } from '@/i18n/routing';
 import { cn } from '@/lib/utils';
@@ -33,6 +24,7 @@ interface Item {
     | 'offers'
     | 'bulk'
     | 'proposals'
+    | 'proposalsBulk'
     | 'payouts'
     | 'documents'
     | 'settings';
@@ -47,6 +39,20 @@ const ITEMS: readonly Item[] = [
   { key: 'offers', href: '/merchant/offers', icon: Package, needsApproval: true },
   { key: 'bulk', href: '/merchant/bulk', icon: Upload, needsApproval: true },
   { key: 'proposals', href: '/merchant/proposals', icon: Lightbulb, needsApproval: true },
+  /*
+   * The catalogue paste, which shipped with no nav entry at all.
+   *
+   * It was reachable only from an underlined phrase inside a paragraph on `/merchant/proposals` — and the
+   * photograph uploader sits one further click beyond it, behind a link labelled with a row count. A
+   * merchant onboarding two hundred products, which is precisely who that page is for, met the
+   * twenty-open-proposal cap on the single form first and concluded the feature did not exist. Reported
+   * on 2026-08-10 as "only as a link, not as a clickable item", together with "I could not find the bulk
+   * picture upload anywhere".
+   *
+   * `tests/unit/merchant-nav-reachable.test.ts` now fails if any merchant page has no way in, which is
+   * the guard the admin panel already had as `ALL_NAV_ITEMS` and this portal did not.
+   */
+  { key: 'proposalsBulk', href: '/merchant/proposals/bulk', icon: Sheet, needsApproval: true },
   { key: 'payouts', href: '/merchant/payouts', icon: Banknote },
   { key: 'documents', href: '/merchant/documents', icon: FileText },
   { key: 'settings', href: '/merchant/settings', icon: Settings },

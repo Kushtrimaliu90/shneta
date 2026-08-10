@@ -155,8 +155,16 @@ test.describe('the portal before approval', () => {
     await expect(page.getByRole('heading', { name: merchant.displayName })).toBeVisible();
     await expect(page.getByText('Your application is under review')).toBeVisible();
 
-    // Offers are locked in the nav rather than hidden, so the shape of the portal is honest.
-    const offersTab = page.getByRole('navigation', { name: 'Portal sections' }).getByText('Offers');
+    /*
+     * Offers are locked in the nav rather than hidden, so the shape of the portal is honest.
+     *
+     * `exact` because the nav now also contains "Bulk offers" — the catalogue paste gained a nav entry
+     * after it was reported as reachable only by URL, and a substring match started resolving to two
+     * elements. The strict-mode failure was the rename being caught, not a regression.
+     */
+    const offersTab = page
+      .getByRole('navigation', { name: 'Portal sections' })
+      .getByText('Offers', { exact: true });
     await expect(offersTab).toBeVisible();
     await expect(offersTab).toHaveAttribute('aria-disabled', 'true');
 
@@ -554,6 +562,55 @@ test.describe('bulk upload from a spreadsheet (docs/16 §6)', () => {
   });
 });
 
+
+/**
+ * Reaching the bulk screens and the photograph uploader by clicking, with no typed URL.
+ *
+ * Both existed and both were effectively hidden: the catalogue paste had no nav entry, and the uploader
+ * beyond it sat behind a link labelled with a row count. A unit test now asserts every merchant route has
+ * *some* way in; this asserts the way in is one a person would actually find.
+ */
+test.describe('finding the bulk screens (docs/16 §9.1)', () => {
+  test('both bulk screens are in the nav, and the photo step is named', async ({ page }) => {
+    const merchant = await merchantAccount({ status: 'approved' });
+    await signIn(page, merchant.email, merchant.password);
+    await page.goto('/en/merchant');
+
+    const nav = page.getByRole('navigation', { name: 'Portal sections' });
+    await expect(nav.getByRole('link', { name: 'Bulk offers' })).toBeVisible();
+    await expect(nav.getByRole('link', { name: 'Bulk proposals' })).toBeVisible();
+
+    // Clicked, not navigated to: the report was that the URL was the only route in.
+    await nav.getByRole('link', { name: 'Bulk proposals' }).click();
+    await expect(page).toHaveURL(/\/merchant\/proposals\/bulk$/);
+
+    // A batch, so there is something to attach photographs to.
+    await page
+      .locator('#proposal-sheet')
+      .fill(['name;brand;price;stock', 'Probe Magnesium;Probe Labs;14,90;5'].join('\n'));
+    await page.getByRole('button', { name: /send|submit/i }).first().click();
+
+    /*
+     * Submitting lands the merchant on the batch itself, with the uploader already on screen. That part
+     * always worked and is the right behaviour — the photographs are the obvious next step.
+     */
+    await expect(page.getByRole('button', { name: /choose photographs/i })).toBeVisible();
+    await expect(page.getByText(/0 of 1 row\(s\) have photographs/i)).toBeVisible();
+
+    /*
+     * The gap was **coming back**. A merchant who uploads half the photos and returns tomorrow arrives
+     * at the sheet list, where the only route onwards was a link reading "1 product(s)" — a count, not an
+     * action. This is the assertion that would have caught the report.
+     */
+    await page.getByRole('link', { name: /all sheets/i }).click();
+    await expect(page).toHaveURL(/\/merchant\/proposals\/bulk$/);
+
+    const addPhotos = page.getByRole('link', { name: 'Add photographs' }).first();
+    await expect(addPhotos).toBeVisible();
+    await addPhotos.click();
+    await expect(page.getByRole('button', { name: /choose photographs/i })).toBeVisible();
+  });
+});
 
 test.afterAll(() => {
   if (createdUsers.length > 0) {

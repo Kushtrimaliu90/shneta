@@ -1215,7 +1215,8 @@
         "orders": "Porositë",
         "payouts": "Shlyerjet",
         "proposals": "Propozimet",
-        "bulk": "Masivi"
+        "bulk": "Ofertat masive",
+        "proposalsBulk": "Propozimet masive"
       },
       "status": {
         "pendingTitle": "Aplikimi është në shqyrtim",
@@ -1750,7 +1751,8 @@
         "noHeader": "Rreshti i parë duhet të përmbajë emrat e kolonave, përfshirë emrin, markën dhe çmimin.",
         "tooMany": "Shumë rreshta njëherësh. Maksimumi 200 për fletë.",
         "tooManyOpen": "Ke tri fleta në pritje të përgjigjes. Prit një nga ato para se të dërgosh tjetër."
-      }
+      },
+      "addImages": "Shto fotografitë"
     },
     "sheet": {
       "label": "Ngarko fletën tënde",

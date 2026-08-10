@@ -1215,7 +1215,8 @@
         "orders": "Orders",
         "payouts": "Payouts",
         "proposals": "Proposals",
-        "bulk": "Bulk"
+        "bulk": "Bulk offers",
+        "proposalsBulk": "Bulk proposals"
       },
       "status": {
         "pendingTitle": "Your application is under review",
@@ -1750,7 +1751,8 @@
         "noHeader": "The first row must contain the column names, including a name, a brand and a price column.",
         "tooMany": "Too many rows at once. The limit is 200 per sheet.",
         "tooManyOpen": "You have three sheets waiting for an answer. Wait for one of them before sending another."
-      }
+      },
+      "addImages": "Add photographs"
     },
     "sheet": {
       "label": "Upload your sheet",

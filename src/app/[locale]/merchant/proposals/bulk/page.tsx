@@ -6,6 +6,7 @@ import { resolveLocale } from '@/i18n/locale';
 import { getMyMerchant } from '@/features/merchants/queries';
 import { listBatches } from '@/features/merchants/batch-queries';
 import { BatchForm } from '@/features/merchants/components/batch-form';
+import { buttonVariants } from '@/components/ui/button';
 
 export const metadata: Metadata = { title: 'Katalog i propozuar' };
 export const dynamic = 'force-dynamic';
@@ -69,9 +70,32 @@ export default async function MerchantProposalBulkPage({ params }: Props) {
                     {batch.note && ` · ${batch.note.slice(0, 60)}`}
                   </p>
                 </div>
-                <span className="bg-ink-100 rounded-sm px-1.5 py-0.5 font-ui text-[11px] font-semibold text-ink-900">
-                  {t(`status.${batch.status}`)}
-                </span>
+                <div className="flex flex-wrap items-center gap-3">
+                  {/*
+                    The photograph step, said out loud.
+
+                    Uploading photos happens on the batch page, and the only route to it was this row's
+                    other link — labelled with a row count, "3 rreshta". So a merchant looking for
+                    "where do I add the pictures?" was reading a number. Reported on 2026-08-10 as not
+                    being able to find the bulk picture upload anywhere; it was two clicks away behind
+                    text that never mentioned it.
+
+                    Only while the batch is still open. A batch has two states — `pending` and
+                    `decided` — and uploading closes on the second, because promotion has already
+                    copied the images to the product.
+                  */}
+                  {batch.status === 'pending' ? (
+                    <Link
+                      href={`/merchant/proposals/${batch.id}`}
+                      className={buttonVariants({ variant: 'secondary', size: 'sm' })}
+                    >
+                      {t('addImages')}
+                    </Link>
+                  ) : null}
+                  <span className="bg-ink-100 rounded-sm px-1.5 py-0.5 font-ui text-[11px] font-semibold text-ink-900">
+                    {t(`status.${batch.status}`)}
+                  </span>
+                </div>
               </li>
             ))}
           </ul>

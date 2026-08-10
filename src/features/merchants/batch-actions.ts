@@ -112,6 +112,15 @@ export async function submitProposalBatch(
     };
 
     revalidatePath('/merchant/proposals');
+    /*
+     * The page the merchant is standing on.
+     *
+     * `/merchant/proposals/bulk` is where the sheet is submitted AND where the resulting batches are
+     * listed — including the link to attach photographs. Without this the merchant sent a catalogue,
+     * stayed on the page, and saw nothing appear, so the photo step was unreachable even for somebody
+     * already in the right place. Found while writing the journey test for the reported bug.
+     */
+    revalidatePath('/merchant/proposals/bulk');
     revalidatePath('/admin/merchants/proposals');
 
     return ok({
@@ -209,6 +218,8 @@ export async function attachBatchImages(input: unknown): Promise<AttachState> {
     }
 
     revalidatePath(`/merchant/proposals/${batchId}`);
+    // The list shows per-batch image counts, so attaching changes it too.
+    revalidatePath('/merchant/proposals/bulk');
     revalidatePath(`/admin/merchants/proposals/${batchId}`);
     return ok({ attached: result.attached ?? 0 });
   } catch (error) {
