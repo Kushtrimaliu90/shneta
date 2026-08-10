@@ -122,6 +122,55 @@ test.describe('product listing', () => {
     expect([...numbers]).toEqual([...numbers].sort((a, b) => a - b));
   });
 
+  /**
+   * The arrow on the price sort means what it shows, in Albanian.
+   *
+   * The test above proves `?sort=price_asc` orders by price — it navigates by URL, so it never read the
+   * label. That is exactly the gap the bug lived in: the arrows encoded the *sort direction*, so
+   * "Çmimi ↑" (ascending) rendered the cheapest products and read as backwards to anyone who takes an up
+   * arrow to mean a higher price. Reported twice in one session for two different controls, so this
+   * clicks the control a shopper clicks and checks the prices went the way the arrow points.
+   */
+  test('the price arrow points the way the prices actually go (sq)', async ({ page }) => {
+    const prices = async () => {
+      const all = await page.locator('#main article p[data-numeric]').allTextContents();
+      return all
+        .map((text) => /(\d+[,.]\d{2})\s*€/.exec(text)?.[1])
+        .filter((value): value is string => Boolean(value))
+        .map((value) => Number.parseFloat(value.replace(',', '.')));
+    };
+
+    await page.goto('/shop');
+
+    /*
+     * Located by accessible name, which is the `aria-label` rather than the visible text — the two
+     * price links differ only by an arrow glyph, and a screen reader may not announce it, so without the
+     * label they would both be called "Çmimi". The arrow itself is asserted separately below, because it
+     * is what a sighted shopper actually reads.
+     */
+    const cheapest = page.getByRole('link', { name: 'Çmimi: më i liri në fillim' });
+    const dearest = page.getByRole('link', { name: 'Çmimi: më i shtrenjti në fillim' });
+    await expect(cheapest).toHaveText(/↓/);
+    await expect(dearest).toHaveText(/↑/);
+
+    // Down arrow: the lowest price first.
+    await cheapest.click();
+    await expect(page).toHaveURL(/sort=price_asc/);
+    const ascending = await prices();
+    expect(ascending.length).toBeGreaterThan(3);
+    expect([...ascending]).toEqual([...ascending].sort((a, b) => a - b));
+
+    // Up arrow: the highest price first.
+    await page.getByRole('link', { name: 'Çmimi: më i shtrenjti në fillim' }).click();
+    await expect(page).toHaveURL(/sort=price_desc/);
+    const descending = await prices();
+    expect(descending.length).toBeGreaterThan(3);
+    expect([...descending]).toEqual([...descending].sort((a, b) => b - a));
+
+    // And the cheapest page really is cheaper than the dearest page, not merely internally sorted.
+    expect(Math.min(...ascending)).toBeLessThan(Math.max(...descending));
+  });
+
   test('clearing filters returns to the unfiltered list', async ({ page }) => {
     await page.goto('/en/shop?tag=vegan&onSale=1');
     await page.getByRole('link', { name: 'Clear filters' }).first().click();

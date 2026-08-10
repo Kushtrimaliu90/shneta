@@ -147,6 +147,21 @@ export async function ProductListingPage({
                   key={sort}
                   href={sortHref(sort)}
                   aria-current={sort === activeSort ? 'true' : undefined}
+                  /*
+                   * The two price options are distinguished only by an arrow glyph, and a screen reader
+                   * may announce "↑" as nothing at all — leaving two links both named "Çmimi", which is
+                   * indistinguishable. So they get their direction in words.
+                   *
+                   * It also fixes the ambiguity permanently. The arrows used to encode the *sort*
+                   * direction (ascending, descending), which is why "Çmimi ↑" showed the cheapest
+                   * products and was reported as backwards. They now encode the *price*, low or high,
+                   * and the accessible name says which so nobody has to infer it from a symbol.
+                   */
+                  aria-label={
+                    sort === 'price_asc' || sort === 'price_desc'
+                      ? t(`shop.sortAria.${sort}`)
+                      : undefined
+                  }
                   className={cn(
                     'min-h-9 shrink-0 rounded-sm px-2.5 py-1.5 text-sm whitespace-nowrap transition-colors',
                     sort === activeSort
