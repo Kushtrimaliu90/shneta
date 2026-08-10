@@ -408,59 +408,101 @@ export interface CatalogVariantOption {
  * way an anonymous visitor does — there is no privileged catalogue read here, and a merchant cannot
  * discover a draft product through the offer picker.
  */
+/**
+ * How many options the picker will render before it asks the merchant to narrow the search.
+ *
+ * Not 20. The old cap was 20 **and** the search was broken, so a merchant who could not see a product
+ * also could not find it — 72 live variants across 15 brands, of which the first page reached 6
+ * brands. A limit only works when the escape hatch does.
+ *
+ * 200 is chosen so the whole catalogue fits today with room to grow, because a `<select>` a merchant
+ * can scroll beats pagination that discards the price and stock they already typed into the form
+ * below. Past 200 the count line says so and the search is the answer.
+ */
+export const CATALOGUE_PICKER_LIMIT = 200;
+
 export async function searchCatalogVariants(
   term: string,
-  limit = 20,
-): Promise<CatalogVariantOption[]> {
+  limit = CATALOGUE_PICKER_LIMIT,
+): Promise<{ options: CatalogVariantOption[]; total: number }> {
   const supabase = await createClient();
   const trimmed = term.trim();
 
+  /*
+   * Against the flattened view, not `product_variants` with an embedded product.
+   *
+   * The previous query OR'd `name->>sq` in the hope of matching the product title, but a bare column
+   * inside a PostgREST `.or()` binds to the queried table — so it matched the *variant's* size label
+   * and, because that column is jsonb, failed silently rather than erroring. Migration 78 carries the
+   * measurement. One `ilike` over one prebuilt haystack replaces the whole construction, and there is
+   * no operator string left to get subtly wrong.
+   */
   let query = supabase
-    .from('product_variants')
-    .select(
-      `id, sku, name, price_cents,
-       products!inner ( slug, name, status, deleted_at, brands!inner ( name ) )`,
-    )
-    .eq('is_active', true)
-    .eq('products.status', 'published')
-    .is('products.deleted_at', null)
-    .order('sku')
+    .from('v_catalogue_variant_search')
+    .select('variant_id, sku, price_cents, variant_name, product_name, product_slug, brand_name', {
+      count: 'exact',
+    })
+    .order('sort_key')
+    .order('position')
     .limit(limit);
 
-  /*
-   * `or` across the SKU and the two localized names. The jsonb columns are matched with `->>`
-   * because `ilike` on jsonb is not a thing, and searching only the Albanian name would leave an
-   * English-speaking merchant unable to find a product BioCode lists in both.
-   */
   if (trimmed.length > 0) {
-    const pattern = `%${trimmed.replace(/[%_,()]/g, '')}%`;
-    query = query.or(
-      `sku.ilike.${pattern},name->>sq.ilike.${pattern},name->>en.ilike.${pattern}`,
-    );
+    // `%` and `_` are wildcards and `,` ends a PostgREST filter — strip rather than escape.
+    const pattern = `%${trimmed.replace(/[%_,()]/g, '').toLowerCase()}%`;
+    query = query.ilike('search_text', pattern);
   }
 
-  const { data, error } = await query;
+  const { data, error, count } = await query;
 
   if (error) {
     logger.error('searchCatalogVariants failed', { cause: error.message });
-    return [];
+    return { options: [], total: 0 };
   }
 
-  return ((data ?? []) as unknown as {
-    id: string;
+  const options = ((data ?? []) as unknown as {
+    variant_id: string;
     sku: string;
-    name: unknown;
+    variant_name: unknown;
+    product_name: unknown;
+    product_slug: string;
+    brand_name: string;
     price_cents: number;
-    products: { slug: string; name: unknown; brands: { name: string } };
   }[]).map((row) => ({
-    variantId: row.id,
+    variantId: row.variant_id,
     sku: row.sku,
-    variantName: asLocalizedField(row.name),
-    productName: asLocalizedField(row.products.name),
-    productSlug: row.products.slug,
-    brandName: row.products.brands.name,
+    variantName: asLocalizedField(row.variant_name),
+    productName: asLocalizedField(row.product_name),
+    productSlug: row.product_slug,
+    brandName: row.brand_name,
     retailPriceCentsInternal: row.price_cents,
   }));
+
+  /*
+   * `count` is the number of matches, not the number returned. The page prints both so a truncated
+   * list says so out loud — the old picker's whole failure was showing 20 of 72 and looking complete.
+   */
+  return { options, total: count ?? options.length };
+}
+
+/**
+ * Variant ids this merchant already has an offer on, in any status.
+ *
+ * The picker disables these rather than hiding them: "you already sell this" is a different and more
+ * useful answer than absence, and it is the same answer the unique constraint would give after the
+ * merchant had filled in the whole form.
+ */
+export async function myOfferedVariantIds(merchantId: string): Promise<Set<string>> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('merchant_offers')
+    .select('variant_id')
+    .eq('merchant_id', merchantId);
+
+  if (error) {
+    logger.error('myOfferedVariantIds failed', { cause: error.message });
+    return new Set();
+  }
+  return new Set((data ?? []).map((row) => row.variant_id));
 }
 
 /**

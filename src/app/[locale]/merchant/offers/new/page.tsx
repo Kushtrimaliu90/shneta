@@ -6,6 +6,7 @@ import { resolveLocale } from '@/i18n/locale';
 import {
   getMyMerchant,
   marketplaceMaxHandlingDays,
+  myOfferedVariantIds,
   searchCatalogVariants,
   settlementByUnitPrice,
 } from '@/features/merchants/queries';
@@ -31,9 +32,18 @@ type Props = {
  * then the search returning nothing is the honest answer, and the empty state says so.
  *
  * The search term arrives in `?q=` as a plain GET form rather than client state, so the list is
- * server-rendered, works before hydration, and is linkable. A twenty-row cap keeps one round trip to
- * `merchant_settlement_units` small; the counter-argument — that a merchant with a long catalogue
- * scrolls — is answered by searching, which is what the field is for.
+ * server-rendered, works before hydration, and is linkable.
+ *
+ * ── The cap used to be twenty, and the search did not work ──
+ *
+ * That paragraph previously argued a twenty-row cap was fine "because searching is what the field is
+ * for". Both halves were wrong at once, which is why it was reported as products being missing:
+ * seventy-two live variants across fifteen brands, of which twenty rendered — six brands' worth — and
+ * the search matched the *variant's* size label rather than the product title, so it could not
+ * recover the other nine. Migration 78 carries the measurement and the cause.
+ *
+ * The list is now the catalogue, grouped by brand, with the count printed above it so a truncated
+ * page says so rather than looking complete.
  */
 export default async function NewOfferPage({ params, searchParams }: Props) {
   const locale = resolveLocale((await params).locale);
@@ -46,9 +56,10 @@ export default async function NewOfferPage({ params, searchParams }: Props) {
 
   const t = await getTranslations('merchant.offers');
 
-  const [variants, maxHandling] = await Promise.all([
+  const [{ options: variants, total }, maxHandling, offeredVariantIds] = await Promise.all([
     searchCatalogVariants(term),
     marketplaceMaxHandlingDays(),
+    myOfferedVariantIds(merchant.id),
   ]);
 
   const settlement = await settlementByUnitPrice(
@@ -111,13 +122,29 @@ export default async function NewOfferPage({ params, searchParams }: Props) {
           </Link>
         </div>
       ) : (
-        <OfferForm
-          mode="create"
-          locale={locale}
-          variants={variants}
-          settlementPerUnitCents={perVariant}
-          maxHandlingDays={maxHandling}
-        />
+        <>
+          {/*
+            The count, out loud.
+
+            The picker's original failure was not only that it capped at twenty — it was that twenty
+            of seventy-two looked exactly like all of them. A list that is complete should say so, and
+            a list that is truncated should say that instead of letting the merchant conclude BioCode
+            does not stock the product.
+          */}
+          <p className="text-sm text-ink-500" data-numeric>
+            {total > variants.length
+              ? t('form.showingTruncated', { shown: variants.length, total })
+              : t('form.showingAll', { total })}
+          </p>
+          <OfferForm
+            mode="create"
+            locale={locale}
+            variants={variants}
+            offeredVariantIds={offeredVariantIds}
+            settlementPerUnitCents={perVariant}
+            maxHandlingDays={maxHandling}
+          />
+        </>
       )}
     </div>
   );

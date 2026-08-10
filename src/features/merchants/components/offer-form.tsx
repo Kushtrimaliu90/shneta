@@ -23,6 +23,23 @@ import type { CatalogVariantOption, OfferRow } from '@/features/merchants/querie
 import { offerErrorLeaf } from '@/features/merchants/error-keys';
 
 /**
+ * Brand → its variants, preserving the order the query already sorted them into.
+ *
+ * A Map keeps insertion order, so the groups come out in the brand-then-product sequence the view's
+ * `sort_key` produced. No second sort, and therefore no chance of the group order disagreeing with
+ * the order inside each group.
+ */
+function groupByBrand(entries: CatalogVariantOption[]): [string, CatalogVariantOption[]][] {
+  const groups = new Map<string, CatalogVariantOption[]>();
+  for (const entry of entries) {
+    const list = groups.get(entry.brandName);
+    if (list) list.push(entry);
+    else groups.set(entry.brandName, [entry]);
+  }
+  return [...groups.entries()];
+}
+
+/**
  * docs/16 §5 — one offer, created or edited.
  *
  * ── What the merchant is actually agreeing to, made visible ──
@@ -52,6 +69,7 @@ export function OfferForm({
   mode,
   locale,
   variants,
+  offeredVariantIds,
   offer,
   settlementPerUnitCents,
   maxHandlingDays,
@@ -60,6 +78,8 @@ export function OfferForm({
   locale: Locale;
   /** The canonical catalogue, for the create form's picker. Empty when editing. */
   variants: CatalogVariantOption[];
+  /** Variants this merchant already offers, so the picker can say so instead of erroring later. */
+  offeredVariantIds?: Set<string>;
   offer?: OfferRow;
   /**
    * What settlement would pay per unit for the *selected* variant. On the create form it is a map
@@ -83,7 +103,18 @@ export function OfferForm({
    */
   const router = useRouter();
 
-  const [variantId, setVariantId] = useState(offer?.variantId ?? variants[0]?.variantId ?? '');
+  /*
+   * The first variant the merchant does not already offer, not simply the first.
+   *
+   * Now that taken variants render disabled, preselecting index 0 could arm the form with a choice the
+   * merchant cannot submit — and the refusal would arrive from the unique constraint after they had
+   * filled in price, stock and SKU.
+   */
+  const [variantId, setVariantId] = useState(
+    offer?.variantId ??
+      variants.find((entry) => !offeredVariantIds?.has(entry.variantId))?.variantId ??
+      '',
+  );
   const [asking, setAsking] = useState(offer ? fromCents(offer.askingPriceCents) : '');
 
   const [state, action] = useActionState<OfferState, FormData>(async (previous, formData) => {
@@ -127,14 +158,37 @@ export function OfferForm({
                 className="h-11 w-full rounded-sm border border-line-strong bg-surface px-3 text-base text-ink-900"
               >
                 <option value="">{t('variantPlaceholder')}</option>
-                {variants.map((entry) => (
-                  <option key={entry.variantId} value={entry.variantId}>
-                    {entry.brandName} · {pickLocale(entry.productName, locale)}
-                    {pickLocale(entry.variantName, locale)
-                      ? ` — ${pickLocale(entry.variantName, locale)}`
-                      : ''}{' '}
-                    ({entry.sku})
-                  </option>
+                {/*
+                  Grouped by brand, because the list is now the whole catalogue rather than the first
+                  twenty SKUs. A merchant looks for "the Solgar one", and `<optgroup>` is the native
+                  control that answers that — it also gives the browser's type-ahead something to land
+                  on when the select is focused.
+                */}
+                {groupByBrand(variants).map(([brand, entries]) => (
+                  <optgroup key={brand} label={brand}>
+                    {entries.map((entry) => {
+                      const taken = offeredVariantIds?.has(entry.variantId) ?? false;
+                      return (
+                        <option
+                          key={entry.variantId}
+                          value={entry.variantId}
+                          /*
+                            Disabled rather than omitted. "You already sell this" is a more useful
+                            answer than the product being missing, and it is the same answer the
+                            unique constraint gives — except here it arrives before the merchant has
+                            filled in price, stock and SKU.
+                          */
+                          disabled={taken}
+                        >
+                          {pickLocale(entry.productName, locale)}
+                          {pickLocale(entry.variantName, locale)
+                            ? ` — ${pickLocale(entry.variantName, locale)}`
+                            : ''}{' '}
+                          ({entry.sku}){taken ? ` — ${t('alreadyOffered')}` : ''}
+                        </option>
+                      );
+                    })}
+                  </optgroup>
                 ))}
               </select>
             )}
