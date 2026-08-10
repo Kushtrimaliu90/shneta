@@ -107,6 +107,29 @@ export default async function MerchantProposalBulkPage({ params }: Props) {
           {t('newTitle')}
         </h3>
 
+        {/*
+          The sample workbook, above the form rather than beside it.
+
+          A merchant proposing a catalogue has no idea what columns we want, and a header example in a
+          grey box asks them to build a spreadsheet from a string. Downloading one that already has the
+          columns — with the barcode and SKU columns marked as Text so Excel cannot turn them into
+          scientific notation — turns that into typing over an example row.
+        */}
+        <div className="flex flex-wrap items-center gap-3 rounded-lg border border-line bg-cream p-4">
+          {/*
+            A real anchor, not <Link>. This is a file download: a client-side transition to a route
+            handler would navigate rather than save, and the lint rule cannot tell the two apart.
+          */}
+          {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+          <a
+            href="/api/merchant/template/proposals"
+            className="inline-flex min-h-11 items-center rounded-md bg-forest-800 px-4 text-sm font-medium text-cream hover:bg-forest-900"
+          >
+            {t('downloadExcel')}
+          </a>
+          <p className="text-[13px] text-ink-600">{t('downloadExcelHint')}</p>
+        </div>
+
         {/* Three open batches is the cap: the reviewer's queue is a day's work, not a wall (§9.1). */}
         {open.length >= 3 ? (
           <p className="rounded-lg border border-warning/40 bg-warning/5 p-4 text-sm text-ink-900">

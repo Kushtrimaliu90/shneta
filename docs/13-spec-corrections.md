@@ -3591,3 +3591,70 @@ A preview of current → new per row before writing, a confirmation on large pri
 whose identifier columns are pre-formatted as text, one error list merging parse failures with database
 skips by row number, browser-side photo downscaling, and a withdraw path for a batch. Each is listed with
 its reasoning in the assessment; none is a correctness risk, and all of them were behind the money bug.
+
+---
+
+## AG. Editing a live price, and a sample workbook that comes back
+
+Two owner decisions on 2026-08-10.
+
+### A price change returns the offer to review
+
+`settings.marketplace.price_change_review` has existed since migration 47, defaulting to `false`, with
+the note that turning it on was "a §6 decision". It is on now.
+
+Enforced by a **trigger**, `demote_offer_on_price_change`, not by `updateOffer`. That action is one of
+three ways a price moves: `merchant_bulk_upsert_offers` writes `price_cents = coalesce(v_price,
+price_cents)` straight onto approved rows, and `merchant_bulk_create_offers` reaches the same column. A
+rule in the action would re-review one edited offer and wave through a pasted sheet of two hundred new
+prices — the larger hole and the quieter one.
+
+**Stock is exempt, deliberately.** A merchant updating quantities nightly from its own sheet is the
+ordinary use of this marketplace; putting every offer into review each evening would make the queue
+useless and the portal hostile. `handling_days` is a customer-facing promise and arguably belongs with
+price; left out until asked.
+
+Proven in a rolled-back transaction: `after_stock=approved after_price=pending_review
+after_draft=draft` — stock stays live, price demotes, and an offer that was never approved is not
+promoted into review by editing it.
+
+`merchant_offers_write_guard` raises `OFFER_APPROVAL_FORBIDDEN` if a merchant's statement changes
+`approved_at`, and BEFORE triggers fire in **name order**. So the new trigger sets `status` only and is
+named `merchant_offers_zz_price_review` to sort after the guard. Setting only `status` means the order
+does not actually matter — which is the point, and is written down because a future edit that touches
+the approval columns would silently depend on it.
+
+**What it costs the merchant.** `variant_buy_box` requires `approved`, so correcting a typo takes the
+product off the shelf until a reviewer looks. That is what was asked for, and the form now says so
+before saving rather than after. The better design — keep selling at the approved price while the new
+one waits, via a second price column the buy box ignores — is a larger change and is not built.
+
+### A sample `.xlsx`, not a CSV
+
+The offers page handed out a CSV, and the CSV was the source of most of its trouble: it cannot carry a
+column type, so Excel re-guesses every cell on open. A 13-digit barcode becomes `8.71235E+12`, `MAR-3`
+becomes `03-Mar`, and a comma decimal collides with the comma that separates the fields — arriving later
+as "we do not list that product", or, until migration 78, as a price a hundred times too high.
+
+`numFmt: '@'` on the identifier columns fixes it **at source**: Excel leaves the barcode alone the moment
+the file opens. Prevention, where this codebase had been accumulating diagnosis.
+
+What makes it usable by somebody in a hurry, rather than merely correct:
+
+- **The offers sheet arrives filled with the merchant's own SKUs, stock and prices**, so a stock update
+  is typing over numbers instead of building a spreadsheet. Every status is included — omitting a paused
+  offer reads as BioCode having lost it, and re-adding it by hand is how a duplicate row appears.
+- **One greyed, italic example row** on the proposals sheet. Deleting it is obvious; inferring a format
+  from a header is not.
+- **A frozen header and real column widths**, because somebody scrolling 200 rows should not lose track
+  of which column is the price.
+- **A second sheet of instructions in Albanian**, so the rules travel with the file rather than living
+  on a page the merchant closed.
+
+The header names are the ones the parsers already accept, so it round-trips: download, edit, upload,
+nothing renamed in between. `tests/unit/sheet-template.test.ts` asserts exactly that — build the
+workbook, read it as if uploaded, run it through the parser that decides what gets written. The
+catalogue CSV failed this test before it existed: it carried identifiers only, so pasting it back
+returned `no_header` and told the merchant to add a header row while they were looking at one.
+
+The CSV download stays, demoted to a plain link, for anyone whose tooling wants it.

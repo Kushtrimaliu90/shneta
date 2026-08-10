@@ -1351,7 +1351,8 @@
         "submitForReview": "Submit for review",
         "submitForReviewHint": "BioCode reviews it and tells you here.",
         "delete": "Delete offer",
-        "deleteHint": "Only drafts and rejected offers can be deleted. An approved offer is paused, not removed."
+        "deleteHint": "Only drafts and rejected offers can be deleted. An approved offer is paused, not removed.",
+        "priceReturnsToReview": "Heads up: changing the price sends this offer back for review, and it will not sell until we approve it. Stock you can change any time without review."
       }
     },
     "documents": {
@@ -1645,7 +1646,8 @@
         "empty": "Paste at least one row.",
         "tooMany": "Too many rows at once. The limit is 2000.",
         "noHeader": "The first row must contain the column names — at least a SKU column and one of stock, price, dispatch days or low-stock level."
-      }
+      },
+      "downloadExcel": "Download Excel"
     },
     "scorecard": {
       "title": "Your record",
@@ -1752,7 +1754,9 @@
         "tooMany": "Too many rows at once. The limit is 200 per sheet.",
         "tooManyOpen": "You have three sheets waiting for an answer. Wait for one of them before sending another."
       },
-      "addImages": "Add photographs"
+      "addImages": "Add photographs",
+      "downloadExcel": "Download sample Excel",
+      "downloadExcelHint": "It has the columns ready and one example row. Fill it in, save as .xlsx and upload — no CSV needed."
     },
     "sheet": {
       "label": "Upload your sheet",

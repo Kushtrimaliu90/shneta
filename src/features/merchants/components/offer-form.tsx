@@ -320,6 +320,18 @@ export function OfferForm({
           </Field>
         </div>
 
+        {/*
+          Said before saving, not discovered afterwards.
+
+          A price change on an approved offer returns it to review (migration 80), and the buy box only
+          considers approved offers — so correcting a typo takes the product off the shelf until a
+          reviewer looks. That is the behaviour the owner asked for, and it is a surprise worth spending
+          a sentence on: the merchant may reasonably want to wait for a quiet hour to do it.
+        */}
+        {mode === 'edit' && offer?.status === 'approved' && askingCents !== offer.askingPriceCents && (
+          <Alert tone="warning">{t('priceReturnsToReview')}</Alert>
+        )}
+
         {askingAboveDue && (
           <Alert tone="warning">
             {t('askingAboveDue', {

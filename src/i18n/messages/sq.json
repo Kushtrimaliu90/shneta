@@ -1351,7 +1351,8 @@
         "submitForReview": "Dërgo për shqyrtim",
         "submitForReviewHint": "BioCode e shqyrton dhe të njofton në portal.",
         "delete": "Fshi ofertën",
-        "deleteHint": "Fshihen vetëm draftet dhe ofertat e refuzuara. Një ofertë e miratuar ndalohet, nuk fshihet."
+        "deleteHint": "Fshihen vetëm draftet dhe ofertat e refuzuara. Një ofertë e miratuar ndalohet, nuk fshihet.",
+        "priceReturnsToReview": "Kujdes: kur e ndryshon çmimin, oferta kthehet në shqyrtim dhe nuk shitet derisa ta miratojmë. Stoku mund ta ndryshosh kur të duash pa shqyrtim."
       }
     },
     "documents": {
@@ -1645,7 +1646,8 @@
         "empty": "Ngjit së paku një rresht.",
         "tooMany": "Shumë rreshta njëherësh. Maksimumi 2000.",
         "noHeader": "Rreshti i parë duhet të përmbajë emrat e kolonave — të paktën një kolonë SKU dhe një nga stok, çmim, ditë dërgese ose kufi stoku."
-      }
+      },
+      "downloadExcel": "Shkarko Excel-in"
     },
     "scorecard": {
       "title": "Vlerësimi",
@@ -1752,7 +1754,9 @@
         "tooMany": "Shumë rreshta njëherësh. Maksimumi 200 për fletë.",
         "tooManyOpen": "Ke tri fleta në pritje të përgjigjes. Prit një nga ato para se të dërgosh tjetër."
       },
-      "addImages": "Shto fotografitë"
+      "addImages": "Shto fotografitë",
+      "downloadExcel": "Shkarko Excel-in shembull",
+      "downloadExcelHint": "Ka kolonat e gatshme dhe një rresht shembull. Plotësoje, ruaje si .xlsx dhe ngarkoje — nuk duhet CSV."
     },
     "sheet": {
       "label": "Ngarko fletën tënde",

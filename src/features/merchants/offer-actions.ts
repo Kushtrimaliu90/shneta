@@ -146,10 +146,18 @@ export async function createOffer(_previous: OfferState, formData: FormData): Pr
 /**
  * Edits price, stock, SKU and handling time.
  *
- * It deliberately does **not** touch `status`. An approved offer whose price changes stays approved,
- * because `price_change_review` in settings is off in v1 and turning it on is a §6 decision — and an
- * edit that silently pulled a live offer out of the buy box would be a worse surprise than either
- * behaviour chosen on purpose.
+ * It still does not touch `status`, but the reason has changed. `price_change_review` was off in v1 and
+ * the owner turned it on (2026-08-10): an approved offer whose **price** changes returns to
+ * `pending_review`. That is enforced by `demote_offer_on_price_change`, a trigger, rather than here —
+ * because this action is one of three ways a price moves, and `merchant_bulk_upsert_offers` writes
+ * straight onto approved rows. A rule that lived in the action would re-review one edited offer and let
+ * a pasted sheet of two hundred new prices through, which is the larger hole and the quieter one.
+ *
+ * Stock is exempt, deliberately: a merchant updating quantities nightly is the ordinary use of this
+ * marketplace, and putting every offer into review each evening would make the queue useless.
+ *
+ * The form says so before saving, because the consequence is real — `variant_buy_box` requires
+ * `approved`, so correcting a price takes the product off the shelf until a reviewer looks.
  */
 export async function updateOffer(_previous: OfferState, formData: FormData): Promise<OfferState> {
   const acting = await actingMerchant();

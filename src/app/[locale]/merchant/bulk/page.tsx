@@ -86,11 +86,33 @@ export default async function MerchantBulkPage({ params }: Props) {
             </Link>
           </p>
         ) : (
-          <div>
+          <div className="flex flex-wrap items-center gap-3">
+            {/*
+              Excel first, CSV second, because the CSV is where the trouble came from.
+
+              A CSV cannot carry a column type, so Excel re-guesses every cell on open: the barcode
+              becomes 8.71235E+12, `MAR-3` becomes a date, and a comma decimal collides with a comma
+              delimiter. The workbook marks the identifier columns as Text and arrives already filled
+              with this merchant's own SKUs, stock and prices — so updating stock is typing over numbers
+              rather than building a sheet, and it uploads back without being converted.
+
+              The CSV stays for anyone whose tooling wants it, demoted to a plain link.
+            */}
+            {/*
+              A real anchor, not <Link>. This is a file download: a client-side transition to a route
+              handler would navigate rather than save, and the lint rule cannot tell the two apart.
+            */}
+            {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+            <a
+              href="/api/merchant/template/offers"
+              className="inline-flex min-h-11 items-center rounded-md bg-forest-800 px-4 text-sm font-medium text-cream hover:bg-forest-900"
+            >
+              {t('downloadExcel')}
+            </a>
             <a
               href={dataUrl}
               download={`biocode-offers-${merchant.slug}.csv`}
-              className="inline-flex min-h-11 items-center rounded-md border border-line-strong px-4 text-sm font-medium text-forest-800 hover:bg-forest-50"
+              className="text-sm text-forest-800 underline underline-offset-4"
             >
               {t('download')}
             </a>
