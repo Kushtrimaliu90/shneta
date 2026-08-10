@@ -3511,3 +3511,83 @@ strictly — so the suite was reporting a stronger robots.txt as a regression. I
 running these, which is the actual mistake. The money-path test now accepts either shape; the two that
 describe the indexable configuration skip while the block is on, rather than being weakened into
 assertions that pass either way.
+
+---
+
+## AF. The merchant bulk upload, assessed and rebuilt
+
+Reported as "not user-friendly for merchants who keep simple Excels and are not familiar with CSV".
+Investigating it found a money bug underneath the usability one.
+
+### The money bug
+
+`parsePrice` chose the decimal separator from the **field** separator. Measured on the real parser:
+
+```
+sku,stok,cmimi / A,12,"9,90"  ->  99000 cents  ->  EUR 990.00   malformed: []
+sku,stok,cmimi / A,12,9,90    ->    900 cents  ->  EUR   9.00   malformed: []
+sku;stok;cmimi / A;12;9,90    ->    990 cents  ->  EUR   9.90   correct
+```
+
+A hundred times too high under a green "1 row applied". Internally coherent — with a comma between
+fields a comma cannot be a decimal — and exactly inverted for a market where the comma **is** the
+decimal. `merchant.bulk.pasteHint` promised the unsafe form was fine, and `merchant-csv.test.ts:80`
+pinned the 100× reading as correct, so the suite endorsed it. Google Sheets exports comma-delimited and
+an Albanian-locale sheet writes and quotes `"9,90"`, so the path is real rather than theoretical.
+
+The separator is now read from the **shape of the number**: both present, the last is the decimal, so
+`1.250,00` and `1,250.00` are both 1250.00; one present, it is a decimal unless followed by exactly three
+digits, where `1250` and `1.25` are equally plausible and it is **refused by name** rather than guessed.
+Refusing is the point — the one thing worse than rejecting a row is applying the wrong money to it.
+
+`proposal-csv.ts` carried its own copy of the same bug, in the flow that mints the offer on approval
+(§AE). One implementation now, so it cannot be fixed in one place and left in the other.
+
+### Three more silent paths, closed
+
+- **A row with more cells than the header** was read by index, so a stray separator shifted every column
+  after it — and the shifted values were often still valid, which is why it never surfaced. Refused now.
+- **Our own export caused it.** `merchant_sku` is free text and was written unquoted, so a merchant whose
+  internal code is `ART;114` was handed a file BioCode had corrupted. Every cell is quoted at the source.
+- **A price over the int4 ceiling** raised inside the RPC, rolled back all 199 good rows and surfaced as
+  "something went wrong" with no line and no cell, reproducing forever on retry. Bounded in the parser.
+
+### The usability work
+
+**There was no way to give it a file.** Both flows were a bare `<textarea>`; the only `type="file"` inputs
+in the feature were for images and KYB documents. A merchant with `stok-tetor.xlsx` had to know to Save As
+CSV, know which delimiter their Excel locale writes, and know that a comma decimal collides with a comma
+delimiter — three pieces of CSV knowledge before changing one stock number.
+
+`/api/merchant/sheet` now takes the file. A **route handler**, not a Server Action, because an action body
+is capped at 1 MB and a spreadsheet is not. It reads and returns text; it writes nothing, so the existing
+action still performs the update behind the same validation, caps and RLS.
+
+`readSheet` converts to semicolon-delimited text with **every cell quoted** — the one shape the existing
+parsers read unambiguously. They keep their 39 and 25 unit cases and gain a format for free, and whole
+classes of bug disappear rather than being diagnosed: no delimiter to detect, no BOM, no quoting rules,
+and a 13-digit barcode arrives as digits instead of `8.71235E+12`.
+
+The picker fills the textarea rather than replacing it, so the merchant **sees what was read before
+saving** and the file path and paste path share every downstream check.
+
+### On the dependency, where the investigation was wrong
+
+Four readers and three designs concluded no package was needed and proposed ~380 lines of hand-rolled ZIP
+and OOXML parsing, rejecting SheetJS on the First Load JS budget. `scripts/check-bundle.ts` measures
+**client** bundles: a parser used only in a route handler costs nothing against it. `exceljs` is added and
+server-only; `check:bundle` confirms `/merchant/proposals/bulk` at 135 kB against a 170 kB budget. Owning
+an OOXML reader to save a budget it does not touch would have been a bad trade.
+
+### The reset, for the third time
+
+React 19 empties an uncontrolled form when its action resolves, so the textarea cleared exactly as the
+report of row numbers appeared. "Rreshti 47" against text that is gone is unactionable. The hero slide
+editor and the announcement bar were the first two; both bulk sheets now hold their contents in state.
+
+### Still open
+
+A preview of current → new per row before writing, a confirmation on large price moves, a template
+whose identifier columns are pre-formatted as text, one error list merging parse failures with database
+skips by row number, browser-side photo downscaling, and a withdraw path for a batch. Each is listed with
+its reasoning in the assessment; none is a correctness risk, and all of them were behind the money bug.

@@ -490,6 +490,71 @@ test.describe('unauthenticated', () => {
 });
 
 /** Guards against the fixture users leaking if `afterAll` never runs. */
+/**
+ * The Excel upload, which is the point of the whole bulk feature for a merchant who is not a programmer.
+ *
+ * Asserted through the merchant's actual clicks — pick a file, see the rows land in the box — because the
+ * unit tests cover the reader and the parser but neither proves the browser wiring: the picker sets the
+ * textarea's value directly and dispatches an input event, which is exactly the kind of thing that works
+ * in isolation and silently does nothing inside React.
+ */
+test.describe('bulk upload from a spreadsheet (docs/16 §6)', () => {
+  test('a merchant can hand over an .xlsx and see what was read', async ({ page }) => {
+    const merchant = await merchantAccount({ status: 'approved' });
+    await signIn(page, merchant.email, merchant.password);
+
+    await page.goto('/en/merchant/bulk');
+
+    const sheet = page.locator('#offer-sheet');
+    await expect(sheet).toHaveValue('');
+
+    /*
+     * A real .xlsx, built here rather than committed. The interesting cells are the ones Excel mangles:
+     * a 13-digit barcode that becomes 8.71235E+12 in a CSV, and a price whose comma decimal collides
+     * with a comma delimiter.
+     */
+    const ExcelJS = (await import('exceljs')).default;
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Sheet1');
+    worksheet.addRow(['sku', 'stok', 'cmimi']);
+    worksheet.addRow([8712345678901, 12, 9.9]);
+    const buffer = Buffer.from(await workbook.xlsx.writeBuffer());
+
+    await page.setInputFiles('#offer-sheet-file', {
+      name: 'stok-tetor.xlsx',
+      mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      buffer,
+    });
+
+    // The count is the feedback, and it is what tells the merchant the header row was understood.
+    await expect(page.getByText('Read 1 rows. Check them below, then save.')).toBeVisible();
+
+    // The barcode survived as digits, and the price is still 9.9 rather than 9,9 or 990.
+    await expect(sheet).toHaveValue(/8712345678901/);
+    await expect(sheet).not.toHaveValue(/E+/);
+    await expect(sheet).toHaveValue(/9.9/);
+  });
+
+  test('a file we cannot read is refused by name, not silently', async ({ page }) => {
+    const merchant = await merchantAccount({ status: 'approved' });
+    await signIn(page, merchant.email, merchant.password);
+    await page.goto('/en/merchant/bulk');
+
+    await page.setInputFiles('#offer-sheet-file', {
+      name: 'stok.xlsx',
+      mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      buffer: Buffer.from('this is not a spreadsheet'),
+    });
+
+    await expect(
+      page.getByText('That file could not be read. Save it as .xlsx or .csv and try again.'),
+    ).toBeVisible();
+    // And the box is untouched, so a paste in progress is not destroyed by a bad pick.
+    await expect(page.locator('#offer-sheet')).toHaveValue('');
+  });
+});
+
+
 test.afterAll(() => {
   if (createdUsers.length > 0) {
     console.warn(`[marketplace] ${createdUsers.length} fixture users left for the global teardown`);

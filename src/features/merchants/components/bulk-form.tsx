@@ -1,10 +1,11 @@
 'use client';
 
-import { useActionState } from 'react';
+import { useActionState, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Alert } from '@/components/ui/alert';
 import { SubmitButton } from '@/components/ui/submit-button';
 import { bulkApplyOffers, type BulkState } from '@/features/merchants/bulk-actions';
+import { SheetUpload } from '@/features/merchants/components/sheet-upload';
 
 const LEAVES = ['generic', 'notMerchant', 'empty', 'tooMany', 'noHeader'] as const;
 type Leaf = (typeof LEAVES)[number];
@@ -64,6 +65,19 @@ function reasonKey(reason: string): SkipReason {
  */
 export function BulkForm() {
   const t = useTranslations('merchant.bulk');
+  /*
+   * The sheet survives the submit.
+   *
+   * React 19 resets an uncontrolled form once its action resolves, so the textarea emptied the moment the
+   * report appeared — and the report is a list of row numbers. "Rreshti 47 — çmimi nuk lexohet" against
+   * text that is gone is unactionable, and it is the third time this exact reset has been fixed in this
+   * codebase (the hero slide editor and the announcement bar were the first two).
+   *
+   * Held in state and echoed back as `defaultValue`, keyed so a *successful* submit still clears it —
+   * leaving a sheet that has already been applied sitting in the box invites applying it twice.
+   */
+  const [sheet, setSheet] = useState('');
+
   const [state, action] = useActionState<BulkState, FormData>(
     async (previous, formData) => bulkApplyOffers(previous, formData),
     null,
@@ -82,10 +96,20 @@ export function BulkForm() {
         </p>
       </div>
 
+      {/*
+        The file picker sits above the paste box and fills it, so a merchant who keeps stock in an .xlsx
+        never meets a delimiter — and still sees what was read before saving. Pasting still works, and
+        both routes share every downstream check.
+      */}
+      <SheetUpload targetId="offer-sheet" />
+
       <label className="flex flex-col gap-1.5 text-sm">
         <span className="font-medium text-ink-900">{t('paste')}</span>
         <textarea
+          id="offer-sheet"
           name="csv"
+          defaultValue={sheet}
+          onChange={(event) => setSheet(event.target.value)}
           rows={8}
           required
           spellCheck={false}

@@ -1751,6 +1751,22 @@
         "tooMany": "Too many rows at once. The limit is 200 per sheet.",
         "tooManyOpen": "You have three sheets waiting for an answer. Wait for one of them before sending another."
       }
+    },
+    "sheet": {
+      "label": "Upload your sheet",
+      "hint": "Choose your Excel (.xlsx) or CSV file. We read it and fill the box below so you can check it before saving.",
+      "choose": "Choose file",
+      "reading": "Reading…",
+      "read": "Read {rows} rows. Check them below, then save.",
+      "errors": {
+        "unreadable": "That file could not be read. Save it as .xlsx or .csv and try again.",
+        "empty": "The file is empty.",
+        "no_rows": "The file has no data rows — it needs a header row and at least one row under it.",
+        "too_many_rows": "That file has too many rows. Split it into smaller sheets.",
+        "too_large": "That file is too large (over 8 MB).",
+        "wrong_type": "Only .xlsx or .csv. In Excel: Save As → Excel Workbook.",
+        "forbidden": "Only approved sellers can upload sheets."
+      }
     }
   },
   "placements": {

@@ -1751,6 +1751,22 @@
         "tooMany": "Shumë rreshta njëherësh. Maksimumi 200 për fletë.",
         "tooManyOpen": "Ke tri fleta në pritje të përgjigjes. Prit një nga ato para se të dërgosh tjetër."
       }
+    },
+    "sheet": {
+      "label": "Ngarko fletën tënde",
+      "hint": "Zgjidh skedarin Excel (.xlsx) ose CSV. Ne e lexojmë dhe e mbushim kutinë më poshtë, që ta shohësh para se ta ruash.",
+      "choose": "Zgjidh skedarin",
+      "reading": "Po lexohet…",
+      "read": "U lexuan {rows} rreshta. Shikoji më poshtë, pastaj ruaj.",
+      "errors": {
+        "unreadable": "Skedari nuk mund të lexohet. Ruaje si .xlsx ose .csv dhe provo përsëri.",
+        "empty": "Skedari është bosh.",
+        "no_rows": "Skedari nuk ka rreshta me të dhëna — duhet një rresht me emrat e kolonave dhe të paktën një rresht tjetër.",
+        "too_many_rows": "Skedari ka shumë rreshta. Ndaje në fleta më të vogla.",
+        "too_large": "Skedari është shumë i madh (mbi 8 MB).",
+        "wrong_type": "Vetëm .xlsx ose .csv. Në Excel: Ruaj si → Excel Workbook.",
+        "forbidden": "Vetëm shitësit e miratuar mund të ngarkojnë fleta."
+      }
     }
   },
   "placements": {
