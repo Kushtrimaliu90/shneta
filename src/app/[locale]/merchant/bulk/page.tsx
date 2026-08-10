@@ -41,16 +41,25 @@ export default async function MerchantBulkPage({ params }: Props) {
   const csv = [
     header.join(';'),
     ...rows.map((row) =>
+      /*
+       * Every cell quoted, not just the two names.
+       *
+       * `merchant_sku` is free text up to 64 characters, so a merchant whose internal code is `ART;114`
+       * was handed a file *we* had corrupted: the row gained a column, every value after it shifted, and
+       * the parser read the shifted stock as real. The parser now refuses such a row, but the file it
+       * refuses is one we wrote — so quote at the source too, and the round trip works.
+       */
       [
         row.sku,
         row.merchantSku,
-        // Quoted: product names contain semicolons and commas often enough to matter.
-        `"${row.productName.replace(/"/g, '""')}"`,
-        `"${row.variantName.replace(/"/g, '""')}"`,
+        row.productName,
+        row.variantName,
         row.status,
         String(row.stockOnHand),
         fromCents(row.priceCents).replace('.', ','),
-      ].join(';'),
+      ]
+        .map((cell) => `"${String(cell ?? '').replace(/"/g, '""')}"`)
+        .join(';'),
     ),
   ].join('\r\n');
 

@@ -1607,7 +1607,7 @@
       "intro": "Ngjit rreshtat me SKU dhe çfarë do të vendosësh: stok, çmim, ditë dërgese, kufi stoku. Rreshti i parë duhet të përmbajë emrat e kolonave.",
       "headerExample": "sku;stok;çmimi;dite;kufi",
       "paste": "Rreshtat",
-      "pasteHint": "Pikëpresje, presje ose tab. Çmimi mund të shkruhet 9,90 ose 9.90.",
+      "pasteHint": "Çmimin shkruaje 9,90 (ose 9.90). Mos e ndaj mijëshen — shkruaje 1250,00, jo 1.250,00.",
       "createLabel": "Krijo oferta për SKU-t që nuk i kam",
       "createHint": "Rreshti që nuk përputhet me asnjë ofertë tënde bëhet ofertë draft. Lëre të pashënuar për përditësim stoku, që një SKU e shkruar gabim të raportohet e të mos bëhet ofertë.",
       "submit": "Zbato",
@@ -1624,7 +1624,7 @@
         "negative_stock": "stok negativ",
         "invalid_price": "çmim i papranueshëm",
         "bad_stock": "stoku nuk është numër i plotë",
-        "bad_price": "çmimi nuk është numër",
+        "bad_price": "çmimi nuk lexohet si numër — shkruaje 9,90",
         "bad_handling": "ditët e dërgesës duhet numër i plotë 0–30",
         "bad_threshold": "kufiri i stokut të ulët nuk është numër i plotë",
         "invalid_handling": "ditët e dërgesës jashtë intervalit",
@@ -1632,7 +1632,10 @@
         "unknown_sku": "asnjë produkt i yni nuk ka këtë SKU ose barkod",
         "awaiting_review": "oferta tënde për të është në shqyrtim",
         "offer_rejected": "oferta tënde për të u refuzua — hape dhe lexo shënimin",
-        "price_required": "oferta e re kërkon çmim"
+        "price_required": "oferta e re kërkon çmim",
+        "ambiguous_price": "çmimi nuk lexohet me sigurí — «1,250» mund të jetë 1250 ose 1,25. Shkruaje 1250,00 ose 1,25.",
+        "unknown": "rreshti nuk u zbatua — shkruaji BioCode-it dhe trego numrin e rreshtit",
+        "too_many_columns": "rreshti ka më shumë kolona se koka — ka gjasa një presje brenda një fushe (p.sh. çmimi 9,90 pa thonjëza)"
       },
       "locale": "Gjuha e fletës: {locale}.",
       "errors": {

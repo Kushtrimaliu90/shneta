@@ -31,14 +31,23 @@ const SKIP_REASONS = [
   'awaiting_review',
   'offer_rejected',
   'price_required',
+  /* Migration-free addition: a number whose decimal separator cannot be determined. */
+  'ambiguous_price',
+  'too_many_columns',
+  'unknown',
 ] as const;
 
 type SkipReason = (typeof SKIP_REASONS)[number];
 
+/*
+ * An unrecognised reason becomes `unknown`, not `nothing_to_change`.
+ *
+ * The fallback used to name a specific, different problem — the merchant was told the row had nothing to
+ * change when the database had said something else entirely, and went looking at a field that was fine.
+ * A reason we cannot translate is better admitted than replaced with a confident wrong one.
+ */
 function reasonKey(reason: string): SkipReason {
-  return (SKIP_REASONS as readonly string[]).includes(reason)
-    ? (reason as SkipReason)
-    : 'nothing_to_change';
+  return (SKIP_REASONS as readonly string[]).includes(reason) ? (reason as SkipReason) : 'unknown';
 }
 
 /**

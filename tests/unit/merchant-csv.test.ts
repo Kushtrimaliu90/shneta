@@ -76,8 +76,43 @@ describe('prices', () => {
     expect(parseOfferCsv('sku;price\nA;12,50').rows[0]?.price_cents).toBe(1250);
   });
 
-  it('treats a comma as a thousands separator when the delimiter is a comma', () => {
-    expect(parseOfferCsv('sku,price\nA,"1,250"').rows[0]?.price_cents).toBe(125_000);
+  /**
+   * The hundredfold bug, pinned in the direction that matters.
+   *
+   * This suite used to assert `parseOfferCsv('sku,price\nA,"1,250"') === 125_000` — a comma-delimited
+   * sheet treating the comma as thousands. That reading is what turned an asking price of `9,90` into
+   * **EUR 990.00** under a green "1 row applied", because the separator was chosen by the *field*
+   * delimiter rather than by the number. Kosovo writes the decimal with a comma, so the rule was exactly
+   * inverted for the market it serves.
+   */
+  it('reads a comma decimal even when the delimiter is also a comma', () => {
+    expect(parseOfferCsv('sku,stok,cmimi\nA,12,"9,90"').rows[0]?.price_cents).toBe(990);
+    expect(parseOfferCsv('sku,stok,cmimi\nA,12,"9,90"').malformed).toEqual([]);
+  });
+
+  it('refuses the genuinely ambiguous number instead of guessing', () => {
+    // `1,250` is 1250 to one reader and 1.25 to another. Nothing in the cell says which.
+    const result = parseOfferCsv('sku,price\nA,"1,250"');
+    expect(result.rows).toEqual([]);
+    expect(result.malformed).toEqual([{ line: 2, reason: 'ambiguous_price' }]);
+  });
+
+  it('reads both grouped forms, because the last separator is the decimal', () => {
+    expect(parseOfferCsv('sku;price\nA;1.250,00').rows[0]?.price_cents).toBe(125_000);
+    expect(parseOfferCsv('sku;price\nA;"1,250.00"').rows[0]?.price_cents).toBe(125_000);
+  });
+
+  it('treats repeated separators as grouping, and then refuses the result as a price', () => {
+    /*
+     * `1.250.000` cannot be a decimal — two separators — so it reads as 1250000. Which is then refused,
+     * because a supplement does not cost 1.25 million euro. Both halves matter: the grouping rule is what
+     * stops it becoming 1250.00, and the ceiling is what stops it reaching an int4 cast in the RPC.
+     */
+    expect(parseOfferCsv('sku;price\nA;1.250.000').malformed).toEqual([
+      { line: 2, reason: 'bad_price' },
+    ]);
+    // A grouped number inside sane retail range still reads as grouping.
+    expect(parseOfferCsv('sku;price\nA;12.500,50').rows[0]?.price_cents).toBe(1_250_050);
   });
 
   it('strips a currency symbol', () => {
@@ -85,7 +120,26 @@ describe('prices', () => {
   });
 
   it('rounds to the nearest cent rather than truncating', () => {
-    expect(parseOfferCsv('sku;price\nA;12,555').rows[0]?.price_cents).toBe(1256);
+    // Four decimals rather than three: three would be ambiguous with a thousands group.
+    expect(parseOfferCsv('sku;price\nA;12,5551').rows[0]?.price_cents).toBe(1256);
+  });
+
+  it('refuses a price too large for the column instead of letting the RPC roll back the sheet', () => {
+    // `::int` in merchant_bulk_upsert_offers used to raise `integer out of range`, discarding every
+    // good row and surfacing as "something went wrong" with no line and no cell.
+    expect(parseOfferCsv('sku;price\nA;12000000000').malformed).toEqual([
+      { line: 2, reason: 'bad_price' },
+    ]);
+  });
+
+  it('reports every problem on a row, not just the first', () => {
+    // Was one reason per row with a `continue`, so a merchant fixed `bad_stock`, resubmitted, and met
+    // `bad_price` — with the textarea cleared in between.
+    const result = parseOfferCsv('sku;stok;cmimi\nA;abc;xyz');
+    expect(result.malformed).toEqual([
+      { line: 2, reason: 'bad_stock' },
+      { line: 2, reason: 'bad_price' },
+    ]);
   });
 
   it('reports a price that is not a number', () => {

@@ -12,6 +12,8 @@
  * The delimiter, quoting, BOM and comma-decimal handling are deliberately duplicated in spirit but small
  * enough to restate; both files are pure so both can be unit-tested against what real spreadsheets produce.
  */
+import { parsePriceEuro } from '@/features/merchants/csv';
+
 
 export interface ProposalCsvRow {
   product_name: string;
@@ -108,22 +110,6 @@ function detectDelimiter(headerLine: string): string {
   return semicolons >= commas ? ';' : ',';
 }
 
-/**
- * A price in euro to integer cents.
- *
- * The delimiter decides whether a comma can be a decimal separator: with `;` or a tab, `12,50` is one
- * field and means twelve fifty. With `,` between fields it cannot be, so a comma is a thousands separator.
- */
-function parsePrice(raw: string, delimiter: string): number | null {
-  const cleaned = raw.replace(/[€\s]/g, '');
-  if (cleaned.length === 0) return null;
-
-  const normalized = delimiter === ',' ? cleaned.replace(/,/g, '') : cleaned.replace(',', '.');
-  const value = Number(normalized);
-  if (!Number.isFinite(value) || value <= 0 || value > 100_000) return null;
-  return Math.round(value * 100);
-}
-
 function parseWhole(raw: string): number | null {
   const cleaned = raw.replace(/\s/g, '');
   if (cleaned.length === 0) return null;
@@ -194,11 +180,19 @@ export function parseProposalCsv(text: string): ProposalCsvResult {
       continue;
     }
 
-    const price = parsePrice(cell('price'), delimiter);
-    if (price === null) {
-      malformed.push({ line, reason: 'bad_price' });
+    /*
+     * The shared parser, which reads the number by its shape rather than by the field separator. This
+     * file had its own copy keyed off the delimiter, so a comma-delimited catalogue sheet turned an
+     * asking price of "9,90" into EUR 990.00 — the same hundredfold error as the offers sheet, in the
+     * flow that *creates* the offer on approval. One implementation now, so it cannot be fixed in one
+     * place and left in the other.
+     */
+    const parsedPrice = parsePriceEuro(cell('price'));
+    if (!parsedPrice.ok) {
+      malformed.push({ line, reason: parsedPrice.reason });
       continue;
     }
+    const price = parsedPrice.cents;
 
     let stock = 0;
     const rawStock = cell('stock');

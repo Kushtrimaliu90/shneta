@@ -1607,7 +1607,7 @@
       "intro": "Paste rows with a SKU and anything you want to set: stock, price, dispatch days, low-stock level. The first row must contain the column names.",
       "headerExample": "sku;stock;price;handling;lowstock",
       "paste": "Rows",
-      "pasteHint": "Semicolon, comma or tab. A price may be written 9,90 or 9.90.",
+      "pasteHint": "Write the price as 9,90 (or 9.90). Do not group thousands — write 1250,00 rather than 1.250,00.",
       "createLabel": "Create offers for SKUs I do not have yet",
       "createHint": "A row that matches none of your offers becomes a draft offer. Leave this off for a stock update, so a mistyped SKU is reported instead of becoming an offer.",
       "submit": "Apply",
@@ -1624,7 +1624,7 @@
         "negative_stock": "negative stock",
         "invalid_price": "unacceptable price",
         "bad_stock": "stock is not a whole number",
-        "bad_price": "price is not a number",
+        "bad_price": "the price does not read as a number — write it as 9,90",
         "bad_handling": "dispatch days must be a whole number from 0 to 30",
         "bad_threshold": "the low-stock level is not a whole number",
         "invalid_handling": "dispatch days out of range",
@@ -1632,7 +1632,10 @@
         "unknown_sku": "no product of ours has this SKU or barcode",
         "awaiting_review": "your offer on it is awaiting review",
         "offer_rejected": "your offer on it was rejected — open it and read the note",
-        "price_required": "a new offer needs a price"
+        "price_required": "a new offer needs a price",
+        "ambiguous_price": "the price is ambiguous — \"1,250\" could be 1250 or 1.25. Write 1250,00 or 1,25.",
+        "unknown": "the row was not applied — tell BioCode and quote the row number",
+        "too_many_columns": "the row has more cells than the header — likely a separator inside a cell (for example an unquoted 9,90)"
       },
       "locale": "Sheet language: {locale}.",
       "errors": {
