@@ -112,8 +112,9 @@ export function ReviewsSection({
         <p className="mt-6 text-sm text-ink-600">{t('noneAtRating')}</p>
       )}
 
+      {/* Wraps for the same reason as the shop's pagination: the labels are words, not arrows. */}
       {data.pageCount > 1 && (
-        <nav aria-label={t('pagination')} className="mt-6 flex items-center gap-2">
+        <nav aria-label={t('pagination')} className="mt-6 flex flex-wrap items-center gap-2">
           <button
             type="button"
             disabled={data.page <= 1 || pending}

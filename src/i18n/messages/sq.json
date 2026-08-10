@@ -422,8 +422,8 @@
     "sortBy": "Rendit sipas",
     "breadcrumbs": "Shtegu i faqes",
     "pagination": "Faqet",
-    "previous": "Para",
-    "next": "Pas",
+    "previous": "E mëparshme",
+    "next": "Tjetra",
     "pageOf": "Faqja {page} nga {total}",
     "productCount": "{count, plural, =0 {Asnjë produkt} one {# produkt} other {# produkte}}",
     "sort": {
@@ -694,8 +694,8 @@
     "helpful": "E dobishme",
     "shopReply": "BIOCODE u përgjigj",
     "pagination": "Faqet e vlerësimeve",
-    "previous": "Para",
-    "next": "Vazhdo",
+    "previous": "E mëparshme",
+    "next": "Tjetra",
     "pageOf": "Faqja {page} nga {total}",
     "noneAtRating": "Ende pa vlerësime me këtë notë.",
     "signInToReview": "<link>Kyçu</link> për të vlerësuar diçka që ke blerë.",
@@ -839,8 +839,8 @@
     "published": "Publikuar më {date}",
     "filterLabel": "Filtro sipas llojit",
     "pagination": "Faqet e artikujve",
-    "previous": "Para",
-    "next": "Vazhdo",
+    "previous": "E mëparshme",
+    "next": "Tjetra",
     "pageOf": "Faqja {page} nga {total}"
   },
   "offers": {

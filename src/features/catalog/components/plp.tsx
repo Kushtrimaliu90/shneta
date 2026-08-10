@@ -185,8 +185,24 @@ export async function ProductListingPage({
             floor: they work without JavaScript and search engines can follow them. A
             client-side "load more" is an enhancement layered on later.
           */}
+          {/*
+            The Albanian labels used to be "Para" and "Pas" — literally *before* and *after*, which as
+            standalone buttons read as backwards and forwards respectively. "Pas" was reported as
+            looking like a back button, and it did.
+
+            They are now "E mëparshme" and "Tjetra", feminine to agree with `faqja`, which is the same
+            idiom the carousel already uses ("Sllajdi tjetër"). The fuller "Faqja tjetër" was tried
+            first and wrapped this control to three rows on a 390 px phone: the noun is already on
+            screen in the counter between the two buttons, and the nav is labelled "Faqet", so
+            repeating it cost height and bought nothing.
+
+            `flex-wrap` stays as the safety net, since these are words rather than arrows.
+          */}
           {result.pageCount > 1 && (
-            <nav aria-label={t('shop.pagination')} className="mt-10 flex items-center gap-2">
+            <nav
+              aria-label={t('shop.pagination')}
+              className="mt-10 flex flex-wrap items-center gap-2"
+            >
               {result.page > 1 && (
                 <Link
                   href={pageHref(result.page - 1)}
