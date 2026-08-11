@@ -12,6 +12,31 @@ import { getLocale } from 'next-intl/server';
 import type { Locale } from '@/lib/constants';
 
 /**
+ * The header's own link set: `PRIMARY_NAV` with **BioHack in place of Health goals** (owner, 2026-08-11).
+ *
+ * ── Why this is derived rather than a change to `PRIMARY_NAV` ──
+ *
+ * That list is shared by the desktop bar, the mobile sheet and the footer, precisely so they cannot drift.
+ * Editing it would drop Health goals from all three, and the owner asked for the header. So the swap
+ * happens here and `/goals` keeps its place in the footer and the mobile menu, which is where a shopper
+ * browsing by goal will still find it.
+ *
+ * ── Why BioHack was missing in the first place ──
+ *
+ * It used to sit here as a lime-bordered CTA outside `PRIMARY_NAV`, styled apart because it is the one
+ * link that *starts* something rather than listing something. I removed it in 07fb42c to make room for the
+ * persistent search field and did not say so in the commit message — the owner noticed it was gone three
+ * days later. Worth recording as the reason this file now carries the header's list explicitly: an
+ * intentional difference from the shared set should be visible in the code, not implied by an absence.
+ *
+ * It returns as a plain nav link rather than the accent pill. In the second slot, mid-list, an accented
+ * pill reads as a rendering fault rather than emphasis; the hero already carries the accented CTA.
+ */
+const HEADER_NAV = PRIMARY_NAV.map((link) =>
+  link.key === 'goals' ? ({ key: 'biohack', href: '/biohack' } as const) : link,
+);
+
+/**
  * docs/04 §6 — cream, hairline bottom border, sticky; logo left, nav centre, actions right.
  *
  * The header reads **nothing request-scoped**. That is deliberate and load-bearing: this
@@ -69,7 +94,7 @@ export async function Navbar() {
 
         <nav aria-label={t('nav.primary')} className="hidden lg:block">
           <ul className="flex items-center gap-1">
-            {PRIMARY_NAV.map((link) => (
+            {HEADER_NAV.map((link) => (
               <li key={link.key}>
                 <Link
                   href={link.href}
