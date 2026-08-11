@@ -36,7 +36,12 @@ export function PriceTag({
   const discount = percentOff(priceCents, compareAtPriceCents);
 
   return (
-    <p className={cn('flex flex-wrap items-baseline gap-2', className)} data-numeric>
+    <p className={cn(/*
+         * Tight enough for a 2-up card. At 152px the price and its struck original wrapped to two lines,
+         * which put the number at a different height from an undiscounted neighbour and read as untidy.
+         * gap-x-1.5 with a 13px original keeps both on one line there and changes nothing on the PDP.
+         */
+        'flex flex-wrap items-baseline gap-x-1.5 gap-y-1', className)} data-numeric>
       <span
         className={cn(
           'font-semibold text-forest-900',
@@ -50,7 +55,7 @@ export function PriceTag({
 
       {discount !== null && compareAtPriceCents != null && (
         <>
-          <s className="text-sm text-ink-500">
+          <s className="text-[13px] text-ink-500">
             <span className="sr-only">{t('wasPrice')} </span>
             {formatPrice(compareAtPriceCents, locale)}
           </s>

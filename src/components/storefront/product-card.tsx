@@ -72,20 +72,39 @@ export function ProductCard({
   return (
     <article
       className={cn(
-        'group relative flex flex-col overflow-hidden rounded-lg border border-line bg-surface transition-shadow hover:shadow-md',
-        /* The card had a hover state and no keyboard equivalent; the stretched link focuses inside it. */
-        'focus-within:shadow-md',
+        'group relative flex flex-col overflow-hidden rounded-2xl bg-surface',
+        /*
+         * A hairline ring instead of a border, and a shadow that does the separating.
+         *
+         * `border-line` at full strength drew a visible box around every product, so a grid read as a
+         * table of boxes. A 60%-opacity ring plus a barely-there resting shadow lets the card sit on the
+         * cream page as an object; the weight arrives on hover, where it means something.
+         */
+        'ring-1 ring-line/60 shadow-[0_1px_2px_rgb(0_0_0/0.04)]',
+        'transition-[transform,box-shadow,--tw-ring-color] duration-300 ease-out',
+        'hover:-translate-y-1 hover:shadow-[0_16px_32px_-16px_rgb(15_42_31/0.28)] hover:ring-forest-500/40',
+        /* The same treatment for a keyboard user, who previously got none of it. */
+        'focus-within:-translate-y-1 focus-within:shadow-[0_16px_32px_-16px_rgb(15_42_31/0.28)] focus-within:ring-forest-500/40',
+        /* Honest about motion: a lift is decoration, and some people are made ill by it. */
+        'motion-reduce:transition-none motion-reduce:hover:translate-y-0 motion-reduce:focus-within:translate-y-0',
         className,
       )}
     >
-      <div className="relative aspect-square overflow-hidden bg-cream">
+      {/*
+        A wash rather than a flat tile. Packshots are cut out on white, so a single flat cream behind
+        them reads as two rectangles; a top-lit gradient gives the product something to sit in.
+      */}
+      <div className="relative aspect-square overflow-hidden bg-gradient-to-b from-white to-cream">
         <ProductImage
           path={product.imagePath}
           alt={name}
           sizes="(min-width: 1024px) 25vw, (min-width: 640px) 33vw, 50vw"
           priority={priority}
           className={cn(
-            'absolute inset-0 size-full p-4',
+            'absolute inset-0 size-full p-5',
+            /* The product leans in slightly. 1.04 is felt rather than seen, which is the intent. */
+            'transition-transform duration-500 ease-out group-hover:scale-[1.04]',
+            'motion-reduce:transition-none motion-reduce:group-hover:scale-100',
             /*
              * Greyed rather than hidden. `grayscale` reaches the placeholder ring too, which a plain
              * opacity drop does not — so the products still without a photograph read as unavailable in
@@ -110,7 +129,7 @@ export function ProductCard({
         {product.inStock && discount !== null && (
           <span
             aria-hidden="true"
-            className="absolute top-3 left-3 rounded-sm bg-forest-800 px-2 py-1 text-xs font-semibold text-white"
+            className="absolute top-3 left-3 rounded-full bg-lime-500 px-2.5 py-1 font-ui text-[11px] font-bold tracking-wide text-lime-950 shadow-sm"
           >
             −{discount}%
           </span>
@@ -133,7 +152,15 @@ export function ProductCard({
           `z-10` keeps these above the name link's `::after`, which covers the whole card. Without it
           the heart is unclickable — the overlay is invisible and takes every pointer event.
         */}
-        <div className="absolute top-2 right-2 z-10 flex flex-col gap-1">
+        {/*
+          Hidden until the card is hovered or focused — but only where hovering exists.
+
+          Two white circles sat permanently on every packshot, and in a grid of twenty-four that is
+          forty-eight pieces of chrome competing with the products. `@media (hover: hover)` is doing the
+          real work: a touch device has no hover state, so revealing on it would make wishlist
+          unreachable. There they stay visible, which is correct rather than a compromise.
+        */}
+        <div className="absolute top-2 right-2 z-10 flex flex-col gap-1 transition-opacity duration-200 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100 [@media(hover:hover)]:group-focus-within:opacity-100">
           <WishlistButton
             productId={product.id}
             productName={name}
@@ -143,7 +170,7 @@ export function ProductCard({
         </div>
       </div>
 
-      <div className="flex flex-1 flex-col gap-1.5 p-4">
+      <div className="flex flex-1 flex-col gap-1.5 p-4 pt-3.5">
         {/*
           Brand and rating share a row instead of costing two.
 
@@ -154,7 +181,7 @@ export function ProductCard({
         <div className="flex min-h-5 items-center justify-between gap-2">
           <Link
             href={`/brands/${product.brandSlug}`}
-            className="relative z-10 min-w-0 truncate rounded-sm font-ui text-[11px] font-semibold tracking-[0.08em] text-forest-800 uppercase transition-colors hover:text-forest-600"
+            className="relative z-10 min-w-0 truncate rounded-sm font-ui text-[10px] font-semibold tracking-[0.1em] text-ink-500 uppercase transition-colors hover:text-forest-700"
           >
             {product.brandName}
           </Link>
@@ -173,7 +200,11 @@ export function ProductCard({
           )}
         </div>
 
-        <h3 className="line-clamp-2 text-[15px] leading-snug font-medium text-ink-900">
+        {/*
+          The name is the card's headline, so it gets the weight the brand used to hold. forest-950
+          rather than ink-900: on cream it reads warmer and ties the grid to the palette.
+        */}
+        <h3 className="line-clamp-2 text-[15.5px] leading-[1.3] font-semibold text-forest-950">
           {/*
             One link, stretched over the card by `::after`. The name is the accessible label, which is
             why the brand above and the two buttons are the only other tab stops here.
@@ -204,7 +235,8 @@ export function ProductCard({
                 <span
                   key={tag}
                   className={cn(
-                    'shrink-0 rounded-sm border border-line-strong bg-cream px-1.5 py-0.5 font-ui text-[11px] font-semibold text-ink-600',
+                    /* Tinted rather than outlined: an outline gives a chip the same weight as a button. */
+                    'shrink-0 rounded-full bg-forest-50 px-2 py-0.5 font-ui text-[10.5px] font-semibold tracking-wide text-forest-800',
                     /* The second chip only where there is room for it. */
                     index === 1 && 'hidden sm:inline-block',
                   )}
