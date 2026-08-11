@@ -1,7 +1,10 @@
+import Image from 'next/image';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import type { Metadata } from 'next';
 import { Link } from '@/i18n/routing';
 import { resolveLocale } from '@/i18n/locale';
+import { storageUrl } from '@/lib/storage';
+import { cn } from '@/lib/utils';
 import { pickLocale } from '@/lib/i18n';
 import type { Locale } from '@/lib/constants';
 import { listGoals } from '@/features/catalog/queries';
@@ -47,14 +50,38 @@ export default async function GoalsPage({ params }: Props) {
             <li key={goal.slug}>
               <Link
                 href={`/goals/${goal.slug}`}
-                className="flex min-h-28 flex-col justify-end rounded-lg border border-line bg-surface p-4 transition-colors hover:border-forest-500"
+                className="group flex h-full flex-col overflow-hidden rounded-lg border border-line bg-surface transition-all hover:-translate-y-0.5 hover:border-forest-500 hover:shadow-md"
               >
-                <span className="font-medium text-ink-900">{pickLocale(goal.name, locale)}</span>
-                {pickLocale(goal.tagline, locale) && (
-                  <span className="mt-1 line-clamp-2 text-xs text-ink-500">
-                    {pickLocale(goal.tagline, locale)}
-                  </span>
-                )}
+                {/*
+                  The picture an admin set, or a tinted panel. Same rule as the homepage category row: a
+                  chosen image wins, and its absence is a deliberate surface rather than a gap. Goals had
+                  no artwork at all before — `health_goals.image_path` existed and nothing rendered it.
+                */}
+                <div
+                  className={cn(
+                    'relative aspect-[3/2] overflow-hidden',
+                    goal.imagePath ? 'bg-white' : 'bg-gradient-to-br from-forest-50 to-lime-500/10',
+                  )}
+                >
+                  {goal.imagePath && (
+                    <Image
+                      src={storageUrl('brand-assets', goal.imagePath)}
+                      alt={pickLocale(goal.name, locale)}
+                      fill
+                      sizes="(min-width: 1024px) 16rem, (min-width: 640px) 30vw, 45vw"
+                      className="object-cover transition-transform duration-300 group-hover:scale-105"
+                    />
+                  )}
+                </div>
+
+                <div className="flex min-h-20 flex-col justify-end p-4">
+                  <span className="font-medium text-ink-900">{pickLocale(goal.name, locale)}</span>
+                  {pickLocale(goal.tagline, locale) && (
+                    <span className="mt-1 line-clamp-2 text-xs text-ink-500">
+                      {pickLocale(goal.tagline, locale)}
+                    </span>
+                  )}
+                </div>
               </Link>
             </li>
           ))}

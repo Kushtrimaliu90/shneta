@@ -510,15 +510,23 @@ const readGoals = async () => {
   const supabase = createPublicClient();
   const { data } = await supabase
     .from('health_goals')
-    .select('slug, name, tagline, icon')
+    .select('slug, name, tagline, icon, image_path')
     .order('sort_order');
   return (data ?? []).map((row) => {
-    const goal = row as { slug: string; name: unknown; tagline: unknown; icon: string | null };
+    const goal = row as {
+      slug: string;
+      name: unknown;
+      tagline: unknown;
+      icon: string | null;
+      image_path: string | null;
+    };
     return {
       slug: goal.slug,
       name: asLocalizedField(goal.name),
       tagline: asLocalizedField(goal.tagline),
       icon: goal.icon,
+      /* Set from /admin/goals; the card falls back to its tinted panel when absent. */
+      imagePath: goal.image_path,
     };
   });
 };

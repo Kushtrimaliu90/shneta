@@ -478,7 +478,7 @@ function TaxonomyForm({
       </form>
 
       {config.hasLogo && row && logoBaseUrl && (
-        <BrandLogo brandId={row.id} logoPath={row.logoPath} baseUrl={logoBaseUrl} />
+        <BrandLogo kind={kind} brandId={row.id} logoPath={row.logoPath} baseUrl={logoBaseUrl} />
       )}
 
       {/*
@@ -590,14 +590,18 @@ const LOGO_TYPES = ['image/webp', 'image/jpeg', 'image/png', 'image/svg+xml', 'i
  * module scope it ships a whole client to every visit for a file picker most never touch.
  */
 function BrandLogo({
+  kind,
   brandId,
   logoPath,
   baseUrl,
 }: {
+  kind: TaxonomyKind;
   brandId: string;
   logoPath: string | null;
   baseUrl: string;
 }) {
+  /* The action keys on table names; the config keys on the singular. One map, at the boundary. */
+  const target = kind === 'brand' ? 'brands' : kind === 'category' ? 'categories' : 'health_goals';
   const [error, setError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -616,6 +620,7 @@ function BrandLogo({
     setUploading(true);
     try {
       const signForm = new FormData();
+      signForm.set('kind', target);
       signForm.set('brandId', brandId);
       signForm.set('contentType', file.type);
       signForm.set('size', String(file.size));
@@ -639,6 +644,7 @@ function BrandLogo({
       }
 
       const attachForm = new FormData();
+      attachForm.set('kind', target);
       attachForm.set('brandId', brandId);
       attachForm.set('path', signed.data.path);
 

@@ -451,9 +451,12 @@ export async function toggleTaxonomyActive(
  * The comment there explains why the bytes do not travel through the Node process; the reasoning
  * is identical and is not repeated.
  *
- * Only brands. `categories.image_path` and `health_goals.image_path` exist, but no storefront
- * component renders them yet — an uploader for a picture nobody displays is a feature with no
- * observable effect, and it can be built alongside the component that needs it.
+ * Brands, categories and health goals. The note here used to say categories and goals were excluded
+ * because "no storefront component renders them yet — an uploader for a picture nobody displays is a
+ * feature with no observable effect, and it can be built alongside the component that needs it." The
+ * homepage category row (docs/13 §AJ) and the goals index now render them, so the condition is met and
+ * the same flow covers all three. One bucket, because these are all taxonomy artwork with the same
+ * `product_manager` restriction.
  * -----------------------------------------------------------------------------------------
  */
 
@@ -466,7 +469,33 @@ const LOGO_TYPES = [
   'image/avif',
 ] as const;
 
+/**
+ * Which table and column each kind writes, and which cache tag it purges.
+ *
+ * Brands keep `logo_path` and everything else uses `image_path`; the difference is historical rather
+ * than meaningful, and mapping it here is cheaper than a migration that renames a column three features
+ * depend on.
+ */
+const IMAGE_TARGET = {
+  brands: { table: 'brands', column: 'logo_path', tag: CACHE_TAGS.brands, admin: '/admin/brands' },
+  categories: {
+    table: 'categories',
+    column: 'image_path',
+    tag: CACHE_TAGS.categories,
+    admin: '/admin/categories',
+  },
+  health_goals: {
+    table: 'health_goals',
+    column: 'image_path',
+    tag: CACHE_TAGS.goals,
+    admin: '/admin/goals',
+  },
+} as const;
+
+type ImageKind = keyof typeof IMAGE_TARGET;
+
 const logoSignSchema = z.object({
+  kind: z.enum(['brands', 'categories', 'health_goals']),
   brandId: z.string().uuid(),
   contentType: z.enum(LOGO_TYPES),
   size: z.coerce.number().int().positive().max(LOGO_MAX_BYTES),
@@ -510,6 +539,7 @@ export async function createBrandLogoUploadUrl(
 }
 
 const logoAttachSchema = z.object({
+  kind: z.enum(['brands', 'categories', 'health_goals']),
   brandId: z.string().uuid(),
   path: z.string().trim().min(3).max(300),
 });
@@ -535,15 +565,24 @@ export async function attachBrandLogo(
   try {
     const supabase = await createClient();
 
+    const target = IMAGE_TARGET[parsed.data.kind as ImageKind];
+
     const { data: previous } = await supabase
-      .from('brands')
-      .select('logo_path')
+      .from(target.table)
+      .select(target.column)
       .eq('id', parsed.data.brandId)
       .maybeSingle();
 
+    /*
+     * Cast at the write, because the column name is chosen at runtime.
+     *
+     * The generated types describe each table's update shape separately, so a computed key cannot match
+     * all three at once. The value is still constrained: `kind` is a Zod enum and `IMAGE_TARGET` is the
+     * only source of table and column, so nothing user-supplied reaches either.
+     */
     const { error } = await supabase
-      .from('brands')
-      .update({ logo_path: parsed.data.path })
+      .from(target.table)
+      .update({ [target.column]: parsed.data.path } as never)
       .eq('id', parsed.data.brandId);
 
     if (error) {
@@ -553,7 +592,7 @@ export async function attachBrandLogo(
 
     // The row first, then the bytes — a failed cleanup leaves an unreachable object, whereas
     // deleting first and failing on the row would leave a broken image on a live brand page.
-    const stale = (previous as { logo_path: string | null } | null)?.logo_path;
+    const stale = (previous as Record<string, string | null> | null)?.[target.column] ?? null;
     if (stale && stale !== parsed.data.path) {
       const { error: removeError } = await supabase.storage.from('brand-assets').remove([stale]);
       if (removeError) {
@@ -564,12 +603,15 @@ export async function attachBrandLogo(
       }
     }
 
-    await audit('brand.logo_changed', 'brand', parsed.data.brandId, null, {
+    await audit(`${parsed.data.kind}.image_changed`, parsed.data.kind, parsed.data.brandId, null, {
       path: parsed.data.path,
     });
 
-    revalidatePublic([CACHE_TAGS.brands, CACHE_TAGS.products]);
-    revalidatePath('/admin/brands');
+    revalidatePublic([target.tag, CACHE_TAGS.products]);
+    revalidatePath(target.admin);
+    // The homepage carries the category row, so a new category picture must reach it immediately.
+    revalidatePath('/', 'page');
+    revalidatePath('/en', 'page');
     return ok({ path: parsed.data.path });
   } catch (error) {
     logger.error('attachBrandLogo threw', describeError(error));

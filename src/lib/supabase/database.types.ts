@@ -4926,6 +4926,7 @@ export type Database = {
         Row: {
           category_id: string | null
           image_alt: Json | null
+          image_is_curated: boolean | null
           image_path: string | null
           name: Json | null
           product_count: number | null

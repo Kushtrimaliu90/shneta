@@ -125,7 +125,7 @@ export const listTaxonomy = cache(async (kind: TaxonomyKind): Promise<TaxonomyRo
       const [{ data, error }, links] = await Promise.all([
         supabase
           .from('categories')
-          .select('id, slug, name, description, is_active, sort_order, parent_id, icon')
+          .select('id, slug, name, description, is_active, sort_order, parent_id, icon, image_path')
           .is('deleted_at', null)
           .order('sort_order'),
         supabase.from('product_categories').select('category_id'),
@@ -146,6 +146,8 @@ export const listTaxonomy = cache(async (kind: TaxonomyKind): Promise<TaxonomyRo
         const name = pair(row.name);
         return {
           ...EMPTY,
+          /* The uploader writes image_path here; the shared EMPTY nulls it. */
+          logoPath: row.image_path ?? null,
           id: row.id,
           slug: row.slug,
           nameSq: name.sq,
@@ -165,7 +167,7 @@ export const listTaxonomy = cache(async (kind: TaxonomyKind): Promise<TaxonomyRo
       const [{ data, error }, links] = await Promise.all([
         supabase
           .from('health_goals')
-          .select('id, slug, name, tagline, description, is_active, sort_order, icon')
+          .select('id, slug, name, tagline, description, is_active, sort_order, icon, image_path')
           .order('sort_order'),
         supabase.from('product_health_goals').select('goal_id'),
       ]);
@@ -183,6 +185,8 @@ export const listTaxonomy = cache(async (kind: TaxonomyKind): Promise<TaxonomyRo
         const name = pair(row.name);
         return {
           ...EMPTY,
+          /* The uploader writes image_path here; the shared EMPTY nulls it. */
+          logoPath: row.image_path ?? null,
           id: row.id,
           slug: row.slug,
           nameSq: name.sq,
