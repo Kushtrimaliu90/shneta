@@ -14,11 +14,21 @@ export function PriceTag({
   priceCents,
   compareAtPriceCents,
   size = 'md',
+  showDiscountBadge = true,
   className,
 }: {
   priceCents: number;
   compareAtPriceCents?: number | null;
   size?: 'sm' | 'md' | 'lg';
+  /**
+   * The product card sets this false and draws the badge on the image tile instead.
+   *
+   * Inline, the badge is a third item on the price line, and at card width it wraps below — which puts
+   * the price of a discounted product at a different height from its neighbour. Reserving space for the
+   * wrap was the old fix and cost every card ~24px of nothing. Moving the badge is free and puts the
+   * discount where it is visible while scanning a grid.
+   */
+  showDiscountBadge?: boolean;
   className?: string;
 }) {
   const locale = useLocale() as Locale;
@@ -44,9 +54,11 @@ export function PriceTag({
             <span className="sr-only">{t('wasPrice')} </span>
             {formatPrice(compareAtPriceCents, locale)}
           </s>
-          <span className="rounded-sm bg-forest-800 px-1.5 py-0.5 text-xs font-semibold text-white">
-            −{discount}%
-          </span>
+          {showDiscountBadge && (
+            <span className="rounded-sm bg-forest-800 px-1.5 py-0.5 text-xs font-semibold text-white">
+              −{discount}%
+            </span>
+          )}
         </>
       )}
     </p>
