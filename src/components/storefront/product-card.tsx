@@ -81,7 +81,18 @@ export function ProductCard({
          * cream page as an object; the weight arrives on hover, where it means something.
          */
         'ring-1 ring-line/60 shadow-[0_1px_2px_rgb(0_0_0/0.04)]',
-        'transition-[transform,box-shadow,--tw-ring-color] duration-300 ease-out',
+        /*
+         * `translate`, not `transform`.
+         *
+         * Tailwind v4 compiles `-translate-y-1` to the standalone `translate` property rather than to a
+         * `transform` function, so naming `transform` in an arbitrary transition list animates nothing:
+         * the shadow and ring eased over 300 ms while the card itself jumped its full 4 px instantly.
+         * Measured on the deployed page — at +40 ms the offset was already at -4px — not read off the
+         * class name, which looked right. `transition-transform` would also have worked, since v4
+         * expands that shorthand to all four of transform/translate/scale/rotate; the explicit list is
+         * kept because the ring colour has to be named anyway.
+         */
+        'transition-[translate,box-shadow,--tw-ring-color] duration-300 ease-out',
         'hover:-translate-y-1 hover:shadow-[0_16px_32px_-16px_rgb(15_42_31/0.28)] hover:ring-forest-500/40',
         /* The same treatment for a keyboard user, who previously got none of it. */
         'focus-within:-translate-y-1 focus-within:shadow-[0_16px_32px_-16px_rgb(15_42_31/0.28)] focus-within:ring-forest-500/40',
