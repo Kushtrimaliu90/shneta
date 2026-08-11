@@ -11,6 +11,7 @@ import {
 } from '@/features/catalog/filters';
 import type { CategoryNode, ProductFilters } from '@/features/catalog/types';
 import { cn } from '@/lib/utils';
+import { CollapsibleList } from '@/components/ui/collapsible-list';
 
 /**
  * docs/05 §2 — filters as URL state.
@@ -82,7 +83,6 @@ export async function FilterPanel({
    * A plain `<details>`, so it costs no JavaScript and behaves identically on the desktop sidebar,
    * where the same wall of names is merely less painful rather than fine.
    */
-  const VISIBLE = 6;
 
   const group = 'border-line border-b pb-5';
   const heading = 'font-ui text-xs font-semibold tracking-[0.08em] text-ink-500 uppercase';
@@ -96,13 +96,7 @@ export async function FilterPanel({
    * Split so an *active* brand is never hidden behind the disclosure — a filter you cannot see is a
    * filter you cannot turn off, and the chips above the grid are the other half of that promise.
    */
-  const categoryLead = categories.slice(0, VISIBLE);
-  const categoryRest = categories.slice(VISIBLE);
-  const categoryRestActive = categoryRest.some((c) => filters.category?.includes(c.slug));
 
-  const brandLead = brands.slice(0, VISIBLE);
-  const brandRest = brands.slice(VISIBLE);
-  const brandRestActive = brandRest.some((b) => filters.brand?.includes(b.slug));
 
   return (
     <aside
@@ -121,97 +115,75 @@ export async function FilterPanel({
 
       <div className={group}>
         <h2 className={heading}>{t('shop.categories')}</h2>
-        <ul className="mt-3 flex flex-col gap-0.5">
-          {categoryLead.map((category) => (
-            <li key={category.slug}>
-              <Link
-                href={`/shop/${category.slug}`}
-                className={option(filters.category?.includes(category.slug) ?? false)}
-              >
-                {pickLocale(category.name, locale)}
-              </Link>
-            </li>
-          ))}
-        </ul>
-        {categoryRest.length > 0 && (
-          <details className="mt-1" open={categoryRestActive}>
-            <summary className="flex min-h-9 cursor-pointer items-center px-2 text-sm text-forest-700">
-              {t('shop.showAll', { count: categories.length })}
-            </summary>
-            <ul className="mt-1 flex flex-col gap-0.5">
-              {categoryRest.map((category) => (
-                <li key={category.slug}>
-                  <Link
-                    href={`/shop/${category.slug}`}
-                    className={option(filters.category?.includes(category.slug) ?? false)}
-                  >
-                    {pickLocale(category.name, locale)}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </details>
-        )}
+        <CollapsibleList
+          className="mt-3"
+          items={categories}
+          keyOf={(category) => category.slug}
+          isActive={(category) => filters.category?.includes(category.slug) ?? false}
+          labels={{
+            showAll: t('shop.showAll'),
+            showFewer: t('shop.showFewer'),
+            activeHidden: t('shop.activeHidden'),
+          }}
+          renderItem={(category) => (
+            <Link
+              href={`/shop/${category.slug}`}
+              className={option(filters.category?.includes(category.slug) ?? false)}
+            >
+              {pickLocale(category.name, locale)}
+            </Link>
+          )}
+        />
       </div>
 
       <div className={group}>
         <h2 className={heading}>{t('shop.brands')}</h2>
-        <ul className="mt-3 flex flex-col gap-0.5">
-          {brandLead.map((brand) => (
-            <li key={brand.slug}>
-              <Link
-                href={href({ toggle: { key: 'brand', value: brand.slug } })}
-                rel="nofollow"
-                aria-current={filters.brand?.includes(brand.slug) ? 'true' : undefined}
-                className={option(filters.brand?.includes(brand.slug) ?? false)}
-              >
-                {brand.name}
-              </Link>
-            </li>
-          ))}
-        </ul>
-        {brandRest.length > 0 && (
-          <details className="mt-1" open={brandRestActive}>
-            <summary className="flex min-h-9 cursor-pointer items-center px-2 text-sm text-forest-700">
-              {t('shop.showAll', { count: brands.length })}
-            </summary>
-            <ul className="mt-1 flex flex-col gap-0.5">
-              {brandRest.map((brand) => (
-                <li key={brand.slug}>
-                  <Link
-                    href={href({ toggle: { key: 'brand', value: brand.slug } })}
-                    rel="nofollow"
-                    aria-current={filters.brand?.includes(brand.slug) ? 'true' : undefined}
-                    className={option(filters.brand?.includes(brand.slug) ?? false)}
-                  >
-                    {brand.name}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </details>
-        )}
+        <CollapsibleList
+          className="mt-3"
+          items={brands}
+          keyOf={(brand) => brand.slug}
+          isActive={(brand) => filters.brand?.includes(brand.slug) ?? false}
+          labels={{
+            showAll: t('shop.showAll'),
+            showFewer: t('shop.showFewer'),
+            activeHidden: t('shop.activeHidden'),
+          }}
+          renderItem={(brand) => (
+            <Link
+              href={href({ toggle: { key: 'brand', value: brand.slug } })}
+              rel="nofollow"
+              aria-current={filters.brand?.includes(brand.slug) ? 'true' : undefined}
+              className={option(filters.brand?.includes(brand.slug) ?? false)}
+            >
+              {brand.name}
+            </Link>
+          )}
+        />
       </div>
 
       <div className={group}>
         <h2 className={heading}>{t('shop.goals')}</h2>
-        <ul className="mt-3 flex flex-col gap-0.5">
-          {goals.map((goal) => {
-            const active = filters.goal?.includes(goal.slug) ?? false;
-            return (
-              <li key={goal.slug}>
-                <Link
-                  href={href({ toggle: { key: 'goal', value: goal.slug } })}
-                  rel="nofollow"
-                  aria-current={active ? 'true' : undefined}
-                  className={option(active)}
-                >
-                  {pickLocale(goal.name, locale)}
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
+        <CollapsibleList
+          className="mt-3"
+          items={goals}
+          keyOf={(goal) => goal.slug}
+          isActive={(goal) => filters.goal?.includes(goal.slug) ?? false}
+          labels={{
+            showAll: t('shop.showAll'),
+            showFewer: t('shop.showFewer'),
+            activeHidden: t('shop.activeHidden'),
+          }}
+          renderItem={(goal) => (
+            <Link
+              href={href({ toggle: { key: 'goal', value: goal.slug } })}
+              rel="nofollow"
+              aria-current={filters.goal?.includes(goal.slug) ? 'true' : undefined}
+              className={option(filters.goal?.includes(goal.slug) ?? false)}
+            >
+              {pickLocale(goal.name, locale)}
+            </Link>
+          )}
+        />
       </div>
 
       <div className={group}>

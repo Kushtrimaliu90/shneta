@@ -3721,3 +3721,58 @@ database, and returns an empty list on error) is real and would be invisible.
 It works, which is the problem: it drives a real browser through the live shop, places and cancels real
 orders, and leaves fixture products in the catalogue for the twenty-five minutes it runs. CI already runs
 the same suite against a local database on every push, so the production run adds no coverage.
+
+---
+
+## AI. "Show all 12" was a button that never admitted being pressed
+
+Reported from the shop with all twelve categories on screen beneath a control still offering to show them.
+The list was open; the label had not moved. A control that does not acknowledge being pressed is
+indistinguishable from one that did nothing.
+
+Four faults, all shared by both hand-rolled copies — which is what made this a primitive rather than a fix:
+
+1. **The label never changed.** `<summary>{t('shop.showAll', { count })}</summary>` rendered the same
+   string open or closed. There was no "show fewer" string in the app at all.
+2. **The number was the total, not what was hidden.** Six of twelve were already visible, so "show all 12"
+   asked the reader to subtract to discover that six more existed.
+3. **The toggle sat between item six and item seven.** The `<details>` carried its own `<ul>`, so the
+   markup was list / control / list and the control read as an option in the middle of the group — in the
+   screenshot it looks like a category named "Show all 12".
+4. **A collapsed group gave no hint that a filter inside it was active.** It force-opened, which is right,
+   but nothing counted the selection.
+
+And a fifth that only shows up across files: **categories and brands each had their own copy, while goals
+and dietary tags had no shortening at all.** Two implementations of one idea and two groups that missed it.
+
+`components/ui/collapsible-list.tsx` is now the single implementation, applied to all four groups.
+
+### The label is fixed in CSS, not in state
+
+Both labels are rendered and `details[open]` picks one:
+
+```
+details[open] .[details[open]_&]:hidden { display: none }
+details[open] .[details[open]_&]:inline { display: inline }
+```
+
+Verified in the emitted stylesheet, because a Tailwind arbitrary variant containing nested brackets is
+exactly the kind of thing that silently fails to compile — and had it dropped, the fix would have shipped
+looking identical to the bug. Then verified in a browser:
+
+| state | label |
+| --- | --- |
+| collapsed | "Show 6 more" / "Show 10 more" — the hidden count |
+| clicked open | "Show fewer" |
+| hidden brand active | forced open, label "Show fewer" |
+
+No JavaScript, so it behaves the same in the desktop sidebar and the mobile sheet, and it is correct in the
+first paint rather than after hydration.
+
+### Known and deliberate
+
+**Expansion does not survive a click.** Every option is a link, so the server re-renders and `open` is
+recomputed from whether a hidden option is active — expand to browse, pick a *visible* option, and the
+group closes. Fixing it needs either a URL parameter, which `robots.ts` exists to keep out of URLs, or
+client state that survives a soft navigation, which a server-rendered panel cannot hold. Recorded rather
+than left to be rediscovered.
