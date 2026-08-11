@@ -3776,3 +3776,61 @@ recomputed from whether a hidden option is active — expand to browse, pick a *
 group closes. Fixing it needs either a URL parameter, which `robots.ts` exists to keep out of URLs, or
 client state that survives a soft navigation, which a server-rendered panel cannot hold. Recorded rather
 than left to be rediscovered.
+
+---
+
+## AJ. The category row, designed from the assets that exist
+
+Six pale rectangles with a name in each. Interchangeable, and silent about everything a shopper wants to
+know before clicking: what is inside, how much of it, what it looks like. One of the six — `equipments`,
+rendered as "BioGear" — had **zero published products**, so a tile that looked like a destination was a
+dead end.
+
+### What the data allowed
+
+Checked before drawing anything, and it decided the design:
+
+| | |
+| --- | --- |
+| `categories.image_path` | null on every row |
+| `categories.icon` | set on exactly one of twelve |
+| product photography | 45 of 63 published products |
+| product counts | 8, 7, 5, 5, 5, 5, 4 … and one zero |
+
+So any layout leaning on category artwork would have rendered *worse* than the rectangles, because the
+fallback would have been most of the row. What exists is product photography, so each tile shows the
+best-rated photographed product in its category. That is the better idea regardless: a category picture
+is a stock photo of an abstraction, while a real product from the shelf is a promise about what is behind
+the click — and it updates itself as the catalogue does.
+
+The count does what a picture cannot. "8 products" says the shelf has depth, and is honest when it does
+not. Ordering by count means the row leads with the deepest category rather than with whatever
+`sort_order` happened to say, and the empty one is gone.
+
+### A view, after the embed failed silently
+
+The first version expressed this as a two-level PostgREST embed with filters on the inner resource and a
+pick-the-best-one per group. It returned an empty array, the component returned `null`, and the section
+**vanished from the homepage with no error**. `v_category_tiles` (migration 82) says it once in SQL with
+`distinct on`, can be tested on its own — it was, before being wired — and leaves the storefront read an
+ordinary select.
+
+`order by (storage_path is null), rating_avg desc` is the whole trick: the best-rated product *that has a
+photograph* wins, so a five-star unphotographed product cannot leave a tile blank. The image join is
+`left`, so a category with products but no photography still appears with its count and a tinted panel.
+
+### Three things caught only by looking at it
+
+- **Wrong bucket.** `storageUrl('products', …)` — it is `product-images`. Every tile rendered a broken-image
+  icon. Confirmed fixed by asserting `naturalWidth > 0` on all six rather than by eye.
+- **White squares in green tiles.** Supplement packshots are cut out on white, so a tinted image panel made
+  every photo look pasted on. White behind a photograph, tint only behind the empty case.
+- **A stale data cache.** After the view was correct the section was *still* missing, because
+  `unstable_cache` was serving the empty array from the broken query. Second time in two days that a
+  `.next/cache` entry outlived the code that produced it.
+
+### Mobile
+
+Six tiles in a two-column grid is three rows of scrolling before the footer. A snapping horizontal rail
+shows two and a half — the half is the affordance — for one row of height. Verified: no horizontal
+overflow at 390 px.

@@ -734,6 +734,13 @@ export type Database = {
             referencedRelation: "categories"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "categories_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "v_category_tiles"
+            referencedColumns: ["category_id"]
+          },
         ]
       }
       certifications: {
@@ -2371,6 +2378,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "categories"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_categories_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "v_category_tiles"
+            referencedColumns: ["category_id"]
           },
           {
             foreignKeyName: "product_categories_product_id_fkey"
@@ -4907,6 +4921,18 @@ export type Database = {
             referencedColumns: ["product_id"]
           },
         ]
+      }
+      v_category_tiles: {
+        Row: {
+          category_id: string | null
+          image_alt: Json | null
+          image_path: string | null
+          name: Json | null
+          product_count: number | null
+          slug: string | null
+          sort_order: number | null
+        }
+        Relationships: []
       }
       v_low_stock: {
         Row: {

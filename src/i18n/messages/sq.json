@@ -72,7 +72,9 @@
       "subscribe": "Abonohu dhe kurse",
       "knowledge": "Nga Qendra e Njohurive",
       "brands": "Markat që mbajmë",
-      "allProducts": "Shiko të gjitha produktet"
+      "allProducts": "Shiko të gjitha produktet",
+      "allCategories": "Të gjitha",
+      "categoryCount": "{count, plural, =0 {Pa produkte} one {# produkt} other {# produkte}}"
     },
     "placeholder": {
       "title": "Katalogu vjen së shpejti",

@@ -3,7 +3,7 @@ import { cache } from 'react';
 import { unstable_cache } from 'next/cache';
 import { CACHE_TAGS, ISR_REVALIDATE_SECONDS } from '@/lib/constants';
 import { createPublicClient } from '@/lib/supabase/public';
-import { asLocalizedField } from '@/lib/i18n';
+import { asLocalizedField, type LocalizedField } from '@/lib/i18n';
 import { logger } from '@/lib/logger';
 import {
   PRODUCTS_PER_PAGE,
@@ -660,3 +660,76 @@ export const listFeaturedProducts = cache(async (limit = 8): Promise<ProductList
   const sorted = [...featured.items].sort((a, b) => Number(b.isFeatured) - Number(a.isFeatured));
   return sorted.slice(0, limit);
 });
+
+/**
+ * The homepage category row, with a real product photograph and an honest count.
+ *
+ * ── Why this is not the taxonomy tree ──
+ *
+ * The row used to render `getCategoryTree().slice(0, 6)` as six pale rectangles with a name in them.
+ * Everything that makes a category clickable in a shop — what is inside it, how much of it there is,
+ * what it looks like — was absent, and the tiles were interchangeable.
+ *
+ * The design had to be built from assets that actually exist, checked before drawing anything:
+ * `categories.image_path` is null for every row and `icon` is set on exactly one, so any layout leaning
+ * on category artwork would have rendered worse than the rectangles it replaced. What does exist is
+ * product photography — 45 of 63 published products carry one — so each tile borrows the best-rated
+ * photographed product in that category. The shelf shows its own stock, which is the honest version of
+ * what a category picture would have been faking.
+ *
+ * ── And it hides the empty ones ──
+ *
+ * `equipments` has zero published products and was rendering as "BioGear": a tile that looks like a
+ * destination and is a dead end. Ordering by product count also means the row leads with the deepest
+ * category rather than with whatever `sort_order` happened to say.
+ */
+export interface CategoryTile {
+  slug: string;
+  name: LocalizedField;
+  productCount: number;
+  imagePath: string | null;
+  imageAlt: LocalizedField;
+}
+
+async function readCategoryTiles(limit: number): Promise<CategoryTile[]> {
+  const supabase = createPublicClient();
+
+  /*
+   * A plain select against `v_category_tiles` (migration 82).
+   *
+   * The first version of this expressed the same thing as a two-level PostgREST embed with filters on the
+   * inner resource and a pick-the-best-one per group. It returned nothing and the row silently vanished
+   * from the homepage — no error, just an empty array and a missing section. `distinct on` in SQL says
+   * it once, can be tested on its own, and leaves nothing here to get subtly wrong.
+   */
+  const { data, error } = await supabase
+    .from('v_category_tiles')
+    .select('slug, name, product_count, image_path, image_alt')
+    .order('product_count', { ascending: false })
+    .limit(limit);
+
+  if (error) {
+    logger.error('category tiles failed', { cause: error.message });
+    return [];
+  }
+
+  return ((data ?? []) as unknown as {
+    slug: string;
+    name: unknown;
+    product_count: number;
+    image_path: string | null;
+    image_alt: unknown;
+  }[]).map((row) => ({
+    slug: row.slug,
+    name: asLocalizedField(row.name),
+    productCount: row.product_count,
+    imagePath: row.image_path,
+    imageAlt: asLocalizedField(row.image_alt),
+  }));
+}
+
+export const getCategoryTiles = taxonomyCache(
+  'category-tiles',
+  CACHE_TAGS.categories,
+  (limit: number) => readCategoryTiles(limit),
+);

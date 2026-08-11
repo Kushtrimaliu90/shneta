@@ -1,14 +1,14 @@
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { Link } from '@/i18n/routing';
 import { resolveLocale } from '@/i18n/locale';
-import { pickLocale } from '@/lib/i18n';
 import { formatPrice } from '@/lib/money';
 import { clientEnv } from '@/lib/env.client';
 import { organizationSchema, webSiteSchema } from '@/lib/seo';
 import { JsonLd } from '@/components/shared/json-ld';
 import { ProductCard } from '@/components/storefront/product-card';
 import { buttonVariants } from '@/components/ui/button';
-import { getCategoryTree, listFeaturedProducts } from '@/features/catalog/queries';
+import { getCategoryTiles, listFeaturedProducts } from '@/features/catalog/queries';
+import { CategoryRow } from '@/features/catalog/components/category-row';
 import {
   getFreeShippingThresholdCents,
   getHeroSettings,
@@ -54,10 +54,10 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
   const locale = resolveLocale((await params).locale);
   setRequestLocale(locale);
 
-  const [products, categories, slides, heroSettings, trustItems, thresholdCents] = await Promise.all(
+  const [products, categoryTiles, slides, heroSettings, trustItems, thresholdCents] = await Promise.all(
     [
       listFeaturedProducts(8),
-      getCategoryTree(),
+      getCategoryTiles(6),
       listHeroSlides(),
       getHeroSettings(),
       getTrustItems(),
@@ -125,33 +125,8 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
         </section>
       )}
 
-      {/* docs/05 §1.6 — category showcase */}
-      {categories.length > 0 && (
-        <section aria-labelledby="categories-heading" className="py-12 lg:py-16">
-          <div className="container-page">
-            <h2
-              id="categories-heading"
-              className="font-display text-2xl font-semibold text-forest-900 lg:text-3xl"
-            >
-              {t('home.sections.categories')}
-            </h2>
-            <ul className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-              {categories.slice(0, 6).map((category) => (
-                <li key={category.slug}>
-                  <Link
-                    href={`/shop/${category.slug}`}
-                    className="flex min-h-20 items-end rounded-lg bg-forest-50 p-4 transition-colors hover:bg-forest-100"
-                  >
-                    <span className="text-sm font-medium text-forest-900">
-                      {pickLocale(category.name, locale)}
-                    </span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </section>
-      )}
+      {/* docs/05 §1.6 — the category showcase, rebuilt on real product photography (docs/13 §AJ). */}
+      <CategoryRow tiles={categoryTiles} locale={locale} />
     </>
   );
 }

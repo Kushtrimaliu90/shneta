@@ -72,7 +72,9 @@
       "subscribe": "Subscribe and save",
       "knowledge": "From the Knowledge Center",
       "brands": "Brands we carry",
-      "allProducts": "See all products"
+      "allProducts": "See all products",
+      "allCategories": "See all",
+      "categoryCount": "{count, plural, =0 {No products} one {# product} other {# products}}"
     },
     "placeholder": {
       "title": "Catalogue coming next",
