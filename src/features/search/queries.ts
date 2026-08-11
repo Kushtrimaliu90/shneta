@@ -1,7 +1,7 @@
 import 'server-only';
 import { cache } from 'react';
 import { unstable_cache } from 'next/cache';
-import { CACHE_TAGS, ISR_REVALIDATE_SECONDS, type Locale } from '@/lib/constants';
+import { CACHE_TAGS, ISR_REVALIDATE_SECONDS, type Locale, STATIC_REVALIDATE_SECONDS } from '@/lib/constants';
 import { createPublicClient } from '@/lib/supabase/public';
 import { logger } from '@/lib/logger';
 import { normalizeQuery, type SearchRedirect } from '@/features/search/redirects';
@@ -109,7 +109,16 @@ const fetchPlaceholders = cache(async (): Promise<{ sq: string[]; en: string[] }
 export const getSearchPlaceholders = cache(async (locale: Locale): Promise<string[]> => {
   const all = await unstable_cache(() => fetchPlaceholders(), ['search-placeholders'], {
     tags: [CACHE_TAGS.search],
-    revalidate: ISR_REVALIDATE_SECONDS,
+    /*
+     * The long tier, because this is the navbar's only cached read and the navbar is in the shared
+     * storefront layout — so whatever number sits here becomes the cache life of every page that renders
+     * through it. With the announcement bar fixed, this was the next thing holding all 166 pages at an
+     * hour when their tiers asked for a day.
+     *
+     * Nothing here depends on the clock: these are rotating search hints from a settings row, and the
+     * admin purges `CACHE_TAGS.search` on save, so an edit is immediate regardless of the number.
+     */
+    revalidate: STATIC_REVALIDATE_SECONDS,
   })();
 
   return locale === 'en' ? all.en : all.sq;

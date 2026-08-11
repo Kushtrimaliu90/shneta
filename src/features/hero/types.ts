@@ -49,4 +49,13 @@ export interface AnnouncementBar {
   /** Text on the clickable pill. Was `code` until migration 77 — see that file for why. */
   linkLabel: string | null;
   href: string | null;
+  /**
+   * The scheduled window, carried to the browser rather than applied in the query.
+   *
+   * Filtering by `now()` inside a cached read forces that cache to be short — 60 seconds, which capped
+   * every page on the site (see `getAnnouncement`). The window travels with the bar instead and the
+   * pre-paint script decides, so the page can be cached for a day and still not show a finished campaign.
+   */
+  startsAt: string | null;
+  endsAt: string | null;
 }

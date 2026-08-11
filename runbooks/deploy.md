@@ -131,11 +131,14 @@ curl -s -o /dev/null -w "%{http_code}\n" $BASE/api/cron/housekeeping   # 401 wit
 Also confirm in the Vercel dashboard: the cron is registered, and the function region is
 `fra1`.
 
-E2E against the deployed target:
+**Do not run the E2E suite against production.** The line that used to be here —
+`E2E_BASE_URL=https://biocode.fit pnpm test:e2e` — works, and that is the problem. `playwright.config.ts`
+honours the variable, so the full suite drives a real browser through the real shop: it places and cancels
+real orders, creates fixture products and brands that render in the live catalogue for the twenty-five
+minutes it runs, and costs several deploys' worth of page rebuilds. CI already runs the same suite on every
+push against a local database, so the production run adds no coverage at all.
 
-```bash
-E2E_BASE_URL=https://biocode.fit pnpm test:e2e
-```
+The suite runs against `pnpm start` on `127.0.0.1:3000`. After a deploy, stop at the smoke test above.
 
 ---
 

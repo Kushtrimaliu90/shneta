@@ -72,12 +72,15 @@ export const listPlacements = cache(
       {
         tags: [CACHE_TAGS.placements],
         /*
-         * A minute. This is the worst-case lateness of a campaign starting or stopping, and an
-         * advertiser paying by the day notices the difference between "went live at 09:00" and "went
-         * live some time this morning". The catalogue's five minutes would be too loose for something
-         * being billed.
+         * Five minutes, not one.
+         *
+         * The reasoning for a minute stands — an advertiser paying by the day is owed a prompt start —
+         * but a minute also meant the shop pages rebuilt 1,440 times a day whether or not any campaign
+         * was scheduled to change, and the admin actions purge `CACHE_TAGS.placements` when a campaign
+         * is approved, paused or ended. So the timer governs only a start or stop that nobody
+         * triggered by hand, and five minutes is inside what "went live at 09:00" tolerates.
          */
-        revalidate: 60,
+        revalidate: 300,
       },
     )();
   },

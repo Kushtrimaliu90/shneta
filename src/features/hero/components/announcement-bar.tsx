@@ -117,12 +117,30 @@ export async function AnnouncementBarView({
         Runs as the parser reaches it, before the bar has been painted. `hidden` rather than a class
         so it cannot be overridden by a stylesheet that loads later, and the whole thing is wrapped in
         a try/catch because a cookie parse must never be able to break the page it sits at the top of.
+
+        It now decides **two** things: whether this visitor dismissed the bar, and whether the campaign
+        is inside its window. The second used to be a `starts_at <= now()` filter in the cached query —
+        which made that cache valid only for the instant it ran, so it was set to 60 seconds, and because
+        the read happens in the shared storefront layout those 60 seconds became the cache life of all 174
+        prerendered pages. The tiers set on 8 Aug were dead on arrival because of it.
+
+        Moving the comparison here decouples the page cache from the clock entirely: the HTML can be a day
+        old and the bar still disappears the minute the campaign ends, because the browser does the
+        comparison against its own clock on every load.
+
+        The honest cost: with JavaScript disabled an expired bar stays visible. That is a promotional
+        banner shown late to a visitor who has scripting off, against every page on the site rebuilding
+        every minute. Worth it, and worth writing down.
       */}
       <script
         dangerouslySetInnerHTML={{
-          __html: `(function(){try{var m=document.cookie.match(/(?:^|;\\s*)${ANNOUNCEMENT_COOKIE}=([^;]*)/);if(m&&decodeURIComponent(m[1])===${JSON.stringify(
+          __html: `(function(){try{var e=document.getElementById(${JSON.stringify(elementId)});if(!e){return;}var s=${JSON.stringify(
+            announcement.startsAt ?? null,
+          )},x=${JSON.stringify(
+            announcement.endsAt ?? null,
+          )},n=Date.now();if((s&&n<Date.parse(s))||(x&&n>=Date.parse(x))){e.hidden=true;return;}var m=document.cookie.match(/(?:^|;\\s*)${ANNOUNCEMENT_COOKIE}=([^;]*)/);if(m&&decodeURIComponent(m[1])===${JSON.stringify(
             announcement.id,
-          )}){var e=document.getElementById(${JSON.stringify(elementId)});if(e){e.hidden=true;}}}catch(_){}})();`,
+          )}){e.hidden=true;}}catch(_){}})();`,
         }}
       />
     </>

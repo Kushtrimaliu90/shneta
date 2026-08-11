@@ -1,7 +1,7 @@
 import 'server-only';
 import { cache } from 'react';
 import { unstable_cache } from 'next/cache';
-import { CACHE_TAGS, ISR_REVALIDATE_SECONDS } from '@/lib/constants';
+import { CACHE_TAGS, ISR_REVALIDATE_SECONDS, STATIC_REVALIDATE_SECONDS } from '@/lib/constants';
 import { createPublicClient } from '@/lib/supabase/public';
 import { asLocalizedField } from '@/lib/i18n';
 import { logger } from '@/lib/logger';
@@ -74,11 +74,19 @@ export const listHeroSlides = cache(async (): Promise<HeroSlide[]> => {
   return unstable_cache(() => fetchSlides(), ['hero-slides'], {
     tags: [CACHE_TAGS.hero],
     /*
-     * Shorter than the catalogue's window. A scheduled slide's start time is only honoured when the
-     * cache next revalidates, so this is the worst-case lateness of a campaign going live — a minute
-     * is defensible, five would mean an operator watching a stale homepage wondering what broke.
+     * Five minutes, not one.
+     *
+     * Unlike the announcement bar this read is genuinely time-dependent — the RLS policy on
+     * `hero_slides` filters `starts_at <= now()` itself — so a longer window really does delay a
+     * SCHEDULED slide. What it does not delay is publishing one by hand: the admin purges
+     * `CACHE_TAGS.hero` on save, which is immediate.
+     *
+     * So the number only governs campaigns dated for a future minute, and it applies to the home page
+     * alone rather than to the whole site. One minute meant 1,440 rebuilds a day of the most-requested
+     * page for a lateness nobody can perceive on a promotional banner; five is a fifth of that and still
+     * well inside "went live this morning".
      */
-    revalidate: 60,
+    revalidate: 300,
   })();
 });
 
@@ -167,15 +175,26 @@ export const getTrustItems = cache(async (): Promise<TrustItem[]> => {
  */
 const fetchAnnouncement = cache(async (): Promise<AnnouncementBar | null> => {
   const supabase = createPublicClient();
-  const now = new Date().toISOString();
 
+  /*
+   * No `now()` in this query, deliberately.
+   *
+   * It used to filter `starts_at.lte.now` and `ends_at.gt.now`, which makes the result true only for
+   * the instant it was computed — so the cache around it had to be 60 seconds. This read runs in the
+   * shared storefront layout, and a route's cache life is the SHORTEST cache used while rendering it, so
+   * those 60 seconds became the cache life of all 174 prerendered pages, overriding the day and the hour
+   * the tiers declared. Measured in `.next/prerender-manifest.json`; the tiers had been dead since the
+   * day they were written.
+   *
+   * The window now travels to the browser and the bar's own pre-paint script applies it against the
+   * visitor's clock. `is_active` stays here because it is not time-dependent: an admin toggling it
+   * purges `CACHE_TAGS.banners`, which is immediate.
+   */
   const { data, error } = await supabase
     .from('banners')
     .select('id, title, cta_href, link_label, starts_at, ends_at')
     .eq('placement', 'announcement')
     .eq('is_active', true)
-    .or(`starts_at.is.null,starts_at.lte.${now}`)
-    .or(`ends_at.is.null,ends_at.gt.${now}`)
     .order('position', { ascending: true })
     .limit(1)
     .maybeSingle();
@@ -190,13 +209,22 @@ const fetchAnnouncement = cache(async (): Promise<AnnouncementBar | null> => {
     title: asLocalizedField(data.title),
     linkLabel: data.link_label,
     href: data.cta_href,
+    startsAt: data.starts_at,
+    endsAt: data.ends_at,
   };
 });
 
 export const getAnnouncement = cache(async (): Promise<AnnouncementBar | null> => {
   return unstable_cache(() => fetchAnnouncement(), ['hero-announcement'], {
     tags: [CACHE_TAGS.hero, CACHE_TAGS.banners],
-    revalidate: 60,
+    /*
+     * The long tier, now that the read no longer depends on the clock.
+     *
+     * This one number set the cache life of the whole storefront. It is the layout's only cached read, so
+     * anything short here is paid on every page — `tests/unit/build-cache-budget.test.ts` asserts against
+     * the compiled manifest so it cannot silently drop again.
+     */
+    revalidate: STATIC_REVALIDATE_SECONDS,
   })();
 });
 

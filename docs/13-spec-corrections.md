@@ -3658,3 +3658,66 @@ catalogue CSV failed this test before it existed: it carried identifiers only, s
 returned `no_header` and told the merchant to add a header row while they were looking at one.
 
 The CSV download stays, demoted to a plain link, for anyone whose tooling wants it.
+
+---
+
+## AH. The cache tiers were dead from the day they were written
+
+The 8 Aug cost work (§AC) gave the storefront two tiers: a day for pages with no price or stock, an hour
+for the catalogue. It was reported as shipped. It never took effect. From `.next/prerender-manifest.json`:
+
+```
+before:  60s : 40 routes      after:  300s :  2 routes
+       3600s :  6                   3600s : 44
+      86400s :  1                  86400s :  1
+worst-case rebuilds/day: 57,745            1,633
+```
+
+**A route's cache life is the shortest cache used while rendering it.** `getAnnouncement()` carried
+`revalidate: 60` and is awaited in the shared storefront layout, so sixty seconds became the cache life of
+every page that renders through it — legal pages included, whatever their own `export const revalidate`
+said. Nothing in `legal/terms/page.tsx` hints that another file decides its number.
+
+That is why ISR Writes **rose** from $0.97 to $2.18 a day across a change intended to cut them. I reported
+the fix without reading the build output, and it cost two days of the wrong number.
+
+### Why the 60 seconds was there, and what replaced it
+
+The query filtered `starts_at <= now()` and `ends_at > now()`, which makes its result true only for the
+instant it ran — so the cache around it had to be short. The window now travels to the browser and the
+bar's existing pre-paint script applies it against the visitor's own clock. The page cache is decoupled
+from time entirely: HTML can be a day old and the bar still vanishes the minute the campaign ends.
+
+Honest cost: with JavaScript off, an expired bar stays visible. A late banner for a scripting-disabled
+visitor, against every page on the site rebuilding every minute.
+
+Two reads are genuinely time-dependent and were traded rather than fixed. `listHeroSlides` is filtered by
+RLS (`starts_at <= now()`) and `list_live_placements` bills an advertiser by the day; both went 60s → 300s.
+Publishing by hand stays instant either way, because the admin purges the tag on save — the timer governs
+only a start or stop nobody triggered. `getSearchPlaceholders` runs in the navbar and had no clock
+dependency at all; it went to the long tier.
+
+### The guard
+
+`tests/unit/build-cache-budget.test.ts` reads the compiled manifest and fails if any route rebuilds faster
+than its tier, with a blunt assertion that **nothing** may sit at 60 seconds. It asserts against the
+artefact Vercel bills from, because no test over the source could have caught this and neither could a
+reviewer. Verified to fail against the pre-fix build before being trusted.
+
+It asserts the hour floor, not the day: something still caps the legal pages at 3600 and I have not found
+it. A guard should pin what is true.
+
+### A scare that was not real
+
+The prerendered route count appeared to fall from 186 to 52. Building the previous commit and diffing the
+two manifests showed **52 both sides, nothing lost or gained** — the 186 came from an unrelated earlier
+build. Worth recording because the correct response to an unexplained number is to go and measure it, not
+to ship and hope; and because build-to-build variance in `generateStaticParams` (it queries the live
+database, and returns an empty list on error) is real and would be invisible.
+
+### Also removed
+
+`runbooks/deploy.md` documented `E2E_BASE_URL=https://biocode.fit pnpm test:e2e` as a post-deploy step.
+It works, which is the problem: it drives a real browser through the live shop, places and cancels real
+orders, and leaves fixture products in the catalogue for the twenty-five minutes it runs. CI already runs
+the same suite against a local database on every push, so the production run adds no coverage.
