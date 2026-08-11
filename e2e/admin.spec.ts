@@ -1409,6 +1409,36 @@ test.describe('hero slide editor (docs/06)', () => {
  * Safe against a real database: this submits an invalid link, so the save is rejected and nothing is
  * written. That is also precisely what is being tested.
  */
+/**
+ * The homepage tiles panel (migration 81).
+ *
+ * Safe against the real database: this submits a link that fails the site-path rule, so the save is
+ * rejected and nothing is written — which is also precisely the guarantee being tested, since these
+ * strings become <Link href> on the most prominent navigation on the site.
+ */
+test.describe('homepage tiles panel (docs/06)', () => {
+  test('an off-site link is refused and the typing survives', async ({ page }) => {
+    const user = await staffUser('content_manager');
+    await signIn(page, user.email, user.password);
+    await page.goto('/admin/hero');
+    await page.getByRole('tab', { name: 'Homepage tiles' }).click();
+
+    // The seeded content is there to edit, rather than an empty form.
+    await expect(page.locator('#intent-titleEn-0')).toHaveValue('Shop by health goal');
+
+    await page.locator('#intent-titleSq-0').fill('Blej sipas qëllimit');
+    await page.locator('#intent-href-0').fill('https://evil.example');
+    await page.getByRole('button', { name: 'Save tiles' }).click();
+
+    const summary = page.getByRole('alert').filter({ hasText: 'Not saved' });
+    await expect(summary).toBeVisible();
+    await expect(page.locator('#intent-href-0')).toHaveAttribute('aria-invalid', 'true');
+
+    // And nothing was wiped — the reset that was reported twice on other panels.
+    await expect(page.locator('#intent-titleSq-0')).toHaveValue('Blej sipas qëllimit');
+  });
+});
+
 test.describe('hero announcement panel (docs/06)', () => {
   test('a rejected save names the field and keeps what was typed', async ({ page }) => {
     const user = await staffUser('content_manager');

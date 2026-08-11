@@ -59,3 +59,13 @@ export interface AnnouncementBar {
   startsAt: string | null;
   endsAt: string | null;
 }
+
+/**
+ * One homepage entry tile (migration 81). Copy, destination and icon are all content now.
+ */
+export interface IntentTile {
+  icon: string;
+  href: string;
+  title: LocalizedField;
+  body: LocalizedField;
+}

@@ -15,6 +15,7 @@ import {
   moveHeroSlide,
   saveAnnouncement,
   saveHeroSettings,
+  saveIntentBand,
   saveTrustStrip,
   toggleHeroSlide,
   type HeroState,
@@ -24,6 +25,8 @@ import type {
   AdminHeroSlide,
 } from '@/features/hero/admin-queries';
 import type { HeroSettings, TrustItem } from '@/features/hero/types';
+import type { AdminIntentTile } from '@/features/hero/admin-queries';
+import { INTENT_ICONS } from '@/features/hero/admin-schemas';
 import { SlideEditor } from '@/features/hero/components/slide-editor';
 
 /**
@@ -35,12 +38,13 @@ import { SlideEditor } from '@/features/hero/components/slide-editor';
  * done, and the publish rule refuses a half-translated slide.
  */
 
-const TABS = ['slides', 'settings', 'trust', 'announcement'] as const;
+const TABS = ['slides', 'settings', 'intent', 'trust', 'announcement'] as const;
 type Tab = (typeof TABS)[number];
 
 const TAB_LABEL: Record<Tab, string> = {
   slides: 'Slides',
   settings: 'Carousel',
+  intent: 'Homepage tiles',
   trust: 'Trust strip',
   announcement: 'Announcement bar',
 };
@@ -552,14 +556,139 @@ function AnnouncementPanel({ announcement }: { announcement: AdminAnnouncement |
   );
 }
 
+/**
+ * The four homepage entry tiles (migration 81).
+ *
+ * Six rows for four tiles on purpose: the band takes one to six, and an empty row is how a tile is added
+ * without a button. Clearing a row's titles is how one is removed — the action drops rows with no title,
+ * so add and remove are the same gesture as edit, which is the whole reason this is a fixed grid rather
+ * than a list with controls.
+ *
+ * Order in the form is order on the page. No drag handle: six rows of six fields is already the densest
+ * screen in the panel, and reordering by retyping four words is faster than learning a drag affordance
+ * you use twice a year.
+ */
+function IntentPanel({ items }: { items: AdminIntentTile[] }) {
+  const { state, formAction, attempt, fieldErrors, val } = useResilientForm(saveIntentBand);
+  const rows = [0, 1, 2, 3, 4, 5].map(
+    (index) =>
+      items[index] ?? { icon: 'target', href: '', titleSq: '', titleEn: '', bodySq: '', bodyEn: '' },
+  );
+
+  return (
+    <Card className="mt-4">
+      <CardHeader>
+        <CardTitle>Homepage tiles</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <p className="text-sm text-ink-600">
+          The four cards under the trust strip. These are how somebody who ignored the hero finds their way
+          in, so they are the most valuable navigation on the site — and which four they are is a
+          merchandising decision, not a code change.
+        </p>
+        <p className="mt-2 text-sm text-ink-600">
+          Leave a row&apos;s titles empty to drop that tile. Links must start with a single{' '}
+          <code>/</code> —
+          they go straight into the page, so an outside address is refused.
+        </p>
+
+        <form action={formAction} key={attempt} className="mt-4 flex flex-col gap-5">
+          {rows.map((row, index) => (
+            <div key={index} className="flex flex-col gap-3 rounded-lg border border-line p-4">
+              <div className="grid gap-3 sm:grid-cols-[8rem_1fr]">
+                <label htmlFor={`intent-icon-${index}`} className="flex flex-col gap-1 text-sm">
+                  <span className="font-medium text-ink-900">Icon</span>
+                  <select
+                    id={`intent-icon-${index}`}
+                    name={`icon-${index}`}
+                    defaultValue={row.icon}
+                    className={SELECT}
+                  >
+                    {INTENT_ICONS.map((icon) => (
+                      <option key={icon} value={icon}>
+                        {icon}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label htmlFor={`intent-href-${index}`} className="flex flex-col gap-1 text-sm">
+                  <span className="font-medium text-ink-900">Link</span>
+                  <Input
+                    id={`intent-href-${index}`}
+                    name={`href-${index}`}
+                    defaultValue={val(`href-${index}`, row.href)}
+                    placeholder="/goals"
+                    aria-invalid={Boolean(fieldErrors[`items.${index}.href`])}
+                  />
+                  <FieldError
+                    id={`intent-href-${index}-error`}
+                    messages={fieldErrors[`items.${index}.href`]}
+                  />
+                </label>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label htmlFor={`intent-titleSq-${index}`} className="flex flex-col gap-1 text-sm">
+                  <span className="font-medium text-ink-900">Title — Albanian</span>
+                  <Input
+                    id={`intent-titleSq-${index}`}
+                    name={`titleSq-${index}`}
+                    defaultValue={val(`titleSq-${index}`, row.titleSq)}
+                    maxLength={60}
+                  />
+                </label>
+                <label htmlFor={`intent-titleEn-${index}`} className="flex flex-col gap-1 text-sm">
+                  <span className="font-medium text-ink-900">Title — English</span>
+                  <Input
+                    id={`intent-titleEn-${index}`}
+                    name={`titleEn-${index}`}
+                    defaultValue={val(`titleEn-${index}`, row.titleEn)}
+                    maxLength={60}
+                  />
+                </label>
+                <label htmlFor={`intent-bodySq-${index}`} className="flex flex-col gap-1 text-sm">
+                  <span className="font-medium text-ink-900">Line under it — Albanian</span>
+                  <Input
+                    id={`intent-bodySq-${index}`}
+                    name={`bodySq-${index}`}
+                    defaultValue={val(`bodySq-${index}`, row.bodySq)}
+                    maxLength={120}
+                  />
+                </label>
+                <label htmlFor={`intent-bodyEn-${index}`} className="flex flex-col gap-1 text-sm">
+                  <span className="font-medium text-ink-900">Line under it — English</span>
+                  <Input
+                    id={`intent-bodyEn-${index}`}
+                    name={`bodyEn-${index}`}
+                    defaultValue={val(`bodyEn-${index}`, row.bodyEn)}
+                    maxLength={120}
+                  />
+                </label>
+              </div>
+            </div>
+          ))}
+
+          <div>
+            <SubmitButton>Save tiles</SubmitButton>
+          </div>
+        </form>
+
+        <Summary state={state} fieldErrors={fieldErrors} />
+      </CardContent>
+    </Card>
+  );
+}
+
 export function HeroAdmin({
   slides,
   settings,
+  intentTiles,
   trustItems,
   announcement,
 }: {
   slides: AdminHeroSlide[];
   settings: HeroSettings;
+  intentTiles: AdminIntentTile[];
   trustItems: TrustItem[];
   announcement: AdminAnnouncement | null;
 }) {
@@ -591,6 +720,7 @@ export function HeroAdmin({
       <div role="tabpanel" id={`hero-panel-${tab}`} aria-labelledby={`hero-tab-${tab}`}>
         {tab === 'slides' && <SlidesPanel slides={slides} />}
         {tab === 'settings' && <SettingsPanel settings={settings} />}
+        {tab === 'intent' && <IntentPanel items={intentTiles} />}
         {tab === 'trust' && <TrustPanel items={trustItems} />}
         {tab === 'announcement' && <AnnouncementPanel announcement={announcement} />}
       </div>

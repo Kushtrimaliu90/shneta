@@ -90,7 +90,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
 
       <TrustStrip items={trustItems} locale={locale} freeShippingThreshold={threshold} />
 
-      <IntentBand />
+      <IntentBand locale={locale} />
 
       {/* docs/05 §1.5 — bestsellers */}
       {products.length > 0 && (

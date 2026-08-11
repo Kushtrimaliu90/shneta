@@ -5,6 +5,7 @@ import { can } from '@/features/admin/roles';
 import {
   getAdminAnnouncement,
   getAdminHeroSettings,
+  getAdminIntentTiles,
   getAdminTrustItems,
   listAdminHeroSlides,
 } from '@/features/hero/admin-queries';
@@ -26,9 +27,10 @@ export default async function AdminHeroPage() {
   const profile = await getProfile();
   if (!can(profile?.role, 'hero.manage')) redirect('/admin');
 
-  const [slides, settings, trustItems, announcement] = await Promise.all([
+  const [slides, settings, intentTiles, trustItems, announcement] = await Promise.all([
     listAdminHeroSlides(),
     getAdminHeroSettings(),
+    getAdminIntentTiles(),
     getAdminTrustItems(),
     getAdminAnnouncement(),
   ]);
@@ -45,7 +47,8 @@ export default async function AdminHeroPage() {
       <HeroAdmin
         slides={slides}
         settings={settings}
-        trustItems={trustItems}
+        intentTiles={intentTiles}
+      trustItems={trustItems}
         announcement={announcement}
       />
     </div>

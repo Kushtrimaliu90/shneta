@@ -1,7 +1,10 @@
 import { getTranslations } from 'next-intl/server';
-import { Sparkles, Star, Tag, Target } from 'lucide-react';
+import { BadgeCheck, FlaskConical, Leaf, Sparkles, Star, Tag, Target, Truck } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { Link } from '@/i18n/routing';
+import { pickLocale } from '@/lib/i18n';
+import type { Locale } from '@/lib/constants';
+import { getIntentTiles } from '@/features/hero/queries';
 
 /**
  * The intent band: four routes into the catalogue, immediately below the fold.
@@ -18,16 +21,30 @@ import { Link } from '@/i18n/routing';
  * hero finds their way in, and a route that only appears every eighteen seconds is not a route.
  */
 
-const TILES: { key: 'goals' | 'bestsellers' | 'offers' | 'biohack'; href: string; icon: LucideIcon }[] =
-  [
-    { key: 'goals', href: '/goals', icon: Target },
-    { key: 'bestsellers', href: '/shop?sort=rating', icon: Star },
-    { key: 'offers', href: '/offers', icon: Tag },
-    { key: 'biohack', href: '/biohack', icon: Sparkles },
-  ];
+/**
+ * Icon name to component.
+ *
+ * A closed map rather than a dynamic lookup: the name comes from a settings row, and `INTENT_ICONS` in
+ * the schema is the same list, so the admin cannot save a name this cannot draw. An unknown one still
+ * falls back rather than throwing — a settings row is reachable from psql.
+ */
+const ICONS: Record<string, LucideIcon> = {
+  target: Target,
+  star: Star,
+  tag: Tag,
+  sparkles: Sparkles,
+  flask: FlaskConical,
+  leaf: Leaf,
+  truck: Truck,
+  badge: BadgeCheck,
+};
 
-export async function IntentBand() {
+export async function IntentBand({ locale }: { locale: Locale }) {
   const t = await getTranslations('home.intent');
+  const tiles = await getIntentTiles();
+
+  // An owner who deleted every tile has said something; rendering a default would argue with them.
+  if (tiles.length === 0) return null;
 
   return (
     <section aria-labelledby="intent-heading" className="pt-9 pb-11 lg:pt-10 lg:pb-12">
@@ -37,8 +54,10 @@ export async function IntentBand() {
         </h2>
 
         <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 lg:gap-4">
-          {TILES.map(({ key, href, icon: Icon }) => (
-            <li key={key} className="flex">
+          {tiles.map((tile) => {
+            const Icon = ICONS[tile.icon] ?? Target;
+            return (
+            <li key={tile.href + tile.icon} className="flex">
               {/*
                 The whole tile is the link — a title-only anchor inside a clickable card is the
                 pattern where the visible target and the real target disagree, and on a phone the
@@ -54,17 +73,22 @@ export async function IntentBand() {
                 cards, and the tile is still one tap target either way.
               */}
               <Link
-                href={href}
+                href={tile.href}
                 className="group flex w-full items-center gap-3 rounded-lg border border-line bg-surface p-4 transition-colors hover:border-forest-500 hover:bg-forest-50/40 sm:flex-col sm:items-start sm:gap-2 sm:p-5"
               >
                 <Icon className="size-5 shrink-0 text-forest-500" aria-hidden="true" />
                 <span className="min-w-0">
-                  <span className="block font-medium text-ink-900">{t(`${key}.title`)}</span>
-                  <span className="mt-0.5 block text-sm text-ink-500">{t(`${key}.body`)}</span>
+                  <span className="block font-medium text-ink-900">
+                    {pickLocale(tile.title, locale)}
+                  </span>
+                  <span className="mt-0.5 block text-sm text-ink-500">
+                    {pickLocale(tile.body, locale)}
+                  </span>
                 </span>
               </Link>
             </li>
-          ))}
+            );
+          })}
         </ul>
       </div>
     </section>

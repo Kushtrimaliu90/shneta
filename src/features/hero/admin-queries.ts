@@ -153,3 +153,36 @@ export async function getAdminAnnouncement(): Promise<AdminAnnouncement | null> 
     isActive: data.is_active,
   };
 }
+
+/** The homepage tiles as the admin form needs them — flat, one row per tile (migration 81). */
+export interface AdminIntentTile {
+  icon: string;
+  href: string;
+  titleSq: string;
+  titleEn: string;
+  bodySq: string;
+  bodyEn: string;
+}
+
+export async function getAdminIntentTiles(): Promise<AdminIntentTile[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from('settings')
+    .select('value')
+    .eq('key', 'intent_band')
+    .maybeSingle();
+
+  const items = (data as { value: { items?: unknown } } | null)?.value?.items;
+  if (!Array.isArray(items)) return [];
+
+  return items
+    .filter((item): item is Record<string, unknown> => item != null && typeof item === 'object')
+    .map((item) => ({
+      icon: String(item.icon ?? 'target'),
+      href: String(item.href ?? ''),
+      titleSq: String(item.titleSq ?? ''),
+      titleEn: String(item.titleEn ?? ''),
+      bodySq: String(item.bodySq ?? ''),
+      bodyEn: String(item.bodyEn ?? ''),
+    }));
+}

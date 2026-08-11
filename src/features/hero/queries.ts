@@ -7,6 +7,7 @@ import { asLocalizedField } from '@/lib/i18n';
 import { logger } from '@/lib/logger';
 import type {
   AnnouncementBar,
+  IntentTile,
   HeroSettings,
   HeroSlide,
   TrustItem,
@@ -263,5 +264,50 @@ export const getFreeShippingThresholdCents = cache(async (): Promise<number | nu
   return unstable_cache(() => fetchShippingThreshold(), ['hero-free-shipping'], {
     tags: [CACHE_TAGS.shipping],
     revalidate: ISR_REVALIDATE_SECONDS,
+  })();
+});
+
+/**
+ * The homepage entry tiles.
+ *
+ * Reads `settings.intent_band`, seeded by migration 81 from the copy that was hardcoded before it. Falls
+ * back to an empty list rather than to a built-in default: a default would mean the band silently reverts
+ * to last year's merchandising if the row is ever emptied, and an owner who deletes every tile has said
+ * something. `IntentBand` renders nothing for an empty list, which is a visible outcome they can undo.
+ *
+ * Long tier and purge-driven, like the trust strip — nothing here depends on the clock.
+ */
+const fetchIntentTiles = cache(async (): Promise<IntentTile[]> => {
+  const supabase = createPublicClient();
+  const { data, error } = await supabase
+    .from('settings')
+    .select('value')
+    .eq('key', 'intent_band')
+    .maybeSingle();
+
+  if (error) {
+    logger.error('intent band failed', { cause: error.message });
+    return [];
+  }
+
+  const items = (data as { value: { items?: unknown } } | null)?.value?.items;
+  if (!Array.isArray(items)) return [];
+
+  return items
+    .filter((item): item is Record<string, unknown> => item != null && typeof item === 'object')
+    .map((item) => ({
+      icon: String(item.icon ?? 'target'),
+      href: String(item.href ?? '/shop'),
+      title: { sq: String(item.titleSq ?? ''), en: String(item.titleEn ?? '') },
+      body: { sq: String(item.bodySq ?? ''), en: String(item.bodyEn ?? '') },
+    }))
+    /* A tile with no Albanian title would render as an empty card on the default locale. */
+    .filter((item) => item.title.sq || item.title.en);
+});
+
+export const getIntentTiles = cache(async (): Promise<IntentTile[]> => {
+  return unstable_cache(() => fetchIntentTiles(), ['intent-band'], {
+    tags: [CACHE_TAGS.hero, CACHE_TAGS.settings],
+    revalidate: STATIC_REVALIDATE_SECONDS,
   })();
 });

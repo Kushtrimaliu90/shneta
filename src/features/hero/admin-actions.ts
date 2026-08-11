@@ -14,6 +14,7 @@ import {
   heroSettingsSchema,
   heroSlideSchema,
   heroUploadSchema,
+  intentBandSchema,
   trustStripSchema,
 } from '@/features/hero/admin-schemas';
 import type { Json } from '@/lib/supabase/database.types';
@@ -503,6 +504,73 @@ export async function saveAnnouncement(_previous: HeroState, formData: FormData)
     return ok({ message: 'Announcement saved.' });
   } catch (error) {
     logger.error('saveAnnouncement threw', describeError(error));
+    return no('admin.errors.generic');
+  }
+}
+
+/**
+ * Saves the four homepage entry tiles (migration 81).
+ *
+ * Read positionally like the trust strip, and for the same reason: the form renders a fixed number of rows,
+ * so the index is the identity and there is no id to keep in sync. A row whose Albanian title is blank is
+ * dropped rather than refused — that is how an owner removes a tile, and making them delete text *and*
+ * find a remove button would be two actions for one intention.
+ *
+ * The band is the most prominent navigation on the site, so `href` is validated with the same site-path
+ * rule as a hero CTA: these strings become `<Link href>`, and an off-site or protocol-relative value would
+ * be an open redirect on the homepage.
+ */
+export async function saveIntentBand(_previous: HeroState, formData: FormData): Promise<HeroState> {
+  const gate = await requireCapability('hero.manage');
+  if (!gate.ok) return no(gate.error);
+
+  const items = [0, 1, 2, 3, 4, 5]
+    .map((index) => ({
+      icon: String(formData.get(`icon-${index}`) ?? 'target'),
+      href: String(formData.get(`href-${index}`) ?? '').trim(),
+      titleSq: String(formData.get(`titleSq-${index}`) ?? '').trim(),
+      titleEn: String(formData.get(`titleEn-${index}`) ?? '').trim(),
+      bodySq: String(formData.get(`bodySq-${index}`) ?? '').trim(),
+      bodyEn: String(formData.get(`bodyEn-${index}`) ?? '').trim(),
+    }))
+    .filter((item) => item.titleSq || item.titleEn || item.href);
+
+  const parsed = intentBandSchema.safeParse({ items });
+  if (!parsed.success) {
+    /*
+     * Keyed by the full path, not by `flatten()`.
+     *
+     * `flatten().fieldErrors` only names TOP-LEVEL keys, so every problem inside the array collapses
+     * to one entry called `items` — the summary then says a link is wrong without saying which of the
+     * six, and no input is marked. Joining the issue path gives `items.0.href`, which is what the form
+     * looks up. Caught by the E2E test asserting aria-invalid on the offending row.
+     */
+    const fieldErrors: Record<string, string[] | undefined> = {};
+    for (const issue of parsed.error.issues) {
+      const key = issue.path.join('.');
+      fieldErrors[key] = [...(fieldErrors[key] ?? []), issue.message];
+    }
+    return fromFieldErrors('admin.hero.errors.checkFields', { fieldErrors });
+  }
+
+  try {
+    const supabase = await createClient();
+    const { error } = await supabase
+      .from('settings')
+      .upsert({ key: 'intent_band', value: { items: parsed.data.items } as unknown as Json });
+
+    if (error) {
+      logger.error('saveIntentBand failed', describeError(error));
+      return no('admin.errors.generic');
+    }
+
+    await audit('hero.intent.update', 'settings', 'intent_band', null, {
+      tiles: parsed.data.items.length,
+    } as unknown as Json);
+    purge();
+    return ok({ message: 'Homepage tiles saved.' });
+  } catch (error) {
+    logger.error('saveIntentBand threw', describeError(error));
     return no('admin.errors.generic');
   }
 }

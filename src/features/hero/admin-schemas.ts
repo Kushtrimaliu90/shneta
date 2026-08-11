@@ -181,3 +181,36 @@ export const announcementSchema = z.object({
   href: sitePath,
   isActive: z.coerce.boolean().default(false),
 });
+
+/**
+ * The four homepage entry tiles (migration 81).
+ *
+ * Mirrors `trustStripSchema` in shape and differs in what a tile carries: a bilingual title and body, a
+ * destination, and an icon. `sitePath` is reused rather than a looser string — these become `<Link href>`
+ * on the most prominent navigation on the site, and the same off-site and protocol-relative rules apply.
+ *
+ * One to six tiles. The band is a four-column grid at `lg` and stacks below it, so five or six still read
+ * as a band rather than a list; zero would leave the homepage with no route in below the hero, which is
+ * the thing this band exists to provide.
+ */
+export const INTENT_ICONS = ['target', 'star', 'tag', 'sparkles', 'flask', 'leaf', 'truck', 'badge'] as const;
+
+export const intentBandSchema = z.object({
+  items: z
+    .array(
+      z.object({
+        icon: z.enum(INTENT_ICONS),
+        /** Required here, unlike an optional CTA: a tile with no destination is not a route. */
+        href: trimmed
+          .min(1)
+          .max(200)
+          .regex(/^\/(?!\/)[\w\-/?=&.%]*$/, 'Must start with a single “/” — for example /offers.'),
+        titleSq: trimmed.min(1).max(60),
+        titleEn: trimmed.min(1).max(60),
+        bodySq: trimmed.min(1).max(120),
+        bodyEn: trimmed.min(1).max(120),
+      }),
+    )
+    .min(1)
+    .max(6),
+});
