@@ -102,6 +102,20 @@ export const deleteVariantSchema = z.object({
 export const productIdSchema = z.object({ productId: uuid });
 
 /**
+ * Removing or restoring several products at once.
+ *
+ * Capped at fifty, which is half the page size rather than equal to it: removal is one UPDATE per row
+ * with no email, no storage copy and no per-row purge, so the cost is far below a bulk *decision* — but
+ * "select all" on a hundred-row list is not a considered action, and a cap that bites is a cheap way of
+ * asking whether it was.
+ */
+export const PRODUCT_BULK_MAX = 50;
+
+export const productBulkSchema = z.object({
+  productIds: z.array(uuid).min(1).max(PRODUCT_BULK_MAX),
+});
+
+/**
  * docs/07 §10 — the publishing workflow.
  *
  * `published` is absent: it is not something anyone sets directly. It is the result of

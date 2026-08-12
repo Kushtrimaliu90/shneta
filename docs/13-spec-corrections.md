@@ -4010,3 +4010,100 @@ ticked all seven dietary tags and two categories, then broke the slug and emptie
 - all three typed fields, all seven tags and both categories still there; the bad slug still present to be
   corrected; the emptied name still empty
 - the database row untouched, because the check only ever submits an invalid form
+
+## AM. Admin CRUD, audited and then built
+
+The owner asked (2026-08-12) to be able to delete and edit products, brands and so on, and for a thorough
+assessment first. The assessment's headline: **the database already designed most of it, and the actions
+were never written.** Five tables carry `deleted_at` — `products`, `brands`, `categories`, `articles`,
+`profiles` — and the public read policies already exclude it:
+
+```
+products:   (status = 'published' and deleted_at is null)
+brands:     (is_active and deleted_at is null)
+categories: (is_active and deleted_at is null)
+articles:   (status = 'published' and deleted_at is null)
+```
+
+So a removal takes effect on the storefront, the sitemap and every anonymous read **at the database**. It
+cannot be honoured by one query and forgotten by another. Nothing set the column.
+
+Of 88 server actions, 14 could delete anything, and none touched a product, brand, category, ingredient or
+goal. Three verifiers confirmed the gap by exhaustive enumeration; the only deletion paths were shell
+scripts (`purge:test-data`, `purge:demo`), neither reachable from the panel.
+
+### The rule that came out of it
+
+**What is live must be taken down before it can be removed, and removal must be undoable.** Every entity
+already had a reversible way of being taken down — a status, an `is_active`, a rejection — so each refusal
+names that step rather than inventing a new one. One rule, seven entities, which is why it reads as a rule
+instead of seven opinions.
+
+### Hard delete: proven, not inferred
+
+The design rested on "stock movements block a product delete". That had been read off the migrations and
+never executed. Executed:
+
+```
+REFUSED — update or delete on table "product_variants" violates foreign key constraint
+"stock_movements_variant_id_fkey" on table "stock_movements"
+```
+
+24 of 70 products would refuse. A product with no such history deletes and its variants cascade.
+
+**The first attempt at that proof proved nothing** and looked like a disproof: the stock-movement insert
+had failed on a wrong column name (`delta`, not `quantity`), so "delete succeeded" was measuring an empty
+fixture. Read the setup output before believing the result.
+
+That reshaped hard delete from an alternative into a **second step from the bin**, because it adds exactly
+one thing over removal — the slug becomes reusable. It is refused unless the record is provably empty, and
+the guard is tight because *succeeding* is the dangerous case: thirteen tables cascade with a product,
+including customer reviews and merchant offers, which would go with no audit row of their own.
+
+### Where a soft delete would have been wrong
+
+**Reviews.** `refresh_product_rating` fires `after insert or update of status, rating or delete` and
+recomputes from `status = 'approved'`. A DELETE therefore corrects the product's stars automatically; a soft
+delete would not fire the trigger at all and would leave a removed five-star review inflating a live
+product page. The blunter-looking option is the correct one. `pages`, `faqs` and `banners` have zero inbound
+foreign keys, so a delete there cannot orphan anything either.
+
+### Three bugs the audit turned up
+
+- **`rejectProduct` left the approval stamp behind.** It wrote `{ status: 'draft' }` alone, so a product
+  compliance had just rejected still reported *Approved* and its checklist read "Everything is in place."
+  `guard_product_publish` keys the whole publish gate on that stamp.
+- **A comment had a foreign key backwards.** `certification-actions.ts` claimed
+  `product_certifications` has no cascade, so "a delete would fail at the foreign key anyway". Migration
+  `20260731000300_catalog.sql:195` declares `on delete cascade` — the database would refuse nothing and
+  would strip an Organic or Vegan badge from every product carrying it. The in-use check is the whole
+  protection.
+- **The product editor's Brand and Category dropdowns did not filter `deleted_at`,** so a removed brand
+  stayed selectable and choosing it would write a reference every other query hides.
+
+### Two UI defects found only by driving it
+
+- **The bulk bar unmounted its own report.** Rendered under `rows.length > 0`, so removing everything on
+  screen destroyed the component holding the confirmation — the most decisive action available gave
+  silence and a blank list. Caught by removing four of four.
+- **A `form=` attribute resolved to null at rest.** The merchant bulk form only existed once a panel
+  opened, so every checkbox was bound to nothing until then. It worked by accident, because the browser
+  re-resolves the association before submit.
+
+### The 37 orders
+
+The dashboard read €814 across 37 orders. Every one was a leftover fixture: zero `order_items`, an
+`anonymised+…@deleted.invalid` address, no payment rows. `purgeFixtures` had anonymised the customers but
+its order patterns (`%@biocode.test`, `SH-9999-%`) never matched these, so the rows survived.
+
+CLAUDE.md §10 forbids hard-deleting orders, and that rule protects real commercial history. Each row was
+checked individually against all three conditions rather than trusted as a group, exported to JSON first,
+and then deleted — 37 of 37 qualified. The dashboard now reads 0 orders and €0.00, which is the truth.
+
+### Retention
+
+A bin nobody empties is a second catalogue, and every slug in it is an address that can never be reused.
+So the housekeeping cron gained a tenth step: records removed more than **90 days** ago and still provably
+empty are destroyed, bounded to 20 a run. It uses the same guard as the manual path, so the cron cannot be
+a back door around a refusal — anything still attached is counted as `kept`, indefinitely, which is the
+correct outcome for a product whose history outweighs its slug.

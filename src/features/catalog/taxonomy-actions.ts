@@ -10,7 +10,8 @@ import { logger, describeError } from '@/lib/logger';
 import { fail, fromFieldErrors, ok } from '@/lib/result';
 import { audit, requireCapability } from '@/features/admin/audit';
 import { slugSchema } from '@/features/catalog/admin-schemas';
-import { canRemoveBrand, canRemoveCategory } from '@/features/catalog/removal';
+import { taxonomyAttachments } from '@/features/catalog/taxonomy-queries';
+import { canPurge, canRemoveBrand, canRemoveCategory } from '@/features/catalog/removal';
 import { FORM_LEVEL } from '@/lib/field-errors';
 import type { Capability } from '@/features/admin/roles';
 import type { Json } from '@/lib/supabase/database.types';
@@ -819,6 +820,87 @@ export async function attachBrandLogo(
     return ok({ path: parsed.data.path });
   } catch (error) {
     logger.error('attachBrandLogo threw', describeError(error));
+    return taxFail('admin.errors.generic');
+  }
+}
+
+/**
+ * Destroys a removed brand or category for good.
+ *
+ * The second step, only from the bin, and only when nothing points at it. What it adds over removal is
+ * that the slug becomes reusable — nothing else, since a removed row is already gone from the shop and
+ * from the list.
+ *
+ * The attachment count deliberately ignores whether the *attached* rows are themselves removed: a removed
+ * product still carries its `brand_id`, so destroying the brand would leave it pointing at nothing if it
+ * were ever restored. Same for a removed child category.
+ */
+export async function purgeTaxonomy(
+  _previous: TaxonomyState,
+  formData: FormData,
+): Promise<TaxonomyState> {
+  const parsed = removeSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return taxFail('admin.catalog.errors.checkFields');
+
+  const { kind, id } = parsed.data;
+  const entity = ENTITIES[kind];
+  const gate = await requireCapability(entity.capability);
+  if (!gate.ok) return taxFail(gate.error);
+
+  const table = kind === 'brand' ? ('brands' as const) : ('categories' as const);
+
+  const blocked = (verdict: { reason: string; instead?: string }): TaxonomyState => ({
+    ok: false,
+    error: 'admin.catalog.errors.removeBlocked',
+    fieldErrors: { [FORM_LEVEL]: [verdict.reason, verdict.instead ?? ''].filter(Boolean) },
+  });
+
+  try {
+    const supabase = await createClient();
+
+    const { data: before } = await supabase
+      .from(table)
+      .select('slug, name, deleted_at')
+      .eq('id', id)
+      .maybeSingle();
+
+    if (!before) return taxFail('admin.catalog.errors.notFound');
+    const row = before as { slug: string; name: unknown; deleted_at: string | null };
+
+    // The bin is the only door — removing first is the reversible step that gives a chance to reconsider.
+    if (row.deleted_at === null) {
+      return blocked({
+        reason: `This ${kind} is still in the list.`,
+        instead: 'Remove it first. Deleting for good is only possible from the Removed section.',
+      });
+    }
+
+    const attached = await taxonomyAttachments(kind, id);
+    const verdict = canPurge(attached);
+    if (!verdict.allowed) return blocked(verdict);
+
+    // Audited before the delete: afterwards there is nothing left to read.
+    await audit(`${kind}.purged`, entity.table, id, { slug: row.slug, name: row.name } as unknown as Json, {
+      attached,
+    } as unknown as Json);
+
+    const { error } = await supabase
+      .from(table)
+      .delete()
+      .eq('id', id)
+      // So a record restored since the page loaded is not destroyed on a stale check.
+      .not('deleted_at', 'is', null);
+
+    if (error) {
+      logger.error('purgeTaxonomy failed', { kind, cause: error.message });
+      return taxFail('admin.errors.generic');
+    }
+
+    revalidatePublic([entity.tag, CACHE_TAGS.products]);
+    revalidatePath(entity.adminPath);
+    return { ok: true, data: { id } };
+  } catch (error) {
+    logger.error('purgeTaxonomy threw', { kind, ...describeError(error) });
     return taxFail('admin.errors.generic');
   }
 }

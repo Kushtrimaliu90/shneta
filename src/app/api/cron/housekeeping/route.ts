@@ -9,6 +9,7 @@ import {
   sendPartialShipmentNotice,
 } from '@/features/merchants/partial-shipment-email';
 import { sweepApprovedProposals, sweepProposalOffers } from '@/features/merchants/proposal-sweep';
+import { sweepRetention } from '@/features/catalog/retention';
 
 /**
  * docs/10 §5 — nightly housekeeping, 03:30 UTC.
@@ -66,6 +67,8 @@ export async function GET(request: NextRequest) {
     proposalsAwaiting: 0,
     offersMinted: 0,
     offersAwaiting: 0,
+    retentionPurged: 0,
+    retentionKept: 0,
   };
   const failures: string[] = [];
 
@@ -252,6 +255,23 @@ export async function GET(request: NextRequest) {
     const swept = await sweepProposalOffers(25);
     summary.offersMinted = swept.minted;
     summary.offersAwaiting = swept.remaining;
+  }
+
+  /*
+   * 10 · Empty the bin of anything past retention that is provably empty.
+   *
+   * Last, because it is the only step that destroys rather than creates, and because it depends on the
+   * others having finished: a product destroyed here frees its brand for the *next* run, not this one.
+   *
+   * `failed` is reported but does not fail the cron. A record the guard refuses is not an error — its
+   * history is worth more than its slug, and it is counted as `kept` so a bin that never empties is
+   * visible rather than mysterious.
+   */
+  {
+    const swept = await sweepRetention(20);
+    summary.retentionPurged = swept.purged;
+    summary.retentionKept = swept.kept;
+    if (swept.failed > 0) failures.push(`retention: ${swept.failed} row(s) failed to delete`);
   }
 
   if (failures.length > 0) {

@@ -15,8 +15,13 @@ import {
   PRODUCT_STATUSES,
   toProductStatus,
 } from '@/features/catalog/admin-queries';
+import { PRODUCT_BULK_MAX } from '@/features/catalog/admin-schemas';
 import { NewProductForm } from '@/features/catalog/components/new-product-form';
 import { RemoveControl, RestoreControl } from '@/components/ui/remove-control';
+import {
+  ProductBulkBar,
+  SelectBox,
+} from '@/features/catalog/components/product-bulk-bar';
 import { purgeProduct, restoreProduct } from '@/features/catalog/admin-actions';
 import { CATALOG_ERRORS } from '@/features/catalog/admin-copy';
 import { cn } from '@/lib/utils';
@@ -197,6 +202,28 @@ export default async function AdminProductsPage({ searchParams }: Props) {
         </Link>
       </nav>
 
+      {/*
+        The selection bar, above the table, in whichever mode this view calls for. The Removed tab can
+        only restore and the live list can only remove, because the two never hold the same row.
+      */}
+      {/*
+        Rendered unconditionally, including when the list is empty.
+
+        Gating this on `rows.length > 0` meant that removing everything on screen unmounted the very
+        component holding the report — so the most decisive action available gave no confirmation at all,
+        just a list that had gone blank. Caught by removing four of four and getting silence.
+
+        At zero rows the counts read "0 of 0" and both buttons are disabled, which is a small price for an
+        outcome that survives the action that caused it.
+      */}
+      <div className="mt-4">
+        <ProductBulkBar
+          ids={rows.map((row) => row.id)}
+          mode={removed ? 'restore' : 'remove'}
+          cap={PRODUCT_BULK_MAX}
+        />
+      </div>
+
       {rows.length === 0 ? (
         <div className="mt-8 rounded-lg border border-dashed border-line-strong bg-surface p-10 text-center">
           <p className="font-medium text-forest-900">No products match this view</p>
@@ -222,6 +249,7 @@ export default async function AdminProductsPage({ searchParams }: Props) {
             <thead>
               <tr className="border-b border-line bg-forest-50 text-left">
                 {[
+                  '',
                   'Product',
                   'Brand',
                   'Status',
@@ -263,6 +291,9 @@ export default async function AdminProductsPage({ searchParams }: Props) {
                     key={row.id}
                     className="border-b border-line last:border-0 hover:bg-forest-50/60"
                   >
+                    <td className="pr-0 pl-4 py-3">
+                      <SelectBox id={row.id} label={pickLocale(row.name, 'en') || row.slug} />
+                    </td>
                     <td className="px-4 py-3">
                       <Link
                         href={`/admin/products/${row.id}`}

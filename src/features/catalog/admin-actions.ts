@@ -7,15 +7,16 @@ import { toCents } from '@/lib/money';
 import { revalidatePublic } from '@/lib/cache';
 import { CACHE_TAGS } from '@/lib/constants';
 import { logger, describeError } from '@/lib/logger';
-import { fail, fromFieldErrors, ok } from '@/lib/result';
+import { fail, fromFieldErrors, ok, type ActionResult } from '@/lib/result';
 import { fieldErrorsFrom } from '@/lib/field-errors';
-import { audit, requireCapability } from '@/features/admin/audit';
+import { audit, auditMany, requireCapability } from '@/features/admin/audit';
 import { productAttachments } from '@/features/catalog/admin-queries';
 import {
   approveProductSchema,
   CATALOG_FIELD_MESSAGES,
   createProductSchema,
   deleteVariantSchema,
+  productBulkSchema,
   productGeneralSchema,
   productIdSchema,
   productSeoSchema,
@@ -25,7 +26,7 @@ import {
 } from '@/features/catalog/admin-schemas';
 import { canPurge, canRemovePublished } from '@/features/catalog/removal';
 import { FORM_LEVEL } from '@/lib/field-errors';
-import type { Json } from '@/lib/supabase/database.types';
+import type { Database, Json } from '@/lib/supabase/database.types';
 
 /**
  * docs/06 §3 — catalogue mutations.
@@ -495,6 +496,398 @@ export async function purgeProduct(
   } catch (error) {
     logger.error('purgeProduct threw', describeError(error));
     return catalogFail('admin.errors.generic');
+  }
+}
+
+/**
+ * docs/06 §3 — "Row actions: edit, duplicate, archive". The duplicate half, finally.
+ *
+ * A new product is three fields; a *near-copy* of an existing one is forty, spread over five tabs. Two
+ * flavours of the same supplement, or a 60-capsule beside a 120, is the ordinary case in this catalogue
+ * and there was no way to do it but retype.
+ *
+ * ── What is copied, and what deliberately is not ──
+ *
+ * Copied: every descriptive field, the form and serving size, dietary tags, category and goal links, the
+ * ingredient label and the certifications. Those are what make it a duplicate rather than a blank.
+ *
+ * **Not** copied, each for a reason:
+ *   - `status` — the copy is always a draft. A duplicate that arrived published would put an unreviewed
+ *     page on the shop, and `guard_product_publish` would have been bypassed by the fact that its source
+ *     had already passed.
+ *   - `approved_by` / `approved_at` / `published_at` — an approval is a decision about a specific
+ *     product. Carrying it over would let a copy inherit a compliance sign-off nobody gave it, which is
+ *     the same defect as the one `rejectProduct` had.
+ *   - variants — a variant carries a SKU, and a SKU is unique, printed on courier forms and scanned. A
+ *     generated one (`SKU-COPY`) would look real and be wrong. The copy needs at least one variant to
+ *     publish, so the editor is where the operator sets the price anyway.
+ *   - images — they live in storage, and copying bytes is a per-file round trip that belongs with the
+ *     media tab rather than hidden inside a duplicate. The blocker checklist will say an image is needed.
+ *   - `rating_avg` / `rating_count` and reviews — those belong to the product customers reviewed.
+ */
+export async function duplicateProduct(
+  _previous: CatalogState,
+  formData: FormData,
+): Promise<CatalogState> {
+  const gate = await requireCapability('products.manage');
+  if (!gate.ok) return catalogFail(gate.error);
+
+  const parsed = productIdSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return catalogFail('admin.catalog.errors.checkFields');
+  const { productId } = parsed.data;
+
+  try {
+    const supabase = await createClient();
+
+    const { data: source } = await supabase
+      .from('products')
+      .select(
+        `slug, brand_id, name, subtitle, description, how_to_use, warnings, form, serving_size,
+         dietary_tags, seo`,
+      )
+      .eq('id', productId)
+      .is('deleted_at', null)
+      .maybeSingle();
+
+    if (!source) return catalogFail('admin.catalog.errors.notFound');
+    const row = source as Record<string, unknown> & { slug: string; name: unknown };
+
+    /*
+     * `-copy`, then `-copy-2`, and so on.
+     *
+     * A removed product still holds its slug — the unique constraint has no partial index — so the first
+     * free suffix has to be found by asking rather than assumed. Capped at ten: past that the operator is
+     * duplicating in a loop and a clearer error is kinder than a twelfth silent suffix.
+     */
+    let slug = '';
+    for (let attempt = 1; attempt <= 10; attempt += 1) {
+      const candidate = attempt === 1 ? `${row.slug}-copy` : `${row.slug}-copy-${attempt}`;
+      const { data: taken } = await supabase
+        .from('products')
+        .select('id')
+        .eq('slug', candidate)
+        .maybeSingle();
+      if (!taken) {
+        slug = candidate;
+        break;
+      }
+    }
+    if (!slug) return catalogFail('admin.catalog.errors.slugTaken');
+
+    const asName = (value: unknown): Record<string, string> => {
+      const pair = (value ?? {}) as Record<string, string>;
+      const out: Record<string, string> = {};
+      // "(copy)" on both locales that exist, so the list is readable before anything is renamed.
+      if (pair.sq) out.sq = `${pair.sq} (copy)`;
+      if (pair.en) out.en = `${pair.en} (copy)`;
+      return out;
+    };
+
+    const { data: created, error } = await supabase
+      .from('products')
+      .insert({
+        slug,
+        brand_id: row.brand_id as string,
+        name: asName(row.name) as unknown as Json,
+        subtitle: (row.subtitle ?? {}) as Json,
+        description: (row.description ?? {}) as Json,
+        how_to_use: (row.how_to_use ?? {}) as Json,
+        warnings: (row.warnings ?? {}) as Json,
+        /*
+         * Cast through the enum the column actually is. Read back as `unknown` it widens to `string`,
+         * which the generated types rightly refuse — the value came out of this same column, so the
+         * narrowing is a restatement of a fact rather than an assumption.
+         */
+        form: (row.form ?? null) as Database['public']['Enums']['product_form'] | null,
+        serving_size: (row.serving_size ?? null) as string | null,
+        dietary_tags: (row.dietary_tags ?? []) as string[],
+        seo: (row.seo ?? {}) as Json,
+        status: 'draft',
+      })
+      .select('id')
+      .single();
+
+    if (error || !created) {
+      logger.error('duplicateProduct failed', { cause: error?.message });
+      return catalogFail(mapCatalogError(error?.message ?? ''));
+    }
+    const newId = (created as { id: string }).id;
+
+    /*
+     * The join tables, copied by reading and re-inserting rather than by an `insert … select`, because
+     * PostgREST has no way to express the latter. Each is best-effort: a duplicate with its categories
+     * but not its certifications is still far more useful than a failure, and the editor shows exactly
+     * what is missing.
+     */
+    const copyLinks = async (
+      table: 'product_categories' | 'product_health_goals' | 'product_certifications',
+      select: string,
+      map: (source: Record<string, unknown>) => Record<string, unknown>,
+    ) => {
+      const { data: rows } = await supabase.from(table).select(select).eq('product_id', productId);
+      const payload = ((rows ?? []) as unknown as Record<string, unknown>[]).map(map);
+      if (payload.length > 0) await supabase.from(table).insert(payload as never);
+    };
+
+    await copyLinks('product_categories', 'category_id, is_primary', (link) => ({
+      product_id: newId,
+      category_id: link.category_id,
+      is_primary: link.is_primary,
+    }));
+    await copyLinks('product_health_goals', 'goal_id', (link) => ({
+      product_id: newId,
+      goal_id: link.goal_id,
+    }));
+    await copyLinks('product_certifications', 'certification_id', (link) => ({
+      product_id: newId,
+      certification_id: link.certification_id,
+    }));
+
+    const { data: label } = await supabase
+      .from('product_ingredients')
+      .select('ingredient_id, amount, unit, nrv_pct, per_serving, position')
+      .eq('product_id', productId);
+    const labelRows = ((label ?? []) as Record<string, unknown>[]).map((entry) => ({
+      ...entry,
+      product_id: newId,
+    }));
+    if (labelRows.length > 0) await supabase.from('product_ingredients').insert(labelRows as never);
+
+    await audit('product.duplicated', 'product', newId, { from: productId }, {
+      slug,
+      links: {
+        label: labelRows.length,
+      },
+    } as unknown as Json);
+
+    revalidatePath('/admin/products');
+    /*
+     * Straight into the copy's editor. The operator's next action is certain — a SKU and a price, which
+     * the duplicate deliberately did not invent — so landing them on the list to find it themselves is a
+     * step with no decision in it.
+     */
+    redirect(`/admin/products/${newId}`);
+  } catch (error) {
+    /*
+     * `redirect` throws by design in Next, so it must not be swallowed here. Anything else is a genuine
+     * fault: `NEXT_REDIRECT` is how the framework unwinds, and catching it would turn a successful
+     * duplicate into a generic error.
+     */
+    if (error instanceof Error && error.message === 'NEXT_REDIRECT') throw error;
+    if (
+      typeof error === 'object' &&
+      error !== null &&
+      'digest' in error &&
+      String((error as { digest?: unknown }).digest).startsWith('NEXT_REDIRECT')
+    ) {
+      throw error;
+    }
+    logger.error('duplicateProduct threw', describeError(error));
+    return catalogFail('admin.errors.generic');
+  }
+}
+
+export interface BulkRemoveReport {
+  requested: number;
+  removed: number;
+  /** Rows the rules refused, with the reason, so a partial result explains itself. */
+  skipped: { id: string; label: string; reason: string }[];
+}
+
+export type BulkRemoveState = ActionResult<BulkRemoveReport, CatalogErrorKey> | null;
+
+/**
+ * Removes several products at once, or puts several back.
+ *
+ * ── One statement, and the same guard as the single path ──
+ *
+ * The write is a single `UPDATE … .in('id', ids).neq('status','published').is('deleted_at', null)`, so it
+ * is atomic and its `RETURNING` list is the report: whatever came back was removed, whatever was asked for
+ * and did not is explained from the pre-read. The published guard is enforced *in the statement* rather
+ * than by filtering the list first — a product published between the click and the write must not slip
+ * through, and a stale tab is the ordinary case on a list somebody left open.
+ *
+ * ── Why removal in bulk is safe where a decision would not be ──
+ *
+ * No email, no storage copy, no per-row cache purge: one tag purge covers the catalogue. So the cost is
+ * a single UPDATE regardless of the count, and the cap exists to make "select all" a considered act
+ * rather than to protect a request budget.
+ */
+export async function removeProductsBulk(
+  _previous: BulkRemoveState,
+  formData: FormData,
+): Promise<BulkRemoveState> {
+  const gate = await requireCapability('products.manage');
+  if (!gate.ok) return fail<CatalogErrorKey, BulkRemoveReport>(gate.error);
+
+  // `getAll`, never `Object.fromEntries` — a repeated checkbox collapses to its last value.
+  const ids = [...new Set(formData.getAll('productIds').map((value) => String(value)))].filter(
+    (id) => id.length > 0,
+  );
+  const parsed = productBulkSchema.safeParse({ productIds: ids });
+  if (!parsed.success) {
+    return fail<CatalogErrorKey, BulkRemoveReport>('admin.catalog.errors.checkFields');
+  }
+
+  try {
+    const supabase = await createClient();
+
+    const { data: beforeRows, error: readError } = await supabase
+      .from('products')
+      .select('id, slug, name, status, deleted_at')
+      .in('id', parsed.data.productIds);
+
+    if (readError) {
+      logger.error('removeProductsBulk pre-read failed', { cause: readError.message });
+      return fail<CatalogErrorKey, BulkRemoveReport>('admin.errors.generic');
+    }
+
+    interface Row {
+      id: string;
+      slug: string;
+      name: unknown;
+      status: string;
+      deleted_at: string | null;
+    }
+    const before = new Map(((beforeRows ?? []) as unknown as Row[]).map((row) => [row.id, row]));
+
+    const { data: updated, error: writeError } = await supabase
+      .from('products')
+      .update({ deleted_at: new Date().toISOString() })
+      .in('id', parsed.data.productIds)
+      .neq('status', 'published')
+      .is('deleted_at', null)
+      .select('id, slug');
+
+    if (writeError) {
+      logger.error('removeProductsBulk write failed', { cause: writeError.message });
+      return fail<CatalogErrorKey, BulkRemoveReport>('admin.errors.generic');
+    }
+
+    const done = ((updated ?? []) as { id: string; slug: string }[]).map((row) => row.id);
+    const doneSet = new Set(done);
+
+    const labelOf = (row: Row | undefined, id: string): string => {
+      const pair = (row?.name ?? {}) as Record<string, string>;
+      return pair.en || pair.sq || row?.slug || id.slice(0, 8);
+    };
+
+    const skipped = parsed.data.productIds
+      .filter((id) => !doneSet.has(id))
+      .map((id) => {
+        const row = before.get(id);
+        if (!row) return { id, label: id.slice(0, 8), reason: 'No longer in the catalogue.' };
+        if (row.deleted_at !== null) {
+          return { id, label: labelOf(row, id), reason: 'Already removed.' };
+        }
+        if (row.status === 'published') {
+          return {
+            id,
+            label: labelOf(row, id),
+            reason: 'Live on the site — archive it first, then it can be removed.',
+          };
+        }
+        return { id, label: labelOf(row, id), reason: 'Changed since this page loaded.' };
+      });
+
+    /*
+     * One audit row per product, with the singular action name, so "every decision about this product"
+     * stays one query on `entity_id`. The shared `bulk_id` is what reconstructs the whole operation.
+     */
+    const bulkId = crypto.randomUUID();
+    await auditMany(
+      'product.removed',
+      'product',
+      done.map((id) => {
+        const row = before.get(id);
+        return {
+          entityId: id,
+          before: { status: row?.status ?? null },
+          after: { slug: row?.slug ?? null, bulk: true, bulk_id: bulkId } as unknown as Json,
+        };
+      }),
+    );
+
+    /*
+     * One coarse purge rather than a tag per product. A removal changes the listing, the categories and
+     * the brands regardless of which products went, so the per-slug tags add round trips without adding
+     * correctness — the opposite trade-off from the single path, where the product page itself is the
+     * thing most likely to be looked at next.
+     */
+    if (done.length > 0) {
+      revalidatePublic([
+        CACHE_TAGS.products,
+        CACHE_TAGS.categories,
+        CACHE_TAGS.brands,
+        CACHE_TAGS.goals,
+      ]);
+      revalidatePath('/admin/products');
+    }
+
+    return ok<BulkRemoveReport>({
+      requested: parsed.data.productIds.length,
+      removed: done.length,
+      skipped,
+    });
+  } catch (error) {
+    logger.error('removeProductsBulk threw', describeError(error));
+    return fail<CatalogErrorKey, BulkRemoveReport>('admin.errors.generic');
+  }
+}
+
+/** Puts several removed products back, at whatever status each held. */
+export async function restoreProductsBulk(
+  _previous: BulkRemoveState,
+  formData: FormData,
+): Promise<BulkRemoveState> {
+  const gate = await requireCapability('products.manage');
+  if (!gate.ok) return fail<CatalogErrorKey, BulkRemoveReport>(gate.error);
+
+  const ids = [...new Set(formData.getAll('productIds').map((value) => String(value)))].filter(
+    (id) => id.length > 0,
+  );
+  const parsed = productBulkSchema.safeParse({ productIds: ids });
+  if (!parsed.success) {
+    return fail<CatalogErrorKey, BulkRemoveReport>('admin.catalog.errors.checkFields');
+  }
+
+  try {
+    const supabase = await createClient();
+
+    const { data: updated, error } = await supabase
+      .from('products')
+      .update({ deleted_at: null })
+      .in('id', parsed.data.productIds)
+      .not('deleted_at', 'is', null)
+      .select('id');
+
+    if (error) {
+      logger.error('restoreProductsBulk failed', { cause: error.message });
+      return fail<CatalogErrorKey, BulkRemoveReport>('admin.errors.generic');
+    }
+
+    const done = ((updated ?? []) as { id: string }[]).map((row) => row.id);
+    const bulkId = crypto.randomUUID();
+    await auditMany(
+      'product.restored',
+      'product',
+      done.map((id) => ({ entityId: id, after: { bulk: true, bulk_id: bulkId } as unknown as Json })),
+    );
+
+    if (done.length > 0) {
+      revalidatePublic([CACHE_TAGS.products, CACHE_TAGS.categories, CACHE_TAGS.brands]);
+      revalidatePath('/admin/products');
+    }
+
+    return ok<BulkRemoveReport>({
+      requested: parsed.data.productIds.length,
+      removed: done.length,
+      // A row that was not removed in the first place is already in the state the caller wanted.
+      skipped: [],
+    });
+  } catch (error) {
+    logger.error('restoreProductsBulk threw', describeError(error));
+    return fail<CatalogErrorKey, BulkRemoveReport>('admin.errors.generic');
   }
 }
 

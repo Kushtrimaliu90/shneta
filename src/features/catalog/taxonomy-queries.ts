@@ -308,3 +308,35 @@ export const listRemovedTaxonomy = cache(
     );
   },
 );
+
+/**
+ * What is still attached to a removed brand or category, for the permanent-delete guard.
+ *
+ * Counts rows **regardless of their own removed state**: a removed product still carries a `brand_id`,
+ * so destroying its brand would leave it pointing at nothing if it were ever restored. The same reasoning
+ * covers a removed child category. This is the one place where "removed" must not mean "ignore".
+ */
+export async function taxonomyAttachments(
+  kind: 'brand' | 'category',
+  id: string,
+): Promise<{ products: number; children: number }> {
+  const supabase = await createClient();
+
+  if (kind === 'brand') {
+    const { count } = await supabase
+      .from('products')
+      .select('id', { count: 'exact', head: true })
+      .eq('brand_id', id);
+    return { products: count ?? 0, children: 0 };
+  }
+
+  const [{ count: children }, { count: products }] = await Promise.all([
+    supabase.from('categories').select('id', { count: 'exact', head: true }).eq('parent_id', id),
+    supabase
+      .from('product_categories')
+      .select('product_id', { count: 'exact', head: true })
+      .eq('category_id', id),
+  ]);
+
+  return { products: products ?? 0, children: children ?? 0 };
+}

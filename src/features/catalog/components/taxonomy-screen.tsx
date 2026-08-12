@@ -2,9 +2,9 @@ import { redirect } from 'next/navigation';
 import { getProfile } from '@/features/auth/queries';
 import { can, type Capability } from '@/features/admin/roles';
 import { listRemovedTaxonomy, listTaxonomy } from '@/features/catalog/taxonomy-queries';
-import { restoreTaxonomy } from '@/features/catalog/taxonomy-actions';
+import { purgeTaxonomy, restoreTaxonomy } from '@/features/catalog/taxonomy-actions';
 import { CATALOG_ERRORS } from '@/features/catalog/admin-copy';
-import { RestoreControl } from '@/components/ui/remove-control';
+import { RemoveControl, RestoreControl } from '@/components/ui/remove-control';
 import { formatAdminDateTime } from '@/features/admin/copy';
 import { TAXONOMY_CONFIG } from '@/features/catalog/taxonomy-config';
 import { TaxonomyAdmin } from '@/features/catalog/components/taxonomy-admin';
@@ -113,11 +113,31 @@ export async function TaxonomyScreen({
                     )}
                   </p>
                 </div>
-                <RestoreControl
-                  action={restoreTaxonomy}
-                  hiddenFields={{ kind, id: row.id }}
-                  errorCopy={CATALOG_ERRORS}
-                />
+                <div className="flex flex-wrap items-start gap-2">
+                  <RestoreControl
+                    action={restoreTaxonomy}
+                    hiddenFields={{ kind, id: row.id }}
+                    errorCopy={CATALOG_ERRORS}
+                  />
+                  {/*
+                    The second step. Refused unless nothing points at it — and the count deliberately
+                    includes removed products and removed child categories, because a restored product
+                    would otherwise come back pointing at a brand that no longer exists.
+                  */}
+                  <RemoveControl
+                    action={purgeTaxonomy}
+                    hiddenFields={{ kind, id: row.id }}
+                    label={row.name}
+                    noun={kind}
+                    verb="Delete permanently"
+                    reversible={false}
+                    errorCopy={CATALOG_ERRORS}
+                    consequences={[
+                      `Refused while any product — even a removed one — still points at this ${kind}.`,
+                      'Frees the web address, which is the only thing removal cannot do.',
+                    ]}
+                  />
+                </div>
               </li>
             ))}
           </ul>

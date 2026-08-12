@@ -1,6 +1,7 @@
 'use client';
 
 import { useActionState, useState } from 'react';
+import { Copy } from 'lucide-react';
 import { Alert } from '@/components/ui/alert';
 import { buttonVariants } from '@/components/ui/button';
 import { SubmitButton } from '@/components/ui/submit-button';
@@ -8,6 +9,7 @@ import { CATALOG_ERRORS } from '@/features/catalog/admin-copy';
 import { RemoveControl } from '@/components/ui/remove-control';
 import {
   approveProduct,
+  duplicateProduct,
   rejectProduct,
   removeProduct,
   setProductStatus,
@@ -50,6 +52,14 @@ export function ProductStatusControl({
     null,
   );
   const [rejectState, rejectAction] = useActionState<CatalogState, FormData>(rejectProduct, null);
+  /*
+   * No state read from this one: on success it redirects into the copy's editor, so there is nothing to
+   * render afterwards. A failure still surfaces through the shared `error` below.
+   */
+  const [duplicateState, duplicateAction] = useActionState<CatalogState, FormData>(
+    duplicateProduct,
+    null,
+  );
   const [rejecting, setRejecting] = useState(false);
 
   /*
@@ -60,7 +70,9 @@ export function ProductStatusControl({
   const onlyNeedsApproval =
     blockers.length === 0 || (blockers.length === 1 && blockers[0]?.includes('approval'));
 
-  const error = [statusState, approveState, rejectState].find((state) => state && !state.ok);
+  const error = [statusState, approveState, rejectState, duplicateState].find(
+    (state) => state && !state.ok,
+  );
 
   return (
     <div className="rounded-lg border border-line bg-surface p-4">
@@ -128,6 +140,23 @@ export function ProductStatusControl({
             <input type="hidden" name="to" value="draft" />
             <SubmitButton size="sm" variant="secondary" loadingLabel="Restoring…">
               Restore to draft
+            </SubmitButton>
+          </form>
+        )}
+
+        {/*
+          Duplicate — docs/06 §3 asked for it and it was never built.
+
+          Available at every status, including published: copying a live product is the common case, since
+          the thing worth copying is usually the one already finished. The copy always arrives as an
+          unapproved draft, so this cannot put anything on the shop.
+        */}
+        {mayEdit && (
+          <form action={duplicateAction}>
+            <input type="hidden" name="productId" value={productId} />
+            <SubmitButton size="sm" variant="secondary" loadingLabel="Copying…">
+              <Copy className="size-3.5" aria-hidden="true" />
+              Duplicate
             </SubmitButton>
           </form>
         )}
