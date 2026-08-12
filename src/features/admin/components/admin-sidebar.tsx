@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { NavIcon } from '@/features/admin/components/nav-icon';
+import { PendingBadge } from '@/features/admin/components/pending-badge';
 import type { NavSection } from '@/features/admin/roles';
 import { cn } from '@/lib/utils';
 
@@ -17,7 +18,18 @@ import { cn } from '@/lib/utils';
  * it here: a persistent 15rem rail is the right shape for an operator on a desk all day, and
  * a drawer is the right shape on a phone in a warehouse.
  */
-export function AdminSidebar({ sections }: { sections: NavSection[] }) {
+export function AdminSidebar({
+  sections,
+  pending,
+}: {
+  sections: NavSection[];
+  /**
+   * Counts keyed by route. A plain object rather than a `Map` for the same reason `NavItem.icon` is a
+   * name and not a component: this crosses the server→client boundary and only serializable values
+   * survive the trip.
+   */
+  pending: Record<string, number>;
+}) {
   const pathname = usePathname();
 
   return (
@@ -64,7 +76,12 @@ export function AdminSidebar({ sections }: { sections: NavSection[] }) {
                         )}
                       >
                         <NavIcon name={item.icon} className="size-4 shrink-0" />
-                        {item.label}
+                        {/*
+                          `truncate` on the label, not on the row: the badge is `shrink-0` and must
+                          keep its width, so a long label has to be the thing that gives way.
+                        */}
+                        <span className="truncate">{item.label}</span>
+                        <PendingBadge count={pending[item.href] ?? 0} />
                       </Link>
                     </li>
                   );

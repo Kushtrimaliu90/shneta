@@ -4876,6 +4876,22 @@ export type Database = {
           },
         ]
       }
+      v_admin_pending: {
+        Row: {
+          compliance: number | null
+          merchant_applications: number | null
+          messages: number | null
+          offers: number | null
+          orders_to_confirm: number | null
+          payouts: number | null
+          placements: number | null
+          proposals: number | null
+          referrals: number | null
+          reviews: number | null
+          unassigned_fulfilments: number | null
+        }
+        Relationships: []
+      }
       v_catalogue_variant_search: {
         Row: {
           barcode: string | null

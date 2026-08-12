@@ -1,9 +1,11 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
-import { AlertTriangle, Clock } from 'lucide-react';
+import { AlertTriangle, ArrowRight, Check, Clock } from 'lucide-react';
 import { formatPrice } from '@/lib/money';
 import { getProfile } from '@/features/auth/queries';
-import { can } from '@/features/admin/roles';
+import { can, visibleNav } from '@/features/admin/roles';
+import { getPendingCounts } from '@/features/admin/pending';
+import { pendingQueues } from '@/features/admin/pending-queues';
 import { formatAdminDateTime, ORDER_STATUS_LABELS } from '@/features/admin/copy';
 import { getDashboardData, type KpiWindow } from '@/features/admin/dashboard';
 import { getLoyaltySettings } from '@/features/loyalty/queries';
@@ -42,6 +44,19 @@ export default async function AdminDashboardPage() {
     ? await getReferralLiability(loyalty.pointValueCents)
     : null;
 
+  /*
+   * Everything waiting for a decision, in one place (docs/06 §1).
+   *
+   * The sidebar badge says a queue is not empty; this says what it is and how much of it, in a
+   * sentence, with a link that opens the queue already filtered to the matching status. Both read the
+   * same view — the badge is the reminder, this is the work list.
+   *
+   * Filtered through the same `visibleNav(role)` the sidebar uses, so a warehouse manager is never
+   * shown a proposal count they cannot act on.
+   */
+  const pending = pendingQueues(visibleNav(profile?.role), await getPendingCounts());
+  const pendingTotal = pending.reduce((sum, queue) => sum + queue.count, 0);
+
   const showRevenue = can(profile?.role, 'orders.refund') || can(profile?.role, 'settings.manage');
   const showOrders = can(profile?.role, 'orders.view');
   const showStock = can(profile?.role, 'inventory.manage');
@@ -52,6 +67,82 @@ export default async function AdminDashboardPage() {
     <div>
       <h1 className="font-display text-2xl font-semibold text-forest-900">Dashboard</h1>
       <p className="mt-1 text-sm text-ink-600">Last 30 days · times shown in Europe/Belgrade</p>
+
+      {/* ── Needs attention ──────────────────────────────────────────────────
+        Above the KPIs, because this is the only block on the page that asks for an action rather than
+        reporting a number. Revenue can be read at any point in the day; a proposal sitting unreviewed
+        for a week is a merchant wondering whether we are a real business.
+
+        The amber lives here rather than on the nav badges: this panel can be scoped to what is
+        genuinely outstanding and disappears when it is empty, so the colour keeps its meaning. A
+        permanently-lit amber pill in the sidebar would not.
+      */}
+      <section aria-labelledby="attention-heading" className="mt-6">
+        <h2
+          id="attention-heading"
+          className="flex items-center gap-1.5 font-ui text-xs font-semibold tracking-[0.08em] text-ink-500 uppercase"
+        >
+          <AlertTriangle className="size-3.5" aria-hidden="true" />
+          Needs attention
+        </h2>
+
+        {pending.length === 0 ? (
+          /*
+            Said out loud rather than rendered as nothing.
+            An empty panel and a broken query look identical, and this is the one block on the page an
+            operator is being asked to trust when it is silent. "Every queue is clear" is a claim; a
+            blank space is an absence of one.
+          */
+          <p className="mt-3 flex items-center gap-2 rounded-lg border border-line bg-surface p-4 text-sm text-ink-600">
+            <Check className="size-4 shrink-0 text-forest-700" aria-hidden="true" />
+            Every queue is clear. Nothing is waiting for a decision.
+          </p>
+        ) : (
+          <>
+            <ul className="mt-3 divide-y divide-line overflow-hidden rounded-lg border border-line border-l-4 border-l-warning bg-surface">
+              {pending.map((queue) => (
+                <li key={queue.href}>
+                  {/*
+                    The whole row is the link, and `phrase` is its accessible name — the count is
+                    rendered separately from the noun for emphasis, which would otherwise leave a
+                    screen reader to stitch "6" and "product proposals to review" back together.
+                  */}
+                  <Link
+                    href={queue.link}
+                    aria-label={`${queue.phrase} — open ${queue.label}`}
+                    className="group flex min-h-11 items-center gap-3 px-3 py-2.5 text-sm hover:bg-forest-50"
+                  >
+                    <span
+                      aria-hidden="true"
+                      className="min-w-7 shrink-0 text-right font-display text-lg font-semibold text-forest-900 tabular-nums"
+                      data-numeric
+                    >
+                      {queue.count}
+                    </span>
+                    <span aria-hidden="true" className="min-w-0 flex-1 text-ink-900">
+                      {queue.noun}
+                    </span>
+                    <span
+                      aria-hidden="true"
+                      className="hidden shrink-0 items-center gap-1 text-xs text-forest-800 sm:flex"
+                    >
+                      {queue.label}
+                      <ArrowRight
+                        className="size-3.5 transition-transform group-hover:translate-x-0.5"
+                        aria-hidden="true"
+                      />
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-2 text-xs text-ink-500" data-numeric>
+              {pendingTotal} item{pendingTotal === 1 ? '' : 's'} across {pending.length} queue
+              {pending.length === 1 ? '' : 's'}.
+            </p>
+          </>
+        )}
+      </section>
 
       {/* ── KPIs ─────────────────────────────────────────────────────────────── */}
       {showOrders && (

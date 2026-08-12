@@ -5,6 +5,8 @@ import { getProfile } from '@/features/auth/queries';
 import { isMerchant, isStaff, roleLabel, visibleNav } from '@/features/admin/roles';
 import { AdminSidebar } from '@/features/admin/components/admin-sidebar';
 import { AdminTopbar } from '@/features/admin/components/admin-topbar';
+import { getPendingCounts } from '@/features/admin/pending';
+import { pendingByHref, pendingQueues } from '@/features/admin/pending-queues';
 import '@/styles/globals.css';
 
 /**
@@ -51,6 +53,20 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   const sections = visibleNav(profile.role);
 
+  /*
+   * The queue badges (docs/06 §1).
+   *
+   * In the layout rather than per page because the whole point is that an operator learns about work
+   * on a queue they were *not* looking at. It costs one query — `v_admin_pending` returns all eleven
+   * counts in a single row — and the layout is already `force-dynamic`, so there is no cache tier to
+   * cap here. That distinction matters: the same short-lived read inside a *storefront* layout is what
+   * pinned 174 routes to a 60-second revalidate in August.
+   *
+   * `pendingQueues` is passed the already-filtered `sections`, which is what keeps the badges and the
+   * permission matrix in agreement — see the header of `features/admin/pending-queues.ts`.
+   */
+  const pending = pendingByHref(pendingQueues(sections, await getPendingCounts()));
+
   return (
     /*
      * This layout renders `<html>` and `<body>` because it IS a root layout. There is no
@@ -65,7 +81,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     <html lang="en" className={fontVariables}>
       <body className="antialiased">
         <div className="min-h-dvh bg-cream lg:grid lg:grid-cols-[15rem_1fr]">
-          <AdminSidebar sections={sections} />
+          <AdminSidebar sections={sections} pending={pending} />
 
           <div className="flex min-w-0 flex-col">
             <AdminTopbar
@@ -73,6 +89,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
               email={profile.email}
               role={roleLabel(profile.role)}
               sections={sections}
+              pending={pending}
             />
 
             <main id="main" className="min-w-0 flex-1 px-4 py-6 lg:px-8 lg:py-8">

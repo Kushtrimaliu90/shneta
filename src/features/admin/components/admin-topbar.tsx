@@ -8,6 +8,7 @@ import { LogOut, Menu, X } from 'lucide-react';
 import { adminSignOut } from '@/features/admin/actions';
 import { SubmitButton } from '@/components/ui/submit-button';
 import { NavIcon } from '@/features/admin/components/nav-icon';
+import { PendingBadge } from '@/features/admin/components/pending-badge';
 import type { NavSection } from '@/features/admin/roles';
 import { cn } from '@/lib/utils';
 
@@ -25,11 +26,14 @@ export function AdminTopbar({
   email,
   role,
   sections,
+  pending,
 }: {
   name: string;
   email: string;
   role: string;
   sections: NavSection[];
+  /** Counts keyed by route — see `AdminSidebar` for why this is a plain object. */
+  pending: Record<string, number>;
 }) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
@@ -61,6 +65,19 @@ export function AdminTopbar({
   const vercelEnv = process.env.NEXT_PUBLIC_VERCEL_ENV;
   const environment = vercelEnv === 'production' ? null : (vercelEnv ?? 'local');
 
+  /*
+   * The total, for the hamburger.
+   *
+   * Below `lg` the nav is a closed drawer, so per-item badges inside it are invisible until you
+   * already went looking — which is the exact defect this feature exists to fix, reproduced one
+   * breakpoint down. A dot on the trigger is the only thing that can say "there is work" while the
+   * thing holding the detail is shut.
+   *
+   * Summed from `pending` rather than passed in separately so it cannot disagree with the badges it
+   * stands for: this is the same numbers, added up.
+   */
+  const totalPending = Object.values(pending).reduce((sum, count) => sum + count, 0);
+
   return (
     <header className="sticky top-0 z-20 flex h-16 shrink-0 items-center gap-3 border-b border-line bg-surface px-4 lg:px-8">
       <button
@@ -69,10 +86,28 @@ export function AdminTopbar({
         onClick={() => setOpen(true)}
         aria-expanded={open}
         aria-controls={panelId}
-        aria-label="Open admin menu"
-        className="inline-flex size-11 items-center justify-center rounded-md text-forest-800 hover:bg-forest-50 lg:hidden"
+        /*
+          The count goes in the accessible name, not just the dot. A screen-reader user gets no
+          benefit from a coloured circle, and "Open admin menu" alone would hide the one fact the
+          trigger is carrying.
+        */
+        aria-label={
+          totalPending > 0 ? `Open admin menu — ${totalPending} waiting` : 'Open admin menu'
+        }
+        className="relative inline-flex size-11 items-center justify-center rounded-md text-forest-800 hover:bg-forest-50 lg:hidden"
       >
         <Menu className="size-5" aria-hidden="true" />
+        {totalPending > 0 && (
+          /*
+            A dot rather than the number. At this size a two- or three-digit count over an icon is
+            unreadable, and the drawer one tap away has the real figures — the dot only has to answer
+            "is it worth opening?". `aria-hidden` because the label above already says it.
+          */
+          <span
+            aria-hidden="true"
+            className="absolute top-1.5 right-1.5 size-2 rounded-full bg-forest-700 ring-2 ring-surface"
+          />
+        )}
       </button>
 
       <Link
@@ -177,7 +212,8 @@ export function AdminTopbar({
                           )}
                         >
                           <NavIcon name={item.icon} className="size-4 shrink-0" />
-                          {item.label}
+                          <span className="truncate">{item.label}</span>
+                          <PendingBadge count={pending[item.href] ?? 0} />
                         </Link>
                       </li>
                     );

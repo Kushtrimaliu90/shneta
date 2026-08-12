@@ -37,3 +37,7 @@ Thumbs.db
 *.tsbuildinfo
 .vercel
 .eslintcache
+
+# Screenshots taken while checking a change in a real browser. Throwaway by nature — a 938 kB PNG
+# reached the repo in 82a42ff via `git add -A` before this line existed.
+.shots/
