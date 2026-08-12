@@ -171,3 +171,28 @@ export const productCertificationsSchema = z.object({
   productId: uuid,
   certificationIds: z.array(uuid).default([]),
 });
+
+/**
+ * Per-field messages, keyed by the raw text a schema rule carries.
+ *
+ * `admin-schemas.ts` uses custom Zod messages as machine codes — `min(1, 'REQUIRED')`,
+ * `regex(..., 'SLUG_INVALID')` — which is fine for a code path and unacceptable on a screen: without
+ * this map an editor is told their slug problem is `SLUG_INVALID`. Keyed by the message rather than by
+ * the field, because the same rule guards several fields and the sentence is a property of the rule.
+ *
+ * Anything absent here falls back to `fieldErrorsFrom`'s own sentence derived from the issue code, so a
+ * new rule degrades to "Required." or "Too long — 160 characters at most." rather than to a constant
+ * name. Only rules whose generic sentence would be unhelpful need an entry.
+ */
+export const CATALOG_FIELD_MESSAGES: Record<string, string> = {
+  REQUIRED: 'Required.',
+  SLUG_TOO_SHORT: 'At least 3 characters.',
+  SLUG_INVALID: 'Lowercase letters, numbers and single hyphens only — like vitamin-d3-4000.',
+  SKU_INVALID: 'Capitals, digits and hyphens only — like NOW-D3-120.',
+  REASON_REQUIRED: 'Say why, in at least ten characters. The editor reads this.',
+  /*
+   * A `uuid` rule failing on a `<select>` never means "malformed identifier" to the person looking at
+   * it — it means they left the dropdown on its empty option.
+   */
+  'Invalid UUID': 'Choose one from the list.',
+};

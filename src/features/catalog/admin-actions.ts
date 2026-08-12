@@ -8,9 +8,11 @@ import { revalidatePublic } from '@/lib/cache';
 import { CACHE_TAGS } from '@/lib/constants';
 import { logger, describeError } from '@/lib/logger';
 import { fail, fromFieldErrors, ok } from '@/lib/result';
+import { fieldErrorsFrom } from '@/lib/field-errors';
 import { audit, requireCapability } from '@/features/admin/audit';
 import {
   approveProductSchema,
+  CATALOG_FIELD_MESSAGES,
   createProductSchema,
   deleteVariantSchema,
   productGeneralSchema,
@@ -149,8 +151,19 @@ export async function saveProductGeneral(
   });
 
   if (!parsed.success) {
-    logger.info('Product save rejected', { issues: parsed.error.flatten().fieldErrors });
-    return catalogFail('admin.catalog.errors.checkFields');
+    /*
+     * The field errors are **returned**, not just logged.
+     *
+     * They used to be computed here, written to the log, and thrown away — the editor got
+     * "Check the fields marked below" with nothing marked below, which is the copy promising something
+     * the code did not do. Worse, `flatten().fieldErrors` could not have marked them anyway: it names
+     * only top-level keys, so both halves of a bilingual field collapse to one `name` entry (probed
+     * against Zod 4.4.3 — see `lib/field-errors.ts`). `fieldErrorsFrom` keys on the joined issue path
+     * instead, which yields `name.sq` — the input's own `name` attribute, so the lookup is direct.
+     */
+    return fromFieldErrors<CatalogErrorKey, { id?: string }>('admin.catalog.errors.checkFields', {
+      fieldErrors: fieldErrorsFrom(parsed.error.issues, CATALOG_FIELD_MESSAGES),
+    });
   }
 
   const input = parsed.data;
@@ -251,19 +264,54 @@ export async function saveVariant(
     name: { sq: raw['name.sq'], en: raw['name.en'] },
   });
 
-  if (!parsed.success) return catalogFail('admin.catalog.errors.checkFields');
+  if (!parsed.success) {
+    return fromFieldErrors<CatalogErrorKey, { id?: string }>('admin.catalog.errors.checkFields', {
+      fieldErrors: fieldErrorsFrom(parsed.error.issues, CATALOG_FIELD_MESSAGES),
+    });
+  }
   const input = parsed.data;
 
-  let priceCents: number;
-  let compareAtCents: number | null = null;
+  /*
+   * Prices are parsed outside Zod, so their failures have to be attributed by hand — and separately.
+   *
+   * Both used to collapse into one `invalidPrice` alert that named neither field: with a good price and
+   * a mistyped compare-at, the editor was told "Enter a price like 9.90" while the price box was
+   * already correct. `toCents` throws rather than returning null, so each is tried on its own.
+   */
+  const priceErrors: Record<string, string[]> = {};
+
+  let priceCents = 0;
   try {
     priceCents = toCents(input.price);
-    if (input.compareAtPrice) compareAtCents = toCents(input.compareAtPrice);
+    if (priceCents <= 0) priceErrors.price = ['Must be more than zero.'];
   } catch {
-    return catalogFail('admin.catalog.errors.invalidPrice');
+    priceErrors.price = ['Enter an amount like 9.90.'];
   }
 
-  if (priceCents <= 0) return catalogFail('admin.catalog.errors.invalidPrice');
+  let compareAtCents: number | null = null;
+  if (input.compareAtPrice) {
+    try {
+      compareAtCents = toCents(input.compareAtPrice);
+    } catch {
+      priceErrors.compareAtPrice = ['Enter an amount like 12.90, or leave it empty.'];
+    }
+  }
+
+  /*
+   * A compare-at at or below the price is not a formatting mistake, it is a wrong discount: it would
+   * render a struck-through "was" that is cheaper than the price, and a negative percentage on the
+   * card. Checked here because it is the only place both numbers exist — the Zod schema sees two
+   * unparsed strings.
+   */
+  if (compareAtCents !== null && priceCents > 0 && compareAtCents <= priceCents) {
+    priceErrors.compareAtPrice = ['Must be higher than the price, or empty.'];
+  }
+
+  if (Object.keys(priceErrors).length > 0) {
+    return fromFieldErrors<CatalogErrorKey, { id?: string }>('admin.catalog.errors.checkFields', {
+      fieldErrors: priceErrors,
+    });
+  }
 
   try {
     const supabase = await createClient();
@@ -549,11 +597,17 @@ export async function saveProductSeo(
 
   const parsed = productSeoSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) {
+    /*
+     * `fieldErrorsFrom` rather than `flatten()`, for the messages rather than the paths.
+     *
+     * This schema is flat, so `flatten()` did key the fields correctly — but it passed Zod's own
+     * wording straight through, and an editor over the 60-character title limit was told "Too big:
+     * expected string to have <=60 characters". The translation is the point here.
+     */
     return withValues(
-      fromFieldErrors<CatalogErrorKey, { id?: string }>(
-        'admin.catalog.errors.checkFields',
-        parsed.error.flatten(),
-      ),
+      fromFieldErrors<CatalogErrorKey, { id?: string }>('admin.catalog.errors.checkFields', {
+        fieldErrors: fieldErrorsFrom(parsed.error.issues, CATALOG_FIELD_MESSAGES),
+      }),
       Object.fromEntries(formData),
     );
   }
@@ -632,10 +686,9 @@ export async function createProduct(
    */
   if (!parsed.success) {
     return withValues(
-      fromFieldErrors<CatalogErrorKey, { id?: string }>(
-        'admin.catalog.errors.checkFields',
-        parsed.error.flatten(),
-      ),
+      fromFieldErrors<CatalogErrorKey, { id?: string }>('admin.catalog.errors.checkFields', {
+        fieldErrors: fieldErrorsFrom(parsed.error.issues, CATALOG_FIELD_MESSAGES),
+      }),
       submitted,
     );
   }

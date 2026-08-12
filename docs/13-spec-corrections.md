@@ -3912,3 +3912,101 @@ a status that page's own `STATUSES` array accepts. An unrecognised `?status=` do
 these pages — it silently falls back to the default tab — so a typo would have produced a link that
 landed on the wrong list while looking correct. `tests/unit/admin-pending.test.ts` now asserts that, plus
 that every queue resolves to a shipped nav route and that no view column is left unbadged.
+
+## AL. "Check the fields marked below", with nothing marked below
+
+Reported by the owner (2026-08-12): reviewing a product, a validation failure gives a general error **and**
+loses everything already typed. Two separate defects behind one experience.
+
+### 1 · The field errors were computed, logged, and thrown away
+
+`saveProductGeneral` ended its failure branch with:
+
+```ts
+logger.info('Product save rejected', { issues: parsed.error.flatten().fieldErrors });
+return catalogFail('admin.catalog.errors.checkFields');
+```
+
+That key's text is *"Check the fields marked below."* — so the copy promised something the code did not
+do. `saveVariant` was worse: a bare `catalogFail`, not even logged.
+
+**And `flatten()` could not have marked them anyway.** Probed against this project's Zod (4.4.3) with the
+real schema: an empty Albanian name plus an over-long English one returns
+
+```json
+{ "name": ["REQUIRED", "Too big: expected string to have <=160 characters"] }
+```
+
+One key for two inputs, so neither can be marked — the same trap already recorded for the intent band
+(§AI-era work). `issue.path.join('.')` gives `name.sq` and `name.en`, which are the input `name`
+attributes verbatim, so the lookup needs no mapping table. Extracted to `lib/field-errors.ts`.
+
+Two things that probe also settled:
+
+- Zod's own wording is written for whoever wrote the schema: `Too big: expected string to have <=160
+  characters`, `Invalid option: expected one of "capsule"|"tablet"`, `Invalid UUID`. And this project
+  deliberately uses custom messages **as machine codes** (`REQUIRED`, `SLUG_INVALID`), which would put a
+  constant name in front of an editor. Hence `CATALOG_FIELD_MESSAGES` plus a code-derived fallback.
+- A `.max()` inside `.optional().or(z.literal(''))` still reports a plain `too_big` carrying `maximum`,
+  so the union does not obscure the length case. `invalid_union` is unreachable from a form at all —
+  every `FormData` value is a string.
+
+A test caught one bug in the fix itself: a `custom` issue from `.refine()` carries prose an author wrote
+by hand, and the first version replaced it with "Not valid.". Precedence is now copy map → code-derived
+sentence → the issue's own message, with a bare SCREAMING_SNAKE message refused.
+
+### 2 · React 19 empties an uncontrolled form after the action
+
+Success or failure — it does not look at the return value. So a form built from `defaultValue` is wiped
+back to the saved record at the moment it reports "check the fields below".
+
+The workaround was already written out by hand in **five** components. Four capture with
+`Object.fromEntries(formData.entries())`, which **keeps only the last value per key** — wrong for any form
+with repeated field names. Those four have no groups, so it is latent there; the product editor has three
+(`dietaryTags`, `categoryIds`, `goalIds`) plus a `primaryCategoryId` radio group, so a sixth copy would
+have silently unticked five of six categories on every rejected save. Hence `useFormDraft`, which holds
+`string[]` per name.
+
+The subtle rule inside it: an unchecked box submits **nothing**, so an absent key after a real submission
+means "deliberately cleared" and must come back cleared. Falling back to the saved value would re-tick
+what the editor had just unticked — a more confusing bug than the data loss.
+
+Not every tab needed it. The SEO and Ingredients tabs are fully controlled, so React's reset has nothing
+to wipe; the Ingredients table instead submits as one JSON field, which means no input can carry
+`aria-invalid` and the row errors are listed **by ingredient name** rather than by row number.
+
+### Why the server-side echo was not extended instead
+
+`CatalogState` already carries `values`, filled by `withValues`. It is unusable for the General tab: it is
+built with `Object.fromEntries` (same collapse) and truncates every field to 500 characters, which would
+behead an 8000-character description. `product-editor.tsx` never read it anyway.
+
+### Three process failures worth recording
+
+- **A stale dev server, not stale code.** The first verification showed every field lost and no field
+  marked — apparently disproving the fix. The server on that port had been started before the edits;
+  `pnpm start` could not bind, exited, and the old build kept serving. Third stale-artefact incident this
+  week after two `.next/cache` ones. The check is now "grep the built chunk for a string only the new
+  code contains" before trusting a result.
+- **Interacting before hydration.** The run before that clicked Save while the page was still static, so
+  the browser did a native form POST, navigated, and every field came back as the saved record — which
+  looks exactly like the bug. Verification now gates on a client-only behaviour (tab switching) first.
+- **A fixture admin survived cleanup.** `auth.admin.deleteUser` returned 500 and the script reported it
+  but had already finished. Cause: the fixture's successful save wrote an `audit_logs` row, and
+  `audit_logs_actor_id_fkey` refuses to let the profile go — correct by design (CLAUDE.md §10). The
+  consequence is general: **`e2e/helpers/accounts.ts:deleteCreatedUsers` ignores the delete error**, so any
+  fixture that performs an audited action is left behind, able to sign in, including `admin` ones. Fixture
+  teardown must demote to `customer` first and fall back to a soft delete. Verification that writes
+  nothing avoids the problem entirely, which is what the form check now does.
+
+### Verified by driving the real editor
+
+Signed in as a real admin against a **draft** product, typed a subtitle, a description and a serving size,
+ticked all seven dietary tags and two categories, then broke the slug and emptied the required name:
+
+- alert: *"Check the fields marked below. 2 fields need attention — nothing you typed has been lost."*
+- `slug` marked *"Lowercase letters, numbers and single hyphens only — like vitamin-d3-4000."*
+- `name.sq` marked *"Required."*
+- all three typed fields, all seven tags and both categories still there; the bad slug still present to be
+  corrected; the emptied name still empty
+- the database row untouched, because the check only ever submits an invalid form

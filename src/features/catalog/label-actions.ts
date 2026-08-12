@@ -5,9 +5,11 @@ import { createClient } from '@/lib/supabase/server';
 import { revalidatePublic } from '@/lib/cache';
 import { CACHE_TAGS } from '@/lib/constants';
 import { logger, describeError } from '@/lib/logger';
-import { fail, ok } from '@/lib/result';
+import { fail, fromFieldErrors, ok } from '@/lib/result';
+import { fieldErrorsFrom } from '@/lib/field-errors';
 import { audit, requireCapability } from '@/features/admin/audit';
 import {
+  CATALOG_FIELD_MESSAGES,
   productCertificationsSchema,
   productIngredientRowSchema,
   productIngredientsSchema,
@@ -79,7 +81,20 @@ export async function saveProductIngredients(
   }
 
   const parsedRows = productIngredientRowSchema.array().max(60).safeParse(rows);
-  if (!parsedRows.success) return labelFail('admin.catalog.errors.checkFields');
+  if (!parsedRows.success) {
+    /*
+     * Keyed by row index and column, because that is the only way this table can be specific.
+     *
+     * The rows travel as one JSON field (see the note above), so no input carries a `name` the error
+     * could attach to — `aria-invalid` is not available here the way it is on the General tab. What
+     * *is* available is `issue.path`, which reads `[3, 'amount']`, so the message can name the row and
+     * the column and the component can turn the index into the ingredient's own name. Before this,
+     * every bad row produced "Check the fields marked below" over a table with nothing marked.
+     */
+    return fromFieldErrors<CatalogErrorKey, { id?: string }>('admin.catalog.errors.checkFields', {
+      fieldErrors: fieldErrorsFrom(parsedRows.error.issues, CATALOG_FIELD_MESSAGES),
+    });
+  }
 
   /*
    * The same ingredient twice would violate the composite primary key and fail as a generic

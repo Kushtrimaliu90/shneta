@@ -5,6 +5,14 @@ import { Check, Plus, X } from 'lucide-react';
 import { Alert } from '@/components/ui/alert';
 import { buttonVariants } from '@/components/ui/button';
 import { SubmitButton } from '@/components/ui/submit-button';
+import { useFormDraft, type FormDraft } from '@/components/ui/use-form-draft';
+import {
+  FieldError,
+  FormLevelErrors,
+  fieldProps,
+  invalidRing,
+} from '@/components/ui/field-error';
+import { FORM_LEVEL } from '@/lib/field-errors';
 import { fromCents } from '@/lib/money';
 import { siteHost } from '@/lib/site';
 import { pickLocale, type LocalizedField } from '@/lib/i18n';
@@ -117,11 +125,37 @@ export function ProductEditor({
   );
 }
 
+/** The per-field messages off an action result, or an empty map on success. */
+function fieldErrorsOf(state: CatalogState): Record<string, string[]> {
+  return state && !state.ok ? (state.fieldErrors ?? {}) : {};
+}
+
+/**
+ * The summary above the button.
+ *
+ * ── Why it counts ──
+ *
+ * `admin.catalog.errors.checkFields` reads "Check the fields marked below", and until now nothing was
+ * marked below: the action computed the field errors, logged them and returned only the key. So the
+ * alert asked the editor to look at something that did not exist — and on a six-tab form with twenty
+ * inputs, "check the fields" without a count does not even say how much is wrong.
+ *
+ * With a count it does, and the fields themselves now carry the detail. Form-level problems — anything
+ * whose issue path is empty and so belongs to no input — are listed here, because there is nowhere else
+ * they could appear.
+ */
 function ErrorAlert({ state }: { state: CatalogState }) {
   if (!state || state.ok) return null;
+
+  const errors = fieldErrorsOf(state);
+  const marked = Object.keys(errors).filter((key) => key !== FORM_LEVEL).length;
+
   return (
     <Alert tone="error" className="mt-3">
-      {CATALOG_ERRORS[state.error]}
+      {marked > 0
+        ? `${CATALOG_ERRORS[state.error]} ${marked} field${marked === 1 ? '' : 's'} need${marked === 1 ? 's' : ''} attention — nothing you typed has been lost.`
+        : CATALOG_ERRORS[state.error]}
+      <FormLevelErrors errors={errors} />
     </Alert>
   );
 }
@@ -142,20 +176,31 @@ const areaClass =
   'mt-1 w-full rounded-sm border border-line-strong bg-surface px-3 py-2 text-sm text-ink-900';
 const labelClass = 'block text-xs font-medium text-ink-900';
 
-/** A bilingual pair. `sq` is required; `en` falls back to it on the storefront (docs/08 §1). */
+/**
+ * A bilingual pair. `sq` is required; `en` falls back to it on the storefront (docs/08 §1).
+ *
+ * Takes the draft and the error map rather than reading them from context: this is rendered by three
+ * different tabs, each with its own form and its own action state, so a shared context would have to be
+ * per-form anyway and the prop is the honest version of that.
+ */
 function Bilingual({
   name,
   label,
   value,
   rows,
+  draft,
+  errors,
 }: {
   name: string;
   label: string;
   value: LocalizedField;
   rows?: number;
+  draft: FormDraft;
+  errors: Record<string, string[]>;
 }) {
-  const sq = (value as Record<string, string | undefined>).sq ?? '';
-  const en = (value as Record<string, string | undefined>).en ?? '';
+  const saved = value as Record<string, string | undefined>;
+  const sq = draft.text(`${name}.sq`, saved.sq ?? '');
+  const en = draft.text(`${name}.en`, saved.en ?? '');
 
   return (
     <fieldset className="grid gap-3 sm:grid-cols-2">
@@ -172,11 +217,19 @@ function Bilingual({
             name={`${name}.sq`}
             rows={rows}
             defaultValue={sq}
-            className={areaClass}
+            className={cn(areaClass, invalidRing(`${name}.sq`, errors))}
+            {...fieldProps(`${name}.sq`, errors)}
           />
         ) : (
-          <input id={`${name}.sq`} name={`${name}.sq`} defaultValue={sq} className={inputClass} />
+          <input
+            id={`${name}.sq`}
+            name={`${name}.sq`}
+            defaultValue={sq}
+            className={cn(inputClass, invalidRing(`${name}.sq`, errors))}
+            {...fieldProps(`${name}.sq`, errors)}
+          />
         )}
+        <FieldError name={`${name}.sq`} errors={errors} />
       </div>
       <div>
         <label htmlFor={`${name}.en`} className={labelClass}>
@@ -193,11 +246,19 @@ function Bilingual({
             name={`${name}.en`}
             rows={rows}
             defaultValue={en}
-            className={areaClass}
+            className={cn(areaClass, invalidRing(`${name}.en`, errors))}
+            {...fieldProps(`${name}.en`, errors)}
           />
         ) : (
-          <input id={`${name}.en`} name={`${name}.en`} defaultValue={en} className={inputClass} />
+          <input
+            id={`${name}.en`}
+            name={`${name}.en`}
+            defaultValue={en}
+            className={cn(inputClass, invalidRing(`${name}.en`, errors))}
+            {...fieldProps(`${name}.en`, errors)}
+          />
         )}
+        <FieldError name={`${name}.en`} errors={errors} />
       </div>
     </fieldset>
   );
@@ -214,11 +275,35 @@ function GeneralTab({
   categories: { id: string; name: LocalizedField }[];
   goals: { id: string; name: LocalizedField }[];
 }) {
-  const [state, formAction] = useActionState<CatalogState, FormData>(saveProductGeneral, null);
+  /*
+   * The draft is what stops a rejected save wiping the tab (see `useFormDraft`).
+   *
+   * The submission is captured **before** awaiting the action, because `formData` must be read while it
+   * is still intact — and only re-seeded on failure, so a successful save lets the form fall back to the
+   * freshly saved record rather than to a stale echo of the typing.
+   *
+   * `saveProductGeneral` also returns `values` for historical reasons; it is not used here. It is built
+   * with `Object.fromEntries`, which keeps only the last of a repeated name — it would arrive with one
+   * category ticked out of six — and it truncates every field to 500 characters, which would quietly
+   * behead an 8000-character description. The client-side draft has neither limit.
+   */
+  const draft = useFormDraft();
+
+  const [state, formAction] = useActionState<CatalogState, FormData>(
+    async (previous, formData) => {
+      draft.capture(formData);
+      const result = await saveProductGeneral(previous, formData);
+      if (result?.ok) draft.clear();
+      return result;
+    },
+    null,
+  );
+
+  const errors = fieldErrorsOf(state);
   const locked = product.publishedAt !== null;
 
   return (
-    <form action={formAction} className="flex max-w-3xl flex-col gap-6">
+    <form action={formAction} key={draft.attempt} className="flex max-w-3xl flex-col gap-6">
       <input type="hidden" name="productId" value={product.id} />
 
       <div className="grid gap-3 sm:grid-cols-2">
@@ -230,35 +315,71 @@ function GeneralTab({
           <input
             id="slug"
             name="slug"
-            defaultValue={product.slug}
+            defaultValue={draft.text('slug', product.slug)}
             readOnly={locked}
             /*
              * `readOnly`, not `disabled`: a disabled input is not submitted, and the action
              * requires the slug. Read-only keeps it in the payload where the database's own
              * guard can compare it and confirm nothing changed.
              */
-            className={cn(inputClass, locked && 'bg-cream text-ink-500')}
+            className={cn(inputClass, locked && 'bg-cream text-ink-500', invalidRing('slug', errors))}
+            {...fieldProps('slug', errors)}
           />
+          <FieldError name="slug" errors={errors} />
         </div>
         <div>
           <label htmlFor="brandId" className={labelClass}>
             Brand <span className="text-error">*</span>
           </label>
-          <select id="brandId" name="brandId" defaultValue={product.brandId} className={inputClass}>
+          <select
+            id="brandId"
+            name="brandId"
+            defaultValue={draft.text('brandId', product.brandId)}
+            className={cn(inputClass, invalidRing('brandId', errors))}
+            {...fieldProps('brandId', errors)}
+          >
             {brands.map((brand) => (
               <option key={brand.id} value={brand.id}>
                 {brand.name}
               </option>
             ))}
           </select>
+          <FieldError name="brandId" errors={errors} />
         </div>
       </div>
 
-      <Bilingual name="name" label="Name" value={product.name} />
-      <Bilingual name="subtitle" label="Subtitle" value={product.subtitle} />
-      <Bilingual name="description" label="Description" value={product.description} rows={5} />
-      <Bilingual name="howToUse" label="How to use" value={product.howToUse} rows={3} />
-      <Bilingual name="warnings" label="Warnings" value={product.warnings} rows={3} />
+      <Bilingual name="name" label="Name" value={product.name} draft={draft} errors={errors} />
+      <Bilingual
+        name="subtitle"
+        label="Subtitle"
+        value={product.subtitle}
+        draft={draft}
+        errors={errors}
+      />
+      <Bilingual
+        name="description"
+        label="Description"
+        value={product.description}
+        rows={5}
+        draft={draft}
+        errors={errors}
+      />
+      <Bilingual
+        name="howToUse"
+        label="How to use"
+        value={product.howToUse}
+        rows={3}
+        draft={draft}
+        errors={errors}
+      />
+      <Bilingual
+        name="warnings"
+        label="Warnings"
+        value={product.warnings}
+        rows={3}
+        draft={draft}
+        errors={errors}
+      />
 
       {/* docs/08 §7 — the claim-language reminder, next to the fields that carry claims. */}
       <Alert tone="info" title="Before you publish a claim">
@@ -274,7 +395,13 @@ function GeneralTab({
           <label htmlFor="form" className={labelClass}>
             Form
           </label>
-          <select id="form" name="form" defaultValue={product.form ?? ''} className={inputClass}>
+          <select
+            id="form"
+            name="form"
+            defaultValue={draft.text('form', product.form ?? '')}
+            className={cn(inputClass, invalidRing('form', errors))}
+            {...fieldProps('form', errors)}
+          >
             <option value="">—</option>
             {PRODUCT_FORMS.map((form) => (
               <option key={form} value={form}>
@@ -282,6 +409,7 @@ function GeneralTab({
               </option>
             ))}
           </select>
+          <FieldError name="form" errors={errors} />
         </div>
         <div>
           <label htmlFor="servingSize" className={labelClass}>
@@ -290,10 +418,12 @@ function GeneralTab({
           <input
             id="servingSize"
             name="servingSize"
-            defaultValue={product.servingSize ?? ''}
+            defaultValue={draft.text('servingSize', product.servingSize ?? '')}
             placeholder="2 capsules daily"
-            className={inputClass}
+            className={cn(inputClass, invalidRing('servingSize', errors))}
+            {...fieldProps('servingSize', errors)}
           />
+          <FieldError name="servingSize" errors={errors} />
         </div>
       </div>
 
@@ -309,7 +439,12 @@ function GeneralTab({
                 type="checkbox"
                 name="dietaryTags"
                 value={tag}
-                defaultChecked={product.dietaryTags.includes(tag)}
+                /*
+                 * `draft.selected`, not `draft.text`. These share one `name`, so the submission holds
+                 * several values under it — the `Object.fromEntries` capture the other editors in this
+                 * codebase use would keep only the last and silently untick the rest on a rejected save.
+                 */
+                defaultChecked={draft.selected('dietaryTags', tag, product.dietaryTags.includes(tag))}
                 className="size-4 rounded-[3px] border border-line-strong"
               />
               {tag.replace(/_/g, ' ')}
@@ -335,7 +470,11 @@ function GeneralTab({
                   type="checkbox"
                   name="categoryIds"
                   value={category.id}
-                  defaultChecked={product.categoryIds.includes(category.id)}
+                  defaultChecked={draft.selected(
+                    'categoryIds',
+                    category.id,
+                    product.categoryIds.includes(category.id),
+                  )}
                   className="size-4 rounded-[3px] border border-line-strong"
                 />
                 {pickLocale(category.name, 'en')}
@@ -349,7 +488,15 @@ function GeneralTab({
                   type="radio"
                   name="primaryCategoryId"
                   value={category.id}
-                  defaultChecked={product.primaryCategoryId === category.id}
+                  /*
+                   * A radio group is one name with many values too, so it reads back the same way —
+                   * `selected` matches this button's own value against what was submitted.
+                   */
+                  defaultChecked={draft.selected(
+                    'primaryCategoryId',
+                    category.id,
+                    product.primaryCategoryId === category.id,
+                  )}
                   className="size-3.5"
                 />
                 primary
@@ -375,7 +522,7 @@ function GeneralTab({
                 type="checkbox"
                 name="goalIds"
                 value={goal.id}
-                defaultChecked={product.goalIds.includes(goal.id)}
+                defaultChecked={draft.selected('goalIds', goal.id, product.goalIds.includes(goal.id))}
                 className="size-4 rounded-[3px] border border-line-strong"
               />
               {pickLocale(goal.name, 'en')}
@@ -390,7 +537,8 @@ function GeneralTab({
           type="checkbox"
           name="isFeatured"
           value="true"
-          defaultChecked={product.isFeatured}
+          /* A lone checkbox: absent from the submission means the editor cleared it, and it stays clear. */
+          defaultChecked={draft.ticked('isFeatured', product.isFeatured)}
           className="size-4 rounded-[3px] border border-line-strong"
         />
         Feature on the home page
@@ -507,11 +655,23 @@ function VariantForm({
   variant?: AdminVariant;
   onDone: () => void;
 }) {
-  const [state, formAction] = useActionState<CatalogState, FormData>(saveVariant, null);
+  const draft = useFormDraft();
+
+  const [state, formAction] = useActionState<CatalogState, FormData>(
+    async (previous, formData) => {
+      draft.capture(formData);
+      const result = await saveVariant(previous, formData);
+      if (result?.ok) draft.clear();
+      return result;
+    },
+    null,
+  );
   const [deactivateState, deactivateAction] = useActionState<CatalogState, FormData>(
     deactivateVariant,
     null,
   );
+
+  const errors = fieldErrorsOf(state);
 
   return (
     <div className="rounded-lg border border-line-strong bg-surface p-4">
@@ -524,7 +684,7 @@ function VariantForm({
         </button>
       </div>
 
-      <form action={formAction} className="mt-3 flex flex-col gap-3">
+      <form action={formAction} key={draft.attempt} className="mt-3 flex flex-col gap-3">
         <input type="hidden" name="productId" value={productId} />
         {variant && <input type="hidden" name="variantId" value={variant.id} />}
 
@@ -536,11 +696,13 @@ function VariantForm({
             <input
               id={`sku-${variant?.id ?? 'new'}`}
               name="sku"
-              defaultValue={variant?.sku}
+              defaultValue={draft.text('sku', variant?.sku ?? '')}
               placeholder="NOW-D3-120"
-              className={inputClass}
+              className={cn(inputClass, invalidRing('sku', errors))}
               data-numeric
+              {...fieldProps('sku', errors)}
             />
+            <FieldError name="sku" errors={errors} />
             <p className="mt-1 text-xs text-ink-500">Capitals, digits and hyphens.</p>
           </div>
           <div>
@@ -551,17 +713,25 @@ function VariantForm({
               id={`price-${variant?.id ?? 'new'}`}
               name="price"
               inputMode="decimal"
-              defaultValue={variant ? fromCents(variant.priceCents) : ''}
+              defaultValue={draft.text('price', variant ? fromCents(variant.priceCents) : '')}
               placeholder="9.90"
-              className={inputClass}
+              className={cn(inputClass, invalidRing('price', errors))}
               data-numeric
+              {...fieldProps('price', errors)}
             />
+            <FieldError name="price" errors={errors} />
             {/* docs/07 §5 — VAT-inclusive, and saying so here avoids a whole class of mispricing. */}
             <p className="mt-1 text-xs text-ink-500">Includes VAT.</p>
           </div>
         </div>
 
-        <Bilingual name="name" label="Variant name" value={variant?.name ?? { sq: '' }} />
+        <Bilingual
+          name="name"
+          label="Variant name"
+          value={variant?.name ?? { sq: '' }}
+          draft={draft}
+          errors={errors}
+        />
 
         <div>
           <label htmlFor={`compare-${variant?.id ?? 'new'}`} className={labelClass}>
@@ -571,12 +741,15 @@ function VariantForm({
             id={`compare-${variant?.id ?? 'new'}`}
             name="compareAtPrice"
             inputMode="decimal"
-            defaultValue={
-              variant?.compareAtPriceCents ? fromCents(variant.compareAtPriceCents) : ''
-            }
-            className={cn(inputClass, 'max-w-40')}
+            defaultValue={draft.text(
+              'compareAtPrice',
+              variant?.compareAtPriceCents ? fromCents(variant.compareAtPriceCents) : '',
+            )}
+            className={cn(inputClass, 'max-w-40', invalidRing('compareAtPrice', errors))}
             data-numeric
+            {...fieldProps('compareAtPrice', errors)}
           />
+          <FieldError name="compareAtPrice" errors={errors} />
           <p className="mt-1 text-xs text-ink-500">
             Higher than the price; shows a struck-through &ldquo;was&rdquo; and a discount badge.
           </p>
@@ -592,7 +765,7 @@ function VariantForm({
               type="checkbox"
               name="isActive"
               value="true"
-              defaultChecked={variant?.isActive ?? true}
+              defaultChecked={draft.ticked('isActive', variant?.isActive ?? true)}
               className="size-4 rounded-[3px] border border-line-strong"
             />
             Active
@@ -606,7 +779,7 @@ function VariantForm({
               type="checkbox"
               name="isDefault"
               value="true"
-              defaultChecked={variant?.isDefault ?? false}
+              defaultChecked={draft.ticked('isDefault', variant?.isDefault ?? false)}
               className="size-4 rounded-[3px] border border-line-strong"
             />
             Default — the one shown first on the product page
@@ -659,6 +832,10 @@ function LabelTab({
   ingredients: { id: string; name: LocalizedField; slug: string }[];
 }) {
   const [state, formAction] = useActionState<CatalogState, FormData>(saveProductIngredients, null);
+  /*
+   * No draft on this tab: the rows live in `useState` below and are submitted as one hidden JSON
+   * field, so React's post-action reset has nothing uncontrolled to wipe.
+   */
   const [rows, setRows] = useState(() =>
     product.label.map((row) => ({
       ingredientId: row.ingredientId,
@@ -828,8 +1005,58 @@ function LabelTab({
         <SubmitButton loadingLabel="Saving…">Save label</SubmitButton>
         <Saved state={state} />
         <ErrorAlert state={state} />
+        {/*
+          The row errors, named by ingredient rather than by index.
+          "Row 3" makes an editor count table rows; "Vitamin D3 — amount" does not. The index in the
+          error key is the position in `rows`, which is the same array the table renders, so the name
+          is a direct lookup.
+        */}
+        <RowErrors errors={fieldErrorsOf(state)} rows={rows} nameOf={nameOf} />
       </div>
     </form>
+  );
+}
+
+/**
+ * Errors on the ingredient table, keyed `<index>.<column>` by `productIngredientRowSchema`.
+ *
+ * Rendered as a list because the table's cells have no `name` to hang a message on — the whole label
+ * is submitted as one JSON field, so this is where "which row is wrong" has to be said.
+ */
+function RowErrors({
+  errors,
+  rows,
+  nameOf,
+}: {
+  errors: Record<string, string[]>;
+  rows: { ingredientId: string }[];
+  nameOf: (id: string) => string;
+}) {
+  const COLUMN: Record<string, string> = {
+    amount: 'amount',
+    unit: 'unit',
+    nrvPct: '% NRV',
+    ingredientId: 'ingredient',
+    perServing: 'per serving',
+  };
+
+  const listed = Object.entries(errors).flatMap(([key, messages]) => {
+    const [index, column] = key.split('.');
+    const row = rows[Number(index)];
+    if (row === undefined || column === undefined) return [];
+    return [{ key, label: `${nameOf(row.ingredientId)} — ${COLUMN[column] ?? column}`, messages }];
+  });
+
+  if (listed.length === 0) return null;
+
+  return (
+    <ul className="mt-2 list-disc pl-5 text-sm text-error">
+      {listed.map((item) => (
+        <li key={item.key}>
+          <span className="font-medium">{item.label}:</span> {item.messages.join(' ')}
+        </li>
+      ))}
+    </ul>
   );
 }
 
@@ -842,6 +1069,11 @@ function LabelTab({
  */
 function SeoTab({ product }: { product: AdminProduct }) {
   const [state, formAction] = useActionState<CatalogState, FormData>(saveProductSeo, null);
+  /*
+   * No draft here: every field on this tab is controlled by `useState`, and React's post-action
+   * reset only touches uncontrolled inputs. Nothing is lost, so nothing needs re-seeding.
+   */
+  const errors = fieldErrorsOf(state);
 
   const [values, setValues] = useState({
     titleSq: (product.seoTitle as Record<string, string | undefined> | null)?.sq ?? '',
@@ -873,6 +1105,7 @@ function SeoTab({ product }: { product: AdminProduct }) {
           value={values.titleSq}
           onChange={(next) => set({ titleSq: next })}
           placeholder={derivedTitle}
+          errors={errors}
         />
         <CountedField
           id="seo-title-en"
@@ -882,6 +1115,7 @@ function SeoTab({ product }: { product: AdminProduct }) {
           value={values.titleEn}
           onChange={(next) => set({ titleEn: next })}
           placeholder={derivedTitle}
+          errors={errors}
         />
       </div>
 
@@ -895,6 +1129,7 @@ function SeoTab({ product }: { product: AdminProduct }) {
           value={values.descriptionSq}
           onChange={(next) => set({ descriptionSq: next })}
           placeholder={derivedDescription}
+          errors={errors}
         />
         <CountedField
           id="seo-desc-en"
@@ -905,6 +1140,7 @@ function SeoTab({ product }: { product: AdminProduct }) {
           value={values.descriptionEn}
           onChange={(next) => set({ descriptionEn: next })}
           placeholder={derivedDescription}
+          errors={errors}
         />
       </div>
 
@@ -947,6 +1183,7 @@ function CountedField({
   onChange,
   placeholder,
   rows,
+  errors,
 }: {
   id: string;
   name: string;
@@ -956,7 +1193,16 @@ function CountedField({
   onChange: (next: string) => void;
   placeholder?: string;
   rows?: number;
+  errors: Record<string, string[]>;
 }) {
+  /*
+   * Two different thresholds, deliberately.
+   *
+   * `limit` is the point past which Google truncates, and going over it is a judgement call the counter
+   * warns about in amber. The schema's own ceiling is higher (70 against a 60 counter), and passing
+   * *that* is a refusal — so a field can be amber and valid, or marked and invalid, and they are not
+   * the same state.
+   */
   const over = value.length > limit;
 
   return (
@@ -972,7 +1218,8 @@ function CountedField({
           value={value}
           placeholder={placeholder}
           onChange={(event) => onChange(event.target.value)}
-          className={areaClass}
+          className={cn(areaClass, invalidRing(name, errors))}
+          {...fieldProps(name, errors)}
         />
       ) : (
         <input
@@ -981,9 +1228,11 @@ function CountedField({
           value={value}
           placeholder={placeholder}
           onChange={(event) => onChange(event.target.value)}
-          className={inputClass}
+          className={cn(inputClass, invalidRing(name, errors))}
+          {...fieldProps(name, errors)}
         />
       )}
+      <FieldError name={name} errors={errors} />
       <p className={cn('mt-1 text-xs', over ? 'text-warning' : 'text-ink-500')}>
         <span data-numeric>{value.length}</span> / {limit}
         {over && ' — likely to be cut short in results'}
