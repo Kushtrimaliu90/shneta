@@ -2,7 +2,11 @@ import Link from 'next/link';
 import type { Metadata } from 'next';
 import { FileText, Plus } from 'lucide-react';
 import { formatAdminDateTime } from '@/features/admin/copy';
-import { listAdminArticles } from '@/features/content/admin-queries';
+import { countRemovedArticles, listAdminArticles } from '@/features/content/admin-queries';
+import { restoreArticle } from '@/features/content/editor-actions';
+import { CONTENT_ERRORS } from '@/features/content/components/content-fields';
+import { RestoreControl } from '@/components/ui/remove-control';
+import { Trash2 } from 'lucide-react';
 import { ARTICLE_STATUSES, toArticleStatus } from '@/features/content/types';
 import { cn } from '@/lib/utils';
 
@@ -29,15 +33,20 @@ export default async function AdminArticlesPage({ searchParams }: Props) {
   const params = await searchParams;
   const raw = Array.isArray(params.status) ? params.status[0] : params.status;
   const status = raw ? toArticleStatus(raw) : undefined;
+  // `?removed=1` is its own view, not a fifth status — an article keeps its status while it is in the bin.
+  const removed = (Array.isArray(params.removed) ? params.removed[0] : params.removed) === '1';
 
-  const rows = await listAdminArticles(status);
+  const [rows, removedCount] = await Promise.all([
+    listAdminArticles(removed ? undefined : status, removed),
+    countRemovedArticles(),
+  ]);
 
   return (
     <section>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <nav aria-label="Filter by status" className="flex flex-wrap gap-1.5">
           {[undefined, ...ARTICLE_STATUSES].map((value) => {
-            const active = value === status;
+            const active = !removed && value === status;
             return (
               <Link
                 key={value ?? 'all'}
@@ -54,6 +63,28 @@ export default async function AdminArticlesPage({ searchParams }: Props) {
               </Link>
             );
           })}
+
+          {/*
+            The bin, set apart. A different axis from the status tabs: those ask where an article is in
+            its life, this one leaves that question behind. Shown at zero so somebody who has just
+            removed an article knows where it went.
+          */}
+          <span aria-hidden="true" className="mx-1 self-center text-line-strong">
+            |
+          </span>
+          <Link
+            href="/admin/content?removed=1"
+            aria-current={removed ? 'page' : undefined}
+            className={cn(
+              'inline-flex min-h-8 items-center gap-1.5 rounded-sm border px-2.5 text-xs transition-colors',
+              removed
+                ? 'border-error bg-error/10 font-medium text-error'
+                : 'border-line-strong text-ink-600 hover:bg-forest-50',
+            )}
+          >
+            <Trash2 className="size-3.5" aria-hidden="true" />
+            Removed {removedCount}
+          </Link>
         </nav>
 
         <Link
@@ -84,15 +115,17 @@ export default async function AdminArticlesPage({ searchParams }: Props) {
             <caption className="sr-only">Articles, most recently edited first</caption>
             <thead>
               <tr className="border-b border-line bg-forest-50 text-left">
-                {['Title', 'Kind', 'Status', 'Updated'].map((heading) => (
-                  <th
-                    key={heading}
-                    scope="col"
-                    className="px-4 py-2.5 font-ui text-xs font-semibold text-ink-600 uppercase"
-                  >
-                    {heading}
-                  </th>
-                ))}
+                {['Title', 'Kind', 'Status', 'Updated', ...(removed ? ['Removed on', ''] : [])].map(
+                  (heading) => (
+                    <th
+                      key={heading}
+                      scope="col"
+                      className="px-4 py-2.5 font-ui text-xs font-semibold text-ink-600 uppercase"
+                    >
+                      {heading}
+                    </th>
+                  ),
+                )}
               </tr>
             </thead>
             <tbody>
@@ -128,6 +161,27 @@ export default async function AdminArticlesPage({ searchParams }: Props) {
                         {updated.display}
                       </time>
                     </td>
+
+                    {removed && (
+                      <>
+                        <td className="px-4 py-3 whitespace-nowrap text-ink-600">
+                          {row.deletedAt ? (
+                            <time dateTime={row.deletedAt} data-numeric>
+                              {formatAdminDateTime(row.deletedAt).display}
+                            </time>
+                          ) : (
+                            '—'
+                          )}
+                        </td>
+                        <td className="px-4 py-3">
+                          <RestoreControl
+                            action={restoreArticle}
+                            hiddenFields={{ articleId: row.id }}
+                            errorCopy={CONTENT_ERRORS}
+                          />
+                        </td>
+                      </>
+                    )}
                   </tr>
                 );
               })}

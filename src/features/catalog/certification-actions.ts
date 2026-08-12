@@ -108,9 +108,20 @@ export async function saveCertification(
 /**
  * Deletes a certification — but only one nothing carries.
  *
- * `product_certifications` has no `on delete cascade`, so a delete would fail at the foreign key
- * anyway; checking first turns a Postgres error nobody can act on into a sentence that says which
- * products are in the way.
+ * ── The check below is the only thing standing in the way ──
+ *
+ * This comment used to say `product_certifications` had no `on delete cascade`, so "a delete would fail
+ * at the foreign key anyway" and the check was a courtesy that turned an unhelpful Postgres error into a
+ * sentence. That was **wrong**: migration `20260731000300_catalog.sql:195` declares
+ * `certification_id uuid references certifications(id) on delete cascade`.
+ *
+ * So the database would not refuse anything. It would cheerfully delete every `product_certifications`
+ * row alongside it, silently stripping an Organic or Vegan badge from every product that carried one —
+ * a claim removed from a public page with no error and no trace. The in-use check is the entire
+ * protection, not a nicety, and it must not be "simplified away" on the strength of the old comment.
+ *
+ * A hard delete is still right here, unlike for brands and categories: `certifications` has no
+ * `deleted_at` column, and one that nothing references has no history worth keeping.
  */
 export async function deleteCertification(
   _previous: CertificationState,

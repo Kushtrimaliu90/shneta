@@ -23,6 +23,8 @@ export interface ArticleListRow {
   publishedAt: string | null;
   updatedAt: string;
   hasEnglish: boolean;
+  /** Set only in the removed view, so the bin can say when it went. */
+  deletedAt: string | null;
 }
 
 export interface ArticleDetail {
@@ -44,18 +46,23 @@ export interface ArticleDetail {
 /**
  * docs/06 §13 — the article list.
  *
- * Includes archived and soft-deleted-free rows. `deleted_at` is excluded because a deleted
- * article is gone from the editor's point of view; `archived` is a status the editor chose and
- * must be able to reverse.
+ * `deleted_at` is excluded by default, because a removed article is gone from the editor's point of
+ * view — while `archived` is a status the editor chose and must be able to reverse. Passing `removed`
+ * asks for the other side of that filter, which is what makes a reversible removal reversible: without a
+ * view of what has gone, Restore would have nothing to act on.
  */
-export async function listAdminArticles(status?: ArticleStatus): Promise<ArticleListRow[]> {
+export async function listAdminArticles(
+  status?: ArticleStatus,
+  removed = false,
+): Promise<ArticleListRow[]> {
   const supabase = await createClient();
 
   let query = supabase
     .from('articles')
-    .select('id, slug, title, type, status, published_at, updated_at')
-    .is('deleted_at', null)
+    .select('id, slug, title, type, status, published_at, updated_at, deleted_at')
     .order('updated_at', { ascending: false });
+
+  query = removed ? query.not('deleted_at', 'is', null) : query.is('deleted_at', null);
 
   if (status) query = query.eq('status', status);
 
@@ -77,6 +84,7 @@ export async function listAdminArticles(status?: ArticleStatus): Promise<Article
       publishedAt: row.published_at,
       updatedAt: row.updated_at,
       hasEnglish: title.en.length > 0,
+      deletedAt: row.deleted_at ?? null,
     };
   });
 }
@@ -270,4 +278,24 @@ export async function listAdminBanners(): Promise<BannerRow[]> {
     position: row.position,
     isActive: row.is_active,
   }));
+}
+
+/**
+ * How many articles are in the bin.
+ *
+ * Read alongside the list so the tab can show a number even at zero — a tab that only appears when
+ * occupied is a tab nobody finds the first time they look for what they just removed.
+ */
+export async function countRemovedArticles(): Promise<number> {
+  const supabase = await createClient();
+  const { count, error } = await supabase
+    .from('articles')
+    .select('id', { count: 'exact', head: true })
+    .not('deleted_at', 'is', null);
+
+  if (error) {
+    logger.error('countRemovedArticles failed', { cause: error.message });
+    return 0;
+  }
+  return count ?? 0;
 }

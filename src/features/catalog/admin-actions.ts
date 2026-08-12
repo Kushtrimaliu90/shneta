@@ -687,9 +687,20 @@ export async function rejectProduct(
   try {
     const supabase = await createClient();
 
+    /*
+     * The approval stamp is cleared, not just the status.
+     *
+     * This used to write `{ status: 'draft' }` alone, leaving `approved_by` and `approved_at` set — so a
+     * product compliance had just rejected still reported **Approved** in the editor, and
+     * `publishBlockers` stopped listing approval, making the checklist read "Everything is in place." on
+     * a product that had been sent back. The stamp is the record of a decision that has been withdrawn,
+     * and `guard_product_publish` keys the whole publish gate on it.
+     *
+     * Rejecting is therefore the exact inverse of `approveProduct`, which sets both.
+     */
     const { error } = await supabase
       .from('products')
-      .update({ status: 'draft' })
+      .update({ status: 'draft', approved_by: null, approved_at: null })
       .eq('id', parsed.data.productId);
 
     if (error) return catalogFail(mapCatalogError(error.message));
