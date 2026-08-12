@@ -58,9 +58,56 @@ export type StaffRole =
 /** Every user this process created, so `afterAll` can remove them. */
 export const createdUsers: string[] = [];
 
+/**
+ * Removes every fixture user this process created.
+ *
+ * ── Why this is three steps and not one ──
+ *
+ * `deleteUser(id)` **fails** for any fixture that performed an audited action:
+ * `audit_logs_actor_id_fkey` references `profiles(id)` with no `on delete` clause, so the audit row pins
+ * the profile. That is correct — CLAUDE.md §10 forbids destroying audit history — but the old one-liner
+ * ignored the error, so a fixture that had, say, approved a product simply stayed. Staff-privileged rows
+ * accumulating in a shared database is exactly what this teardown exists to prevent.
+ *
+ * So: demote to `customer` first, because a fixture that cannot be removed must at least not keep its
+ * privileges; then try the hard delete; then fall back to Supabase's soft delete, which marks the auth
+ * user deleted and leaves the profile for the audit row to point at.
+ *
+ * Anything still standing after all three is **reported**, not swallowed — the whole failure mode being
+ * fixed here is a teardown that looked clean while leaking.
+ */
 export async function deleteCreatedUsers(): Promise<void> {
-  for (const id of createdUsers) await service?.auth.admin.deleteUser(id);
+  const client = service;
+  if (!client) {
+    createdUsers.length = 0;
+    return;
+  }
+
+  const leaked: string[] = [];
+
+  for (const id of createdUsers) {
+    await client.from('profiles').update({ role: 'customer' }).eq('id', id);
+
+    const hard = await client.auth.admin.deleteUser(id);
+    if (!hard.error) continue;
+
+    // `true` is `shouldSoftDelete`. Keeps the profile row the audit log references.
+    const soft = await client.auth.admin.deleteUser(id, true);
+    /*
+     * `error.message` is not reliably populated — the foreign-key refusal arrives as `{}`, so reporting
+     * only `.message` printed "undefined" and told the next person nothing. Measured, not assumed.
+     */
+    if (soft.error) leaked.push(`${id}: ${soft.error.message || JSON.stringify(soft.error)}`);
+  }
+
   createdUsers.length = 0;
+
+  if (leaked.length > 0) {
+    // A warning, not a throw: failing teardown would mask the result of the test that just ran.
+    console.warn(
+      `E2E teardown could not remove ${leaked.length} fixture user(s):\n  ${leaked.join('\n  ')}`,
+    );
+  }
 }
 
 /**

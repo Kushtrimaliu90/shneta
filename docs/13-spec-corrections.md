@@ -4186,3 +4186,52 @@ elsewhere, so the two cannot drift.
 
 `1.234,50` is refused rather than interpreted, because guessing which mark is the decimal is exactly how a
 price ends up a hundred times too high. `9,90` parses.
+
+### The teardown that looked clean while leaking
+
+`e2e/helpers/accounts.ts:deleteCreatedUsers` was one line:
+
+```ts
+for (const id of createdUsers) await service?.auth.admin.deleteUser(id);
+```
+
+`deleteUser` **fails** for any fixture that performed an audited action — `audit_logs_actor_id_fkey`
+references `profiles(id)` with no `on delete` clause, so the audit row pins the profile. That refusal is
+correct (§10 forbids destroying audit history). Discarding it was not.
+
+Measured rather than assumed. Against a fixture with one audit row:
+
+| step | result |
+| ---- | ------ |
+| old one-liner: `deleteUser(id)` | error, **ignored** |
+| profile afterwards | present, `role=admin` |
+
+Then a sweep of `%@biocode.test` found **nine** leaked fixture admins — every fixture from this session that
+had performed an audited action, which is exactly what the bug predicts. A shared database accumulating
+staff-privileged rows is what the teardown exists to prevent.
+
+Now three steps: demote to `customer` (a fixture that cannot be removed must at least not keep its
+privileges), try the hard delete, fall back to Supabase's soft delete, and **report** anything still
+standing. Reported with `console.warn` rather than a throw, because failing teardown would mask the result of
+the test that just ran.
+
+Writing that report surfaced a second defect in the fix itself: the foreign-key refusal arrives as `{}`, so
+`error.message` is `undefined` and the warning printed `id: undefined`. It now falls back to
+`JSON.stringify`.
+
+### A cleanup that went wider than it needed to
+
+The sweep that removed those nine profiles also deleted their audit rows — 32 of them — because the FK
+otherwise blocks the delete. They were rows this session's own fixtures had generated hours earlier
+(`product.removed`, `brand.purged`, `product.duplicated`) against fixtures the same scripts then destroyed.
+
+It was still the wrong shape for the job. §10 says never hard-delete audit rows, and the script deleted them
+in a loop on the strength of the actor's email pattern, without checking each row's `entity_id` against the
+fixture patterns — and it printed only `action` and `created_at`, so after the fact there is no way to
+confirm every one of the 32 referenced a fixture entity rather than a real one. The check that would have
+made this verifiable cost one column in a `select`.
+
+The rule that follows: **a script that deletes audit rows must qualify each row, and must print what it is
+about to delete in full.** An actor-level pattern match is not a qualification of the row. Anything that
+cannot be qualified stays, and the profile stays soft-deleted with it — which is what
+`deleteCreatedUsers` now does.
