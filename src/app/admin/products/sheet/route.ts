@@ -70,6 +70,8 @@ export async function GET() {
 /** Beyond this it is not an edit of a seventy-product catalogue. Checked before parsing anything. */
 const MAX_BYTES = 8 * 1024 * 1024;
 
+const TOO_LARGE = 'That file is larger than 8 MB. It is probably not a product sheet.';
+
 const UNREADABLE: Record<string, string> = {
   empty: 'That file is empty.',
   unreadable: 'That file could not be read as a spreadsheet. Save it as .xlsx and try again.',
@@ -84,7 +86,7 @@ const UNREADABLE: Record<string, string> = {
  * ── Why a route and not a Server Action ──
  *
  * A Server Action body is capped at 1 MB and a real workbook is not. So the file posts here as
- * `multipart/form-data`, which is also what lets the size be refused before anything is parsed.
+ * `multipart/form-data`, where the declared length can be refused before the body is buffered.
  *
  * ── Preview, then apply, from the same file ──
  *
@@ -102,6 +104,19 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false }, { status: 404 });
   }
 
+  /*
+   * The header first, before `formData()` buffers the body.
+   *
+   * Checking `file.size` alone would mean reading an eighty-megabyte upload into memory in order to decide
+   * it was too big, which is the cost the check exists to avoid. The header can be absent or wrong, so
+   * `file.size` is still checked below — this only makes the common case cheap. Same order as the merchant
+   * upload route.
+   */
+  const declared = Number(request.headers.get('content-length') ?? '0');
+  if (declared > MAX_BYTES) {
+    return NextResponse.json({ ok: false, error: TOO_LARGE }, { status: 413 });
+  }
+
   try {
     const form = await request.formData();
     const file = form.get('file');
@@ -109,9 +124,20 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: false, error: UNREADABLE.empty }, { status: 400 });
     }
     if (file.size > MAX_BYTES) {
+      return NextResponse.json({ ok: false, error: TOO_LARGE }, { status: 413 });
+    }
+    /*
+     * The extension, not the MIME type: browsers disagree about what an `.xlsx` is, and Windows has been
+     * observed sending `application/octet-stream`. Refusing on the name is a worse test of file *contents*
+     * but a much better one of operator *intent* — and it keeps an arbitrary blob out of the parser.
+     */
+    if (!/\.xlsx$/i.test(file.name)) {
       return NextResponse.json(
-        { ok: false, error: 'That file is larger than 8 MB. It is probably not a product sheet.' },
-        { status: 400 },
+        {
+          ok: false,
+          error: 'That is not an .xlsx file. Download the catalogue, edit that copy, and upload it back.',
+        },
+        { status: 415 },
       );
     }
 
