@@ -4107,3 +4107,82 @@ So the housekeeping cron gained a tenth step: records removed more than **90 day
 empty are destroyed, bounded to 20 a run. It uses the same guard as the manual path, so the cron cannot be
 a back door around a refusal — anything still attached is counted as `kept`, indefinitely, which is the
 correct outcome for a product whose history outweighs its slug.
+
+## AN. The catalogue in Excel, and the diff nobody made
+
+Reported at `/admin/products` as: *"i need to be able to download an excel file with all the fields. then i
+can fill those fields in excel file and upload it back to reflect the changes i added in the file. this is
+much more convinient than filling each one by one"* — which is correct, and was correct for merchants two
+milestones earlier (§ the merchant sheet). 71 products edited one form at a time is the wrong shape for a
+price round or a translation pass.
+
+### The one bug that would have killed the feature
+
+An untouched download, uploaded straight back, reported **78 price changes**. Not a crash — worse. A diff
+full of changes nobody made is a diff nobody reads, and an operator who learns to click past the report has
+lost the only protection the feature has.
+
+The cause was three conversions that each looked lossless:
+
+| step | value |
+| ---- | ----- |
+| `fromCents(1090)` writes | `"10.90"` |
+| Excel stores the number | `10.9` |
+| the reader returns | `"10.9"` |
+| compared as text | **changed** |
+
+Fixed by comparing **amounts**, not text — `sameAmount()` in `src/lib/money.ts`, which parses both sides
+through `toCents` and treats two unparseable strings as equal only when both are blank. Re-measured against
+the real endpoint: **0 rows reported as changing, 148 matching.** That number is the feature's acceptance
+test, not a nicety.
+
+Found by asking the deployed preview endpoint what it thought changed and aggregating by field, rather than
+by reading the comparison and reasoning about it. The aggregate made it obvious in one line (`78 price`);
+the code looked fine.
+
+### Preview and apply are one function
+
+`importProducts(read, { apply })` computes the entire plan and then either writes it or does not. A separate
+preview path is a second implementation of the same rules, and the day they disagree is the day somebody
+confirms a diff and gets a different result. The route calls it twice with the same file — once to show,
+once to write — and re-derives both times rather than trusting a posted plan, so a file swapped between the
+two steps is diffed afresh instead of applied blind, and there is no plan in the request body to tamper
+with. Cost: one extra parse of an 8 MB-max file. Verified: after a preview, the fixture's price was still
+1000 cents.
+
+### The blank rule needs the header row
+
+A column **deleted** from the file must be left alone; a cell **emptied** in a column that is still there
+must be cleared. Neither cell-level reading gives both — "blank means skip" makes clearing a field
+impossible, and "blank means clear" means deleting a column you did not need wipes it from every product.
+So the reader returns `headers` alongside the rows, and the importer asks which columns were present. This
+is why `SheetRows` is `{ headers, rows }` and not `Record<string, string>[]`.
+
+Verified end to end: emptying `subtitle_en` left `{"sq": "nenshkrim"}` — the English half cleared, the
+Albanian half untouched. An empty string is written as an **absent key**, not `""`, because `pickLocale`
+falls back on absence; storing `en: ""` hands an English reader a confident blank where Albanian text
+exists.
+
+### What a file may not do
+
+- **Publish.** Compliance approves a published product, because a published product is a health claim in
+  front of a customer. A file that could flip that gate would make the checklist advisory.
+- **Change the web address of a published product.** CLAUDE.md §10.
+- **Create products or variants.** A new product needs an unused slug, a brand, an Albanian name, and then
+  a variant with a globally unique SKU before it is anything, and `one_default_variant` is a partial unique
+  index that can fail in a second way. That is the create form's job. Doing it here would mean a typo in the
+  id column silently minting duplicates of the catalogue. The refusal says where to go instead.
+
+### Splitting the rules out of the server-only importer
+
+`sheet-import.ts` opens a Supabase client at the top of `importProducts`, so a test that wanted to ask "is
+`1.234,50` refused?" would have had to mock a database to find out. The per-cell rules moved to
+`sheet-cells.ts`, each returning a verdict **and the sentence the operator will read** — 28 tests, no
+mocks. Same split as `pending-queues.ts` beside `pending.ts` (§ AK), and the same reason: `server-only`
+throws under jsdom, and a rule that cannot be tested cheaply will not be tested.
+
+Keeping the message beside the rule is deliberate. The report is not assembled from codes defined
+elsewhere, so the two cannot drift.
+
+`1.234,50` is refused rather than interpreted, because guessing which mark is the decimal is exactly how a
+price ends up a hundred times too high. `9,90` parses.

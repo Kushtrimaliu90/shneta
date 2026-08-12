@@ -29,6 +29,15 @@ Editor — header (name, StatusBadge, Save, and **status control**: Draft → Su
 6. **Compliance:** certifications multi; lab reports upload (private bucket) + is_public toggle; approval history (approved_by/at); compliance notes.
    Acceptance: publish requires ≥1 active variant, ≥1 image, primary category, compliance approval; editing published product revalidates its tags.
 
+**Edit in Excel** (list page, collapsed panel): download the whole catalogue as `.xlsx` — a Products sheet
+(27 columns), a Variants sheet (8), and a sheet explaining the rules — edit it, upload it back. Uploading
+shows a field-level diff and writes nothing until confirmed; preview and apply are the same function called
+twice with the same file, so there is no posted plan and no second implementation of the rules. A column
+deleted from the file is left alone; a cell emptied in a column that is still there is cleared. A file may
+**not** publish a product, change the slug of a published one, or create products/variants — each refusal
+names the page to use instead. Prices are compared as amounts, so an untouched round trip is a no-op.
+Per-cell rules and their messages live in `src/features/catalog/sheet-cells.ts`; see docs/13 §AN.
+
 ## 4. Categories `/admin/categories` (PM): tree view with drag-reorder + reparent; inline create; edit drawer (name/desc sq-en, slug, image, icon, active, SEO). Guard: cannot deactivate category with published products (warn + list).
 
 ## 5. Brands `/admin/brands` (PM): list + editor (name, slug, logo/banner upload, description sq/en, country, website, active, SEO).
