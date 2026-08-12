@@ -3834,3 +3834,81 @@ photograph* wins, so a five-star unphotographed product cannot leave a tile blan
 Six tiles in a two-column grid is three rows of scrolling before the footer. A snapping horizontal rail
 shows two and a half — the half is the affordance — for one row of height. Verified: no horizontal
 overflow at 390 px.
+
+## AK. Nothing told an admin there was work waiting
+
+Reported by the owner (2026-08-12): a merchant files proposals and the panel says nothing. You have to
+open `/admin/merchants/proposals` to discover there is something in it — so the way to learn you have a
+queue is to already suspect you have one.
+
+### The numbers, counted before designing anything
+
+| Table | Predicate | Count |
+| --- | --- | --- |
+| `product_proposals` | `status = 'pending'` | 6 |
+| `merchant_offers` | `status = 'pending_review'` | 2 |
+| `contact_messages` | `status = 'new'` | **82** |
+
+Ninety items in queues, visible from nowhere. The messages backlog was the largest and the oldest, and
+nobody had thought to ask about it — which decided the scope: **all eleven staff queues**, not the two
+that prompted the complaint. Badging only the reported ones moves the next invisible backlog to whichever
+surface was left out.
+
+The other eight (`merchants`, `merchant_payouts`, `order_fulfilments`, `orders`, `reviews`, `products`
+awaiting compliance, `ad_placements`, `referral_links`) were all at zero. They are wired anyway, because a
+counter that only appears after someone notices its absence is the bug being fixed.
+
+### Three surfaces, one query
+
+- A count pill on each sidebar and drawer nav item.
+- A dot on the mobile hamburger. Below `lg` the nav is a closed drawer, so a badge *inside* it reproduces
+  the original defect one breakpoint down — invisible until you already went looking.
+- "Needs attention" at the top of the dashboard: one sentence per queue, linking to it already filtered.
+
+`v_admin_pending` returns all eleven as a single row. The admin layout renders on every navigation, so
+eleven separate count requests would be eleven round trips per page view. Partial indexes on each queue
+predicate: a confirmed order leaves `orders_pending_idx` entirely, so it stays the size of the backlog
+rather than the size of the order book.
+
+### Capability filtering is inherited, not re-derived
+
+The obvious design gives each queue a `Capability` and re-checks it. That is a second copy of the
+permission matrix and the copy that drifts — a queue disagreeing with its nav item would badge a link the
+role cannot see, or hide one it can.
+
+Instead counts are keyed by **route** and decorated onto the already-filtered `visibleNav(role)`. A role
+that cannot reach a page has no nav item, so there is nowhere to hang the badge and nothing to check.
+`pendingQueues` also takes each row's **label** from the nav item, so the badge and the sidebar cannot name
+the same place differently.
+
+### `anon` could read it, despite the grant
+
+Migration 84 granted select to `authenticated, service_role` and named `anon` nowhere. A signed-out probe
+read it anyway: Supabase ships `alter default privileges … grant all on tables to anon, authenticated,
+service_role`, so naming grantees in a migration adds nothing to what already applies.
+
+It returned eleven zeros — `security_invoker` means RLS on each underlying table applies, and it held. But
+"safe because every one of eleven policies is right" is a worse position than unreachable, and one
+permissive policy added to `contact_messages` in a year's time would silently turn this into a public
+backlog counter. Migration 85 revokes it.
+
+**The general lesson:** in this project a `grant` list in a migration is documentation, not enforcement.
+Anything that must not be public needs an explicit `revoke`.
+
+### Two things caught only by running it
+
+- **`import 'server-only'` made the logic untestable.** It throws under Vitest's jsdom environment, so the
+  whole module was unimportable from a unit test. Split at that line — `pending-queues.ts` is pure and
+  tested, `pending.ts` holds the one `select` that genuinely needs a request context. The better structure
+  anyway; the constraint just forced it.
+- **A 938 kB screenshot was already in the repo.** `git add -A` in `82a42ff` committed `.shots/live.png`.
+  Removed, and `.shots/` is now ignored.
+
+### Verified by rendering it
+
+Signed in as a real admin against the production database: badges 82 / 6 / 2, no badge overflowing the
+15 rem rail, hamburger reading "Open admin menu — 90 waiting", and every dashboard deep link carrying only
+a status that page's own `STATUSES` array accepts. An unrecognised `?status=` does not error on any of
+these pages — it silently falls back to the default tab — so a typo would have produced a link that
+landed on the wrong list while looking correct. `tests/unit/admin-pending.test.ts` now asserts that, plus
+that every queue resolves to a shipped nav route and that no view column is left unbadged.
