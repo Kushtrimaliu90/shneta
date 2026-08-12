@@ -10,10 +10,27 @@ import {
   type ProposalStatus,
 } from '@/features/merchants/proposal-queries';
 import { countAwaitingPromotion, listBatches } from '@/features/merchants/batch-queries';
-import { ProposalReview } from '@/features/merchants/components/proposal-review';
+import { ProposalReviewQueue } from '@/features/merchants/components/review-queue';
 
 export const metadata: Metadata = { title: 'Product proposals' };
 export const dynamic = 'force-dynamic';
+
+/**
+ * A bulk approval creates a bounded slice of draft products inline, copying photographs between storage
+ * buckets, then emails one digest per merchant. A Server Action inherits the segment config of the page
+ * that hosted its form, so the ceiling belongs here. The batch page already declares the same.
+ */
+export const maxDuration = 60;
+
+/**
+ * What the housekeeping cron promotes per run (`api/cron/housekeeping/route.ts`).
+ *
+ * Passed to the report so it can say "15 a night across the whole queue" rather than implying these
+ * particular rows are done by morning — the sweep drains globally and oldest-first, so somebody else's
+ * backlog can sit ahead of them. Duplicated deliberately rather than imported: the cron route is a
+ * server-only module and this value is a sentence in the UI, not a shared constant to keep in step.
+ */
+const NIGHTLY_PROMOTIONS = 15;
 
 const STATUSES: ProposalStatus[] = ['pending', 'needs_info', 'approved', 'rejected'];
 
@@ -192,13 +209,7 @@ export default async function AdminProposalsPage({ searchParams }: Props) {
             : `No ${status.replace('_', ' ')} proposals.`}
         </p>
       ) : (
-        <ul className="flex flex-col gap-4">
-          {proposals.map((proposal) => (
-            <li key={proposal.id}>
-              <ProposalReview proposal={proposal} />
-            </li>
-          ))}
-        </ul>
+        <ProposalReviewQueue proposals={proposals} nightlyRate={NIGHTLY_PROMOTIONS} />
       )}
     </section>
   );

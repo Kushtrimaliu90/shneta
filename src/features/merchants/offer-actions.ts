@@ -4,18 +4,24 @@ import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { logger, describeError } from '@/lib/logger';
 import { fail, ok, type ActionResult } from '@/lib/result';
-import { audit, requireCapability } from '@/features/admin/audit';
+import { audit, auditMany, requireCapability } from '@/features/admin/audit';
 import { revalidatePublic } from '@/lib/cache';
 import { CACHE_TAGS } from '@/lib/constants';
 import {
+  offerBulkDecisionSchema,
   offerCreateSchema,
   offerDecisionSchema,
   offerIdSchema,
   offerStockSchema,
   offerUpdateSchema,
 } from '@/features/merchants/offer-schemas';
-import { getMyMerchant } from '@/features/merchants/queries';
+import { getMyMerchant, type OfferStatus } from '@/features/merchants/queries';
 import { sendOfferDecided } from '@/features/merchants/email';
+import {
+  classifySkips,
+  dedupeIds,
+  type BulkOfferDecision,
+} from '@/features/merchants/decisions';
 import type { Json } from '@/lib/supabase/database.types';
 
 /**
@@ -485,5 +491,217 @@ async function purgeIfLive(status: string, variantId: string): Promise<void> {
   } catch (error) {
     // A failed purge leaves a page stale for the revalidate window; it must not fail the write.
     logger.error('purgeIfLive threw', { variantId, ...describeError(error) });
+  }
+}
+
+// ── Several at once ─────────────────────────────────────────────────────────
+
+export type BulkOfferState = ActionResult<BulkOfferDecision, OfferErrorKey> | null;
+
+/**
+ * Approves or rejects a selected set of offers.
+ *
+ * ── One statement, and the RETURNING list is the report ──
+ *
+ * The write is a single guarded `UPDATE … .in('id', ids).in('status', decidable).select()`. That makes it
+ * atomic, and it makes partial failure free: whatever comes back was decided, whatever was asked for and
+ * did not come back was not. No per-row loop, no second query, and no window where half the selection is
+ * committed and half is not.
+ *
+ * The status guard is the same one the single decision uses, and it is what makes a stale tab harmless. A
+ * row somebody else approved while this page sat open simply is not matched, and it is reported as
+ * skipped rather than silently re-approved with a fresh `approved_at`.
+ *
+ * ── Order of the side effects ──
+ *
+ * Audit, then purge, then email: cheap-and-irreversible before expensive-and-resumable, so a request
+ * killed late has still recorded and announced every decision it made.
+ *
+ * Written through the reviewer's own session, so `p_pm_write` is the policy that authorises it and the
+ * trigger's staff branch is what permits `approved` to be written — exactly as the single path does. A
+ * service-role write would work and prove nothing about whether the policies are right.
+ */
+export async function decideOffersBulk(
+  _previous: BulkOfferState,
+  formData: FormData,
+): Promise<BulkOfferState> {
+  // First: a server action is reachable by POST without ever loading the page that hosts its form.
+  const gate = await requireCapability('offers.review');
+  if (!gate.ok) return fail<OfferErrorKey, BulkOfferDecision>('admin.errors.forbidden');
+
+  /*
+   * `getAll`, never `Object.fromEntries` — a repeated checkbox field collapses to its last value. And
+   * deduplicated *before* validation, so a doubled input cannot spend cap budget or inflate `requested`
+   * so the report claims more rows than the reviewer picked.
+   */
+  const parsed = offerBulkDecisionSchema.safeParse({
+    offerIds: dedupeIds(formData.getAll('offerIds')),
+    decision: formData.get('decision'),
+    note: formData.get('note') ?? undefined,
+  });
+  if (!parsed.success) {
+    return fail<OfferErrorKey, BulkOfferDecision>('merchant.offers.errors.invalid');
+  }
+  const input = parsed.data;
+
+  // A rejection with no reason is one the merchant cannot act on. The browser's `required` is a courtesy.
+  if (input.decision === 'reject' && (input.note ?? '').trim().length < 5) {
+    return fail<OfferErrorKey, BulkOfferDecision>('merchant.offers.errors.invalid');
+  }
+
+  const approving = input.decision === 'approve';
+  /*
+   * Typed as the status union rather than `string[]`, so adding a status to the enum without deciding
+   * whether it belongs here is a compile error rather than a silently narrower guard. Same three the
+   * single decision allows.
+   */
+  const DECIDABLE: OfferStatus[] = ['pending_review', 'paused', 'draft'];
+
+  try {
+    const supabase = await createClient();
+
+    /*
+     * The pre-read comes before anything is written, and a failure here aborts: the audit `before` is not
+     * optional, and the skip classification needs each row's prior status plus a label to name it by on
+     * screen.
+     */
+    const { data: beforeRows, error: readError } = await supabase
+      .from('v_merchant_offer_detail')
+      .select('id, status, merchant_id, variant_id, asking_price_cents, sku, product_slug')
+      .in('id', input.offerIds);
+
+    if (readError) {
+      logger.error('decideOffersBulk pre-read failed', { cause: readError.message });
+      return fail<OfferErrorKey, BulkOfferDecision>('merchant.offers.errors.generic');
+    }
+
+    interface BeforeRow {
+      id: string;
+      status: string;
+      merchant_id: string;
+      variant_id: string;
+      asking_price_cents: number;
+      sku: string;
+      product_slug: string;
+    }
+    const before = new Map(
+      ((beforeRows ?? []) as unknown as BeforeRow[]).map((row) => [row.id, row]),
+    );
+
+    const { data: updated, error: writeError } = await supabase
+      .from('merchant_offers')
+      .update({
+        status: approving ? 'approved' : 'rejected',
+        approved_by: approving ? gate.actor.id : null,
+        approved_at: approving ? new Date().toISOString() : null,
+        rejection_note: approving ? null : (input.note ?? null),
+      })
+      .in('id', input.offerIds)
+      .in('status', DECIDABLE)
+      .select('id');
+
+    if (writeError) {
+      logger.error('decideOffersBulk write failed', { cause: writeError.message });
+      return fail<OfferErrorKey, BulkOfferDecision>('merchant.offers.errors.generic');
+    }
+
+    const decidedIds = ((updated ?? []) as { id: string }[]).map((row) => row.id);
+
+    const skipped = classifySkips({
+      requested: input.offerIds,
+      decided: decidedIds,
+      seen: new Map(
+        [...before].map(([id, row]) => [id, { status: row.status, label: row.sku }] as const),
+      ),
+      decidable: DECIDABLE,
+    });
+
+    /*
+     * The action name stays singular — `offer.approved`, not `offer.bulk_approved` — so "every decision
+     * ever made about this offer" remains one query on `entity_id`. The grouping rides in each row's
+     * `after` as a shared `bulk_id` instead, which reconstructs the whole action when needed.
+     */
+    const bulkId = crypto.randomUUID();
+    await auditMany(
+      approving ? 'offer.approved' : 'offer.rejected',
+      'merchant_offer',
+      decidedIds.map((id) => {
+        const row = before.get(id);
+        return {
+          entityId: id,
+          before: { status: row?.status ?? null },
+          after: {
+            status: approving ? 'approved' : 'rejected',
+            merchant_id: row?.merchant_id ?? null,
+            variant_id: row?.variant_id ?? null,
+            asking_price_cents: row?.asking_price_cents ?? null,
+            note: input.note ?? null,
+            bulk: true,
+            bulk_id: bulkId,
+          } as unknown as Json,
+        };
+      }),
+    );
+
+    /*
+     * Purges deduplicated by product.
+     *
+     * Approving adds a supplier to a variant and rejecting removes one, so the product page is stale
+     * either way. Twenty offers spread across three products is three tags, not twenty — the tag is per
+     * product, and repeating it would only cost round trips.
+     */
+    const slugs = new Set(
+      decidedIds.flatMap((id) => {
+        const slug = before.get(id)?.product_slug;
+        return slug ? [slug] : [];
+      }),
+    );
+    if (slugs.size > 0) {
+      revalidatePublic([...[...slugs].map((slug) => CACHE_TAGS.product(slug)), CACHE_TAGS.products]);
+    }
+
+    /*
+     * One email per merchant, not one per offer.
+     *
+     * Ten offers approved from one merchant is one piece of news from their side, and ten separate emails
+     * would read as a fault. Sequential rather than concurrent: nothing in this codebase throttles email,
+     * so twenty-five parallel sends would turn a rate limit into a guaranteed burst.
+     */
+    const byMerchant = new Map<string, string[]>();
+    for (const id of decidedIds) {
+      const merchantId = before.get(id)?.merchant_id;
+      if (!merchantId) continue;
+      byMerchant.set(merchantId, [...(byMerchant.get(merchantId) ?? []), id]);
+    }
+
+    let merchantsEmailed = 0;
+    let emailsFailed = 0;
+    for (const [merchantId, offerIds] of byMerchant) {
+      const first = offerIds[0];
+      if (first === undefined) continue;
+      try {
+        await sendOfferDecided(merchantId, first, approving, input.note ?? null);
+        merchantsEmailed += 1;
+      } catch (error) {
+        // A failed email must not undo a recorded decision; it is counted and reported instead.
+        emailsFailed += 1;
+        logger.error('decideOffersBulk email failed', { merchantId, ...describeError(error) });
+      }
+    }
+
+    revalidatePath('/admin/merchants/offers');
+
+    return ok<BulkOfferDecision>({
+      decision: input.decision,
+      requested: input.offerIds.length,
+      decided: decidedIds.length,
+      skipped,
+      merchants: byMerchant.size,
+      merchantsEmailed,
+      emailsFailed,
+    });
+  } catch (error) {
+    logger.error('decideOffersBulk threw', describeError(error));
+    return fail<OfferErrorKey, BulkOfferDecision>('merchant.offers.errors.generic');
   }
 }

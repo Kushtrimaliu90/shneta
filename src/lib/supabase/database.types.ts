@@ -5359,6 +5359,15 @@ export type Database = {
         }
         Returns: undefined
       }
+      log_audit_many: {
+        Args: {
+          p_action: string
+          p_entity_type: string
+          p_ip?: string
+          p_rows: Json
+        }
+        Returns: number
+      }
       log_search: {
         Args: {
           p_did_you_mean?: string

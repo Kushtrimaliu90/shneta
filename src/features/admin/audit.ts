@@ -114,3 +114,75 @@ export async function audit(
     logger.error('Audit write threw', { action, entityType, ...describeError(error) });
   }
 }
+
+export interface AuditRow {
+  entityId: string;
+  before?: unknown;
+  after?: unknown;
+}
+
+/**
+ * One audit row per entity, written in a single round trip.
+ *
+ * For a bulk decision, where twenty rows decided is twenty decisions to record. The action name stays
+ * the singular one — `offer.approved`, not `offer.bulk_approved` — so "every decision ever made about
+ * this offer" remains one query on `entity_id`. The grouping instead rides in each row's `after` as a
+ * shared `bulk_id`, which the caller supplies.
+ *
+ * Never throws, for the same reason `audit` does not: a failed audit write must not undo work that has
+ * already happened and been announced.
+ *
+ * ── The fallback, and why it is worth the code ──
+ *
+ * A single swallowed batch write means *zero* audit rows for a twenty-row decision, visible only in the
+ * log. So a failure here retries the same rows one at a time through `audit()`, which is a different
+ * function and a different statement: losing the trail then takes two independent failures rather than
+ * one. The caps on this feature (25) keep that fallback bounded.
+ */
+export async function auditMany(
+  action: string,
+  entityType: string,
+  rows: AuditRow[],
+): Promise<void> {
+  if (rows.length === 0) return;
+
+  try {
+    const supabase = await createClient();
+
+    const headerBag = await headers();
+    const ip =
+      headerBag.get('x-forwarded-for')?.split(',')[0]?.trim() ?? headerBag.get('x-real-ip') ?? null;
+
+    const { error } = await supabase.rpc('log_audit_many', {
+      p_action: action,
+      p_entity_type: entityType,
+      p_rows: rows.map((row) => ({
+        entity_id: row.entityId,
+        before: row.before ?? null,
+        after: row.after ?? null,
+      })) as never,
+      p_ip: ip ?? undefined,
+    });
+
+    if (!error) return;
+
+    logger.error('Bulk audit write failed; falling back to one row at a time', {
+      action,
+      entityType,
+      count: rows.length,
+      ids: rows.map((row) => row.entityId).join(','),
+      cause: error.message,
+    });
+  } catch (error) {
+    logger.error('Bulk audit write threw; falling back to one row at a time', {
+      action,
+      entityType,
+      count: rows.length,
+      ...describeError(error),
+    });
+  }
+
+  for (const row of rows) {
+    await audit(action, entityType, row.entityId, row.before ?? null, row.after ?? null);
+  }
+}

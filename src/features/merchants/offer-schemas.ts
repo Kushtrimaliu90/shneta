@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { OFFER_BULK_MAX } from '@/features/merchants/decisions';
 
 /**
  * docs/16 §5 — what a merchant may say about an offer, and what a reviewer may decide about it.
@@ -95,3 +96,19 @@ export const offerDecisionSchema = z.object({
 
 export type OfferCreateInput = z.infer<typeof offerCreateSchema>;
 export type OfferUpdateInput = z.infer<typeof offerUpdateSchema>;
+
+/**
+ * Several offers decided in one click.
+ *
+ * `min(1)` so an empty selection is refused by the schema rather than reaching a `.in('id', [])`, which
+ * PostgREST answers with "no rows matched" — indistinguishable from "every row had moved" and therefore
+ * a report that lies. Capped at the page size so "select all shown" can never build a payload this
+ * rejects.
+ *
+ * No `needs_info`: an offer has no such status, and a question asked of twenty offers is not a question.
+ */
+export const offerBulkDecisionSchema = z.object({
+  offerIds: z.array(z.string().uuid()).min(1).max(OFFER_BULK_MAX),
+  decision: z.enum(['approve', 'reject']),
+  note: z.string().trim().max(1000).optional(),
+});

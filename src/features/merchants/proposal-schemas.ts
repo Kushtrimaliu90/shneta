@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { PROPOSAL_BULK_MAX } from '@/features/merchants/decisions';
 
 /**
  * docs/16 §4, §9 — what a merchant states when proposing a product BioCode does not list.
@@ -53,4 +54,17 @@ export const proposalOfferSchema = z.object({
     .refine((value) => Number.isFinite(value) && value > 0 && value <= 100_000, 'range')
     .transform((euro) => Math.round(euro * 100)),
   note: z.string().trim().min(10, 'required').max(2000),
+});
+
+/**
+ * Several proposals decided in one click.
+ *
+ * `needs_info` is absent on purpose, matching `decide_proposal_batch`'s own `approve|reject` restriction:
+ * that status reopens a proposal for the merchant to edit, and asking twenty merchants one shared
+ * question is not asking anything. It stays a per-card decision.
+ */
+export const proposalBulkDecisionSchema = z.object({
+  proposalIds: z.array(z.string().uuid()).min(1).max(PROPOSAL_BULK_MAX),
+  decision: z.enum(['approve', 'reject']),
+  note: z.string().trim().max(2000).optional(),
 });

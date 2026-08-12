@@ -1,6 +1,7 @@
 import 'server-only';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/logger';
+import { PROPOSAL_BULK_MAX } from '@/features/merchants/decisions';
 
 /**
  * docs/16 §4, §6 — proposals and the scorecard.
@@ -112,7 +113,13 @@ export async function listProposals(status?: ProposalStatus): Promise<Proposal[]
     .select(COLUMNS)
     .is('batch_id', null)
     // Oldest first for a review queue; the merchant's own list is short enough that it does not matter.
-    .order('created_at', { ascending: true });
+    .order('created_at', { ascending: true })
+    /*
+     * Bounded to the bulk cap, for the same reason as the offer queue: "select all shown" must not be
+     * able to exceed what `proposalBulkDecisionSchema` will accept. Oldest-first means what falls off the
+     * end is the newest, which is the right end to lose from a queue.
+     */
+    .limit(PROPOSAL_BULK_MAX);
 
   if (status) query = query.eq('status', status);
 

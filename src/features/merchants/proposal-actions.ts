@@ -2,15 +2,27 @@
 
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
-import { proposalOfferSchema } from '@/features/merchants/proposal-schemas';
+import {
+  proposalBulkDecisionSchema,
+  proposalOfferSchema,
+} from '@/features/merchants/proposal-schemas';
 import { createClient } from '@/lib/supabase/server';
 import { logger, describeError } from '@/lib/logger';
 import { fail, ok, type ActionResult } from '@/lib/result';
-import { audit, requireCapability } from '@/features/admin/audit';
+import { audit, auditMany, requireCapability } from '@/features/admin/audit';
 import { getMyMerchant } from '@/features/merchants/queries';
 import { sendProposalDecided } from '@/features/merchants/email';
 import { promoteProposal } from '@/features/merchants/proposal-promote';
 import { createOfferFromProposal } from '@/features/merchants/proposal-offer';
+import {
+  sweepApprovedProposals,
+  sweepProposalOffers,
+} from '@/features/merchants/proposal-sweep';
+import {
+  classifySkips,
+  dedupeIds,
+  type BulkProposalDecision,
+} from '@/features/merchants/decisions';
 import type { Json } from '@/lib/supabase/database.types';
 
 /**
@@ -303,5 +315,229 @@ export async function decideProposal(
   } catch (error) {
     logger.error('decideProposal threw', describeError(error));
     return no('merchant.proposals.errors.generic');
+  }
+}
+
+// ── Several at once ─────────────────────────────────────────────────────────
+
+/**
+ * How many drafts are created inside the request, before the rest is left to the cron.
+ *
+ * The same number `decideBatch` uses, and for the same reason: approving twenty proposals means twenty
+ * draft products and every photograph copied between storage buckets, which is far past what a request
+ * should hold open. A bounded slice runs here so the reviewer sees the feature work; the housekeeping
+ * cron drains the tail from `proposals_awaiting_promotion`.
+ */
+const INLINE_PROMOTIONS = 5;
+
+export type BulkProposalState = ActionResult<BulkProposalDecision, ProposalErrorKey> | null;
+
+/**
+ * Approves or rejects a selected set of proposals.
+ *
+ * Same one-statement shape as the offer version — a single guarded `UPDATE … .in('id', ids).in('status',
+ * decidable).select()`, whose `RETURNING` list is the partial-failure report — with the deferred tail
+ * proposals carry on top.
+ *
+ * ── What "approved" means here, and what it does not ──
+ *
+ * It records the decision for every row that was still open, and it creates a bounded number of draft
+ * products with the merchants' photographs attached. It decides nothing commercial: the retail price is
+ * the merchant's asking price flagged provisional, and the copy, the ingredients and the compliance pass
+ * are all still ahead of it. Publishing needs `compliance.approve`, which the reviewer approving this
+ * does not hold — so nothing here can reach the storefront.
+ *
+ * Promotion failing does not fail the approval, exactly as on the single path: the decision is recorded
+ * and the merchant is told, and the derived queue picks the row up on the nightly sweep.
+ */
+export async function decideProposalsBulk(
+  _previous: BulkProposalState,
+  formData: FormData,
+): Promise<BulkProposalState> {
+  const gate = await requireCapability('offers.review');
+  if (!gate.ok) return fail<ProposalErrorKey, BulkProposalDecision>('admin.errors.forbidden');
+
+  const parsed = proposalBulkDecisionSchema.safeParse({
+    proposalIds: dedupeIds(formData.getAll('proposalIds')),
+    decision: formData.get('decision'),
+    note: formData.get('note') ?? undefined,
+  });
+  if (!parsed.success) {
+    return fail<ProposalErrorKey, BulkProposalDecision>('merchant.proposals.errors.invalid');
+  }
+  const input = parsed.data;
+
+  if (input.decision === 'reject' && (input.note ?? '').trim().length < 5) {
+    return fail<ProposalErrorKey, BulkProposalDecision>('merchant.proposals.errors.invalid');
+  }
+
+  const approving = input.decision === 'approve';
+  const DECIDABLE = ['pending', 'needs_info'];
+
+  try {
+    const supabase = await createClient();
+
+    const { data: beforeRows, error: readError } = await supabase
+      .from('product_proposals')
+      .select('id, status, merchant_id, batch_id, payload')
+      .in('id', input.proposalIds);
+
+    if (readError) {
+      logger.error('decideProposalsBulk pre-read failed', { cause: readError.message });
+      return fail<ProposalErrorKey, BulkProposalDecision>('merchant.proposals.errors.generic');
+    }
+
+    interface BeforeRow {
+      id: string;
+      status: string;
+      merchant_id: string;
+      batch_id: string | null;
+      payload: Record<string, unknown> | null;
+    }
+    const before = new Map(
+      ((beforeRows ?? []) as unknown as BeforeRow[]).map((row) => [row.id, row]),
+    );
+
+    const nameOf = (row: BeforeRow | undefined): string | undefined =>
+      typeof row?.payload?.product_name === 'string' ? row.payload.product_name : undefined;
+
+    /*
+     * `batch_id is null` in the write, not just in the report.
+     *
+     * A batch is decided as a unit on its own page, and the individual queue deliberately excludes those
+     * rows. Guarding the UPDATE as well means a crafted POST naming a batch row cannot pick it off
+     * outside the batch decision — the classification below then reports it as `in_batch`.
+     */
+    const { data: updated, error: writeError } = await supabase
+      .from('product_proposals')
+      .update({
+        status: approving ? 'approved' : 'rejected',
+        reviewer_note: input.note ?? null,
+        reviewed_by: gate.actor.id,
+        reviewed_at: new Date().toISOString(),
+      })
+      .in('id', input.proposalIds)
+      .in('status', DECIDABLE)
+      .is('batch_id', null)
+      .select('id');
+
+    if (writeError) {
+      logger.error('decideProposalsBulk write failed', { cause: writeError.message });
+      return fail<ProposalErrorKey, BulkProposalDecision>('merchant.proposals.errors.generic');
+    }
+
+    const decidedIds = ((updated ?? []) as { id: string }[]).map((row) => row.id);
+
+    const skipped = classifySkips({
+      requested: input.proposalIds,
+      decided: decidedIds,
+      seen: new Map(
+        [...before].map(
+          ([id, row]) =>
+            [
+              id,
+              { status: row.status, label: nameOf(row), inBatch: row.batch_id !== null },
+            ] as const,
+        ),
+      ),
+      decidable: DECIDABLE,
+    });
+
+    const bulkId = crypto.randomUUID();
+    await auditMany(
+      approving ? 'proposal.approved' : 'proposal.rejected',
+      'product_proposal',
+      decidedIds.map((id) => ({
+        entityId: id,
+        before: { status: before.get(id)?.status ?? null },
+        after: {
+          status: approving ? 'approved' : 'rejected',
+          merchant_id: before.get(id)?.merchant_id ?? null,
+          note: input.note ?? null,
+          bulk: true,
+          bulk_id: bulkId,
+        } as unknown as Json,
+      })),
+    );
+
+    /*
+     * One email per merchant. The digest names the first proposal; the portal lists the rest.
+     */
+    const byMerchant = new Map<string, string[]>();
+    for (const id of decidedIds) {
+      const merchantId = before.get(id)?.merchant_id;
+      if (!merchantId) continue;
+      byMerchant.set(merchantId, [...(byMerchant.get(merchantId) ?? []), id]);
+    }
+
+    let merchantsEmailed = 0;
+    let emailsFailed = 0;
+    for (const [merchantId, ids] of byMerchant) {
+      const first = ids[0];
+      try {
+        await sendProposalDecided(
+          merchantId,
+          nameOf(first === undefined ? undefined : before.get(first)) ?? '',
+          approving ? 'approved' : 'rejected',
+          input.note ?? null,
+        );
+        merchantsEmailed += 1;
+      } catch (error) {
+        emailsFailed += 1;
+        logger.error('decideProposalsBulk email failed', { merchantId, ...describeError(error) });
+      }
+    }
+
+    /*
+     * The deferred tail, scoped to the rows just decided.
+     *
+     * Emails ran first on purpose: cheap-and-irreversible before expensive-and-resumable, so a request
+     * killed inside the storage loop has still recorded and announced every decision. Both sweeps are
+     * idempotent over derived queues, so the cron finishing the job later is harmless.
+     */
+    let promoted = 0;
+    let awaiting = 0;
+    let imagesFailed = 0;
+    let offersMinted = 0;
+
+    if (approving && decidedIds.length > 0) {
+      const swept = await sweepApprovedProposals({ limit: INLINE_PROMOTIONS, ids: decidedIds });
+      promoted = swept.promoted;
+      awaiting = swept.remaining;
+      imagesFailed = swept.failed;
+
+      const minted = await sweepProposalOffers(INLINE_PROMOTIONS, decidedIds);
+      offersMinted = minted.minted;
+    }
+
+    /*
+     * The page, not the layout.
+     *
+     * The single decision uses `'layout'` because a row rejected from inside a batch table is decided by
+     * that action, and the child route `/admin/merchants/proposals/[batchId]` would otherwise keep serving
+     * the row as pending. This action cannot touch a batch row at all — the UPDATE carries
+     * `.is('batch_id', null)` — so there is no child route to invalidate, and a layout-wide revalidation
+     * here only widens what gets thrown away while the reviewer is reading a report about it.
+     */
+    revalidatePath('/admin/merchants/proposals');
+    revalidatePath('/merchant/proposals');
+    if (promoted > 0) revalidatePath('/admin/products');
+
+    return ok<BulkProposalDecision>({
+      decision: input.decision,
+      requested: input.proposalIds.length,
+      decided: decidedIds.length,
+      skipped,
+      merchants: byMerchant.size,
+      merchantsEmailed,
+      emailsFailed,
+      promoted,
+      awaiting,
+      offersMinted,
+      imagesFailed,
+    });
+  } catch (error) {
+    logger.error('decideProposalsBulk threw', describeError(error));
+    return fail<ProposalErrorKey, BulkProposalDecision>('merchant.proposals.errors.generic');
   }
 }

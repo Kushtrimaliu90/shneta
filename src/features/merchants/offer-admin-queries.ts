@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/logger';
 import { asLocalizedField, type LocalizedField } from '@/lib/i18n';
 import type { OfferStatus } from '@/features/merchants/queries';
+import { OFFER_BULK_MAX } from '@/features/merchants/decisions';
 
 /**
  * docs/16 §11 — the reads behind `/admin/merchants/offers`.
@@ -73,7 +74,16 @@ export async function listOffersForReview(status?: OfferStatus): Promise<ReviewO
     .from('v_merchant_offer_detail')
     .select(COLUMNS)
     // Oldest first: a review queue is a queue, and the offer waiting longest is the one to do next.
-    .order('updated_at', { ascending: true });
+    .order('updated_at', { ascending: true })
+    /*
+     * Bounded, and bounded to exactly the bulk cap.
+     *
+     * This was unlimited, which was survivable while every action was per-card. Multi-select changes
+     * that: "select all shown" must never be able to build a payload the schema then rejects, so the
+     * page size and `OFFER_BULK_MAX` are the same number by construction. Oldest-first means the rows
+     * that drop off the end are the newest, which is the right end to lose from a queue.
+     */
+    .limit(OFFER_BULK_MAX);
 
   if (status) query = query.eq('status', status);
 

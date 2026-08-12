@@ -46,15 +46,30 @@ const DEFAULT_LIMIT = 25;
 export async function sweepApprovedProposals(options?: {
   limit?: number;
   batchId?: string;
+  /**
+   * Restrict the drain to specific rows.
+   *
+   * Added for the multi-select decision, which wants to promote a bounded slice **of the rows it just
+   * decided** rather than whatever happens to be oldest globally. Without it a reviewer who approved five
+   * proposals could watch the inline slice go to somebody else's month-old backlog and see `promoted: 0`
+   * for their own work — true, but unreadable as feedback.
+   *
+   * `remaining` stays scoped the same way, so "12 of these rows are queued" counts these rows.
+   */
+  ids?: readonly string[];
 }): Promise<SweepResult> {
   const limit = Math.max(1, Math.min(options?.limit ?? DEFAULT_LIMIT, 200));
   const admin = createAdminClient();
 
   const empty: SweepResult = { promoted: 0, failed: 0, imagesCopied: 0, remaining: 0 };
 
+  // An explicit but empty id list means "nothing was decided", not "drain the queue".
+  if (options?.ids && options.ids.length === 0) return empty;
+
   try {
     let query = admin.from('proposals_awaiting_promotion').select('id').limit(limit);
     if (options?.batchId) query = query.eq('batch_id', options.batchId);
+    if (options?.ids) query = query.in('id', [...options.ids]);
 
     const { data, error } = await query;
 
@@ -83,7 +98,7 @@ export async function sweepApprovedProposals(options?: {
       imagesCopied += result.imagesCopied;
     }
 
-    const remaining = await countRemaining(options?.batchId);
+    const remaining = await countRemaining(options?.batchId, options?.ids);
 
     if (promoted > 0 || failed > 0) {
       logger.info('proposal promotion sweep', { promoted, failed, imagesCopied, remaining });
@@ -96,12 +111,13 @@ export async function sweepApprovedProposals(options?: {
   }
 }
 
-async function countRemaining(batchId?: string): Promise<number> {
+async function countRemaining(batchId?: string, ids?: readonly string[]): Promise<number> {
   const admin = createAdminClient();
   let query = admin
     .from('proposals_awaiting_promotion')
     .select('id', { count: 'exact', head: true });
   if (batchId) query = query.eq('batch_id', batchId);
+  if (ids) query = query.in('id', [...ids]);
 
   const { count, error } = await query;
   if (error) {
@@ -133,21 +149,25 @@ export interface OfferSweepResult {
   remaining: number;
 }
 
-export async function sweepProposalOffers(limit = 25): Promise<OfferSweepResult> {
+export async function sweepProposalOffers(
+  limit = 25,
+  /** Scoped to specific rows for the same reason as its sibling above. */
+  ids?: readonly string[],
+): Promise<OfferSweepResult> {
   const empty: OfferSweepResult = { minted: 0, failed: 0, remaining: 0 };
+  if (ids && ids.length === 0) return empty;
   try {
     const admin = createAdminClient();
-    const { data, error } = await admin
-      .from('proposals_awaiting_offer')
-      .select('id')
-      .limit(limit);
+    let query = admin.from('proposals_awaiting_offer').select('id').limit(limit);
+    if (ids) query = query.in('id', [...ids]);
+    const { data, error } = await query;
 
     if (error) {
       logger.error('sweepProposalOffers read failed', { cause: error.message });
       return empty;
     }
 
-    const ids = ((data ?? []) as { id: string }[]).map((row) => row.id);
+    const rowIds = ((data ?? []) as { id: string }[]).map((row) => row.id);
     let minted = 0;
     let failed = 0;
 
@@ -155,15 +175,18 @@ export async function sweepProposalOffers(limit = 25): Promise<OfferSweepResult>
      * Higher limit than the promotion sweep (25 against 15) because the work is not comparable: one
      * INSERT against a photograph copy. Both numbers exist to fit inside the cron's shared 60 s.
      */
-    for (const id of ids) {
+    for (const id of rowIds) {
       const result = await createOfferFromProposal(id);
       if (result?.created) minted += 1;
       else failed += 1;
     }
 
-    const { count } = await admin
+    // Scoped the same way the read was, so a caller asking about its own rows is told about its own rows.
+    let remainingQuery = admin
       .from('proposals_awaiting_offer')
       .select('id', { count: 'exact', head: true });
+    if (ids) remainingQuery = remainingQuery.in('id', [...ids]);
+    const { count } = await remainingQuery;
 
     if (minted > 0 || failed > 0) {
       logger.info('proposal offer sweep', { minted, failed, remaining: count ?? 0 });

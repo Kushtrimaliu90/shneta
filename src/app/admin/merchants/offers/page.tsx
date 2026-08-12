@@ -9,9 +9,18 @@ import {
   listOffersForReview,
   offerCountsForReview,
 } from '@/features/merchants/offer-admin-queries';
-import { OfferReview } from '@/features/merchants/components/offer-review';
+import { OfferReviewQueue } from '@/features/merchants/components/review-queue';
 
 export const metadata: Metadata = { title: 'Merchant offers' };
+
+/**
+ * A bulk decision fans out one email per merchant and a cache purge per product, sequentially.
+ *
+ * A Server Action runs under the segment config of the page that hosted its form, so the ceiling has to
+ * be declared here rather than beside the action. Twenty-five offers across twenty-five merchants is the
+ * pathological case at roughly eleven seconds; sixty is the headroom the cap buys.
+ */
+export const maxDuration = 60;
 
 const STATUSES: OfferStatus[] = ['pending_review', 'approved', 'paused', 'rejected', 'draft'];
 
@@ -80,13 +89,7 @@ export default async function AdminOffersPage({ searchParams }: Props) {
             : `No ${status.replace('_', ' ')} offers.`}
         </p>
       ) : (
-        <ul className="flex flex-col gap-4">
-          {offers.map((offer) => (
-            <li key={offer.id}>
-              <OfferReview offer={offer} />
-            </li>
-          ))}
-        </ul>
+        <OfferReviewQueue offers={offers} />
       )}
     </section>
   );
