@@ -8,7 +8,7 @@ import { CACHE_TAGS } from '@/lib/constants';
 import { logger, describeError } from '@/lib/logger';
 import { fail, fromFieldErrors, ok, type ActionResult } from '@/lib/result';
 import { audit, requireCapability } from '@/features/admin/audit';
-import { canRemovePublished } from '@/features/catalog/removal';
+import { canDeleteLive, canRemovePublished } from '@/features/catalog/removal';
 import { FORM_LEVEL } from '@/lib/field-errors';
 import type { Json } from '@/lib/supabase/database.types';
 
@@ -597,6 +597,174 @@ export async function restoreArticle(
     return ok({ id: parsed.data.articleId });
   } catch (error) {
     logger.error('restoreArticle threw', describeError(error));
+    return contentFail('admin.errors.generic');
+  }
+}
+
+// ── Deleting a page, an FAQ or a banner ─────────────────────────────────────
+
+/**
+ * These three are **deleted outright**, not removed.
+ *
+ * None has a `deleted_at` column, and all three have **zero inbound foreign keys** — nothing can be
+ * orphaned by their going. They are small, cheap to retype, and each already has its own way of being
+ * hidden, which is what makes a genuine delete the right verb rather than a euphemism.
+ *
+ * The rule is the one every other entity follows: **what is live must be taken down first.** A published
+ * page, an active FAQ or banner. Every one of those has a reversible control for it a few pixels away,
+ * and taking that step is what makes the deletion safe to confirm rather than a decision made at speed.
+ */
+const contentIdSchema = z.object({ id: z.string().uuid() });
+
+function deleteRefused(verdict: { reason: string; instead?: string }): ContentState {
+  return fromFieldErrors<ContentErrorKey, { id?: string }>('admin.content.errors.removeBlocked', {
+    fieldErrors: { [FORM_LEVEL]: [verdict.reason, verdict.instead ?? ''].filter(Boolean) },
+  });
+}
+
+export async function deletePage(
+  _previous: ContentState,
+  formData: FormData,
+): Promise<ContentState> {
+  const gate = await requireCapability('content.manage');
+  if (!gate.ok) return contentFail(gate.error);
+
+  const parsed = contentIdSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return contentFail('admin.content.errors.checkFields');
+  const { id } = parsed.data;
+
+  try {
+    const supabase = await createClient();
+
+    const { data: before } = await supabase
+      .from('pages')
+      .select('slug, status, title')
+      .eq('id', id)
+      .maybeSingle();
+    if (!before) return contentFail('admin.content.errors.notFound');
+    const page = before as { slug: string; status: string; title: unknown };
+
+    /*
+     * A published page is refused. These are the legal pages — terms, privacy, returns — reachable from
+     * the footer of every page on the shop, and one going missing is a 404 on a document a customer has
+     * a right to read. Setting it back to draft removes it from the shop and is a single reversible step.
+     */
+    const verdict = canDeleteLive(
+      page.status === 'published',
+      'page',
+      'Set it back to draft first — that takes it off the shop and can be undone.',
+    );
+    if (!verdict.allowed) return deleteRefused(verdict);
+
+    const { error } = await supabase.from('pages').delete().eq('id', id).neq('status', 'published');
+    if (error) {
+      logger.error('deletePage failed', { cause: error.message });
+      return contentFail('admin.errors.generic');
+    }
+
+    /*
+     * Audited with the whole row in `before`, not just its id.
+     *
+     * This is the one place where that matters more than usual: there is no bin to recover from, so the
+     * audit row is the only record that the page existed and what it said.
+     */
+    await audit('page.deleted', 'page', id, page as unknown as Json, null);
+
+    revalidatePublic([CACHE_TAGS.articles]);
+    revalidatePath('/admin/content/pages');
+    return ok({ id });
+  } catch (error) {
+    logger.error('deletePage threw', describeError(error));
+    return contentFail('admin.errors.generic');
+  }
+}
+
+export async function deleteFaq(_previous: ContentState, formData: FormData): Promise<ContentState> {
+  const gate = await requireCapability('content.manage');
+  if (!gate.ok) return contentFail(gate.error);
+
+  const parsed = contentIdSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return contentFail('admin.content.errors.checkFields');
+  const { id } = parsed.data;
+
+  try {
+    const supabase = await createClient();
+
+    const { data: before } = await supabase
+      .from('faqs')
+      .select('question, answer, category, is_active')
+      .eq('id', id)
+      .maybeSingle();
+    if (!before) return contentFail('admin.content.errors.notFound');
+    const faq = before as { is_active: boolean };
+
+    const verdict = canDeleteLive(
+      faq.is_active,
+      'question',
+      'Switch it off first — customers stop seeing it immediately, and you can switch it back.',
+    );
+    if (!verdict.allowed) return deleteRefused(verdict);
+
+    const { error } = await supabase.from('faqs').delete().eq('id', id).eq('is_active', false);
+    if (error) {
+      logger.error('deleteFaq failed', { cause: error.message });
+      return contentFail('admin.errors.generic');
+    }
+
+    await audit('faq.deleted', 'faq', id, before as unknown as Json, null);
+
+    revalidatePublic([CACHE_TAGS.articles]);
+    revalidatePath('/admin/content/faqs');
+    return ok({ id });
+  } catch (error) {
+    logger.error('deleteFaq threw', describeError(error));
+    return contentFail('admin.errors.generic');
+  }
+}
+
+export async function deleteBanner(
+  _previous: ContentState,
+  formData: FormData,
+): Promise<ContentState> {
+  const gate = await requireCapability('content.manage');
+  if (!gate.ok) return contentFail(gate.error);
+
+  const parsed = contentIdSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return contentFail('admin.content.errors.checkFields');
+  const { id } = parsed.data;
+
+  try {
+    const supabase = await createClient();
+
+    const { data: before } = await supabase
+      .from('banners')
+      .select('placement, title, is_active, starts_at, ends_at')
+      .eq('id', id)
+      .maybeSingle();
+    if (!before) return contentFail('admin.content.errors.notFound');
+    const banner = before as { is_active: boolean };
+
+    const verdict = canDeleteLive(
+      banner.is_active,
+      'banner',
+      'Switch it off first. Its dates may already have passed, but the switch is what decides whether it can show.',
+    );
+    if (!verdict.allowed) return deleteRefused(verdict);
+
+    const { error } = await supabase.from('banners').delete().eq('id', id).eq('is_active', false);
+    if (error) {
+      logger.error('deleteBanner failed', { cause: error.message });
+      return contentFail('admin.errors.generic');
+    }
+
+    await audit('banner.deleted', 'banner', id, before as unknown as Json, null);
+
+    // The same tag `saveBanner` purges — a banner is read through `banners`, not through `articles`.
+    revalidatePublic([CACHE_TAGS.banners]);
+    revalidatePath('/admin/content/banners');
+    return ok({ id });
+  } catch (error) {
+    logger.error('deleteBanner threw', describeError(error));
     return contentFail('admin.errors.generic');
   }
 }

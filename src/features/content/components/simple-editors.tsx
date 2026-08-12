@@ -5,6 +5,9 @@ import { HelpCircle, Megaphone, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { SubmitButton } from '@/components/ui/submit-button';
 import {
+  deleteBanner,
+  deleteFaq,
+  deletePage,
   saveBanner,
   saveFaq,
   savePage,
@@ -12,10 +15,12 @@ import {
 } from '@/features/content/editor-actions';
 import {
   BilingualField,
+  CONTENT_ERRORS,
   Feedback,
   inputClass,
   labelClass,
 } from '@/features/content/components/content-fields';
+import { RemoveControl } from '@/components/ui/remove-control';
 import type { BannerRow, FaqRow, PageRow } from '@/features/content/admin-queries';
 import { cn } from '@/lib/utils';
 
@@ -132,6 +137,29 @@ function PageForm({ page }: { page: PageRow }) {
           <Feedback state={state} />
         </form>
       )}
+
+      {/*
+        Delete, outside the form rather than among the Save controls.
+
+        A `<form>` inside a `<form>` is invalid HTML — browsers resolve it by dropping the inner one — so
+        a delete button in that footer would have submitted the page editor instead. Shown only while the
+        page is a draft: the action refuses a published one, and the Status field a few lines up is the
+        step it would ask for.
+      */}
+      {open && page.status !== 'published' && (
+        <div className="border-t border-line px-4 pb-4">
+          <RemoveControl
+            action={deletePage}
+            hiddenFields={{ id: page.id }}
+            label={page.title.sq || page.slug}
+            noun="page"
+            errorCopy={CONTENT_ERRORS}
+            consequences={[
+              'Not recoverable — there is no bin for pages. The audit log keeps a copy of what it said.',
+            ]}
+          />
+        </div>
+      )}
     </li>
   );
 }
@@ -226,77 +254,93 @@ function FaqForm({
   const [state, action] = useActionState<ContentState, FormData>(saveFaq, null);
 
   return (
-    <form action={action} className="rounded-sm border border-line-strong bg-surface p-3">
-      {faq && <input type="hidden" name="id" value={faq.id} />}
+    <>
+      <form action={action} className="rounded-sm border border-line-strong bg-surface p-3">
+        {faq && <input type="hidden" name="id" value={faq.id} />}
 
-      <BilingualField
-        name="question"
-        label="Question"
-        sq={faq?.question.sq ?? ''}
-        en={faq?.question.en ?? ''}
-        state={state}
-        required
-      />
-      <BilingualField
-        name="answer"
-        label="Answer"
-        sq={faq?.answer.sq ?? ''}
-        en={faq?.answer.en ?? ''}
-        state={state}
-        multiline
-        rows={4}
-        required
-      />
+        <BilingualField
+          name="question"
+          label="Question"
+          sq={faq?.question.sq ?? ''}
+          en={faq?.question.en ?? ''}
+          state={state}
+          required
+        />
+        <BilingualField
+          name="answer"
+          label="Answer"
+          sq={faq?.answer.sq ?? ''}
+          en={faq?.answer.en ?? ''}
+          state={state}
+          multiline
+          rows={4}
+          required
+        />
 
-      <div className="mt-4 grid gap-3 sm:grid-cols-3">
-        <div>
-          <label htmlFor={`cat-${faq?.id ?? 'new'}`} className={labelClass}>
-            Group <span className="text-error">*</span>
+        <div className="mt-4 grid gap-3 sm:grid-cols-3">
+          <div>
+            <label htmlFor={`cat-${faq?.id ?? 'new'}`} className={labelClass}>
+              Group <span className="text-error">*</span>
+            </label>
+            <input
+              id={`cat-${faq?.id ?? 'new'}`}
+              name="category"
+              defaultValue={faq?.category ?? 'general'}
+              required
+              className={inputClass}
+            />
+          </div>
+          <div>
+            <label htmlFor={`pos-${faq?.id ?? 'new'}`} className={labelClass}>
+              Order
+            </label>
+            <input
+              id={`pos-${faq?.id ?? 'new'}`}
+              name="position"
+              type="number"
+              min={0}
+              defaultValue={faq?.position ?? nextPosition}
+              required
+              className={inputClass}
+              data-numeric
+            />
+          </div>
+          <label className="flex items-end gap-2 pb-2.5 text-sm text-ink-900">
+            <input
+              type="checkbox"
+              name="isActive"
+              defaultChecked={faq?.isActive ?? true}
+              className="size-4 rounded-sm border-line-strong"
+            />
+            Shown on the FAQ page
           </label>
-          <input
-            id={`cat-${faq?.id ?? 'new'}`}
-            name="category"
-            defaultValue={faq?.category ?? 'general'}
-            required
-            className={inputClass}
+        </div>
+
+        <div className="mt-4 flex items-center gap-2">
+          <SubmitButton size="sm" loadingLabel="Saving…">
+            {faq ? 'Save' : 'Create'}
+          </SubmitButton>
+          <Button type="button" size="sm" variant="ghost" onClick={onDone}>
+            Cancel
+          </Button>
+        </div>
+        <Feedback state={state} />
+      </form>
+
+      {/* Outside the form, and only once it is switched off — see the note on the page editor. */}
+      {faq && !faq.isActive && (
+        <div className="mt-3">
+          <RemoveControl
+            action={deleteFaq}
+            hiddenFields={{ id: faq.id }}
+            label={faq.question.sq || faq.category}
+            noun="question"
+            errorCopy={CONTENT_ERRORS}
+            consequences={['Not recoverable — the audit log keeps the question and the answer.']}
           />
         </div>
-        <div>
-          <label htmlFor={`pos-${faq?.id ?? 'new'}`} className={labelClass}>
-            Order
-          </label>
-          <input
-            id={`pos-${faq?.id ?? 'new'}`}
-            name="position"
-            type="number"
-            min={0}
-            defaultValue={faq?.position ?? nextPosition}
-            required
-            className={inputClass}
-            data-numeric
-          />
-        </div>
-        <label className="flex items-end gap-2 pb-2.5 text-sm text-ink-900">
-          <input
-            type="checkbox"
-            name="isActive"
-            defaultChecked={faq?.isActive ?? true}
-            className="size-4 rounded-sm border-line-strong"
-          />
-          Shown on the FAQ page
-        </label>
-      </div>
-
-      <div className="mt-4 flex items-center gap-2">
-        <SubmitButton size="sm" loadingLabel="Saving…">
-          {faq ? 'Save' : 'Create'}
-        </SubmitButton>
-        <Button type="button" size="sm" variant="ghost" onClick={onDone}>
-          Cancel
-        </Button>
-      </div>
-      <Feedback state={state} />
-    </form>
+      )}
+    </>
   );
 }
 
@@ -385,119 +429,140 @@ function BannerForm({ banner, onDone }: { banner: BannerRow | null; onDone: () =
   const key = banner?.id ?? 'new';
 
   return (
-    <form action={action} className="rounded-sm border border-line-strong bg-surface p-3">
-      {banner && <input type="hidden" name="id" value={banner.id} />}
+    <>
+      <form action={action} className="rounded-sm border border-line-strong bg-surface p-3">
+        {banner && <input type="hidden" name="id" value={banner.id} />}
 
-      <div className="grid gap-3 sm:grid-cols-3">
-        <div>
-          <label htmlFor={`placement-${key}`} className={labelClass}>
-            Placement <span className="text-error">*</span>
-          </label>
-          <input
-            id={`placement-${key}`}
-            name="placement"
-            defaultValue={banner?.placement ?? 'home_hero'}
-            required
-            className={inputClass}
-          />
+        <div className="grid gap-3 sm:grid-cols-3">
+          <div>
+            <label htmlFor={`placement-${key}`} className={labelClass}>
+              Placement <span className="text-error">*</span>
+            </label>
+            <input
+              id={`placement-${key}`}
+              name="placement"
+              defaultValue={banner?.placement ?? 'home_hero'}
+              required
+              className={inputClass}
+            />
+          </div>
+          <div>
+            <label htmlFor={`href-${key}`} className={labelClass}>
+              Button link
+            </label>
+            <input
+              id={`href-${key}`}
+              name="ctaHref"
+              defaultValue={banner?.ctaHref ?? ''}
+              placeholder="/shop"
+              className={inputClass}
+            />
+          </div>
+          <div>
+            <label htmlFor={`bpos-${key}`} className={labelClass}>
+              Order
+            </label>
+            <input
+              id={`bpos-${key}`}
+              name="position"
+              type="number"
+              min={0}
+              defaultValue={banner?.position ?? 0}
+              required
+              className={inputClass}
+              data-numeric
+            />
+          </div>
         </div>
-        <div>
-          <label htmlFor={`href-${key}`} className={labelClass}>
-            Button link
-          </label>
-          <input
-            id={`href-${key}`}
-            name="ctaHref"
-            defaultValue={banner?.ctaHref ?? ''}
-            placeholder="/shop"
-            className={inputClass}
-          />
-        </div>
-        <div>
-          <label htmlFor={`bpos-${key}`} className={labelClass}>
-            Order
-          </label>
-          <input
-            id={`bpos-${key}`}
-            name="position"
-            type="number"
-            min={0}
-            defaultValue={banner?.position ?? 0}
-            required
-            className={inputClass}
-            data-numeric
-          />
-        </div>
-      </div>
 
-      <BilingualField
-        name="title"
-        label="Title"
-        sq={banner?.title.sq ?? ''}
-        en={banner?.title.en ?? ''}
-        state={state}
-        required
-      />
-      <BilingualField
-        name="subtitle"
-        label="Subtitle"
-        sq={banner?.subtitle.sq ?? ''}
-        en={banner?.subtitle.en ?? ''}
-        state={state}
-      />
-      <BilingualField
-        name="ctaLabel"
-        label="Button label"
-        sq={banner?.ctaLabel.sq ?? ''}
-        en={banner?.ctaLabel.en ?? ''}
-        state={state}
-      />
+        <BilingualField
+          name="title"
+          label="Title"
+          sq={banner?.title.sq ?? ''}
+          en={banner?.title.en ?? ''}
+          state={state}
+          required
+        />
+        <BilingualField
+          name="subtitle"
+          label="Subtitle"
+          sq={banner?.subtitle.sq ?? ''}
+          en={banner?.subtitle.en ?? ''}
+          state={state}
+        />
+        <BilingualField
+          name="ctaLabel"
+          label="Button label"
+          sq={banner?.ctaLabel.sq ?? ''}
+          en={banner?.ctaLabel.en ?? ''}
+          state={state}
+        />
 
-      <div className="mt-4 grid gap-3 sm:grid-cols-3">
-        <div>
-          <label htmlFor={`starts-${key}`} className={labelClass}>
-            Shows from
+        <div className="mt-4 grid gap-3 sm:grid-cols-3">
+          <div>
+            <label htmlFor={`starts-${key}`} className={labelClass}>
+              Shows from
+            </label>
+            <input
+              id={`starts-${key}`}
+              name="startsAt"
+              type="date"
+              defaultValue={banner?.startsAt?.slice(0, 10) ?? ''}
+              className={inputClass}
+            />
+          </div>
+          <div>
+            <label htmlFor={`ends-${key}`} className={labelClass}>
+              Until
+            </label>
+            <input
+              id={`ends-${key}`}
+              name="endsAt"
+              type="date"
+              defaultValue={banner?.endsAt?.slice(0, 10) ?? ''}
+              className={inputClass}
+            />
+          </div>
+          <label className="flex items-end gap-2 pb-2.5 text-sm text-ink-900">
+            <input
+              type="checkbox"
+              name="isActive"
+              defaultChecked={banner?.isActive ?? true}
+              className="size-4 rounded-sm border-line-strong"
+            />
+            Active
           </label>
-          <input
-            id={`starts-${key}`}
-            name="startsAt"
-            type="date"
-            defaultValue={banner?.startsAt?.slice(0, 10) ?? ''}
-            className={inputClass}
+        </div>
+
+        <div className="mt-4 flex items-center gap-2">
+          <SubmitButton size="sm" loadingLabel="Saving…">
+            {banner ? 'Save' : 'Create'}
+          </SubmitButton>
+          <Button type="button" size="sm" variant="ghost" onClick={onDone}>
+            Cancel
+          </Button>
+        </div>
+        <Feedback state={state} />
+      </form>
+
+      {/*
+        Outside the form, and only once it is switched off.
+
+        The dates may already have passed, but `is_active` is what actually decides whether a banner can
+        show — so that is the switch the refusal asks for, not the calendar.
+      */}
+      {banner && !banner.isActive && (
+        <div className="mt-3">
+          <RemoveControl
+            action={deleteBanner}
+            hiddenFields={{ id: banner.id }}
+            label={banner.title.sq || banner.placement}
+            noun="banner"
+            errorCopy={CONTENT_ERRORS}
+            consequences={['Not recoverable — the audit log keeps a copy of it.']}
           />
         </div>
-        <div>
-          <label htmlFor={`ends-${key}`} className={labelClass}>
-            Until
-          </label>
-          <input
-            id={`ends-${key}`}
-            name="endsAt"
-            type="date"
-            defaultValue={banner?.endsAt?.slice(0, 10) ?? ''}
-            className={inputClass}
-          />
-        </div>
-        <label className="flex items-end gap-2 pb-2.5 text-sm text-ink-900">
-          <input
-            type="checkbox"
-            name="isActive"
-            defaultChecked={banner?.isActive ?? true}
-            className="size-4 rounded-sm border-line-strong"
-          />
-          Active
-        </label>
-      </div>
-
-      <div className="mt-4 flex items-center gap-2">
-        <SubmitButton size="sm" loadingLabel="Saving…">
-          {banner ? 'Save' : 'Create'}
-        </SubmitButton>
-        <Button type="button" size="sm" variant="ghost" onClick={onDone}>
-          Cancel
-        </Button>
-      </div>
-      <Feedback state={state} />
-    </form>
+      )}
+    </>
   );
 }

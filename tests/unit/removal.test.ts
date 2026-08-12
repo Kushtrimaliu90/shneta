@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  canDeleteLive,
   canRemoveBrand,
   canRemoveCategory,
   canRemovePublished,
@@ -141,5 +142,30 @@ describe('slugTakenByRemoved', () => {
      */
     expect(slugTakenByRemoved).toContain('does not free its URL');
     expect(slugTakenByRemoved).toContain('restore it');
+  });
+});
+
+describe('canDeleteLive', () => {
+  it('allows deleting something already taken down', () => {
+    expect(canDeleteLive(false, 'page', 'anything').allowed).toBe(true);
+  });
+
+  it('refuses what is live and names the step that makes it safe', () => {
+    /*
+     * The same rule products and articles follow, applied to the four entities with no `deleted_at` to
+     * fall back on. Each already has a reversible way of being taken down — a status, an `is_active`, a
+     * rejection — and taking that step is what turns an irreversible delete into a confirmable one.
+     */
+    const verdict = canDeleteLive(true, 'review', 'Reject it first.');
+    expect(verdict.allowed).toBe(false);
+    if (verdict.allowed) return;
+    expect(verdict.reason).toBe('This review is live.');
+    expect(verdict.instead).toBe('Reject it first.');
+  });
+
+  it('carries the caller noun rather than a generic one', () => {
+    const verdict = canDeleteLive(true, 'banner', 'Switch it off.');
+    if (verdict.allowed) throw new Error('expected a refusal');
+    expect(verdict.reason).toContain('banner');
   });
 });

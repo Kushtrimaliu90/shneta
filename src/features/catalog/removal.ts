@@ -144,6 +144,39 @@ export function impactLines(impact: RemovalImpact): string[] {
   return lines;
 }
 
+/**
+ * Deleting outright — for the four entities that have no `deleted_at` to fall back on.
+ *
+ * ── Why these four are deleted rather than removed ──
+ *
+ * `pages`, `faqs`, `banners` and `reviews` have no soft-delete column, and adding four of them plus a
+ * read filter in every query that touches them is a great deal of machinery for content that is small,
+ * cheap to retype, and already hideable. All three of the first group have **zero inbound foreign keys**,
+ * so a delete cannot orphan anything.
+ *
+ * Reviews are the interesting case, and there the hard delete is the *safer* option. The rating trigger
+ * fires `after insert or update of status, rating or delete on reviews` and recomputes from
+ * `status = 'approved'` — so a DELETE already maintains the product's public rating correctly, while a
+ * soft delete would not fire it at all and would leave a removed review still counting toward the stars
+ * on a product page. `review_votes` cascades.
+ *
+ * ── One rule, four times ──
+ *
+ * **What is live must be taken down before it can be deleted.** A published page, an active FAQ or
+ * banner, an approved review. Every one of those already has its own reversible control for that — a
+ * status, an `is_active`, a rejection — and each is the step that makes the deletion safe to confirm.
+ * It is the same rule products and articles follow, which is why it reads as a rule rather than as four
+ * separate opinions.
+ */
+export function canDeleteLive(
+  isLive: boolean,
+  noun: string,
+  instead: string,
+): RemovalVerdict {
+  if (!isLive) return { allowed: true };
+  return { allowed: false, reason: `This ${noun} is live.`, instead };
+}
+
 /** The sentence for a slug held by something an operator cannot see. */
 export const slugTakenByRemoved =
   'A removed record still holds that slug. Removing something does not free its URL — restore it, or choose a different slug.';

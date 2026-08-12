@@ -5,7 +5,10 @@ import { BadgeCheck, Star } from 'lucide-react';
 import { Alert } from '@/components/ui/alert';
 import { buttonVariants } from '@/components/ui/button';
 import { SubmitButton } from '@/components/ui/submit-button';
+import { RemoveControl } from '@/components/ui/remove-control';
+import { FormLevelErrors } from '@/components/ui/field-error';
 import {
+  deleteReview,
   moderateReview,
   type ModerationErrorKey,
   type ModerationState,
@@ -27,6 +30,8 @@ const ERRORS: Record<ModerationErrorKey, string> = {
   'admin.reviews.errors.reasonRequired':
     'A rejection needs a reason — the customer is shown it, and "no reason" reads as the review being lost.',
   'admin.reviews.errors.replyRequired': 'Write the reply before sending it.',
+  // The specific reason arrives in `fieldErrors._form` and is rendered under this line.
+  'admin.reviews.errors.deleteBlocked': 'This cannot be deleted yet.',
 };
 
 export function ModerationCard({
@@ -213,7 +218,32 @@ export function ModerationCard({
       {state && !state.ok && (
         <Alert tone="error" className="mt-3">
           {ERRORS[state.error]}
+          <FormLevelErrors errors={state.fieldErrors ?? {}} />
         </Alert>
+      )}
+
+      {/*
+        Delete, for spam — not a third moderation outcome.
+
+        Set apart from the Approve/Reject row and only offered once the review is not approved, because
+        rejecting is the action that takes a review off the product page *and* out of the star rating,
+        reversibly, with a reason the customer sees. Deleting is for the case where there is nothing worth
+        keeping and nobody to explain it to, and it cannot be undone: the rating trigger fires on DELETE,
+        so the stars correct themselves, and the audit row is the only copy left.
+      */}
+      {review.status !== 'approved' && (
+        <div className="mt-3 border-t border-line pt-3">
+          <RemoveControl
+            action={deleteReview}
+            hiddenFields={{ reviewId: review.id }}
+            label={review.title || `${review.rating}-star review by ${review.authorName}`}
+            noun="review"
+            errorCopy={ERRORS}
+            consequences={[
+              'Not recoverable. The star rating recalculates itself; the audit log keeps what the review said.',
+            ]}
+          />
+        </div>
       )}
     </li>
   );

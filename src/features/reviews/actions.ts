@@ -1,13 +1,17 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePublic } from '@/lib/cache';
 import { CACHE_TAGS } from '@/lib/constants';
 import { limit } from '@/lib/rate-limit';
 import { logger, describeError } from '@/lib/logger';
-import { fail, ok, type ActionResult } from '@/lib/result';
+import { fail, fromFieldErrors, ok, type ActionResult } from '@/lib/result';
+import { FORM_LEVEL } from '@/lib/field-errors';
+import { canDeleteLive } from '@/features/catalog/removal';
 import { audit, requireCapability } from '@/features/admin/audit';
+import type { Json } from '@/lib/supabase/database.types';
 import { getCurrentUser, getProfile } from '@/features/auth/queries';
 import {
   getReviewEligibility,
@@ -228,7 +232,9 @@ export type ModerationErrorKey =
   | 'admin.errors.generic'
   | 'admin.reviews.errors.notFound'
   | 'admin.reviews.errors.reasonRequired'
-  | 'admin.reviews.errors.replyRequired';
+  | 'admin.reviews.errors.replyRequired'
+  /** A deletion the rules refuse; the reason arrives in `fieldErrors._form`. */
+  | 'admin.reviews.errors.deleteBlocked';
 
 export type ModerationState = ActionResult<{ id?: string }, ModerationErrorKey> | null;
 
@@ -354,6 +360,91 @@ export async function bulkApproveReviews(
     return ok({});
   } catch (error) {
     logger.error('bulkApproveReviews threw', describeError(error));
+    return moderationFail('admin.errors.generic');
+  }
+}
+
+/**
+ * Deletes a review outright — for spam, not for moderation.
+ *
+ * ── Why this one is a real delete and not a soft one ──
+ *
+ * The rating trigger fires `after insert or update of status, rating or delete on reviews` and recomputes
+ * `products.rating_avg` and `rating_count` from `status = 'approved'`. So a DELETE already maintains the
+ * product's public rating correctly — while a soft delete would not fire that trigger at all, and a
+ * removed five-star review would go on inflating the stars on a product page. The safe option here is the
+ * one that actually removes the row. `review_votes` cascades.
+ *
+ * ── Rejecting comes first ──
+ *
+ * An approved review is refused. Rejecting takes it off the product page *and* out of the rating in one
+ * reversible step, with a reason the customer sees — so it is both the gentler action and the one that
+ * makes a deletion afterwards safe to confirm. Deleting is for the case where there is nothing worth
+ * keeping and nobody to explain it to.
+ *
+ * Nothing here is recoverable, so the whole row goes into the audit `before`: that record is the only
+ * remaining evidence the review existed and what it said.
+ */
+export async function deleteReview(
+  _previous: ModerationState,
+  formData: FormData,
+): Promise<ModerationState> {
+  const gate = await requireCapability('reviews.moderate');
+  if (!gate.ok) return moderationFail(gate.error);
+
+  const reviewId = String(formData.get('reviewId') ?? '');
+  if (!z.string().uuid().safeParse(reviewId).success) {
+    return moderationFail('admin.errors.generic');
+  }
+
+  try {
+    const supabase = await createClient();
+    const product = await productOfReview(supabase, reviewId);
+    if (!product) return moderationFail('admin.reviews.errors.notFound');
+
+    const { data: before } = await supabase
+      .from('reviews')
+      .select('id, product_id, author_name, rating, title, body, status, created_at')
+      .eq('id', reviewId)
+      .maybeSingle();
+    if (!before) return moderationFail('admin.reviews.errors.notFound');
+    const review = before as { status: string };
+
+    const verdict = canDeleteLive(
+      review.status === 'approved',
+      'review',
+      'Reject it first — that takes it off the product page and out of the star rating, with a reason the customer can see. Then it can be deleted.',
+    );
+    if (!verdict.allowed) {
+      return fromFieldErrors<ModerationErrorKey, { id?: string }>(
+        'admin.reviews.errors.deleteBlocked',
+        { fieldErrors: { [FORM_LEVEL]: [verdict.reason, verdict.instead ?? ''].filter(Boolean) } },
+      );
+    }
+
+    /*
+     * Audited **before** the delete, not after: once the row is gone there is nothing left to read, and
+     * an audit written after a successful delete would have to carry data it had already lost.
+     */
+    await audit('review.deleted', 'review', reviewId, before as unknown as Json, null);
+
+    const { error } = await supabase
+      .from('reviews')
+      .delete()
+      .eq('id', reviewId)
+      // Guarded, so a review approved since this page loaded is not deleted on a stale check.
+      .neq('status', 'approved');
+
+    if (error) {
+      logger.error('deleteReview failed', { cause: error.message });
+      return moderationFail('admin.errors.generic');
+    }
+
+    revalidatePublic([CACHE_TAGS.products, CACHE_TAGS.product(product.slug)]);
+    revalidatePath('/admin/reviews');
+    return ok({ id: reviewId });
+  } catch (error) {
+    logger.error('deleteReview threw', describeError(error));
     return moderationFail('admin.errors.generic');
   }
 }
