@@ -17,6 +17,7 @@ import {
 } from '@/features/catalog/admin-queries';
 import { PRODUCT_BULK_MAX } from '@/features/catalog/admin-schemas';
 import { NewProductForm } from '@/features/catalog/components/new-product-form';
+import { ProductSheetPanel } from '@/features/catalog/components/product-sheet-panel';
 import { RemoveControl, RestoreControl } from '@/components/ui/remove-control';
 import {
   ProductBulkBar,
@@ -146,8 +147,14 @@ export default async function AdminProductsPage({ searchParams }: Props) {
         Below the header rather than beside it: when the form opens it needs the full width for
         three fields, and a control that reflows the header when clicked is disorienting.
       */}
-      <div className="mt-4">
+      <div className="mt-4 flex flex-col gap-3">
         <NewProductForm brands={options.brands} />
+        {/*
+          Below the create form, collapsed. It is the tool for changing many products at once, which is a
+          less frequent errand than adding one — but a far larger one when it happens, which is why it gets
+          its own panel rather than a link.
+        */}
+        <ProductSheetPanel />
       </div>
 
       <nav aria-label="Filter by status" className="mt-6 flex flex-wrap gap-1.5">

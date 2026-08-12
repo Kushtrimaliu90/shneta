@@ -1,17 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  amountToFreeShipping,
-  computeTotals,
-  CURRENCY_NBSP as NB,
-  discountCents,
-  formatPrice,
-  fromCents,
-  percentOff,
-  shippingCents,
-  subtotalCents,
-  taxCents,
-  toCents,
-} from '@/lib/money';
+import { CURRENCY_NBSP as NB, amountToFreeShipping, computeTotals, discountCents, formatPrice, fromCents, percentOff, sameAmount, shippingCents, subtotalCents, taxCents, toCents } from '@/lib/money';
 
 describe('formatPrice', () => {
   it('renders the sq format from docs/04 §4', () => {
@@ -173,5 +161,42 @@ describe('display helpers', () => {
     expect(amountToFreeShipping(3000, 3000)).toBe(0);
     expect(amountToFreeShipping(3500, 3000)).toBe(0);
     expect(amountToFreeShipping(100, null)).toBe(0);
+  });
+});
+
+describe('sameAmount', () => {
+  /**
+   * The regression guard for the worst bug this feature had.
+   *
+   * An export wrote "10.90"; Excel stored the number 10.9; the reader gave back "10.9". Comparing the two as
+   * text reported a price change on all 78 variants of a file nobody had edited — and a diff full of changes
+   * nobody made is a diff nobody reads, which would have made the preview worse than useless.
+   */
+  it('treats trailing-zero differences as the same money', () => {
+    expect(sameAmount('10.90', '10.9')).toBe(true);
+    expect(sameAmount('10.9', '10.90')).toBe(true);
+    expect(sameAmount('5', '5.00')).toBe(true);
+  });
+
+  it('treats a comma decimal as the same money', () => {
+    // What a Kosovo Excel leaves in a text cell.
+    expect(sameAmount('9,90', '9.90')).toBe(true);
+  });
+
+  it('still tells different amounts apart', () => {
+    expect(sameAmount('10.90', '10.91')).toBe(false);
+    expect(sameAmount('9.90', '99.00')).toBe(false);
+  });
+
+  it('keeps empty distinct from zero', () => {
+    // A blank compare-at price means there is no was-price; 0.00 would mean it used to be free.
+    expect(sameAmount('', '')).toBe(true);
+    expect(sameAmount('', '0.00')).toBe(false);
+    expect(sameAmount('0', '')).toBe(false);
+  });
+
+  it('calls unparseable input equal to nothing, so the caller has to refuse it', () => {
+    expect(sameAmount('1.234,50', '1234.50')).toBe(false);
+    expect(sameAmount('abc', 'abc')).toBe(false);
   });
 });

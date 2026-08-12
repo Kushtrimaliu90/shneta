@@ -83,6 +83,32 @@ export function toCents(euros: string | number): number {
   return negative ? -cents : cents;
 }
 
+/**
+ * Do two written amounts mean the same money?
+ *
+ * Compares **values**, not text, which is the only comparison that is stable across a spreadsheet. The
+ * bug this exists for: an export wrote `"10.90"`, Excel stored it as the number `10.9`, and the importer
+ * read `"10.9"` back — so a string comparison reported a price change on all 78 variants of an untouched
+ * file. `10.90`, `10.9` and `10,90` are one amount, and a diff that says otherwise is a diff nobody can
+ * trust.
+ *
+ * An empty string is "no amount", which is distinct from zero: a blank compare-at price means there is no
+ * was-price, while `0.00` would mean it used to be free.
+ *
+ * Unparseable input is never equal to anything, including itself — the caller is expected to reject it with
+ * a message rather than let this decide.
+ */
+export function sameAmount(a: string, b: string): boolean {
+  const empty = (value: string) => value.trim().length === 0;
+  if (empty(a) && empty(b)) return true;
+  if (empty(a) || empty(b)) return false;
+  try {
+    return toCents(a) === toCents(b);
+  } catch {
+    return false;
+  }
+}
+
 /** Integer cents → a plain decimal string suitable for a number input (`1850` → `"18.50"`). */
 export function fromCents(cents: number): string {
   const negative = cents < 0;
