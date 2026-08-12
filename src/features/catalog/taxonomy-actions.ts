@@ -10,7 +10,10 @@ import { logger, describeError } from '@/lib/logger';
 import { fail, fromFieldErrors, ok } from '@/lib/result';
 import { audit, requireCapability } from '@/features/admin/audit';
 import { slugSchema } from '@/features/catalog/admin-schemas';
+import { canRemoveBrand, canRemoveCategory } from '@/features/catalog/removal';
+import { FORM_LEVEL } from '@/lib/field-errors';
 import type { Capability } from '@/features/admin/roles';
+import type { Json } from '@/lib/supabase/database.types';
 
 /**
  * docs/06 §4–§7 — brands, categories, health goals and ingredients.
@@ -38,7 +41,11 @@ export type TaxonomyErrorKey =
   | 'admin.catalog.errors.inUse'
   | 'admin.catalog.errors.hasChildren'
   | 'admin.catalog.errors.categoryCycle'
-  | 'admin.catalog.errors.uploadFailed';
+  | 'admin.catalog.errors.uploadFailed'
+  /** A removal the rules refuse; the reason, with its counts, arrives in `fieldErrors._form`. */
+  | 'admin.catalog.errors.removeBlocked'
+  /** Only brands and categories carry `deleted_at`; goals and ingredients are deactivated instead. */
+  | 'admin.catalog.errors.notRemovable';
 
 export type TaxonomyState =
   | { ok: true; data: { id?: string; path?: string; token?: string } }
@@ -362,6 +369,203 @@ const toggleSchema = z.object({
   id: z.string().uuid(),
   isActive: z.coerce.boolean(),
 });
+
+/**
+ * Removing or restoring a brand or a category.
+ *
+ * `goal` and `ingredient` are absent from the enum rather than rejected in the body: `health_goals` and
+ * `ingredients` have no `deleted_at` column, so removal is not a state they can be in. Deactivating is
+ * the whole vocabulary there, and the schema is where that belongs — the alternative is an action that
+ * accepts a request it can never satisfy.
+ */
+const removeSchema = z.object({
+  kind: z.enum(['brand', 'category']),
+  id: z.string().uuid(),
+});
+
+/**
+ * Removes a brand or a category from the panel, reversibly.
+ *
+ * Sets `deleted_at`, which is all it takes to remove it from the shop as well — `p_read` on both tables
+ * is `(is_active and deleted_at is null)`, so the public site drops it at the database.
+ *
+ * The guards are the interesting part, and both come from the foreign keys rather than from taste:
+ *
+ *   **A brand still used by a product is refused.** `products.brand_id` is `not null references
+ *   brands(id)` with no on-delete rule. A hard delete would be refused by Postgres; a soft delete is
+ *   worse, because the product keeps pointing at a row no query returns and its page renders a blank
+ *   brand instead of failing visibly.
+ *
+ *   **A category with sub-categories or products is refused.** `parent_id` is `on delete set null`, so
+ *   removing a parent silently promotes its children to the top level of the navigation — the same trap
+ *   `toggleTaxonomyActive` already documents for deactivation. And `p_read on product_categories` is
+ *   `using (true)`, so a product's breadcrumb could name a removed category.
+ *
+ * Both offer deactivation instead, because that is the thing the operator almost always meant.
+ */
+export async function removeTaxonomy(
+  _previous: TaxonomyState,
+  formData: FormData,
+): Promise<TaxonomyState> {
+  const parsed = removeSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) {
+    // A goal or an ingredient reaching here is a wrong control, not a malformed one.
+    const kind = String(formData.get('kind') ?? '');
+    if (kind === 'goal' || kind === 'ingredient') {
+      return taxFail('admin.catalog.errors.notRemovable');
+    }
+    return taxFail('admin.catalog.errors.checkFields');
+  }
+
+  const { kind, id } = parsed.data;
+  const entity = ENTITIES[kind];
+  const gate = await requireCapability(entity.capability);
+  if (!gate.ok) return taxFail(gate.error);
+
+  /*
+   * The table as a narrow literal, not `entity.table`.
+   *
+   * `EntityConfig.table` is the union of all four taxonomy tables, and `health_goals` and `ingredients`
+   * genuinely have no `deleted_at` — so a select naming that column against the union does not
+   * typecheck, which is TypeScript enforcing exactly what `removeSchema` says. Deriving the literal from
+   * `kind` narrows it to the two that do.
+   */
+  const table = kind === 'brand' ? ('brands' as const) : ('categories' as const);
+
+
+  const blocked = (verdict: { reason: string; instead?: string }): TaxonomyState => ({
+    ok: false,
+    error: 'admin.catalog.errors.removeBlocked',
+    fieldErrors: { [FORM_LEVEL]: [verdict.reason, verdict.instead ?? ''].filter(Boolean) },
+  });
+
+  try {
+    const supabase = await createClient();
+
+    const { data: before } = await supabase
+      .from(table)
+      .select('slug, deleted_at')
+      .eq('id', id)
+      .maybeSingle();
+
+    if (!before) return taxFail('admin.catalog.errors.notFound');
+    const row = before as { slug: string; deleted_at: string | null };
+    // Already removed: a double-submit, not something to alarm anyone about.
+    if (row.deleted_at !== null) return { ok: true, data: { id } };
+
+    if (kind === 'brand') {
+      /*
+       * Counting products that are not themselves removed. A brand whose only products are in the bin
+       * is genuinely unused, and refusing on their account would make the two features fight.
+       */
+      const { count } = await supabase
+        .from('products')
+        .select('id', { count: 'exact', head: true })
+        .eq('brand_id', id)
+        .is('deleted_at', null);
+
+      const verdict = canRemoveBrand(count ?? 0);
+      if (!verdict.allowed) return blocked(verdict);
+    } else {
+      const [{ count: children }, { count: products }] = await Promise.all([
+        supabase
+          .from('categories')
+          .select('id', { count: 'exact', head: true })
+          .eq('parent_id', id)
+          .is('deleted_at', null),
+        supabase
+          .from('product_categories')
+          .select('product_id, products!inner(deleted_at)', { count: 'exact', head: true })
+          .eq('category_id', id)
+          .is('products.deleted_at', null),
+      ]);
+
+      const verdict = canRemoveCategory(children ?? 0, products ?? 0);
+      if (!verdict.allowed) return blocked(verdict);
+    }
+
+    const { error } = await supabase
+      .from(table)
+      .update({ deleted_at: new Date().toISOString() })
+      .eq('id', id)
+      // So a stale tab cannot remove something already removed and write a second timestamp over it.
+      .is('deleted_at', null);
+
+    if (error) {
+      logger.error('removeTaxonomy failed', { kind, cause: error.message });
+      return taxFail('admin.errors.generic');
+    }
+
+    await audit(`${kind}.removed`, entity.table, id, null, { slug: row.slug } as unknown as Json);
+
+    revalidatePublic([entity.tag, CACHE_TAGS.products]);
+    revalidatePath(entity.adminPath);
+    return { ok: true, data: { id } };
+  } catch (error) {
+    logger.error('removeTaxonomy threw', { kind, ...describeError(error) });
+    return taxFail('admin.errors.generic');
+  }
+}
+
+/**
+ * Puts a removed brand or category back.
+ *
+ * It returns with its previous `is_active` intact, so a brand that was switched off before being removed
+ * comes back switched off — restoring is not a way to publish something by accident. The slug is still
+ * its own, because a removed row keeps its `unique` claim on it.
+ */
+export async function restoreTaxonomy(
+  _previous: TaxonomyState,
+  formData: FormData,
+): Promise<TaxonomyState> {
+  const parsed = removeSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return taxFail('admin.catalog.errors.checkFields');
+
+  const { kind, id } = parsed.data;
+  const entity = ENTITIES[kind];
+  const gate = await requireCapability(entity.capability);
+  if (!gate.ok) return taxFail(gate.error);
+
+  /*
+   * The table as a narrow literal, not `entity.table`.
+   *
+   * `EntityConfig.table` is the union of all four taxonomy tables, and `health_goals` and `ingredients`
+   * genuinely have no `deleted_at` — so a select naming that column against the union does not
+   * typecheck, which is TypeScript enforcing exactly what `removeSchema` says. Deriving the literal from
+   * `kind` narrows it to the two that do.
+   */
+  const table = kind === 'brand' ? ('brands' as const) : ('categories' as const);
+
+
+  try {
+    const supabase = await createClient();
+
+    const { data, error } = await supabase
+      .from(table)
+      .update({ deleted_at: null })
+      .eq('id', id)
+      .not('deleted_at', 'is', null)
+      .select('slug')
+      .maybeSingle();
+
+    if (error) {
+      logger.error('restoreTaxonomy failed', { kind, cause: error.message });
+      return taxFail('admin.errors.generic');
+    }
+    if (!data) return { ok: true, data: { id } };
+
+    await audit(`${kind}.restored`, entity.table, id, null, {
+      slug: (data as { slug: string }).slug,
+    } as unknown as Json);
+
+    revalidatePublic([entity.tag, CACHE_TAGS.products]);
+    revalidatePath(entity.adminPath);
+    return { ok: true, data: { id } };
+  } catch (error) {
+    logger.error('restoreTaxonomy threw', { kind, ...describeError(error) });
+    return taxFail('admin.errors.generic');
+  }
+}
 
 /**
  * Deactivates or reactivates a taxonomy row.

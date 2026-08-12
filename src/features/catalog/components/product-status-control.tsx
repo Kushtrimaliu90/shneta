@@ -5,9 +5,11 @@ import { Alert } from '@/components/ui/alert';
 import { buttonVariants } from '@/components/ui/button';
 import { SubmitButton } from '@/components/ui/submit-button';
 import { CATALOG_ERRORS } from '@/features/catalog/admin-copy';
+import { RemoveControl } from '@/components/ui/remove-control';
 import {
   approveProduct,
   rejectProduct,
+  removeProduct,
   setProductStatus,
   type CatalogState,
 } from '@/features/catalog/admin-actions';
@@ -25,12 +27,15 @@ import {
  */
 export function ProductStatusControl({
   productId,
+  productName,
   status,
   blockers,
   mayEdit,
   mayApprove,
 }: {
   productId: string;
+  /** Named in the removal confirmation, so it asks about a product rather than about a row. */
+  productName: string;
   status: string;
   blockers: string[];
   mayEdit: boolean;
@@ -125,6 +130,24 @@ export function ProductStatusControl({
               Restore to draft
             </SubmitButton>
           </form>
+        )}
+
+        {/*
+          Remove, at the far right and only when the product is not live.
+          The action refuses a published product anyway, but offering a button that can only say no is
+          worse than not offering it: archiving is the step it would tell them to take, and that button is
+          already right here.
+        */}
+        {mayEdit && status !== 'published' && (
+          <div className="ml-auto">
+            <RemoveControl
+              action={removeProduct}
+              hiddenFields={{ productId }}
+              label={productName}
+              noun="product"
+              errorCopy={CATALOG_ERRORS}
+            />
+          </div>
         )}
       </div>
 

@@ -28,11 +28,14 @@ export interface AdminProductRow {
   priceFromCents: number | null;
   isFeatured: boolean;
   updatedAt: string;
+  /** Set only in the removed view; the bin says when, so an old removal is distinguishable. */
+  deletedAt: string | null;
 }
 
 interface RawRow {
   id: string;
   slug: string;
+  deleted_at?: string | null;
   name: LocalizedField;
   status: string;
   is_featured: boolean;
@@ -42,7 +45,7 @@ interface RawRow {
   product_images: { id: string }[];
 }
 
-const LIST_SELECT = `id, slug, name, status, is_featured, updated_at,
+const LIST_SELECT = `id, slug, name, status, is_featured, updated_at, deleted_at,
   brands ( name ),
   product_variants ( price_cents, is_active ),
   product_images ( id )`;
@@ -60,6 +63,15 @@ export function toProductStatus(value: string | null | undefined): ProductStatus
 export interface ProductFilters {
   status?: ProductStatus;
   search?: string;
+  /**
+   * Show the removed ones instead of the live ones.
+   *
+   * A separate flag rather than a fifth `status`, because removal is orthogonal to status: a removed
+   * product still *has* a status, and it comes back at that status when restored. Folding it into the
+   * status enum would have made "removed" and "archived" look like alternatives when one is a state and
+   * the other is a shelf.
+   */
+  removed?: boolean;
 }
 
 export async function listAdminProducts(filters: ProductFilters): Promise<AdminProductRow[]> {
@@ -70,9 +82,17 @@ export async function listAdminProducts(filters: ProductFilters): Promise<AdminP
     .select(LIST_SELECT)
     // Soft-deleted rows are excluded everywhere; "archived" is a status and stays visible,
     // because an archived product is something an operator may want to restore.
-    .is('deleted_at', null)
     .order('updated_at', { ascending: false })
     .limit(100);
+
+  /*
+   * The one view that asks for them. Without this the removed list would be unreachable from the panel,
+   * which is the whole problem removal would otherwise create: a reversible action with no way to see
+   * what you have done, and therefore no way to undo it.
+   */
+  query = filters.removed
+    ? query.not('deleted_at', 'is', null)
+    : query.is('deleted_at', null);
 
   if (filters.status) query = query.eq('status', filters.status);
 
@@ -107,6 +127,7 @@ export async function listAdminProducts(filters: ProductFilters): Promise<AdminP
       priceFromCents: activePrices.length > 0 ? Math.min(...activePrices) : null,
       isFeatured: row.is_featured,
       updatedAt: row.updated_at,
+      deletedAt: row.deleted_at ?? null,
     };
   });
 }
@@ -126,6 +147,28 @@ export async function countAdminProductsByStatus(): Promise<Record<string, numbe
     counts.all = (counts.all ?? 0) + 1;
   }
   return counts;
+}
+
+/**
+ * How many products are in the bin.
+ *
+ * Separate from the status counts above rather than another key in that record, because that query
+ * deliberately excludes removed rows — adding this to it would mean either dropping that filter or
+ * running two queries inside one function that claims to run one. The tab needs the number even when it
+ * is zero, so it can say so instead of disappearing.
+ */
+export async function countRemovedProducts(): Promise<number> {
+  const supabase = await createClient();
+  const { count, error } = await supabase
+    .from('products')
+    .select('id', { count: 'exact', head: true })
+    .not('deleted_at', 'is', null);
+
+  if (error) {
+    logger.error('countRemovedProducts failed', { cause: error.message });
+    return 0;
+  }
+  return count ?? 0;
 }
 
 export interface ProductImage {
@@ -348,11 +391,22 @@ export const getEditorOptions = cache(
     const supabase = await createClient();
 
     const [brands, categories, goals, ingredients, certifications] = await Promise.all([
-      supabase.from('brands').select('id, name').order('name'),
+      /*
+       * `deleted_at is null` on both: a removed brand or category must not stay offerable in the
+       * editor. Without it, the Brand dropdown kept listing a brand that no longer exists anywhere
+       * else — and picking it would have written a `brand_id` pointing at a row every other query
+       * filters out, so the product page would render a blank brand.
+       *
+       * Only these two of the five are filtered, because only these two have the column: health goals
+       * and ingredients are deactivated rather than removed. `is_active` is deliberately *not* filtered
+       * here — an editor must still be able to see and keep an inactive category that a product is
+       * already in, or saving the General tab would silently drop it.
+       */
+      supabase.from('brands').select('id, name').is('deleted_at', null).order('name'),
       // `sort_order`, not `position` — the column is named differently here than on
       // shipping_methods, and the first version of this ordered by a column that does not
       // exist. See the note below on why that was so hard to see.
-      supabase.from('categories').select('id, name').order('sort_order'),
+      supabase.from('categories').select('id, name').is('deleted_at', null).order('sort_order'),
       supabase.from('health_goals').select('id, name').order('sort_order'),
       supabase.from('ingredients').select('id, name, slug').order('slug'),
       supabase.from('certifications').select('id, name').order('slug'),

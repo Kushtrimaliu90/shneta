@@ -9,6 +9,8 @@ export const CONTENT_ERRORS: Record<ContentErrorKey, string> = {
   'admin.content.errors.checkFields': 'Check the fields marked below.',
   'admin.content.errors.slugTaken': 'Another article already uses that address.',
   'admin.content.errors.notFound': 'That entry no longer exists.',
+  // The specific reason arrives in `fieldErrors._form` and is rendered under this line.
+  'admin.content.errors.removeBlocked': 'This cannot be removed yet.',
 };
 
 export const inputClass =

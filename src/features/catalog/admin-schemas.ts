@@ -98,6 +98,9 @@ export const deleteVariantSchema = z.object({
   variantId: uuid,
 });
 
+/** Removing or restoring a product — the id is the whole input. */
+export const productIdSchema = z.object({ productId: uuid });
+
 /**
  * docs/07 §10 — the publishing workflow.
  *

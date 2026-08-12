@@ -8,6 +8,8 @@ import { CACHE_TAGS } from '@/lib/constants';
 import { logger, describeError } from '@/lib/logger';
 import { fail, fromFieldErrors, ok, type ActionResult } from '@/lib/result';
 import { audit, requireCapability } from '@/features/admin/audit';
+import { canRemovePublished } from '@/features/catalog/removal';
+import { FORM_LEVEL } from '@/lib/field-errors';
 import type { Json } from '@/lib/supabase/database.types';
 
 /**
@@ -30,7 +32,9 @@ export type ContentErrorKey =
   | 'admin.errors.generic'
   | 'admin.content.errors.checkFields'
   | 'admin.content.errors.slugTaken'
-  | 'admin.content.errors.notFound';
+  | 'admin.content.errors.notFound'
+  /** A removal the rules refuse; the reason arrives in `fieldErrors._form`. */
+  | 'admin.content.errors.removeBlocked';
 
 export type ContentState = ActionResult<{ id?: string }, ContentErrorKey> | null;
 
@@ -470,6 +474,129 @@ export async function saveBanner(
     return ok({ id: input.id || undefined });
   } catch (error) {
     logger.error('saveBanner threw', describeError(error));
+    return contentFail('admin.errors.generic');
+  }
+}
+
+// ── Removing an article ─────────────────────────────────────────────────────
+
+const articleIdSchema = z.object({ articleId: z.string().uuid() });
+
+/**
+ * Removes an article from the panel, reversibly.
+ *
+ * `articles` is the only one of the four entities in this file with a `deleted_at` column, so it is the
+ * only one that can be removed. Pages, FAQs and banners are hidden instead — a page by its status, the
+ * other two by `is_active` — and every one of those controls already exists.
+ *
+ * Sets `deleted_at`, which is the whole mechanism: `p_read on articles` is `(status = 'published' and
+ * deleted_at is null)`, so the article leaves the knowledge centre, the sitemap and every anonymous read
+ * at the database.
+ *
+ * Refuses a published article, for the same reason a published product is refused: unpublishing is the
+ * control for "take it off the site", and collapsing the two would mean the fastest way to pull a live
+ * article is the same click as the one that hides it from the panel.
+ */
+export async function removeArticle(
+  _previous: ContentState,
+  formData: FormData,
+): Promise<ContentState> {
+  const gate = await requireCapability('content.manage');
+  if (!gate.ok) return contentFail(gate.error);
+
+  const parsed = articleIdSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return contentFail('admin.content.errors.checkFields');
+  const { articleId } = parsed.data;
+
+  try {
+    const supabase = await createClient();
+
+    const { data: before } = await supabase
+      .from('articles')
+      .select('slug, status, title, deleted_at')
+      .eq('id', articleId)
+      .maybeSingle();
+
+    if (!before) return contentFail('admin.content.errors.notFound');
+    const article = before as {
+      slug: string;
+      status: string;
+      title: unknown;
+      deleted_at: string | null;
+    };
+    if (article.deleted_at !== null) return ok({ id: articleId });
+
+    const verdict = canRemovePublished(article.status, 'article');
+    if (!verdict.allowed) {
+      return fromFieldErrors<ContentErrorKey, { id?: string; slug?: string }>(
+        'admin.content.errors.removeBlocked',
+        { fieldErrors: { [FORM_LEVEL]: [verdict.reason, verdict.instead ?? ''].filter(Boolean) } },
+      );
+    }
+
+    const { error } = await supabase
+      .from('articles')
+      .update({ deleted_at: new Date().toISOString() })
+      .eq('id', articleId)
+      // Guarded, so a stale tab cannot remove an article published since the page loaded.
+      .neq('status', 'published')
+      .is('deleted_at', null);
+
+    if (error) {
+      logger.error('removeArticle failed', { cause: error.message });
+      return contentFail('admin.errors.generic');
+    }
+
+    await audit('article.removed', 'article', articleId, { status: article.status }, {
+      slug: article.slug,
+      title: article.title,
+    } as unknown as Json);
+
+    revalidatePublic([CACHE_TAGS.articles, CACHE_TAGS.article(article.slug)]);
+    revalidatePath('/admin/content');
+    return ok({ id: articleId });
+  } catch (error) {
+    logger.error('removeArticle threw', describeError(error));
+    return contentFail('admin.errors.generic');
+  }
+}
+
+/** Puts a removed article back, at whatever status it held — which is never `published`. */
+export async function restoreArticle(
+  _previous: ContentState,
+  formData: FormData,
+): Promise<ContentState> {
+  const gate = await requireCapability('content.manage');
+  if (!gate.ok) return contentFail(gate.error);
+
+  const parsed = articleIdSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return contentFail('admin.content.errors.checkFields');
+
+  try {
+    const supabase = await createClient();
+
+    const { data, error } = await supabase
+      .from('articles')
+      .update({ deleted_at: null })
+      .eq('id', parsed.data.articleId)
+      .not('deleted_at', 'is', null)
+      .select('slug')
+      .maybeSingle();
+
+    if (error) {
+      logger.error('restoreArticle failed', { cause: error.message });
+      return contentFail('admin.errors.generic');
+    }
+    if (!data) return ok({ id: parsed.data.articleId });
+
+    const slug = (data as { slug: string }).slug;
+    await audit('article.restored', 'article', parsed.data.articleId, null, { slug } as unknown as Json);
+
+    revalidatePublic([CACHE_TAGS.articles, CACHE_TAGS.article(slug)]);
+    revalidatePath('/admin/content');
+    return ok({ id: parsed.data.articleId });
+  } catch (error) {
+    logger.error('restoreArticle threw', describeError(error));
     return contentFail('admin.errors.generic');
   }
 }

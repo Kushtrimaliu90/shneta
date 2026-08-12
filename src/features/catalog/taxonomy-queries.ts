@@ -254,3 +254,57 @@ export async function listCategoryParents(): Promise<{ id: string; name: string 
   const rows = await listTaxonomy('category');
   return rows.map((row) => ({ id: row.id, name: row.nameSq || row.slug }));
 }
+
+/**
+ * The removed brands and categories, for the bin at the foot of their screen.
+ *
+ * Only these two kinds: `health_goals` and `ingredients` have no `deleted_at` column, so there is
+ * nothing to list. Returns the minimum a Restore row needs — a name to recognise it by and the date it
+ * went — rather than reusing `TaxonomyRow`, most of which is editor state that a removed row has no use
+ * for.
+ */
+export interface RemovedTaxonomyRow {
+  id: string;
+  slug: string;
+  name: string;
+  deletedAt: string | null;
+}
+
+export const listRemovedTaxonomy = cache(
+  async (kind: 'brand' | 'category'): Promise<RemovedTaxonomyRow[]> => {
+    const supabase = await createClient();
+    const table = kind === 'brand' ? 'brands' : 'categories';
+
+    const { data, error } = await supabase
+      .from(table)
+      .select('id, slug, name, deleted_at')
+      .not('deleted_at', 'is', null)
+      // Most recently removed first: the thing an operator wants back is usually the last one they lost.
+      .order('deleted_at', { ascending: false })
+      .limit(50);
+
+    if (error) {
+      logger.error('listRemovedTaxonomy failed', { kind, cause: error.message });
+      return [];
+    }
+
+    return ((data ?? []) as { id: string; slug: string; name: unknown; deleted_at: string | null }[]).map(
+      (row) => ({
+        id: row.id,
+        slug: row.slug,
+        /*
+         * A brand name is plain text and a category name is jsonb, which is why this is not
+         * `pickLocale` on both. The English key first, then Albanian, then the slug — the panel is
+         * English-only, and a slug is always better than an empty cell.
+         */
+        name:
+          typeof row.name === 'string'
+            ? row.name
+            : ((row.name as Record<string, string> | null)?.en ??
+              (row.name as Record<string, string> | null)?.sq ??
+              row.slug),
+        deletedAt: row.deleted_at,
+      }),
+    );
+  },
+);

@@ -16,11 +16,14 @@ import {
   createProductSchema,
   deleteVariantSchema,
   productGeneralSchema,
+  productIdSchema,
   productSeoSchema,
   productStatusSchema,
   rejectProductSchema,
   variantSchema,
 } from '@/features/catalog/admin-schemas';
+import { canRemovePublished } from '@/features/catalog/removal';
+import { FORM_LEVEL } from '@/lib/field-errors';
 
 /**
  * docs/06 §3 — catalogue mutations.
@@ -47,7 +50,15 @@ export type CatalogErrorKey =
   | 'admin.catalog.errors.invalidPrice'
   | 'admin.catalog.errors.publishBlocked'
   | 'admin.catalog.errors.lastVariant'
-  | 'admin.catalog.errors.duplicateIngredient';
+  | 'admin.catalog.errors.duplicateIngredient'
+  /**
+   * A removal the rules refuse.
+   *
+   * The specific reason travels in `fieldErrors._form` rather than in a key per rule: "3 products still
+   * use this brand" carries a count, and a keyed message cannot. The key is what tells the component to
+   * look there.
+   */
+  | 'admin.catalog.errors.removeBlocked';
 
 /**
  * The failure branch carries `values` as well as `fieldErrors`.
@@ -246,6 +257,133 @@ export async function saveProductGeneral(
     return ok({ id: input.productId });
   } catch (error) {
     logger.error('saveProductGeneral threw', describeError(error));
+    return catalogFail('admin.errors.generic');
+  }
+}
+
+/**
+ * Removes a product from the panel — reversibly.
+ *
+ * Sets `deleted_at`. That is all it takes to remove it from the storefront too: `p_read on products` is
+ * `(status = 'published' and deleted_at is null)`, so the public site, the sitemap and every anonymous
+ * read drop it at the database rather than because some query remembered to filter. Nothing is destroyed
+ * and `restoreProduct` puts it back exactly as it was.
+ *
+ * Refuses a published product. Archiving is the control for "take it off sale", it already exists, and it
+ * is already reversible — see `canRemovePublished` for why keeping the two apart is worth a second click.
+ *
+ * The impact figures are read *before* the write so the operator can be told what a removal costs them,
+ * and they are reported afterwards rather than blocking: a merchant offer going unsellable is a
+ * consequence to know about, not a reason to refuse.
+ */
+export async function removeProduct(
+  _previous: CatalogState,
+  formData: FormData,
+): Promise<CatalogState> {
+  const gate = await requireCapability('products.manage');
+  if (!gate.ok) return catalogFail(gate.error);
+
+  const parsed = productIdSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return catalogFail('admin.catalog.errors.checkFields');
+  const { productId } = parsed.data;
+
+  try {
+    const supabase = await createClient();
+
+    const { data: before } = await supabase
+      .from('products')
+      .select('slug, status, name, deleted_at')
+      .eq('id', productId)
+      .maybeSingle();
+
+    if (!before) return catalogFail('admin.catalog.errors.notFound');
+    const product = before as { slug: string; status: string; name: unknown; deleted_at: string | null };
+
+    // Already gone. Not an error worth alarming anyone with — a double-submitted form, most likely.
+    if (product.deleted_at !== null) return ok({ id: productId });
+
+    const verdict = canRemovePublished(product.status, 'product');
+    if (!verdict.allowed) {
+      return fromFieldErrors<CatalogErrorKey, { id?: string }>(
+        'admin.catalog.errors.removeBlocked',
+        { fieldErrors: { [FORM_LEVEL]: [verdict.reason, verdict.instead ?? ''].filter(Boolean) } },
+      );
+    }
+
+    const { error } = await supabase
+      .from('products')
+      .update({ deleted_at: new Date().toISOString() })
+      .eq('id', productId)
+      /*
+       * Guarded on the status *and* on not-already-removed, so a stale tab cannot remove a product that
+       * has been published since the page loaded — the check above would have passed against old data.
+       */
+      .neq('status', 'published')
+      .is('deleted_at', null);
+
+    if (error) {
+      logger.error('removeProduct failed', { cause: error.message });
+      return catalogFail(mapCatalogError(error.message));
+    }
+
+    await audit('product.removed', 'product', productId, { status: product.status }, {
+      slug: product.slug,
+      name: product.name,
+    });
+
+    revalidateProduct(product.slug);
+    revalidatePath(`/admin/products/${productId}`);
+    return ok({ id: productId });
+  } catch (error) {
+    logger.error('removeProduct threw', describeError(error));
+    return catalogFail('admin.errors.generic');
+  }
+}
+
+/**
+ * Puts a removed product back.
+ *
+ * It returns at whatever status it held, which is never `published` — the removal refused that — so a
+ * restore cannot put something on the storefront by surprise. The slug is still its own, because a
+ * removed row keeps its `unique` claim on it, so this can never collide.
+ */
+export async function restoreProduct(
+  _previous: CatalogState,
+  formData: FormData,
+): Promise<CatalogState> {
+  const gate = await requireCapability('products.manage');
+  if (!gate.ok) return catalogFail(gate.error);
+
+  const parsed = productIdSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return catalogFail('admin.catalog.errors.checkFields');
+  const { productId } = parsed.data;
+
+  try {
+    const supabase = await createClient();
+
+    const { data, error } = await supabase
+      .from('products')
+      .update({ deleted_at: null })
+      .eq('id', productId)
+      .not('deleted_at', 'is', null)
+      .select('slug, status')
+      .maybeSingle();
+
+    if (error) {
+      logger.error('restoreProduct failed', { cause: error.message });
+      return catalogFail(mapCatalogError(error.message));
+    }
+    // No row means it was not removed in the first place, which is the state the caller wanted anyway.
+    if (!data) return ok({ id: productId });
+
+    const restored = data as { slug: string; status: string };
+    await audit('product.restored', 'product', productId, null, { slug: restored.slug });
+
+    revalidateProduct(restored.slug);
+    revalidatePath(`/admin/products/${productId}`);
+    return ok({ id: productId });
+  } catch (error) {
+    logger.error('restoreProduct threw', describeError(error));
     return catalogFail('admin.errors.generic');
   }
 }

@@ -7,9 +7,11 @@ import { Alert } from '@/components/ui/alert';
 import { buttonVariants } from '@/components/ui/button';
 import { SubmitButton } from '@/components/ui/submit-button';
 import { CATALOG_ERRORS } from '@/features/catalog/admin-copy';
+import { RemoveControl } from '@/components/ui/remove-control';
 import {
   attachBrandLogo,
   createBrandLogoUploadUrl,
+  removeTaxonomy,
   saveTaxonomy,
   toggleTaxonomyActive,
   type TaxonomyErrorKey,
@@ -487,19 +489,44 @@ function TaxonomyForm({
         it is refused outright rather than quietly applied.
       */}
       {row && (
-        <form action={toggleAction} className="mt-4 border-t border-line pt-3">
-          <input type="hidden" name="kind" value={kind} />
-          <input type="hidden" name="id" value={row.id} />
-          <input type="hidden" name="isActive" value={row.isActive ? '' : 'true'} />
-          <SubmitButton size="sm" variant="secondary" loadingLabel="Saving…">
-            {row.isActive ? 'Hide from the storefront' : 'Show on the storefront'}
-          </SubmitButton>
-          <p className="mt-1 text-xs text-ink-500">
-            {row.isActive
-              ? `Never deleted — ${row.usageCount} product${row.usageCount === 1 ? '' : 's'} reference this, and their pages would break.`
-              : 'Currently hidden from customers.'}
-          </p>
-        </form>
+        <div className="mt-4 flex flex-wrap items-start justify-between gap-4 border-t border-line pt-3">
+          <form action={toggleAction}>
+            <input type="hidden" name="kind" value={kind} />
+            <input type="hidden" name="id" value={row.id} />
+            <input type="hidden" name="isActive" value={row.isActive ? '' : 'true'} />
+            <SubmitButton size="sm" variant="secondary" loadingLabel="Saving…">
+              {row.isActive ? 'Hide from the storefront' : 'Show on the storefront'}
+            </SubmitButton>
+            <p className="mt-1 max-w-sm text-xs text-ink-500">
+              {row.isActive
+                ? /*
+                   * This used to say "never deleted", which was true when it was written and is not any
+                   * more — brands and categories can now be removed when nothing points at them. Hiding
+                   * is still the answer while something does, so the sentence keeps that half and drops
+                   * the promise it can no longer make.
+                   */
+                  `Hiding keeps every page working. ${row.usageCount} product${row.usageCount === 1 ? '' : 's'} reference this.`
+                : 'Currently hidden from customers.'}
+            </p>
+          </form>
+
+          {/*
+            Removal, for the two kinds that have somewhere to be removed to.
+
+            `health_goals` and `ingredients` have no `deleted_at` column, so there is no such state for
+            them — and `removeSchema` says so in the only place that can enforce it. Offering a button
+            here that the action must then refuse would be an invitation to a dead end.
+          */}
+          {(kind === 'brand' || kind === 'category') && (
+            <RemoveControl
+              action={removeTaxonomy}
+              hiddenFields={{ kind, id: row.id }}
+              label={row.nameSq || row.slug}
+              noun={kind}
+              errorCopy={CATALOG_ERRORS}
+            />
+          )}
+        </div>
       )}
 
       {failure && !failure.ok && (

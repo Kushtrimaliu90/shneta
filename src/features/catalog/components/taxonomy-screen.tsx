@@ -1,7 +1,11 @@
 import { redirect } from 'next/navigation';
 import { getProfile } from '@/features/auth/queries';
 import { can, type Capability } from '@/features/admin/roles';
-import { listTaxonomy } from '@/features/catalog/taxonomy-queries';
+import { listRemovedTaxonomy, listTaxonomy } from '@/features/catalog/taxonomy-queries';
+import { restoreTaxonomy } from '@/features/catalog/taxonomy-actions';
+import { CATALOG_ERRORS } from '@/features/catalog/admin-copy';
+import { RestoreControl } from '@/components/ui/remove-control';
+import { formatAdminDateTime } from '@/features/admin/copy';
 import { TAXONOMY_CONFIG } from '@/features/catalog/taxonomy-config';
 import { TaxonomyAdmin } from '@/features/catalog/components/taxonomy-admin';
 import type { TaxonomyKind } from '@/features/catalog/taxonomy-actions';
@@ -25,6 +29,12 @@ export async function TaxonomyScreen({
 
   const config = TAXONOMY_CONFIG[kind];
   const rows = await listTaxonomy(kind);
+  /*
+   * Only brands and categories have a bin — the other two kinds have no `deleted_at` column, so there is
+   * nothing to read. An empty array keeps the JSX below free of a second condition.
+   */
+  const removed =
+    kind === 'brand' || kind === 'category' ? await listRemovedTaxonomy(kind) : [];
 
   const active = rows.filter((row) => row.isActive).length;
   const untranslated = config.bilingualName ? rows.filter((row) => !row.nameEn).length : 0;
@@ -68,6 +78,51 @@ export async function TaxonomyScreen({
           }
         />
       </div>
+
+      {/*
+        The bin, at the foot of the screen and only when it has something in it.
+
+        Collapsed into a `<details>` rather than given a tab: unlike products, these lists are short and
+        removals here are rare — a permanent empty section would be noise on every visit, while a tab
+        would imply a filter over something worth filtering. It appears when it has contents and says
+        nothing otherwise.
+      */}
+      {removed.length > 0 && (
+        <details className="mt-8 rounded-lg border border-line bg-surface p-4">
+          <summary className="cursor-pointer text-sm font-medium text-ink-900">
+            Removed ({removed.length})
+          </summary>
+          <p className="mt-2 text-xs text-ink-600">
+            Gone from the shop and from the list above. Nothing was deleted — each of these still holds
+            its web address, and Restore puts it back exactly as it was.
+          </p>
+          <ul className="mt-3 divide-y divide-line">
+            {removed.map((row) => (
+              <li key={row.id} className="flex flex-wrap items-center justify-between gap-3 py-2.5">
+                <div className="min-w-0">
+                  <p className="text-sm text-ink-900">{row.name}</p>
+                  <p className="text-xs text-ink-500">
+                    {row.slug}
+                    {row.deletedAt && (
+                      <>
+                        {' · removed '}
+                        <time dateTime={row.deletedAt} data-numeric>
+                          {formatAdminDateTime(row.deletedAt).display}
+                        </time>
+                      </>
+                    )}
+                  </p>
+                </div>
+                <RestoreControl
+                  action={restoreTaxonomy}
+                  hiddenFields={{ kind, id: row.id }}
+                  errorCopy={CATALOG_ERRORS}
+                />
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
     </div>
   );
 }

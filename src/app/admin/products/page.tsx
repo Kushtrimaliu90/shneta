@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import type { Metadata } from 'next';
-import { AlertTriangle, Search } from 'lucide-react';
+import { AlertTriangle, Search, Trash2 } from 'lucide-react';
 import { formatPrice } from '@/lib/money';
 import { pickLocale } from '@/lib/i18n';
 import { getProfile } from '@/features/auth/queries';
@@ -9,12 +9,16 @@ import { can } from '@/features/admin/roles';
 import { formatAdminDateTime } from '@/features/admin/copy';
 import {
   countAdminProductsByStatus,
+  countRemovedProducts,
   getEditorOptions,
   listAdminProducts,
   PRODUCT_STATUSES,
   toProductStatus,
 } from '@/features/catalog/admin-queries';
 import { NewProductForm } from '@/features/catalog/components/new-product-form';
+import { RestoreControl } from '@/components/ui/remove-control';
+import { restoreProduct } from '@/features/catalog/admin-actions';
+import { CATALOG_ERRORS } from '@/features/catalog/admin-copy';
 import { cn } from '@/lib/utils';
 
 export const metadata: Metadata = { title: 'Products' };
@@ -59,17 +63,31 @@ export default async function AdminProductsPage({ searchParams }: Props) {
   const statusParam = first(params.status);
   const status = toProductStatus(statusParam);
   const search = first(params.q);
+  /*
+   * `?removed=1` is its own view, not a fifth status.
+   *
+   * A removed product keeps whatever status it had and returns to it when restored, so the two are
+   * orthogonal — and a removal that could not be seen afterwards would be a reversible action with no
+   * way to reverse it.
+   */
+  const removed = first(params.removed) === '1';
 
-  const [rows, counts, options] = await Promise.all([
-    listAdminProducts({ status, search }),
+  const [rows, counts, removedCount, options] = await Promise.all([
+    listAdminProducts({ status: removed ? undefined : status, search, removed }),
     countAdminProductsByStatus(),
+    countRemovedProducts(),
     getEditorOptions(),
   ]);
 
-  function href(next: { status?: string }): string {
+  function href(next: { status?: string; removed?: boolean }): string {
     const query = new URLSearchParams();
-    const nextStatus = 'status' in next ? next.status : statusParam;
-    if (nextStatus) query.set('status', nextStatus);
+    const nextRemoved = 'removed' in next ? next.removed : removed;
+    // The status filter does not apply to the removed view, and carrying it would look like it did.
+    if (nextRemoved) query.set('removed', '1');
+    else {
+      const nextStatus = 'status' in next ? next.status : statusParam;
+      if (nextStatus) query.set('status', nextStatus);
+    }
     if (search) query.set('q', search);
     const qs = query.toString();
     return qs ? `/admin/products?${qs}` : '/admin/products';
@@ -129,11 +147,11 @@ export default async function AdminProductsPage({ searchParams }: Props) {
 
       <nav aria-label="Filter by status" className="mt-6 flex flex-wrap gap-1.5">
         {tabs.map((tab) => {
-          const active = tab.key === statusParam || (!tab.key && !statusParam);
+          const active = !removed && (tab.key === statusParam || (!tab.key && !statusParam));
           return (
             <Link
               key={tab.label}
-              href={href({ status: tab.key })}
+              href={href({ status: tab.key, removed: false })}
               aria-current={active ? 'page' : undefined}
               className={cn(
                 'inline-flex min-h-9 items-center gap-1.5 rounded-sm border px-3 text-sm transition-colors',
@@ -149,15 +167,45 @@ export default async function AdminProductsPage({ searchParams }: Props) {
             </Link>
           );
         })}
+
+        {/*
+          The bin, set apart from the status tabs.
+
+          Separated by a divider because it is a different axis: the tabs above filter by where a product
+          is in its life, and this one leaves that question behind entirely. Shown even at zero, so an
+          operator who has just removed something knows where it went — a tab that appears only when
+          occupied is a tab nobody finds the first time.
+        */}
+        <span aria-hidden="true" className="mx-1 self-center text-line-strong">
+          |
+        </span>
+        <Link
+          href={href({ removed: true })}
+          aria-current={removed ? 'page' : undefined}
+          className={cn(
+            'inline-flex min-h-9 items-center gap-1.5 rounded-sm border px-3 text-sm transition-colors',
+            removed
+              ? 'border-error bg-error/10 font-medium text-error'
+              : 'border-line-strong text-ink-600 hover:bg-forest-50',
+          )}
+        >
+          <Trash2 className="size-3.5" aria-hidden="true" />
+          Removed
+          <span className="font-ui text-xs text-ink-600" data-numeric>
+            {removedCount}
+          </span>
+        </Link>
       </nav>
 
       {rows.length === 0 ? (
         <div className="mt-8 rounded-lg border border-dashed border-line-strong bg-surface p-10 text-center">
           <p className="font-medium text-forest-900">No products match this view</p>
           <p className="mt-1.5 text-sm text-ink-600">
-            {search || statusParam
-              ? 'Try a different status or clear the search.'
-              : 'The catalogue is empty.'}
+            {removed
+              ? 'Nothing has been removed. Anything you remove lands here and can be put back.'
+              : search || statusParam
+                ? 'Try a different status or clear the search.'
+                : 'The catalogue is empty.'}
           </p>
         </div>
       ) : (
@@ -173,7 +221,16 @@ export default async function AdminProductsPage({ searchParams }: Props) {
             </caption>
             <thead>
               <tr className="border-b border-line bg-forest-50 text-left">
-                {['Product', 'Brand', 'Status', 'Ready', 'From', 'Edited'].map((heading) => (
+                {[
+                  'Product',
+                  'Brand',
+                  'Status',
+                  'Ready',
+                  'From',
+                  'Edited',
+                  // Only in the bin, where it is the one thing an operator came here to do.
+                  ...(removed ? ['Removed on', ''] : []),
+                ].map((heading) => (
                   <th
                     key={heading}
                     scope="col"
@@ -264,6 +321,31 @@ export default async function AdminProductsPage({ searchParams }: Props) {
                         {edited.display}
                       </time>
                     </td>
+
+                    {removed && (
+                      <>
+                        <td className="px-4 py-3 whitespace-nowrap text-ink-600">
+                          {row.deletedAt ? (
+                            <time
+                              dateTime={row.deletedAt}
+                              title={formatAdminDateTime(row.deletedAt).utc}
+                              data-numeric
+                            >
+                              {formatAdminDateTime(row.deletedAt).display}
+                            </time>
+                          ) : (
+                            '—'
+                          )}
+                        </td>
+                        <td className="px-4 py-3">
+                          <RestoreControl
+                            action={restoreProduct}
+                            hiddenFields={{ productId: row.id }}
+                            errorCopy={CATALOG_ERRORS}
+                          />
+                        </td>
+                      </>
+                    )}
                   </tr>
                 );
               })}

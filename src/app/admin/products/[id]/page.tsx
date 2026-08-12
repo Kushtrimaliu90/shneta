@@ -126,6 +126,7 @@ export default async function AdminProductEditorPage({ params }: Props) {
       <div className="mt-6">
         <ProductStatusControl
           productId={product.id}
+          productName={pickLocale(product.name, 'en') || product.slug}
           status={product.status}
           blockers={product.publishBlockers}
           mayEdit={mayEdit}
