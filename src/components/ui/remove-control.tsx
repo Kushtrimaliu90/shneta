@@ -55,6 +55,8 @@ export function RemoveControl({
   errorCopy,
   consequences,
   size = 'sm',
+  verb = 'Remove',
+  reversible = true,
 }: {
   action: RemoveAction;
   /** The ids the action needs, as `name -> value`. */
@@ -67,6 +69,16 @@ export function RemoveControl({
   /** Anything an operator would not guess — a merchant offer going unsellable, say. */
   consequences?: string[];
   size?: 'sm' | 'md';
+  /**
+   * The word on the button.
+   *
+   * "Remove" for the reversible kind, "Delete permanently" for the second step out of the bin. The verb
+   * is the only thing distinguishing those two on screen, so it is a prop rather than two components —
+   * and `reversible` below is what stops the copy promising something the stronger one cannot deliver.
+   */
+  verb?: string;
+  /** False makes the confirmation say the truth about a delete that cannot be undone. */
+  reversible?: boolean;
 }) {
   const [asking, setAsking] = useState(false);
   const [state, formAction] = useActionState<RemoveState, FormData>(async (_previous, formData) => {
@@ -91,7 +103,7 @@ export function RemoveControl({
           className="text-error hover:bg-error/10"
         >
           <Trash2 className="size-3.5" aria-hidden="true" />
-          Remove
+          {verb}
         </Button>
       )}
 
@@ -102,11 +114,12 @@ export function RemoveControl({
           ))}
 
           <p className="text-sm text-ink-900">
-            Remove <span className="font-semibold">{label}</span>?
+            {verb} <span className="font-semibold">{label}</span>?
           </p>
           <p className="mt-1 text-xs text-ink-600">
-            It leaves the shop and this panel straight away. Nothing is deleted — you can put it back, and
-            it keeps its web address in the meantime.
+            {reversible
+              ? 'It leaves the shop and this panel straight away. Nothing is deleted — you can put it back, and it keeps its web address in the meantime.'
+              : 'This cannot be undone. The record and everything belonging to it go for good, and its web address becomes free to use again.'}
           </p>
 
           {consequences && consequences.length > 0 && (
@@ -118,8 +131,8 @@ export function RemoveControl({
           )}
 
           <div className="mt-3 flex gap-2">
-            <SubmitButton size="sm" variant="destructive" loadingLabel="Removing…">
-              Remove {noun}
+            <SubmitButton size="sm" variant="destructive" loadingLabel="Working…">
+              {verb} {noun}
             </SubmitButton>
             <Button type="button" variant="ghost" size="sm" onClick={() => setAsking(false)}>
               Cancel

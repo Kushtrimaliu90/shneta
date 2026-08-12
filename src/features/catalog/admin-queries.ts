@@ -444,3 +444,80 @@ export const getEditorOptions = cache(
     };
   },
 );
+
+/**
+ * Everything attached to a product that would make destroying it a loss.
+ *
+ * Counted through the caller's own session, so RLS applies — a role that cannot see reviews cannot use
+ * this to find out how many there are.
+ *
+ * The variant-scoped counts need the variant ids first, which is why this is two round trips rather than
+ * one: `stock_movements`, `subscription_items` and `merchant_offers` all hang off the variant, not the
+ * product. A product with no variants short-circuits to zeros.
+ */
+export async function productAttachments(productId: string): Promise<{
+  variants: number;
+  stockMovements: number;
+  orderItems: number;
+  subscriptionItems: number;
+  reviews: number;
+  offers: number;
+  proposals: number;
+}> {
+  const supabase = await createClient();
+
+  const { data: variantRows } = await supabase
+    .from('product_variants')
+    .select('id')
+    .eq('product_id', productId);
+  const variantIds = ((variantRows ?? []) as { id: string }[]).map((row) => row.id);
+
+  const countIn = async (
+    table: 'stock_movements' | 'subscription_items' | 'merchant_offers',
+  ): Promise<number> => {
+    if (variantIds.length === 0) return 0;
+    const { count } = await supabase
+      .from(table)
+      .select('id', { count: 'exact', head: true })
+      .in('variant_id', variantIds);
+    return count ?? 0;
+  };
+
+  const [stockMovements, subscriptionItems, offers, orderItems, reviews, proposals] =
+    await Promise.all([
+      countIn('stock_movements'),
+      countIn('subscription_items'),
+      countIn('merchant_offers'),
+      /*
+       * `order_items.product_id` is `on delete set null` with a full snapshot beside it, so a delete
+       * would not fail and past orders would still read correctly. It is still a refusal: a product that
+       * has been sold is history, and the link from the order to it is worth more than a freed slug.
+       */
+      supabase
+        .from('order_items')
+        .select('id', { count: 'exact', head: true })
+        .eq('product_id', productId)
+        .then(({ count }) => count ?? 0),
+      supabase
+        .from('reviews')
+        .select('id', { count: 'exact', head: true })
+        .eq('product_id', productId)
+        .then(({ count }) => count ?? 0),
+      // This one would block the delete outright — no on-delete rule at all.
+      supabase
+        .from('product_proposals')
+        .select('id', { count: 'exact', head: true })
+        .eq('created_product_id', productId)
+        .then(({ count }) => count ?? 0),
+    ]);
+
+  return {
+    variants: variantIds.length,
+    stockMovements,
+    orderItems,
+    subscriptionItems,
+    reviews,
+    offers,
+    proposals,
+  };
+}

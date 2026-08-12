@@ -16,8 +16,8 @@ import {
   toProductStatus,
 } from '@/features/catalog/admin-queries';
 import { NewProductForm } from '@/features/catalog/components/new-product-form';
-import { RestoreControl } from '@/components/ui/remove-control';
-import { restoreProduct } from '@/features/catalog/admin-actions';
+import { RemoveControl, RestoreControl } from '@/components/ui/remove-control';
+import { purgeProduct, restoreProduct } from '@/features/catalog/admin-actions';
 import { CATALOG_ERRORS } from '@/features/catalog/admin-copy';
 import { cn } from '@/lib/utils';
 
@@ -338,11 +338,36 @@ export default async function AdminProductsPage({ searchParams }: Props) {
                           )}
                         </td>
                         <td className="px-4 py-3">
-                          <RestoreControl
-                            action={restoreProduct}
-                            hiddenFields={{ productId: row.id }}
-                            errorCopy={CATALOG_ERRORS}
-                          />
+                          <div className="flex flex-col items-start gap-2">
+                            <RestoreControl
+                              action={restoreProduct}
+                              hiddenFields={{ productId: row.id }}
+                              errorCopy={CATALOG_ERRORS}
+                            />
+                            {/*
+                              The second step, and only from here.
+
+                              Removal already achieves everything an operator normally wants; this adds
+                              exactly one thing, which is that the web address becomes reusable. It is
+                              refused unless nothing is attached — proven by execution that a product with
+                              one stock movement is rejected by the database outright, and the dangerous
+                              case is the one that *succeeds*, since customer reviews and merchant offers
+                              would cascade with it.
+                            */}
+                            <RemoveControl
+                              action={purgeProduct}
+                              hiddenFields={{ productId: row.id }}
+                              label={pickLocale(row.name, 'en') || row.slug}
+                              noun="product"
+                              verb="Delete permanently"
+                              reversible={false}
+                              errorCopy={CATALOG_ERRORS}
+                              consequences={[
+                                'Refused if anything is attached — an order line, a review, a merchant offer, stock history.',
+                                'Frees the web address, which is the only thing removal cannot do.',
+                              ]}
+                            />
+                          </div>
                         </td>
                       </>
                     )}

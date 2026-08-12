@@ -10,6 +10,7 @@ import { logger, describeError } from '@/lib/logger';
 import { fail, fromFieldErrors, ok } from '@/lib/result';
 import { fieldErrorsFrom } from '@/lib/field-errors';
 import { audit, requireCapability } from '@/features/admin/audit';
+import { productAttachments } from '@/features/catalog/admin-queries';
 import {
   approveProductSchema,
   CATALOG_FIELD_MESSAGES,
@@ -22,8 +23,9 @@ import {
   rejectProductSchema,
   variantSchema,
 } from '@/features/catalog/admin-schemas';
-import { canRemovePublished } from '@/features/catalog/removal';
+import { canPurge, canRemovePublished } from '@/features/catalog/removal';
 import { FORM_LEVEL } from '@/lib/field-errors';
+import type { Json } from '@/lib/supabase/database.types';
 
 /**
  * docs/06 §3 — catalogue mutations.
@@ -384,6 +386,114 @@ export async function restoreProduct(
     return ok({ id: productId });
   } catch (error) {
     logger.error('restoreProduct threw', describeError(error));
+    return catalogFail('admin.errors.generic');
+  }
+}
+
+/**
+ * Destroys a removed product for good.
+ *
+ * Only from the bin, and only when nothing is attached. Removal already achieves everything an operator
+ * normally wants; this adds exactly one thing, which is that the slug becomes reusable. So it is a second
+ * deliberate step rather than an alternative, and it is refused unless the record is genuinely empty.
+ *
+ * ── What "empty" means, and why ──
+ *
+ * Proven by executing it: a product with one stock movement is refused by Postgres, because the cascade
+ * to `product_variants` is itself blocked by `stock_movements_variant_id_fkey`. But *succeeding* is the
+ * case worth guarding, since thirteen tables cascade — including customer reviews and merchant offers,
+ * which would go with no audit row of their own. `productAttachments` counts every one of those and
+ * `canPurge` names them all at once, because clearing one blocker only to be refused by the next is the
+ * worst version of this.
+ *
+ * What is allowed to go with it: the product's own images, category and goal links, ingredient rows and
+ * certifications. None of those means anything without the product.
+ */
+export async function purgeProduct(
+  _previous: CatalogState,
+  formData: FormData,
+): Promise<CatalogState> {
+  const gate = await requireCapability('products.manage');
+  if (!gate.ok) return catalogFail(gate.error);
+
+  const parsed = productIdSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return catalogFail('admin.catalog.errors.checkFields');
+  const { productId } = parsed.data;
+
+  try {
+    const supabase = await createClient();
+
+    const { data: before } = await supabase
+      .from('products')
+      .select('slug, status, name, deleted_at')
+      .eq('id', productId)
+      .maybeSingle();
+
+    if (!before) return catalogFail('admin.catalog.errors.notFound');
+    const product = before as {
+      slug: string;
+      status: string;
+      name: unknown;
+      deleted_at: string | null;
+    };
+
+    /*
+     * The bin is the only door. A product still in the catalogue must be removed first — which is a
+     * reversible step that gives the operator a chance to notice they did not mean it, and which puts
+     * the record somewhere they have to go back to deliberately.
+     */
+    if (product.deleted_at === null) {
+      return fromFieldErrors<CatalogErrorKey, { id?: string }>(
+        'admin.catalog.errors.removeBlocked',
+        {
+          fieldErrors: {
+            [FORM_LEVEL]: [
+              'This product is still in the catalogue.',
+              'Remove it first. Deleting for good is only possible from the Removed list.',
+            ],
+          },
+        },
+      );
+    }
+
+    const attached = await productAttachments(productId);
+    const verdict = canPurge(attached);
+    if (!verdict.allowed) {
+      return fromFieldErrors<CatalogErrorKey, { id?: string }>(
+        'admin.catalog.errors.removeBlocked',
+        { fieldErrors: { [FORM_LEVEL]: [verdict.reason, verdict.instead ?? ''].filter(Boolean) } },
+      );
+    }
+
+    /*
+     * Audited before the delete: afterwards there is nothing left to read, and this row is the only
+     * remaining record that the product existed. The attachment counts go in too, as evidence of what
+     * the check saw at the moment it allowed this.
+     */
+    await audit(
+      'product.purged',
+      'product',
+      productId,
+      { slug: product.slug, status: product.status, name: product.name },
+      { attached } as unknown as Json,
+    );
+
+    const { error } = await supabase
+      .from('products')
+      .delete()
+      .eq('id', productId)
+      // Guarded, so a product restored since the page loaded is not destroyed on a stale check.
+      .not('deleted_at', 'is', null);
+
+    if (error) {
+      logger.error('purgeProduct failed', { cause: error.message });
+      return catalogFail(mapCatalogError(error.message));
+    }
+
+    revalidateProduct(product.slug);
+    return ok({ id: productId });
+  } catch (error) {
+    logger.error('purgeProduct threw', describeError(error));
     return catalogFail('admin.errors.generic');
   }
 }

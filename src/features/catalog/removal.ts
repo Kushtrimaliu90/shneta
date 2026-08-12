@@ -177,6 +177,79 @@ export function canDeleteLive(
   return { allowed: false, reason: `This ${noun} is live.`, instead };
 }
 
+/**
+ * Destroying a record for good — the second step, offered only from the bin.
+ *
+ * ── What this adds that removal does not ──
+ *
+ * Exactly one thing: it frees the slug. Removal already takes a record off the shop and out of the panel
+ * and is reversible, which is everything an operator normally wants. The only question it cannot answer is
+ * "I want to create a new product at this address", because a removed row keeps its `unique` claim on the
+ * slug. So this exists for that, and for genuine mistakes — not as a faster way to hide something.
+ *
+ * ── Why it is guarded so tightly ──
+ *
+ * Proven by executing it rather than by reading the migrations: a product with a single stock movement is
+ * refused outright —
+ *
+ *     REFUSED — update or delete on table "product_variants" violates foreign key constraint
+ *     "stock_movements_variant_id_fkey" on table "stock_movements"
+ *
+ * — because the cascade to `product_variants` is itself blocked. Twenty-four of seventy products would
+ * refuse today. A product with no such history *does* delete, and its variants cascade correctly.
+ *
+ * But succeeding is the dangerous case, because thirteen tables cascade with it: **reviews** written by
+ * customers and **merchant offers** belonging to somebody else's business would go silently, with no
+ * audit row of their own. So the check below refuses on anything that represents history or somebody
+ * else's property, and names it. What it permits to go are the product's own attributes — its images, its
+ * category links, its ingredient rows — which have no meaning without it.
+ */
+export interface Attachments {
+  variants?: number;
+  stockMovements?: number;
+  orderItems?: number;
+  subscriptionItems?: number;
+  reviews?: number;
+  offers?: number;
+  proposals?: number;
+  products?: number;
+  children?: number;
+}
+
+/**
+ * Whether a record can be destroyed, and what is in the way.
+ *
+ * Deliberately reports **everything** attached rather than the first blocker. An operator about to be
+ * refused wants the whole list, because clearing one and being refused again on the next is the worst
+ * version of this interaction.
+ */
+export function canPurge(attached: Attachments): RemovalVerdict {
+  const blockers: string[] = [];
+
+  const note = (count: number | undefined, one: string, many: string) => {
+    if (count) blockers.push(`${count} ${count === 1 ? one : many}`);
+  };
+
+  // History and other people's property, in the order an operator would care about it.
+  note(attached.orderItems, 'order line', 'order lines');
+  note(attached.subscriptionItems, 'active subscription', 'active subscriptions');
+  note(attached.offers, 'merchant offer', 'merchant offers');
+  note(attached.reviews, 'customer review', 'customer reviews');
+  note(attached.stockMovements, 'stock movement', 'stock movements');
+  note(attached.proposals, 'merchant proposal', 'merchant proposals');
+  note(attached.products, 'product', 'products');
+  note(attached.children, 'sub-category', 'sub-categories');
+
+  if (blockers.length === 0) return { allowed: true };
+
+  return {
+    allowed: false,
+    reason: `Still attached: ${blockers.join(', ')}.`,
+    instead:
+      'Leave it in the bin. It stays out of the shop and out of the panel, and nothing is lost — deleting for good is only worth it when you need the web address back.',
+  };
+}
+
 /** The sentence for a slug held by something an operator cannot see. */
 export const slugTakenByRemoved =
   'A removed record still holds that slug. Removing something does not free its URL — restore it, or choose a different slug.';

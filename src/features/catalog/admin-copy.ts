@@ -33,8 +33,13 @@ export const CATALOG_ERRORS: Record<CatalogErrorKey | MediaErrorKey | TaxonomyEr
   'admin.catalog.errors.fileType': 'Images must be WebP, JPEG, PNG or AVIF.',
   'admin.catalog.errors.duplicateIngredient':
     'The same ingredient is listed twice. Combine the two rows into one.',
-  // The specific reason arrives in `fieldErrors._form` and is rendered under this line.
-  'admin.catalog.errors.removeBlocked': 'This cannot be removed yet.',
+  /*
+   * Deliberately not "cannot be removed yet": this key serves both the reversible removal and the
+   * permanent delete, and the header would name the wrong action for one of them. The specific reason
+   * follows immediately from `fieldErrors._form` and is the informative half — "Still attached: 1 stock
+   * movement." — so the header only has to introduce it without contradicting the button just pressed.
+   */
+  'admin.catalog.errors.removeBlocked': 'Not possible yet:',
   'admin.catalog.errors.notRemovable':
     'Health goals and ingredients cannot be removed — switch them off instead. Nothing is lost either way, and a product that lists one keeps working.',
   'admin.catalog.errors.inUse':
