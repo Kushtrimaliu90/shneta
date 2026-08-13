@@ -4268,3 +4268,91 @@ Two things the run also exposed, both visible to an operator and both mine:
 
 The rule: **a count shown after an action must be counted from the action, not from its plan.** Anywhere those
 two can differ, they eventually will, and the plan is always the more convenient one to reach for.
+
+### What an adversarial pass over the sheet found the same day it shipped
+
+Five independent lenses over the repo, each finding attacked by a skeptic that defaulted to "not real": 15
+findings verified, 9 survived. The survivors in the sheet code were all the same shape — **a rule enforced
+somewhere else that this path did not know about.**
+
+**A price raised above its own was-price.** `compare_at_price_cents int check (compare_at_price_cents >
+price_cents)`. `readMoneyCell` judges one amount against its own previous value and cannot see the other
+column, so raising the price of an on-sale variant previewed as a clean change and then failed on write as
+`Could not be saved.` Not a corner case: it is a price round, the operation the feature exists for, and live
+seeded data hits it (`ON-GSW-2270-CHOC`, 69.90 against a was-price of 79.90). Now refused at plan time:
+*"A was-price of 79.90 is not above the price of 79.90. Raise it or clear the compare_at_price cell."*
+
+**Moving the default variant.** `one_default_variant` is a partial unique index, so promoting one variant
+while another is still default fails with 23505. The form path clears the incumbent first and says why; this
+path did not, and the result was decided by the alphabet — the export orders variants by SKU and writes
+followed file order:
+
+| the file says | what happened before |
+| --- | --- |
+| promote a SKU sorting **after** the incumbent | worked |
+| promote a SKU sorting **before** the incumbent | promotion refused, demotion succeeded — **product left with no default at all** |
+| promote without demoting | 23505, reported as *"Another variant already uses that SKU"* |
+
+The misdiagnosis was the worst part: it sends the operator hunting a SKU collision that does not exist. Now
+demotions are ordered before promotions, and a promotion with no matching demotion is refused by name.
+Verified in the order that used to break: `Saved. 2 rows updated`, exactly one default, the right one.
+
+**A formula whose result is an Excel error.** Measured, not assumed: such a cell reads back as
+`{ formula: 'B99/0', result: { error: '#DIV/0!' } }`, and the `String(value)` fallback turned it into the
+literal text **`[object Object]`** — written into a product name on the live shop. Empty would be no better;
+an empty cell in a present column means *clear this field*. The reader now records it in `badCells` and the
+row is refused, naming the column and the Excel error.
+
+**Two columns with the same heading.** Rows are keyed by header name, so the rightmost duplicate silently won
+and the other column's data was discarded — or landed in a field the operator meant to leave alone. Reachable
+by copying a column to keep a working copy of a field. Refused, with both names.
+
+**Tabs reordered.** The products sheet is found by name with a positional fallback, so dragging Variants to
+the front made it *the* products sheet: seventy identical `No id` complaints under a heading saying nothing
+would change — a description of the file rather than of the mistake. The sheet must now contain an `id`
+column.
+
+**A renamed Variants tab.** Found by name, then by `/variant/`. Miss both — call it `Cmimet` — and every
+price edit in the file was discarded under a cheerful `Saved.` Deleting the sheet to edit product fields only
+is legitimate, and the two cases are indistinguishable from here, so it is reported rather than refused.
+
+**The last active variant of a published product.** `publish_requires` gates the transition into `published`,
+not edits afterwards, so the database allows a published product to end up with nothing active — a live page
+that cannot be bought. The editor refuses it in app code; the sheet was the way around that rule. Counted per
+product across the whole file, because deactivating three of four variants is fine and the fourth is not.
+
+**Row numbers.** Blank rows are skipped while reading, and the importer computed `index + 2`, so one stray
+blank shifted every row number after it. A refusal naming row 41 when the operator's row 41 is fine is worse
+than one naming no row at all. The reader now returns the real worksheet numbers.
+
+**A variant renamed in English only** previewed as `variant name: 120 kapsula → 120 kapsula` — a change to
+nothing — because the diff line always showed the Albanian pair. It names the locale now.
+
+### One test that could not fail
+
+`does not let Excel reinterpret a SKU as a date` round-tripped `MAR-3` and asserted it came back unmangled.
+It always does: ExcelJS writes the string and reads the string, whatever the format. The mangling happens in
+**Excel the application**, on open, when the column is General — which no unit test can observe. So the test
+passed with `numFmt: '@'` removed, which is precisely the regression it was written to catch.
+
+Rewritten to assert the column format, which is the thing that actually prevents it and which a unit test can
+see. The general rule: **if deleting the mechanism leaves the test green, the test is about something else.**
+
+### What did not survive
+
+Six of fifteen were refuted, and two are worth recording because they read convincingly:
+
+- *"An exception mid-write reports 'Nothing would change' after writing half the catalogue."* The premise was
+  that supabase-js rejects on transport failure. It does not — `PostgrestBuilder.then()` resolves errors into
+  the result object, so the write loops cannot throw partway.
+- *"CSP enforcement would switch on an unmeasured policy."* Inverted: the header that survives Next's dedupe
+  is the stricter one, and the enforced candidate carries `'unsafe-inline'` deliberately.
+
+Both were plausible readings of real code. Refuting them cost less than acting on them would have.
+
+### A note on whitespace, which turned out not to be a bug
+
+The reader trims every cell, so stored text with leading or trailing whitespace would round-trip as a spurious
+change and be silently rewritten — the same shape as the `10.90` / `10.9` bug. Before fixing it I counted:
+**0 padded fields across 70 products.** Unreachable with real data, so it stays unfixed and written down
+instead. The check cost one query; the fix would have cost a comparison rule on every text field.

@@ -27,13 +27,41 @@ export interface SheetRows {
   headers: string[];
   /** One record per row, keyed by header. Missing headers are absent keys, not empty strings. */
   rows: Record<string, string>[];
+  /**
+   * The real worksheet row number for each entry in `rows`.
+   *
+   * Not `index + 2`. Blank rows are skipped while reading, so a single stray blank in the middle of the file
+   * shifts every row number after it — and a refusal that names row 41 when the operator's row 41 is fine is
+   * worse than one that names no row at all.
+   */
+  rowNumbers: number[];
+  /**
+   * Cells that could not be reduced to text, keyed by index into `rows`.
+   *
+   * A formula whose result is an error (`#DIV/0!`, `#REF!`) is the case that matters. It cannot be treated as
+   * empty — that would silently clear the field — and it cannot be stringified, because `String()` on
+   * ExcelJS's error object yields the literal text `[object Object]`, which is then written to the shop.
+   * So the reader records it and the importer refuses the row.
+   */
+  badCells: { index: number; column: string; detail: string }[];
 }
 
 export interface ProductWorkbookRead {
   ok: boolean;
   products: SheetRows;
   variants: SheetRows;
-  reason?: 'empty' | 'unreadable' | 'no_products_sheet' | 'no_rows' | 'too_many_rows';
+  reason?:
+    | 'empty'
+    | 'unreadable'
+    | 'no_products_sheet'
+    | 'no_rows'
+    | 'too_many_rows'
+    | 'duplicate_headers'
+    | 'not_a_product_sheet';
+  /** Repeated header names, when that is why the file was refused. */
+  duplicates?: string[];
+  /** True when no Variants sheet could be found, so every variant edit in the file was ignored. */
+  variantsMissing?: boolean;
 }
 
 /**
@@ -45,7 +73,13 @@ export interface ProductWorkbookRead {
  */
 export const MAX_ROWS = 2000;
 
-const EMPTY: SheetRows = { headers: [], rows: [] };
+const EMPTY: SheetRows = { headers: [], rows: [], rowNumbers: [], badCells: [] };
+
+/** A cell that could not be reduced to text carries the reason instead. */
+interface Cell {
+  text: string;
+  error?: string;
+}
 
 /**
  * A cell as the operator sees it.
@@ -54,26 +88,50 @@ const EMPTY: SheetRows = { headers: [], rows: [] };
  * a formula as `{ formula, result }`, a date as a `Date`, and a number as a number. A price cell is the one
  * that must not be got wrong — a number becomes `9.9`, never a localised `9,9`, because the file stores the
  * value and not its display.
+ *
+ * The one case with no sensible text is a formula whose result is an Excel error. Measured rather than
+ * assumed: such a cell reads back as `{ formula: 'B99/0', result: { error: '#DIV/0!' } }`, and the previous
+ * `String(value)` fallback turned it into the literal string `[object Object]` — which would then be written
+ * into a product name on the live shop. Returning `''` would be no better: an empty cell in a present column
+ * means *clear this field*. So it is reported as an error and the row is refused.
  */
-function cellText(value: ExcelJS.CellValue): string {
-  if (value === null || value === undefined) return '';
-  if (typeof value === 'string') return value.trim();
-  if (typeof value === 'number') return String(value);
-  if (typeof value === 'boolean') return value ? 'yes' : 'no';
+function readCell(value: ExcelJS.CellValue): Cell {
+  if (value === null || value === undefined) return { text: '' };
+  if (typeof value === 'string') return { text: value.trim() };
+  if (typeof value === 'number') return { text: String(value) };
+  if (typeof value === 'boolean') return { text: value ? 'yes' : 'no' };
   if (value instanceof Date) {
     // Almost always Excel having mangled a SKU. Keep it recognisable rather than tidy.
-    return value.toISOString().slice(0, 10);
+    return { text: value.toISOString().slice(0, 10) };
   }
   if (typeof value === 'object') {
+    // An error, whether bare or as a formula's result. Checked before `result`, which would recurse into it.
+    if ('error' in value && typeof value.error === 'string') {
+      return { text: '', error: value.error };
+    }
     if ('result' in value && value.result !== undefined) {
-      return cellText(value.result as ExcelJS.CellValue);
+      const result = value.result as ExcelJS.CellValue;
+      if (result && typeof result === 'object' && 'error' in result && typeof result.error === 'string') {
+        return { text: '', error: result.error };
+      }
+      return readCell(result);
     }
     if ('richText' in value && Array.isArray(value.richText)) {
-      return value.richText.map((part) => part.text).join('').trim();
+      return { text: value.richText.map((part) => part.text).join('').trim() };
     }
-    if ('text' in value && typeof value.text === 'string') return value.text.trim();
+    if ('text' in value && typeof value.text === 'string') return { text: value.text.trim() };
+    /*
+     * An object shape not accounted for. `String()` on it produces `[object Object]`, so it is refused
+     * rather than written — the whole class of bug this function exists to avoid.
+     */
+    return { text: '', error: 'unreadable cell' };
   }
-  return String(value).trim();
+  return { text: String(value).trim() };
+}
+
+/** Text only, for the header row, where an error cell is indistinguishable from a blank one anyway. */
+function cellText(value: ExcelJS.CellValue): string {
+  return readCell(value).text;
 }
 
 /**
@@ -99,25 +157,45 @@ function readWorksheet(sheet: ExcelJS.Worksheet | undefined): SheetRows {
   if (present.length === 0) return EMPTY;
 
   const rows: Record<string, string>[] = [];
+  const rowNumbers: number[] = [];
+  const badCells: SheetRows['badCells'] = [];
 
-  sheet.eachRow({ includeEmpty: false }, (row, index) => {
-    if (index === 1) return;
+  sheet.eachRow({ includeEmpty: false }, (row, number) => {
+    if (number === 1) return;
 
     const record: Record<string, string> = {};
+    const bad: { column: string; detail: string }[] = [];
     let anything = false;
 
     headers.forEach((name, offset) => {
       if (name === null) return;
-      const text = cellText(row.getCell(offset + 1).value);
-      record[name] = text;
-      if (text.length > 0) anything = true;
+      const cell = readCell(row.getCell(offset + 1).value);
+      record[name] = cell.text;
+      if (cell.error) bad.push({ column: name, detail: cell.error });
+      if (cell.text.length > 0) anything = true;
     });
 
     // A row of nothing is trailing formatting, not something somebody typed.
-    if (anything) rows.push(record);
+    if (!anything && bad.length === 0) return;
+
+    // The real worksheet number, so a refusal names the row the operator is looking at.
+    for (const entry of bad) badCells.push({ index: rows.length, ...entry });
+    rows.push(record);
+    rowNumbers.push(number);
   });
 
-  return { headers: present, rows };
+  return { headers: present, rows, rowNumbers, badCells };
+}
+
+/** Header names appearing more than once, which would make one column's data overwrite another's. */
+function repeatedHeaders(headers: string[]): string[] {
+  const seen = new Set<string>();
+  const twice = new Set<string>();
+  for (const name of headers) {
+    if (seen.has(name)) twice.add(name);
+    seen.add(name);
+  }
+  return [...twice];
 }
 
 export async function readProductWorkbook(file: ArrayBuffer): Promise<ProductWorkbookRead> {
@@ -147,16 +225,55 @@ export async function readProductWorkbook(file: ArrayBuffer): Promise<ProductWor
     const products = readWorksheet(productSheet);
     if (products.headers.length === 0) return { ...blank, reason: 'no_products_sheet' };
 
-    const variants = readWorksheet(variantSheet);
+    /*
+     * Is the sheet we found actually the products sheet?
+     *
+     * The positional fallback takes worksheet 0, so reordering the tabs hands us the Variants sheet instead.
+     * Every row then fails the `id` check and the operator gets seventy identical "No id" lines under a
+     * heading saying nothing would change — which describes the file, not the mistake. `id` is the one column
+     * the importer cannot work without, so its absence is the check.
+     */
+    if (!products.headers.includes('id')) return { ...blank, reason: 'not_a_product_sheet' };
 
-    if (products.rows.length === 0 && variants.rows.length === 0) {
+    /*
+     * Two columns with the same header.
+     *
+     * Rows are keyed by header name, so the rightmost duplicate silently wins and the other column's data is
+     * discarded — or worse, lands in the field the operator meant to leave alone. Reachable by inserting a
+     * column and naming it after an existing one, which is what somebody does when they want a working copy
+     * of a field. There is no safe interpretation, so the file is refused and both names are reported.
+     */
+    const variantRows = readWorksheet(variantSheet);
+
+    const repeated = [
+      ...repeatedHeaders(products.headers),
+      ...repeatedHeaders(variantRows.headers),
+    ];
+    if (repeated.length > 0) {
+      return { ...blank, reason: 'duplicate_headers', duplicates: [...new Set(repeated)] };
+    }
+
+    if (products.rows.length === 0 && variantRows.rows.length === 0) {
       return { ...blank, reason: 'no_rows' };
     }
-    if (products.rows.length > MAX_ROWS || variants.rows.length > MAX_ROWS) {
+    if (products.rows.length > MAX_ROWS || variantRows.rows.length > MAX_ROWS) {
       return { ...blank, reason: 'too_many_rows' };
     }
 
-    return { ok: true, products, variants };
+    /*
+     * A missing Variants sheet is reported, not refused.
+     *
+     * Deleting it to edit product fields only is legitimate. Renaming the tab so the name and the /variant/
+     * pattern both miss is not, and previously produced the worst possible outcome: every price edit in the
+     * file ignored, no warning, and a cheerful "Saved." The two cases are indistinguishable from here, so the
+     * operator is told which sheets were read and can judge.
+     */
+    return {
+      ok: true,
+      products,
+      variants: variantRows,
+      variantsMissing: variantSheet === undefined,
+    };
   } catch {
     /*
      * Deliberately not logged with the file contents — a catalogue is commercial data, and "this file

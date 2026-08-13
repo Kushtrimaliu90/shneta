@@ -1,6 +1,7 @@
 import 'server-only';
 import { createClient } from '@/lib/supabase/server';
 import { logger, describeError } from '@/lib/logger';
+import { fromCents, toCents } from '@/lib/money';
 import { auditMany } from '@/features/admin/audit';
 import { productExportRows } from '@/features/catalog/sheet-export';
 import {
@@ -109,6 +110,22 @@ const EMPTY_PLAN: ImportPlan = {
  * A `Set` rather than repeated `includes`, because this is asked once per field per row — 27 columns times
  * 70 rows — and because reading `has` at the point of use says what it means.
  */
+/**
+ * A stored amount as cents, or null when there is none.
+ *
+ * The export renders amounts with `fromCents`, so the "current" side of a comparison arrives as text. `null`
+ * for an absent or unparseable value rather than 0, because 0 would make an absent was-price look like a
+ * was-price of nothing and fail a check it should never reach.
+ */
+function centsOrNull(value: string): number | null {
+  if (value.trim().length === 0) return null;
+  try {
+    return toCents(value);
+  } catch {
+    return null;
+  }
+}
+
 function presence(sheet: SheetRows): Set<string> {
   return new Set(sheet.headers);
 }
@@ -156,15 +173,35 @@ export async function importProducts(
     const seenProducts = new Set<string>();
     const seenVariants = new Set<string>();
 
+    /** The worksheet row the operator can find, not the position in the array. See `SheetRows.rowNumbers`. */
+    const rowNumber = (sheet: SheetRows, index: number) => sheet.rowNumbers[index] ?? index + 2;
+    /** Cells the reader could not turn into text — a formula error. Refused, never written. */
+    const brokenCells = (sheet: SheetRows, index: number) =>
+      sheet.badCells.filter((bad) => bad.index === index);
+
     read.products.rows.forEach((row, index) => {
-      // +2: one for the header, one because a person counts from 1.
-      const excelRow = index + 2;
+      const excelRow = rowNumber(read.products, index);
       const id = (row.id ?? '').trim();
       const existing = id ? byId.get(id) : undefined;
       const label = row.name_sq || row.slug || id.slice(0, 8) || `row ${excelRow}`;
 
       const refuse = (problem: string) =>
         plan.problems.push({ sheet: 'Products', row: excelRow, label, problem });
+
+      /*
+       * A cell the reader could not read at all, before anything else is considered.
+       *
+       * A formula whose result is an Excel error has no text — writing `[object Object]` or clearing the
+       * field would both be worse than refusing the row, and the operator can see the error in their own
+       * file the moment they are told which column it is in.
+       */
+      const broken = brokenCells(read.products, index);
+      if (broken.length > 0) {
+        refuse(
+          `${broken.map((bad) => `${bad.column} (${bad.detail})`).join(', ')} — fix the cell in Excel, or paste the value as text.`,
+        );
+        return;
+      }
 
       if (!id) {
         /*
@@ -450,6 +487,100 @@ export async function importProducts(
 
     // ── Variants ──
     const variantHas = presence(read.variants);
+
+    /*
+     * ── The default variant, decided for the whole product before any row is written ──
+     *
+     * `create unique index one_default_variant on product_variants (product_id) where is_default` — a partial
+     * unique index, so promoting a variant while another is still default fails with 23505. The form path
+     * knows this and clears the incumbent first; this file did not, and the consequences were bad in a
+     * specific way:
+     *
+     *   · The promotion is written before the demotion whenever the promoted SKU sorts first — the export
+     *     orders variants by SKU and writes follow file order — so the promotion failed, the demotion
+     *     succeeded, and the product ended with **no default at all**.
+     *   · The 23505 message contains "duplicate key", which the write loop reported as "Another variant
+     *     already uses that SKU" — sending the operator to hunt a SKU collision that does not exist.
+     *
+     * Two fixes, because there are two distinct mistakes. A file that promotes without demoting is refused
+     * here with a message naming the incumbent, since no ordering can make that legal. A file that does both
+     * is legal and merely needs the demotion to go first, which the write loop now guarantees.
+     */
+    /*
+     * ── The last active variant of a published product ──
+     *
+     * A published product with nothing active is a live page that cannot be bought. `publish_requires` gates
+     * the transition into `published`, not edits afterwards, so the database allows this and the editor
+     * refuses it in app code — the sheet has to refuse it too or it becomes the way round the rule.
+     *
+     * Counted per product across the whole file, because deactivating three of four variants is fine and
+     * deactivating the fourth is not, and which row that is depends on all of them.
+     */
+    const deactivateAll = new Set<string>();
+    if (variantHas.has('is_active')) {
+      const perProduct = new Map<string, Set<string>>();
+      for (const row of read.variants.rows) {
+        const productSlug = (row.product_slug ?? '').trim();
+        const sku = (row.sku ?? '').trim();
+        const variant = variantById.get(variantKey(productSlug, sku));
+        if (!variant) continue;
+        if (readBoolean(row.is_active ?? '') === false && variant.isActive) {
+          perProduct.set(productSlug, (perProduct.get(productSlug) ?? new Set()).add(sku));
+        }
+      }
+      for (const [productSlug, turningOff] of perProduct) {
+        const product = current.find((entry) => entry.slug === productSlug);
+        if (product?.status !== 'published') continue;
+        const active = currentVariants.filter(
+          (variant) => variant.productSlug === productSlug && variant.isActive,
+        );
+        if (active.length > 0 && active.every((variant) => turningOff.has(variant.sku))) {
+          deactivateAll.add(productSlug);
+        }
+      }
+    }
+
+    const defaultConflict = new Map<string, string>();
+    if (variantHas.has('is_default')) {
+      const promoting = new Map<string, string[]>();
+      const demoting = new Map<string, Set<string>>();
+
+      for (const row of read.variants.rows) {
+        const productSlug = (row.product_slug ?? '').trim();
+        const sku = (row.sku ?? '').trim();
+        if (!productSlug || !sku) continue;
+        const variant = variantById.get(variantKey(productSlug, sku));
+        if (!variant) continue;
+        const next = readBoolean(row.is_default ?? '');
+        if (next === null || next === variant.isDefault) continue;
+
+        if (next) {
+          promoting.set(productSlug, [...(promoting.get(productSlug) ?? []), sku]);
+        } else {
+          demoting.set(productSlug, (demoting.get(productSlug) ?? new Set()).add(sku));
+        }
+      }
+
+      for (const [productSlug, skus] of promoting) {
+        if (skus.length > 1) {
+          defaultConflict.set(
+            productSlug,
+            `${skus.join(' and ')} are both set as the default. Exactly one variant per product can be.`,
+          );
+          continue;
+        }
+        const incumbent = currentVariants.find(
+          (variant) => variant.productSlug === productSlug && variant.isDefault,
+        );
+        if (incumbent && !(demoting.get(productSlug)?.has(incumbent.sku) ?? false)) {
+          defaultConflict.set(
+            productSlug,
+            `${incumbent.sku} is still the default for this product. Set its is_default to no in the same file.`,
+          );
+        }
+      }
+    }
+
     const variantWrites: {
       productSlug: string;
       sku: string;
@@ -458,12 +589,20 @@ export async function importProducts(
     }[] = [];
 
     read.variants.rows.forEach((row, index) => {
-      const excelRow = index + 2;
+      const excelRow = rowNumber(read.variants, index);
       const productSlug = (row.product_slug ?? '').trim();
       const sku = (row.sku ?? '').trim();
       const label = sku || `row ${excelRow}`;
       const refuse = (problem: string) =>
         plan.problems.push({ sheet: 'Variants', row: excelRow, label, problem });
+
+      const broken = brokenCells(read.variants, index);
+      if (broken.length > 0) {
+        refuse(
+          `${broken.map((bad) => `${bad.column} (${bad.detail})`).join(', ')} — fix the cell in Excel, or paste the value as text.`,
+        );
+        return;
+      }
 
       if (!productSlug || !sku) {
         refuse('Both product_slug and sku are needed to find the variant.');
@@ -518,6 +657,31 @@ export async function importProducts(
       if (!money('price', 'price', existing.price)) return;
       if (!money('compare_at_price', 'compare-at price', existing.compareAtPrice)) return;
 
+      /*
+       * The two amounts against each other, which neither cell can judge alone.
+       *
+       * `compare_at_price_cents int check (compare_at_price_cents > price_cents)` — so raising the price of an
+       * on-sale variant above its was-price previews as a clean change and then fails on write. That is not a
+       * corner: it is a price round, the operation this feature exists for, and the failure arrived as
+       * "Could not be saved." with no reason. The form path checks the same pair in app code first, with a
+       * specific message, and this now matches it.
+       *
+       * Whichever column the file left alone falls back to what is stored, because that is the value the
+       * constraint will actually see.
+       */
+      const finalPrice = patch.price_cents ?? centsOrNull(existing.price);
+      const finalCompareAt =
+        patch.compare_at_price_cents !== undefined
+          ? patch.compare_at_price_cents
+          : centsOrNull(existing.compareAtPrice);
+
+      if (finalCompareAt !== null && finalPrice !== null && finalCompareAt <= finalPrice) {
+        refuse(
+          `A was-price of ${fromCents(finalCompareAt)} is not above the price of ${fromCents(finalPrice)}. Raise it or clear the compare_at_price cell.`,
+        );
+        return;
+      }
+
       if (variantHas.has('name_sq') || variantHas.has('name_en')) {
         const nextSq = variantHas.has('name_sq') ? (row.name_sq ?? '').trim() : existing.nameSq;
         const nextEn = variantHas.has('name_en') ? (row.name_en ?? '').trim() : existing.nameEn;
@@ -525,7 +689,16 @@ export async function importProducts(
           const value: Record<string, string> = {};
           if (nextSq) value.sq = nextSq;
           if (nextEn) value.en = nextEn;
-          changes.push({ field: 'variant name', from: existing.nameSq, to: nextSq });
+          /*
+           * The line names the locale that changed. It previously always showed the Albanian pair, so an
+           * English-only rename previewed as `variant name: 120 kapsula → 120 kapsula` — a change to nothing.
+           */
+          if (nextSq !== existing.nameSq) {
+            changes.push({ field: 'variant name (sq)', from: existing.nameSq, to: nextSq });
+          }
+          if (nextEn !== existing.nameEn) {
+            changes.push({ field: 'variant name (en)', from: existing.nameEn, to: nextEn });
+          }
           patch.name = value;
         }
       }
@@ -541,6 +714,17 @@ export async function importProducts(
           return;
         }
         if (next !== currentValue) {
+          // Refused for the row that asks for it, so the message lands where the operator will look.
+          if (column === 'is_default' && next && defaultConflict.has(productSlug)) {
+            refuse(defaultConflict.get(productSlug) as string);
+            return;
+          }
+          if (column === 'is_active' && !next && deactivateAll.has(productSlug)) {
+            refuse(
+              'This would leave a published product with no active variant, so it could not be bought. Archive the product instead, or keep one variant active.',
+            );
+            return;
+          }
           changes.push({ field, from: currentValue ? 'yes' : 'no', to: next ? 'yes' : 'no' });
           if (column === 'is_active') patch.is_active = next;
           else patch.is_default = next;
@@ -646,7 +830,21 @@ export async function importProducts(
       slugs.add(byId.get(write.id)?.slug ?? '');
     }
 
-    for (const write of variantWrites) {
+    /*
+     * Demotions first, promotions last.
+     *
+     * `one_default_variant` is a partial unique index: while the incumbent is still flagged, promoting
+     * another variant of the same product fails. File order is SKU order, which decides the outcome by
+     * alphabet — so the order is imposed here rather than inherited. Rows that do not touch `is_default` sort
+     * between the two and are unaffected.
+     */
+    const defaultRank = (patch: VariantPatch) =>
+      patch.is_default === false ? 0 : patch.is_default === true ? 2 : 1;
+    const orderedVariantWrites = [...variantWrites].sort(
+      (a, b) => defaultRank(a.patch) - defaultRank(b.patch),
+    );
+
+    for (const write of orderedVariantWrites) {
       const product = current.find((row) => row.slug === write.productSlug);
       if (!product) {
         // Reachable if the product row was removed between the read and the write. Reported, not skipped.

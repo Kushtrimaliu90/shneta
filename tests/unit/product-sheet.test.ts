@@ -104,12 +104,36 @@ describe('the product workbook round trip', () => {
     expect(first?.price).not.toContain(',');
   });
 
-  it('does not let Excel reinterpret a SKU as a date', async () => {
-    const read = await roundTrip();
-    const skus = read.variants.rows.map((row) => row.sku);
-    expect(skus).toContain('MAR-3');
-    // A date would have come back as an ISO day.
-    expect(skus.some((sku) => /^\d{4}-\d{2}-\d{2}$/.test(sku ?? ''))).toBe(false);
+  it('marks the identifier columns as Text, which is what stops Excel reinterpreting a SKU', async () => {
+    /*
+     * Asserted on the column format, not on the round trip.
+     *
+     * A round-trip assertion here cannot fail: ExcelJS writes the string `MAR-3` and reads back the string
+     * `MAR-3` whatever the format is. The mangling happens in **Excel the application**, on open, when the
+     * column is General — which no unit test can observe. `numFmt: '@'` is the thing that prevents it, so
+     * `numFmt: '@'` is the thing to assert; remove `text: true` from a column and this test goes red.
+     */
+    const buffer = await buildProductWorkbook([product], variants);
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(buffer);
+
+    const check = (sheetName: string, columns: readonly { header: string; text?: boolean }[]) => {
+      const sheet = workbook.getWorksheet(sheetName);
+      if (!sheet) throw new Error(`no ${sheetName} sheet`);
+      const headers = sheet.getRow(1);
+      for (const [offset, column] of columns.entries()) {
+        expect(String(headers.getCell(offset + 1).value)).toBe(column.header);
+        if (column.text) {
+          expect(sheet.getColumn(offset + 1).style?.numFmt).toBe('@');
+        }
+      }
+    };
+
+    check('Products', PRODUCT_COLUMNS);
+    check('Variants', VARIANT_COLUMNS);
+    // And the SKU column specifically, since it is the one with a real-world casualty.
+    const skuAt = VARIANT_COLUMNS.findIndex((column) => column.header === 'sku');
+    expect(VARIANT_COLUMNS[skuAt]?.text).toBe(true);
   });
 
   it('writes a blank compare-at price as an empty cell, not a zero', async () => {
@@ -228,5 +252,132 @@ describe('readProductWorkbook, on files it should refuse', () => {
     const read = await readProductWorkbook((await workbook.xlsx.writeBuffer()) as ArrayBuffer);
     expect(read.ok).toBe(true);
     expect(read.products.rows).toHaveLength(1);
+  });
+});
+
+/**
+ * The files an operator actually produces, as opposed to the one the export writes.
+ *
+ * Every case here was reachable and silent before: a broken formula wrote the literal text `[object Object]`
+ * into a product field, a duplicated heading let one column overwrite another, reordering the tabs produced
+ * seventy identical "No id" complaints, and a renamed Variants tab discarded every price edit under a
+ * cheerful "Saved."
+ */
+describe('a workbook a person has edited', () => {
+  /** The Products sheet the reader will accept, as a bare minimum: a header row with `id`. */
+  async function sheetWith(
+    build: (workbook: ExcelJS.Workbook) => void,
+  ): Promise<ReturnType<typeof readProductWorkbook>> {
+    const workbook = new ExcelJS.Workbook();
+    build(workbook);
+    return readProductWorkbook((await workbook.xlsx.writeBuffer()) as ArrayBuffer);
+  }
+
+  it('refuses a row whose formula produced an Excel error rather than writing "[object Object]"', async () => {
+    const read = await sheetWith((workbook) => {
+      const sheet = workbook.addWorksheet('Products');
+      sheet.getRow(1).values = ['id', 'name_sq'];
+      sheet.getRow(2).getCell(1).value = 'abc';
+      sheet.getRow(2).getCell(2).value = { formula: 'B99/0', result: { error: '#DIV/0!' } };
+    });
+
+    expect(read.ok).toBe(true);
+    // Not the string "[object Object]", and not '' either — '' in a present column means "clear this field".
+    expect(read.products.rows[0]?.name_sq).toBe('');
+    expect(read.products.badCells).toHaveLength(1);
+    expect(read.products.badCells[0]).toMatchObject({ index: 0, column: 'name_sq', detail: '#DIV/0!' });
+  });
+
+  it('reads a formula that worked, since only the error case is unusable', async () => {
+    const read = await sheetWith((workbook) => {
+      const sheet = workbook.addWorksheet('Products');
+      sheet.getRow(1).values = ['id', 'name_sq'];
+      sheet.getRow(2).getCell(1).value = 'abc';
+      sheet.getRow(2).getCell(2).value = { formula: 'CONCATENATE("Vitamina"," D")', result: 'Vitamina D' };
+    });
+
+    expect(read.products.rows[0]?.name_sq).toBe('Vitamina D');
+    expect(read.products.badCells).toHaveLength(0);
+  });
+
+  it('refuses two columns sharing a heading, and names them', async () => {
+    const read = await sheetWith((workbook) => {
+      const sheet = workbook.addWorksheet('Products');
+      // What somebody does when they want a working copy of a field.
+      sheet.getRow(1).values = ['id', 'name_sq', 'name_sq'];
+      sheet.getRow(2).values = ['abc', 'Original', 'Copy'];
+    });
+
+    expect(read.ok).toBe(false);
+    expect(read.reason).toBe('duplicate_headers');
+    expect(read.duplicates).toEqual(['name_sq']);
+  });
+
+  it('says the first sheet is not the Products sheet when the tabs are reordered', async () => {
+    const read = await sheetWith((workbook) => {
+      // Variants first, as a drag of the tab would leave it.
+      const first = workbook.addWorksheet('Variants');
+      first.getRow(1).values = ['product_slug', 'sku', 'price'];
+      first.getRow(2).values = ['vitamin-d3-4000', 'NOW-D3-120', 9.9];
+    });
+
+    expect(read.ok).toBe(false);
+    expect(read.reason).toBe('not_a_product_sheet');
+  });
+
+  it('reports a missing Variants sheet instead of silently ignoring every price', async () => {
+    const read = await sheetWith((workbook) => {
+      const sheet = workbook.addWorksheet('Products');
+      sheet.getRow(1).values = ['id', 'name_sq'];
+      sheet.getRow(2).values = ['abc', 'Vitamina D'];
+      // A tab renamed past both the name check and the /variant/ pattern.
+      const other = workbook.addWorksheet('Cmimet');
+      other.getRow(1).values = ['product_slug', 'sku', 'price'];
+      other.getRow(2).values = ['vitamin-d3-4000', 'NOW-D3-120', 14.9];
+    });
+
+    expect(read.ok).toBe(true);
+    expect(read.variantsMissing).toBe(true);
+    expect(read.variants.rows).toHaveLength(0);
+  });
+
+  it('finds the Variants sheet through the pattern when only the name is off', async () => {
+    const read = await sheetWith((workbook) => {
+      const sheet = workbook.addWorksheet('Products');
+      sheet.getRow(1).values = ['id', 'name_sq'];
+      sheet.getRow(2).values = ['abc', 'Vitamina D'];
+      const other = workbook.addWorksheet('Variants (2)');
+      other.getRow(1).values = ['product_slug', 'sku', 'price'];
+      other.getRow(2).values = ['vitamin-d3-4000', 'NOW-D3-120', 14.9];
+    });
+
+    expect(read.variantsMissing).toBeFalsy();
+    expect(read.variants.rows).toHaveLength(1);
+  });
+
+  it('reports the real worksheet row number, so a blank row does not shift every refusal', async () => {
+    const read = await sheetWith((workbook) => {
+      const sheet = workbook.addWorksheet('Products');
+      sheet.getRow(1).values = ['id', 'name_sq'];
+      sheet.getRow(2).values = ['first', 'One'];
+      // Row 3 left blank, as a delete-contents leaves it.
+      sheet.getRow(4).values = ['second', 'Two'];
+      sheet.getRow(5).values = ['third', 'Three'];
+    });
+
+    expect(read.products.rows.map((row) => row.id)).toEqual(['first', 'second', 'third']);
+    // Not [2, 3, 4] — the third row is on line 5 of the operator's file.
+    expect(read.products.rowNumbers).toEqual([2, 4, 5]);
+  });
+
+  it('keeps a row that is blank except for a broken cell, so it can be reported rather than skipped', async () => {
+    const read = await sheetWith((workbook) => {
+      const sheet = workbook.addWorksheet('Products');
+      sheet.getRow(1).values = ['id', 'name_sq'];
+      sheet.getRow(2).getCell(2).value = { formula: 'A1/0', result: { error: '#DIV/0!' } };
+    });
+
+    expect(read.products.rows).toHaveLength(1);
+    expect(read.products.badCells).toHaveLength(1);
   });
 });

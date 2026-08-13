@@ -78,6 +78,14 @@ const UNREADABLE: Record<string, string> = {
   no_products_sheet: 'No Products sheet with a header row. Download a fresh copy and edit that.',
   no_rows: 'The file has headers but no rows.',
   too_many_rows: `A sheet in that file has more than ${MAX_ROWS.toLocaleString('en-GB')} rows. Download a fresh copy and edit that.`,
+  /*
+   * Reached by reordering the tabs so the Variants sheet is first — the positional fallback then reads it as
+   * the Products sheet. Without this the operator got seventy identical "No id" lines under a heading saying
+   * nothing would change, which describes the file rather than the mistake.
+   */
+  not_a_product_sheet:
+    'The first sheet has no id column, so it is not the Products sheet. Check the tab order, or download a fresh copy.',
+  duplicate_headers: 'Two columns share a heading, so one would overwrite the other.',
 };
 
 /**
@@ -143,14 +151,34 @@ export async function POST(request: Request) {
 
     const read = await readProductWorkbook(await file.arrayBuffer());
     if (!read.ok) {
-      return NextResponse.json(
-        { ok: false, error: UNREADABLE[read.reason ?? 'unreadable'] ?? UNREADABLE.unreadable },
-        { status: 400 },
-      );
+      const base = UNREADABLE[read.reason ?? 'unreadable'] ?? UNREADABLE.unreadable;
+      // The repeated names, because "two columns share a heading" is not actionable without them.
+      const detail = read.duplicates?.length
+        ? ` Rename or delete the extra: ${read.duplicates.join(', ')}.`
+        : '';
+      return NextResponse.json({ ok: false, error: `${base}${detail}` }, { status: 400 });
     }
 
     const apply = new URL(request.url).searchParams.get('apply') === '1';
     const plan = await importProducts(read, { apply, actorId: profile.id });
+
+    /*
+     * A missing Variants sheet is a notice rather than a refusal — deleting it to edit product fields only is
+     * legitimate. But a renamed tab looks identical from here and silently discards every price edit in the
+     * file, so it has to be said out loud next to the diff.
+     */
+    if (read.variantsMissing) {
+      plan.problems = [
+        {
+          sheet: 'Variants',
+          row: 0,
+          label: 'the whole sheet',
+          problem:
+            'No Variants sheet was found, so no prices were read. If you renamed the tab, call it "Variants" and upload again.',
+        },
+        ...plan.problems,
+      ];
+    }
 
     /*
      * Purged only after a real write, and broadly.
