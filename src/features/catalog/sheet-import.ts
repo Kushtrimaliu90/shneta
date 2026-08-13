@@ -85,6 +85,14 @@ export interface ImportPlan {
   unchanged: number;
   /** Set once the plan has been written. */
   applied: boolean;
+  /**
+   * How many rows were **actually** written, present once applied.
+   *
+   * Deliberately not the same number as `products.length + variants.length`, which is what the file *asked*
+   * for. A write can fail on its own — a duplicate slug, a row deleted by someone else mid-import — and
+   * reporting the planned count after the fact would tell the operator that something happened which did not.
+   */
+  wrote?: { products: number; variants: number };
 }
 
 const EMPTY_PLAN: ImportPlan = {
@@ -526,8 +534,19 @@ export async function importProducts(
 
     if (!options.apply) return plan;
 
-    // ── Write ──
+    /*
+     * ── Write ──
+     *
+     * Four sequential loops, no transaction, so each one records **what it actually managed**. The counts
+     * reported to the operator and the audit rows written both come from these sets rather than from the
+     * plan, because a plan is a request and a request can be refused one row at a time. Reporting the
+     * request as the outcome is the failure mode this guards against.
+     */
     const slugs = new Set<string>();
+    /** Products with at least one successful write — scalar columns, categories, or goals. */
+    const wroteProduct = new Set<string>();
+    const wroteVariant = new Set<string>();
+    const label = (id: string) => byId.get(id)?.slug ?? id.slice(0, 8);
 
     for (const write of productWrites) {
       const { error } = await supabase.from('products').update(write.patch).eq('id', write.id);
@@ -535,13 +554,14 @@ export async function importProducts(
         plan.problems.push({
           sheet: 'Products',
           row: 0,
-          label: byId.get(write.id)?.slug ?? write.id.slice(0, 8),
+          label: label(write.id),
           problem: error.message.includes('duplicate key')
             ? 'Another product already uses that web address.'
             : 'Could not be saved.',
         });
         continue;
       }
+      wroteProduct.add(write.id);
       slugs.add((write.patch.slug as string | undefined) ?? byId.get(write.id)?.slug ?? '');
     }
 
@@ -550,26 +570,71 @@ export async function importProducts(
      * pure join rows with no data of their own, so delete-then-insert is atomic enough for a save and
      * avoids a three-way diff longer than the thing it optimises.
      */
+    /*
+     * Delete-then-insert means a failed insert leaves the product with **no** links at all, which is a worse
+     * state than the one it started in. Rare, but it has to be said out loud rather than swallowed — an
+     * operator who is told the categories failed will go and look; one who is told nothing will not.
+     */
     for (const write of categoryWrites) {
-      await supabase.from('product_categories').delete().eq('product_id', write.id);
-      if (write.links.length > 0) {
-        await supabase
-          .from('product_categories')
-          .insert(write.links.map((link) => ({ product_id: write.id, ...link })));
+      const removed = await supabase.from('product_categories').delete().eq('product_id', write.id);
+      const added =
+        write.links.length > 0
+          ? await supabase
+              .from('product_categories')
+              .insert(write.links.map((link) => ({ product_id: write.id, ...link })))
+          : { error: null };
+
+      if (removed.error || added.error) {
+        plan.problems.push({
+          sheet: 'Products',
+          row: 0,
+          label: label(write.id),
+          problem: added.error
+            ? 'The categories could not be saved and the old ones are gone — set them on the product page.'
+            : 'The categories could not be changed.',
+        });
+        continue;
       }
+      wroteProduct.add(write.id);
+      slugs.add(byId.get(write.id)?.slug ?? '');
     }
+
     for (const write of goalWrites) {
-      await supabase.from('product_health_goals').delete().eq('product_id', write.id);
-      if (write.goalIds.length > 0) {
-        await supabase
-          .from('product_health_goals')
-          .insert(write.goalIds.map((goalId) => ({ product_id: write.id, goal_id: goalId })));
+      const removed = await supabase.from('product_health_goals').delete().eq('product_id', write.id);
+      const added =
+        write.goalIds.length > 0
+          ? await supabase
+              .from('product_health_goals')
+              .insert(write.goalIds.map((goalId) => ({ product_id: write.id, goal_id: goalId })))
+          : { error: null };
+
+      if (removed.error || added.error) {
+        plan.problems.push({
+          sheet: 'Products',
+          row: 0,
+          label: label(write.id),
+          problem: added.error
+            ? 'The health goals could not be saved and the old ones are gone — set them on the product page.'
+            : 'The health goals could not be changed.',
+        });
+        continue;
       }
+      wroteProduct.add(write.id);
+      slugs.add(byId.get(write.id)?.slug ?? '');
     }
 
     for (const write of variantWrites) {
       const product = current.find((row) => row.slug === write.productSlug);
-      if (!product) continue;
+      if (!product) {
+        // Reachable if the product row was removed between the read and the write. Reported, not skipped.
+        plan.problems.push({
+          sheet: 'Variants',
+          row: 0,
+          label: `${write.productSlug} · ${write.sku}`,
+          problem: 'That product is no longer in the catalogue. Download a fresh copy.',
+        });
+        continue;
+      }
       const { error } = await supabase
         .from('product_variants')
         .update(write.patch)
@@ -580,34 +645,44 @@ export async function importProducts(
           sheet: 'Variants',
           row: 0,
           label: `${write.productSlug} · ${write.sku}`,
-          problem: 'Could not be saved.',
+          problem: error.message.includes('duplicate key')
+            ? 'Another variant already uses that SKU.'
+            : 'Could not be saved.',
         });
         continue;
       }
+      wroteVariant.add(`${write.productSlug}::${write.sku}`);
       slugs.add(write.productSlug);
     }
 
     /*
-     * One audit row per product, with the field-level diff as `after`.
+     * One audit row per product **that was actually written**, with the field-level diff as `after`.
      *
-     * The whole point of auditing an import is that somebody can answer "what did that file do to the
-     * price of this product?" — a single summary row could not. The shared `import_id` groups them.
+     * The whole point of auditing an import is that somebody can answer "what did that file do to the price
+     * of this product?" — a single summary row could not. Auditing the plan instead of the outcome would
+     * answer that question wrongly, which is worse than not answering it: a row whose write was refused
+     * would read as a change that happened. The shared `import_id` groups them.
      */
     const importId = crypto.randomUUID();
     await auditMany(
       'product.updated',
       'product',
-      productWrites.map((write) => ({
-        entityId: write.id,
-        before: null,
-        after: { changes: write.changes, sheet_import: true, import_id: importId } as unknown as Json,
-      })),
+      productWrites
+        .filter((write) => wroteProduct.has(write.id))
+        .map((write) => ({
+          entityId: write.id,
+          before: null,
+          after: { changes: write.changes, sheet_import: true, import_id: importId } as unknown as Json,
+        })),
     );
 
     plan.applied = true;
+    plan.wrote = { products: wroteProduct.size, variants: wroteVariant.size };
     logger.info('product sheet import applied', {
-      products: productWrites.length,
-      variants: variantWrites.length,
+      productsAsked: plan.products.length,
+      productsWritten: wroteProduct.size,
+      variantsAsked: plan.variants.length,
+      variantsWritten: wroteVariant.size,
       problems: plan.problems.length,
       actorId: options.actorId,
       importId,

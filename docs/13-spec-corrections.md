@@ -4235,3 +4235,36 @@ The rule that follows: **a script that deletes audit rows must qualify each row,
 about to delete in full.** An actor-level pattern match is not a qualification of the row. Anything that
 cannot be qualified stays, and the profile stays soft-deleted with it — which is what
 `deleteCreatedUsers` now does.
+
+### Reporting the plan as if it were the outcome
+
+Four defects in the sheet import, all the same mistake: the write phase is four sequential loops with no
+transaction, and every number shown afterwards came from the **plan** rather than from what the loops managed.
+
+Forced by giving two draft products the same slug in one file, so the first write succeeds and the second hits
+the unique index. Before and after, on the same file:
+
+| | before | after |
+| --- | --- | --- |
+| headline | `Saved. 2 rows updated.` | `Partly saved. 1 of 2 rows updated.` |
+| audit rows written | **2** — one for a change that never happened | 1 |
+| the failure | listed | listed |
+| the instruction below it | `Confirming saves the rows above…` | `Fix these in the file… Everything else is saved.` |
+| category/goal write errors | discarded silently | reported |
+| variant whose product vanished | `continue`, no trace | reported |
+
+The audit row is the worst of the four. The stated reason for auditing per product rather than per import is
+so somebody can answer *"what did that file do to the price of this product?"* — and auditing the plan answers
+that question **wrongly**, which is worse than not answering it. A refused write read as a change that
+happened.
+
+`plan.wrote` now carries the real counts, `auditMany` receives only the products in `wroteProduct`, and the
+panel treats a shortfall as a warning rather than a success — no green tick on a partial save.
+
+Two things the run also exposed, both visible to an operator and both mine:
+- `1 row were not saved` — the pluralisation branched on the noun and not the verb.
+- `Products row 0 · …` — `row: 0` is the sentinel for a write-phase failure, which has no line in the file.
+  Printing it sends the operator looking for a row that does not exist. Suppressed when zero.
+
+The rule: **a count shown after an action must be counted from the action, not from its plan.** Anywhere those
+two can differ, they eventually will, and the plan is always the more convenient one to reach for.

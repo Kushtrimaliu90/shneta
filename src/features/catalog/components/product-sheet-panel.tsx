@@ -68,6 +68,13 @@ export function ProductSheetPanel() {
   }
 
   const changeCount = plan ? plan.products.length + plan.variants.length : 0;
+  /*
+   * What was written, which is not always what was asked for. `plan.wrote` is absent on a preview and
+   * present once applied; falling back to `changeCount` would restore the bug this exists to fix, so the
+   * fallback is only for the preview case where no write has been attempted.
+   */
+  const writtenCount = plan?.wrote ? plan.wrote.products + plan.wrote.variants : null;
+  const shortfall = writtenCount !== null && writtenCount < changeCount;
 
   return (
     <details className="rounded-lg border border-line bg-surface">
@@ -137,23 +144,32 @@ export function ProductSheetPanel() {
             aria-live="polite"
             className={cn(
               'rounded-lg border p-4 text-sm',
-              plan.applied
+              // A partial save is not a success, so it does not get the green treatment.
+              plan.applied && !shortfall
                 ? 'border-forest-500/40 bg-forest-50/50'
-                : changeCount === 0
+                : plan.applied || changeCount === 0
                   ? 'border-warning/40 bg-warning/5'
                   : 'border-line bg-cream',
             )}
           >
             <p className="flex items-start gap-2 font-medium text-ink-900">
-              {plan.applied ? (
+              {plan.applied && !shortfall ? (
                 <Check className="mt-0.5 size-4 shrink-0 text-forest-700" aria-hidden="true" />
-              ) : changeCount === 0 ? (
+              ) : plan.applied || changeCount === 0 ? (
                 <X className="mt-0.5 size-4 shrink-0 text-warning" aria-hidden="true" />
               ) : (
                 <AlertTriangle className="mt-0.5 size-4 shrink-0 text-ink-600" aria-hidden="true" />
               )}
+              {/*
+                The count of rows **written**, not of rows the file asked for. They differ when a write is
+                refused on its own — a slug another product already uses, a row someone else deleted
+                mid-import — and "Saved. 10 rows updated." above a list of three failures is a lie the
+                operator has no reason to doubt.
+              */}
               {plan.applied
-                ? `Saved. ${changeCount} row${changeCount === 1 ? '' : 's'} updated.`
+                ? shortfall
+                  ? `Partly saved. ${writtenCount} of ${changeCount} rows updated.`
+                  : `Saved. ${writtenCount} row${writtenCount === 1 ? '' : 's'} updated.`
                 : changeCount === 0
                   ? 'Nothing would change.'
                   : `${changeCount} row${changeCount === 1 ? '' : 's'} would change.`}
@@ -196,25 +212,44 @@ export function ProductSheetPanel() {
             {plan.problems.length > 0 && (
               <>
                 <p className="mt-3 font-medium text-ink-900">
-                  {plan.problems.length} row{plan.problems.length === 1 ? '' : 's'} could not be used:
+                  {plan.problems.length === 1
+                    ? `1 row ${plan.applied ? 'was not saved' : 'could not be used'}:`
+                    : `${plan.problems.length} rows ${plan.applied ? 'were not saved' : 'could not be used'}:`}
                 </p>
                 <ul className="mt-1 flex flex-col gap-0.5 text-xs">
                   {plan.problems.map((problem) => (
                     <li key={`${problem.sheet}-${problem.row}-${problem.label}`} className="text-ink-600">
+                      {/*
+                        `row: 0` is the sentinel for a failure during the write, which has no line in the
+                        file — the row was read fine, the database refused it. Printing "row 0" sends the
+                        operator looking for a row that does not exist.
+                      */}
                       <span className="font-medium text-ink-900">
-                        {problem.sheet} row {problem.row} · {problem.label}
+                        {problem.sheet}
+                        {problem.row > 0 ? ` row ${problem.row}` : ''} · {problem.label}
                       </span>{' '}
                       — {problem.problem}
                     </li>
                   ))}
                 </ul>
-                <p className="mt-1.5 text-xs text-ink-600">
-                  {/*
-                    Said plainly, because "3 rows failed" next to a Save button invites the assumption that
-                    saving fixes them.
-                  */}
-                  Confirming saves the rows above and leaves these as they are.
-                </p>
+                {/*
+                  Only before saving. Afterwards it is an instruction about a button that is gone, sitting
+                  above a list of rows that already did not save — which reads as though they still might.
+                */}
+                {!plan.applied && (
+                  <p className="mt-1.5 text-xs text-ink-600">
+                    {/*
+                      Said plainly, because "3 rows failed" next to a Save button invites the assumption that
+                      saving fixes them.
+                    */}
+                    Confirming saves the rows above and leaves these as they are.
+                  </p>
+                )}
+                {plan.applied && (
+                  <p className="mt-1.5 text-xs text-ink-600">
+                    Fix these in the file, or on each product page, and upload again. Everything else is saved.
+                  </p>
+                )}
               </>
             )}
 
