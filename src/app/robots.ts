@@ -9,10 +9,15 @@ export default function robots(): MetadataRoute.Robots {
   /*
    * Pre-launch, nothing is crawlable at all.
    *
-   * Crawler traffic was the whole of the 8 Aug 2026 spend that paused the deployment, and the pages
-   * being crawled are 48 of 63 products showing a placeholder instead of a photograph plus three
-   * legal documents still carrying `[BIZNESI: plotëso]`. Paying to have that indexed is worse than
-   * paying nothing to have it ignored.
+   * Crawler traffic was the whole of the 8 Aug 2026 spend that paused the deployment. Two things made
+   * indexing not worth paying for: products showing a placeholder instead of a photograph, and the legal
+   * documents carrying `[BIZNESI: plotëso]`.
+   *
+   * Re-counted 13 Aug 2026: **the photography is done** — 65 published products, 0 without an image — and
+   * this comment claimed "48 of 63" long after that stopped being true. Only the legal blocker remains, on
+   * four pages (`/legal/terms`, `/privacy`, `/marketplace-terms`, `/referral-terms`), and it needs BioCode's
+   * registered name, unique business number, fiscal number and registered address. Nobody but the business
+   * can supply those, so this stays off until they do — one real reason rather than two, one of them expired.
    *
    * No `sitemap` line either: advertising 140 URLs while refusing to serve them is a mixed signal,
    * and the sitemap is the thing that invites the deep crawl in the first place.

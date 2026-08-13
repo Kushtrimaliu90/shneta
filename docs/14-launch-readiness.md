@@ -803,15 +803,21 @@ site and the live database on the day.
    the referral programme is built around and the rate the seeded settings and both terms pages now state.
    If 5 % was intended, `settings.loyalty.point_value_cents` is the one number to change — and
    `/legal/referral-terms` and the loyalty terms in `messages/{sq,en}.json` have to change with it.
-8. **Photography — 72 of 91 products still have none.** The catalogue itself is finished: 16 categories, 20
-   brands, bilingual claim-safe copy, EUR prices benchmarked to European retail, SEO on every page (seeds
-   12–13, docs/11 §11). Nineteen products now carry photographs, most of them uploaded through the admin
-   Media tab; `Pictures/` holds a byte-for-byte mirror of what is in the bucket so `--replace` can rebuild it. `pnpm seed:images ./photos` uploads a folder named
-   after product slugs and is proven idempotent, so this is a drag-and-drop job once assets exist — from
-   the manufacturers' dealer portals or from a camera. It is **not** a job that can be done by copying
-   another retailer's photographs: those are theirs, and the pages that would carry them are the pages that
-   earn the money. Migration 14 makes an image a precondition of publishing, so this gates everything the
-   catalogue team creates from now on.
+8. **Photography — done.** Counted against the live database on 13 Aug 2026: **65 published products, 0 of
+   them without an image.** This item read "72 of 91 products still have none" for weeks after it stopped
+   being true, and `robots.ts` quoted the same stale figure as a reason indexing was off — so a finished job
+   went on looking unfinished, and the one remaining reason to keep the shop invisible was buried under a
+   reason that had expired. Migration 14 makes an image a precondition of publishing, which is what keeps
+   this closed: nothing new can reach `published` without one.
+
+   `pnpm seed:images ./photos` uploads a folder named after product slugs and is idempotent; `Pictures/`
+   holds a byte-for-byte mirror of the bucket so `--replace` can rebuild it. Still **not** a job to be done
+   by copying another retailer's photographs: those are theirs, and the pages that would carry them are the
+   pages that earn the money.
+
+   The lesson worth keeping is about the checklist rather than the photographs: **an item whose evidence is a
+   count must be re-counted before it is repeated.** This one was restated three times, by me, without being
+   measured once.
 9. **Reprice against real invoices.** The seeded prices are benchmarked to typical European online retail,
    which is a starting point and not a margin: nobody has costed a delivery to Prishtinë or agreed a landed
    cost with a distributor.
