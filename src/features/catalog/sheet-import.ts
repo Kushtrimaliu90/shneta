@@ -152,6 +152,9 @@ export async function importProducts(
     const productWrites: { id: string; patch: ProductPatch; changes: FieldChange[] }[] = [];
     const categoryWrites: { id: string; links: { category_id: string; is_primary: boolean }[] }[] = [];
     const goalWrites: { id: string; goalIds: string[] }[] = [];
+    /** Rows already claimed, so a copied row cannot quietly overwrite the one above it. */
+    const seenProducts = new Set<string>();
+    const seenVariants = new Set<string>();
 
     read.products.rows.forEach((row, index) => {
       // +2: one for the header, one because a person counts from 1.
@@ -177,6 +180,20 @@ export async function importProducts(
         refuse('That id is not in the catalogue. It may have been removed since the file was downloaded.');
         return;
       }
+      /*
+       * The same product twice.
+       *
+       * Reached by copying a row, which is the obvious thing to try when you want a second product and this
+       * file cannot create one. Both rows previously produced a patch, both were written in order, and the
+       * last one silently won — while the diff showed two entries for one product with contradictory values.
+       * A wrong value written quietly is the worst outcome this feature has, so the copy is refused and the
+       * first occurrence proceeds.
+       */
+      if (seenProducts.has(id)) {
+        refuse('This product is already on an earlier row. Keep one row per product and delete the copy.');
+        return;
+      }
+      seenProducts.add(id);
 
       const changes: FieldChange[] = [];
       const patch: ProductPatch = {};
@@ -464,6 +481,12 @@ export async function importProducts(
         );
         return;
       }
+      // Same reason as the products sheet: a copied row must not silently outrank the row above it.
+      if (seenVariants.has(variantKey(productSlug, sku))) {
+        refuse('This variant is already on an earlier row. Keep one row per variant and delete the copy.');
+        return;
+      }
+      seenVariants.add(variantKey(productSlug, sku));
 
       const changes: FieldChange[] = [];
       const patch: VariantPatch = {};

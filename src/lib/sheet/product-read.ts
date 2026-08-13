@@ -36,8 +36,14 @@ export interface ProductWorkbookRead {
   reason?: 'empty' | 'unreadable' | 'no_products_sheet' | 'no_rows' | 'too_many_rows';
 }
 
-/** Seventy products today. A file past this is not an edit of the catalogue. */
-const MAX_ROWS = 2000;
+/**
+ * Seventy products today. A file past this is not an edit of the catalogue.
+ *
+ * Exported so the message shown to the operator can state the real number. It previously said "more rows than
+ * this catalogue has products", which is a different and much smaller number — an operator refused at 2,000
+ * was told the limit was 70.
+ */
+export const MAX_ROWS = 2000;
 
 const EMPTY: SheetRows = { headers: [], rows: [] };
 

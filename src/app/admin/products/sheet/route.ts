@@ -4,7 +4,7 @@ import { getProfile } from '@/features/auth/queries';
 import { can } from '@/features/admin/roles';
 import { productExportRows } from '@/features/catalog/sheet-export';
 import { buildProductWorkbook } from '@/lib/sheet/product-workbook';
-import { readProductWorkbook } from '@/lib/sheet/product-read';
+import { MAX_ROWS, readProductWorkbook } from '@/lib/sheet/product-read';
 import { importProducts, type ImportPlan } from '@/features/catalog/sheet-import';
 import { revalidatePublic } from '@/lib/cache';
 import { CACHE_TAGS } from '@/lib/constants';
@@ -77,7 +77,7 @@ const UNREADABLE: Record<string, string> = {
   unreadable: 'That file could not be read as a spreadsheet. Save it as .xlsx and try again.',
   no_products_sheet: 'No Products sheet with a header row. Download a fresh copy and edit that.',
   no_rows: 'The file has headers but no rows.',
-  too_many_rows: 'That file has more rows than this catalogue has products.',
+  too_many_rows: `A sheet in that file has more than ${MAX_ROWS.toLocaleString('en-GB')} rows. Download a fresh copy and edit that.`,
 };
 
 /**

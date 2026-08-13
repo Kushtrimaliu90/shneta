@@ -176,7 +176,7 @@ export function ProductSheetPanel() {
               {plan.unchanged > 0 && (
                 <span className="font-normal text-ink-600">
                   {' '}
-                  {plan.unchanged} row{plan.unchanged === 1 ? '' : 's'} already match.
+                  {plan.unchanged === 1 ? '1 row already matches.' : `${plan.unchanged} rows already match.`}
                 </span>
               )}
             </p>
@@ -261,7 +261,11 @@ export function ProductSheetPanel() {
                   onClick={() => send(true)}
                   disabled={busy !== null}
                 >
-                  {busy === 'apply' ? 'Saving…' : `Save these ${changeCount} changes`}
+                  {busy === 'apply'
+                    ? 'Saving…'
+                    : changeCount === 1
+                      ? 'Save this 1 change'
+                      : `Save these ${changeCount} changes`}
                 </Button>
                 <Button type="button" variant="ghost" size="sm" onClick={() => setPlan(null)}>
                   Cancel
