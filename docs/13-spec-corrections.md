@@ -4455,3 +4455,59 @@ obvious tools do not report it. Two theories were argued from request *shapes* �
 POST ratios — when a single header would have settled it. **When traffic is the problem, identify the client
 before modelling the traffic.** Everything downstream of that identification took twenty minutes; everything
 upstream of it was guesswork.
+
+### Making `/shop/[category]` cacheable: two dead ends, measured
+
+The route declares `generateStaticParams` for all 16 categories and then reads `searchParams`, which in
+Next 15 makes it dynamic on **every** request — prebuilt params or not. The contrast on production is exact:
+
+| URL | Cache-Control | X-Vercel-Cache |
+| --- | --- | --- |
+| `/` | `public, max-age=0, must-revalidate` | **HIT**, `Age: 173` |
+| `/shop/vitaminat` | `private, no-cache, no-store` | MISS |
+| `/shop/vitaminat?brand=solgar` | `private, no-cache, no-store` | MISS |
+
+So every listing hit is a full server render. That is why Fluid Active CPU ($3.25) ran almost level with
+Edge Requests ($3.66) on the 15 Aug bill.
+
+**Dead end 1 — Partial Prerendering.** PPR is the framework's own answer to "static shell, dynamic parts",
+and `experimental.ppr = 'incremental'` is exactly the opt-in this route wants. It does not build on 15.5.22:
+
+```
+Error: The experimental feature "experimental.ppr" can only be enabled when using
+the latest canary version of Next.js.
+```
+
+Moving the project to a canary channel to cache one route is the wrong trade.
+
+**Dead end 2 — `Cache-Control` via `next.config.ts` `headers()`.** Vercel caches by full URL including the
+query string, so a header of `public, s-maxage=300, stale-while-revalidate=43200` scoped to `/shop/:path*`
+would have made every listing URL — filtered or not — edge-cacheable with no code change and no URL change.
+It was written, built, deployed, and measured. It does nothing: Next sets `private, no-cache, no-store` on a
+dynamic route *after* the configured headers are applied, and its header wins. Both passes over three URLs
+returned MISS. Reverted rather than left in the config looking like protection.
+
+The safety analysis done for it is worth keeping, because any future attempt needs it: `public` caching is
+sound on this subtree specifically because the storefront layout deliberately reads nothing request-scoped —
+`WishlistProvider` fetches after mount, the announcement bar avoids `cookies()`, and both carry comments
+saying a `cookies()` call in a layout opts every page beneath it into dynamic rendering. The HTML under
+`/shop` is therefore identical for anonymous and signed-in visitors. **If anything personal is ever
+server-rendered into that subtree, this option dies with it.**
+
+**What is left.** The route becomes static only if it stops reading `searchParams`, which means filtering
+moves to the client: a JSON endpoint for filtered listings, and a client component that takes over the grid,
+count, sort, chips and pagination when the URL carries filters. `ProductCard` already uses `useLocale` /
+`useTranslations` and imports no server-only module, so it renders client-side unchanged — the refactor is
+feasible, and it is contained to `plp.tsx` plus one route handler.
+
+It is not small. `ProductListingPage` is shared by `/shop`, `/shop/[category]`, `/brands/[slug]` and
+`/goals/[slug]`, so the blast radius is the whole storefront listing surface, and the states to re-verify are
+the mobile filter drawer, empty results, pagination bounds, sort persistence and both locales.
+
+The cheaper alternative, recorded so the choice is explicit: keep the category page static and point its
+filter links at `/shop?category=…`, which is already dynamic. Roughly thirty lines. The cost is that a
+shopper who applies a filter loses the category heading and breadcrumb — a real regression in exchange for a
+real saving, and a product decision rather than an engineering one.
+
+Neither was attempted, because blocking `meta-externalagent` had already removed 97.6% of the traffic and
+neither is worth doing unwatched at the end of a session.
