@@ -157,48 +157,7 @@ const nextConfig: NextConfig = {
     optimizePackageImports: ['lucide-react', 'date-fns'],
   },
   async headers() {
-    return [
-      { source: '/:path*', headers: securityHeaders },
-      /*
-       * ── Edge-cache the catalogue listings ──
-       *
-       * `/shop/[category]` calls `generateStaticParams` for all 16 categories and then reads
-       * `searchParams`, which in Next 15 makes the route dynamic on **every** request — prebuilt params or
-       * not. Measured on production: `/` served `X-Vercel-Cache: HIT` with an `Age`, while
-       * `/shop/vitaminat` served `private, no-cache, no-store` and `MISS` every single time. So each hit
-       * was a full server render, which is why Fluid Active CPU ran level with Edge Requests on the bill.
-       *
-       * Partial Prerendering is the framework's answer to this and refuses to build on 15.5 stable
-       * ("can only be enabled when using the latest canary"). Moving the filters client-side would preserve
-       * the URLs but rewrites a component four routes share. This does neither: it lets Vercel cache the
-       * rendered response per full URL, query string included, so a repeat of any listing URL — filtered or
-       * not — is served from the edge instead of re-rendered.
-       *
-       * **Why `public` is safe here specifically.** The storefront layout deliberately reads nothing
-       * request-scoped: `WishlistProvider` fetches its state after mount and the announcement bar avoids
-       * `cookies()`, both with comments saying a `cookies()` call in a layout would opt every page beneath
-       * it into dynamic rendering. So the HTML under `/shop` is byte-identical for an anonymous visitor and
-       * a signed-in one, and there is nothing personal to leak into a shared cache. That property is load
-       * bearing: if a cart count or a name is ever server-rendered into this subtree, this header has to go
-       * with it.
-       *
-       * Scoped to the listing paths only — never `/account`, `/cart`, `/checkout` or `/admin`.
-       *
-       * `s-maxage=300` with a long `stale-while-revalidate`: a price change is visible within five minutes,
-       * and for the twelve hours after that the edge serves the stale copy instantly while refreshing
-       * behind it. `revalidateTag` on a publish still purges immediately, so this is a floor on freshness,
-       * not a ceiling.
-       */
-      {
-        source: '/:locale(en)?/shop/:path*',
-        headers: [
-          {
-            key: 'Cache-Control',
-            value: 'public, s-maxage=300, stale-while-revalidate=43200',
-          },
-        ],
-      },
-    ];
+    return [{ source: '/:path*', headers: securityHeaders }];
   },
   /**
    * docs/15 §1 — the BioHack generator supersedes the Finder.
