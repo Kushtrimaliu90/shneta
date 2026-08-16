@@ -4356,3 +4356,102 @@ The reader trims every cell, so stored text with leading or trailing whitespace 
 change and be silently rewritten — the same shape as the `10.90` / `10.9` bug. Before fixing it I counted:
 **0 padded fields across 70 products.** Unreachable with real data, so it stays unfixed and written down
 instead. The check cost one query; the fix would have cost a comparison rule on every text field.
+
+## AO. The $10-a-day shop with no customers
+
+Reported 17 Aug 2026 with a Vercel chart showing **$10–12 every day from 7 Aug to 16 Aug**: *"i have no
+customers and no merchants."* The 15 Aug breakdown was Edge Requests $3.66, Fluid Active CPU $3.25, Function
+Invocations $1.79, Fast Origin Transfer $0.93, Fluid Provisioned Memory $0.37 — $10.37.
+
+### It was Meta's AI crawler, and the proof took a code change
+
+Vercel's log stream carries `requestPath` and `requestMethod` but **no user agent and no client IP**, and
+every usage/observability endpoint returns 404 on this plan. So the traffic could be counted but not
+identified — and three plausible theories (crawler, self-inflicted loop, the agent's own testing) all fitted
+the same shape.
+
+What settled it: the log stream *does* carry a function's own `console` output. One temporary line in
+`middleware.ts`, sampled at 1 in 50 and gated behind `TRAFFIC_PROBE=on`, deployed, sampled, reverted:
+
+```
+ua:      Mozilla/5.0 (…) Chrome/145 (compatible; meta-externalagent/1.1 …)
+ip:      57.141.18.122   (Meta range, US)
+accept:  text/x-component
+referer: /en/shop/pako?category=pako&brand=biotechusa,solgar,
+         garden-of-life,lamberts&goal=thonjte
+```
+
+Three things in four lines:
+
+- **`meta-externalagent/1.1`** — Meta's AI training crawler.
+- **`accept: text/x-component`** — it is requesting **RSC payloads**, not pages. It follows Next.js prefetch
+  links, which is why POSTs to category pages appeared in the logs and read as Server Actions.
+- **The referer is the faceted filter walk** — the identical mechanism recorded after 8 Aug. `rel="nofollow"`
+  does not bind this crawler and `robots.txt: Disallow: /` is ignored outright.
+
+The sampling rate is why the probe was safe: 2% of requests, one `console.warn`, removed the same hour.
+
+### The fix, measured
+
+Vercel's **managed** `ai_bots` ruleset, set to deny. Managed rather than hand-written for a reason recorded
+below.
+
+| | requests/second | requests/day |
+| --- | --- | --- |
+| before | 21.3 | ~1,840,000 |
+| `ai_bots` deny | 0.5 | ~45,000 |
+| `ai_bots` + `bot_filter` | 0.2 | ~21,000 |
+
+`bot_filter` was enabled, measured, and then **turned off again**: it buys ~24,000 requests a day — pennies —
+and blocks `curl`, uptime monitors and anything else without a browser user agent. `/api/health` returned
+`Forbidden` to `curl` while it was on. The incremental protection did not justify breaking legitimate
+automation on a site whose crons run unattended.
+
+Real browsers verified at 200 on `/`, `/en/shop`, `/shop/vitaminat` and `/en/legal/terms` after **each**
+ruleset change, using Playwright with a genuine Chrome user agent — not `curl`, which is exactly the client a
+bot filter refuses.
+
+### The outage I caused getting there
+
+Before using the managed ruleset I wrote a custom WAF rate-limit rule and got its shape wrong:
+
+```json
+"action": { "mitigate": { "action": "deny", "rateLimit": { … } } }
+```
+
+Vercel read `action: "deny"` as the rule's action and the rate limit as decoration, so the rule denied
+**every request to every path**. The site returned 403 to everyone for about six minutes. Worse, removing the
+rule did not fix it — `actionDuration: "1h"` meant the bans it had already issued outlived the rule that
+issued them, and `firewallEnabled: false` was what actually restored service.
+
+Two rules out of it:
+
+1. **Prefer a managed ruleset to a hand-written one.** The managed rules are maintained against a moving
+   target and cannot be mis-shaped into denying everything.
+2. **Verify from outside your own network, immediately, before doing anything else.** I checked with `curl`
+   from the same machine, saw the rule "working", and moved on. It took an external fetch to reveal that the
+   403 was universal. A firewall change is not verified until something that is not you has loaded a page.
+
+### What is still true, and worth doing next
+
+**`/shop/[category]` never caches.** It declares `generateStaticParams` for all 16 categories, and then reads
+`searchParams` — which in Next 15 makes the route dynamic on *every* request, prebuilt params or not. So each
+of those crawl hits was a full server render with `no-store`, which is why Fluid Active CPU ($3.25) ran almost
+level with Edge Requests ($3.66). The prerender manifest confirms it: 20 dynamic routes are prerendered and
+`/[locale]/shop/[category]` is not among them.
+
+That is a real fix worth making — it helps customers as much as it helps the bill — but it is a refactor of
+the primary shopping surface, and the cost emergency did not require it. Left deliberately undone rather than
+attempted unwatched at the end of a long session.
+
+Also unresolved: **Vercel exposes no spend-limit API** that could be found; it is dashboard-only, under
+Settings → Billing → Spend Management. A limit that pauses at a few dollars a day would have turned ten days
+of silent burn into one afternoon's alert.
+
+### The rule that generalises
+
+The cheapest question here was *"who is calling?"*, and it went unanswered for a whole session because the
+obvious tools do not report it. Two theories were argued from request *shapes* — path mix, locale prefixes,
+POST ratios — when a single header would have settled it. **When traffic is the problem, identify the client
+before modelling the traffic.** Everything downstream of that identification took twenty minutes; everything
+upstream of it was guesswork.
