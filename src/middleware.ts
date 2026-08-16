@@ -68,29 +68,6 @@ function redirectPreservingCookies(request: NextRequest, source: NextResponse, t
 
 export async function middleware(request: NextRequest): Promise<NextResponse> {
   const { pathname } = request.nextUrl;
-
-  /*
-   * TEMPORARY — traffic identification, 17 Aug 2026. Remove once the source is known.
-   *
-   * The site is taking ~21 requests a second with no customers, costing ~$10/day, and Vercel's log stream
-   * carries no user agent or client IP. It does carry a function's own `console` output, so this is the one
-   * way to see who is calling without guessing. One line, one request in fifty, so the logging cannot itself
-   * become the cost.
-   */
-  if (process.env.TRAFFIC_PROBE === 'on' && Math.random() < 0.02) {
-    console.warn(
-      JSON.stringify({
-        probe: 'ua',
-        path: pathname,
-        ua: request.headers.get('user-agent')?.slice(0, 160) ?? '(none)',
-        ip: request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? '(none)',
-        ref: request.headers.get('referer')?.slice(0, 120) ?? '(none)',
-        country: request.headers.get('x-vercel-ip-country') ?? '(none)',
-        accept: request.headers.get('accept')?.slice(0, 60) ?? '(none)',
-      }),
-    );
-  }
-
   const isUnlocalized = UNLOCALIZED.some((prefix) => pathname.startsWith(prefix));
 
   // The intl middleware may return a rewrite or a redirect; either way the refreshed auth
