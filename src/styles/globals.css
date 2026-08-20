@@ -164,6 +164,19 @@
   --breakpoint-3xl: 112.5rem;
 }
 
+/**
+ * `short:` — viewports under 700px tall.
+ *
+ * Vertical space, not width, is the scarce resource on a 1366 x 768 laptop: after browser chrome the
+ * viewport is about 625px, and the homepage has to fit a hero, a trust strip and the category strip
+ * into it. Height media queries are the only honest way to spend padding differently there, because
+ * the hero is *content-bound* at that size — its `min-h` reservation stops governing, so the usual
+ * lever does nothing (see `hero-slide.tsx`).
+ *
+ * Used sparingly and only for vertical rhythm. Never to hide content.
+ */
+@custom-variant short (@media (height <= 43.75rem));
+
 /* ==========================================================================
    Base
    ========================================================================== */
@@ -320,6 +333,24 @@
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--color-ink-600);
+}
+
+/**
+ * A rail that scrolls without drawing a scrollbar.
+ *
+ * For a single-row shelf whose height is part of a fold budget (see `category-row.tsx`): a horizontal
+ * scrollbar adds 8-15px depending on platform, which is enough to push the row it belongs to below
+ * the fold on a laptop. The content stays reachable by drag, wheel, and keyboard — focus moves to the
+ * next link and the browser scrolls it into view — so this hides the indicator, not the affordance.
+ * The half-visible last item is what signals there is more.
+ */
+@utility no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 /** docs/04 §10 — the skip link is the first tab stop, visible only when focused. */

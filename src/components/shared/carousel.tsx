@@ -315,14 +315,12 @@ export function Carousel<T extends { id: string }>({
          */
         className={cn(
           'relative z-20 mt-1 mb-3 flex justify-center sm:absolute sm:inset-x-0 sm:mt-0 sm:mb-0',
-          clustered
-            ? 'sm:bottom-6 lg:bottom-10 lg:container-wide lg:justify-start'
-            : 'sm:bottom-3 lg:bottom-4',
+          clustered ? 'sm:bottom-6 lg:container-wide lg:justify-start' : 'sm:bottom-3 lg:bottom-4',
         )}
       >
         <div className={cn('flex items-center gap-3', clustered && 'lg:gap-4')}>
           {clustered && arrows && (
-            <div className="hidden items-center gap-2 lg:flex">
+            <div className="hidden items-center gap-2 lg:flex short:lg:hidden">
               <button
                 type="button"
                 onClick={() => go(active - 1, true)}

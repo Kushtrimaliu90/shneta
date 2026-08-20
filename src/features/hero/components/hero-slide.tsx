@@ -136,12 +136,39 @@ export function HeroSlideView({
          * The desktop cap goes 34rem → 48.75rem (780px) so a 1080p or taller screen gets a hero that
          * fills the fold on purpose rather than a 560px band floating in it.
          *
-         * **`calc(100svh - 14rem)` stays, and it is the important half.** That term is what reserves
-         * room for the trust strip inside the first viewport, and `e2e/hero.spec.ts` asserts it: at
-         * 1280 × 720 the min-height still resolves to 496px exactly as before, because 720 − 224 is
-         * smaller than the new cap. Only viewports tall enough to afford it see the larger hero.
+         * **The `calc(100svh - R)` term is the important half**, and `R` is now 17rem rather than 14.
+         * That term reserves room for what follows the hero inside the first viewport, and the
+         * arithmetic is worth stating because it is counter-intuitive: whenever `100svh - R` is the
+         * smaller side of the `min()`, the space between the hero's bottom edge and the fold is
+         *
+         *     vh − 124 − (vh − R)  =  R − 124
+         *
+         * — **a constant**, independent of screen size (124px = the 44px announcement bar plus the
+         * 80px header). The room below the hero is therefore a budget the hero hands out, not
+         * something a larger monitor earns.
+         *
+         * At `R = 14rem` that budget was 100px and the 50px trust strip spent half of it, which is
+         * why the category strip landed below the fold on *every* desktop viewport rather than on
+         * short ones only. `R = 19rem` gives 180px: 50 for the trust strip and 130 for a ~120px
+         * category strip, which clears the fold from 1366 × 625 upward.
+         *
+         * The old 383px category *cards* would have needed `R ≈ 35rem` — a 65px hero on a 1366 × 768
+         * laptop — which is why they became a strip instead (see `category-row.tsx`). The cost here
+         * is 80px of hero height on viewports shorter than about 1100px, and nothing at all at 2560,
+         * where the 48.75rem cap governs instead.
+         *
+         * **`py-10`, not `py-16`, and this is the one exception to the arithmetic above.** The
+         * reservation only governs while `min-h` is what decides the height. On a 1366 x 625 viewport
+         * the hero's *content* is taller than `100svh - 19rem`, so the hero is content-bound at 390px
+         * and raising `R` buys nothing there — a box does not shrink below what is inside it. Vertical
+         * padding is the only lever left, and it is free everywhere else: from 1920 up the hero is
+         * min-height-bound, so the 48px this returns changes nothing on those screens and is exactly
+         * what lets the category pills clear the fold on a laptop.
+         *
+         * `e2e/hero.spec.ts` still holds: the reservation only grew, so the trust strip has more
+         * room inside the first viewport, not less.
          */
-        'min-h-[24rem] pt-2 pb-3 sm:py-4 lg:min-h-[min(48.75rem,calc(100svh-14rem))] lg:py-16',
+        'min-h-[24rem] pt-2 pb-3 sm:py-4 lg:min-h-[min(48.75rem,calc(100svh-19rem))] lg:py-10 short:lg:py-6',
       )}
     >
       {desktopSrc && (
@@ -275,7 +302,21 @@ export function HeroSlideView({
         what makes the join exact.
       */}
       <div className="relative z-10 container-wide grid w-full items-center gap-4 sm:gap-6 lg:grid-cols-2 lg:gap-12">
-        <div>
+        {/*
+          `lg:pb-20` is clearance for the carousel's control cluster, which is absolutely positioned
+          at the foot of this column.
+
+          It is not cosmetic spacing. Trimming the hero's padding to `py-10` made the hero
+          content-bound on a 1366 x 625 viewport, and a content-bound box ends exactly where its
+          content ends — so the cluster landed **on top of the primary CTA**, which is docs/13 §N8
+          repeating itself with different elements. Two things pinned to the same edge always end
+          that way, and z-index would only decide which one won the click.
+
+          80px against a cluster that occupies 24-68px from the bottom edge. Padding rather than a
+          margin so it counts toward this column's height, which is what makes the hero grow to hold
+          both instead of stacking them. Free on any viewport where `min-h` governs.
+        */}
+        <div className="lg:pb-20 short:lg:pb-12">
           {eyebrow && <p className={cn('eyebrow', light && 'text-lime-400')}>{eyebrow}</p>}
 
           <Headline

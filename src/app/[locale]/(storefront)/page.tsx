@@ -57,7 +57,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
   const [products, categoryTiles, slides, heroSettings, trustItems, thresholdCents] =
     await Promise.all([
       listFeaturedProducts(12),
-      getCategoryTiles(6),
+      getCategoryTiles(8),
       listHeroSlides(),
       getHeroSettings(),
       getTrustItems(),
@@ -84,6 +84,22 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
       )}
 
       <TrustStrip items={trustItems} locale={locale} freeShippingThreshold={threshold} />
+
+      {/*
+        docs/05 §1.6 — the category showcase, rebuilt on real product photography (docs/13 §AJ).
+
+        **Directly under the trust strip, not at the foot of the page.** Categories are what most
+        people arrive looking for, and they were the last thing on the page: measured on the live
+        site at 1920 x 937 the shelf's heading sat at roughly 2560 px, so finding it took about two
+        and a half screens of scrolling past a hero, four intent tiles and twelve product cards.
+        A shopper who knows they want vitamins should not have to read the whole homepage first.
+
+        It sits above `IntentBand` rather than below it because the two answer different questions —
+        see the note in `intent-band.tsx`. Categories are the concrete answer ("vitamins, minerals,
+        sports nutrition"); the band is the oblique one ("by goal, bestsellers, offers"). Concrete
+        first.
+      */}
+      <CategoryRow tiles={categoryTiles} locale={locale} />
 
       <IntentBand locale={locale} />
 
@@ -124,9 +140,6 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
           </div>
         </section>
       )}
-
-      {/* docs/05 §1.6 — the category showcase, rebuilt on real product photography (docs/13 §AJ). */}
-      <CategoryRow tiles={categoryTiles} locale={locale} />
     </>
   );
 }
