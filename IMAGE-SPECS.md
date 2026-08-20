@@ -15,7 +15,7 @@ were audited).
 | Product photo           | **1600 × 1600** | 1:1    | No — padded                  |
 | Hero, desktop           | **2560 × 1600** | 8:5    | **Yes, heavily**             |
 | Hero, phone             | **1200 × 675**  | 16:9   | Yes, mildly                  |
-| Sponsored banner        | **3200 × 640**  | 5:1    | Yes                          |
+| Sponsored banner        | **3200 × 540**  | 6:1    | Yes — box runs 4:1 to 7.8:1  |
 | Banner, phone           | **1200 × 600**  | 2:1    | Yes                          |
 | Social share (none yet) | **1200 × 630**  | 1.91:1 | Yes, to square in chat lists |
 
@@ -149,21 +149,26 @@ The wide strip on shop and category pages. Two creatives per placement. Headline
 optional fields that render over a dark scrim on the left, so artwork already carrying its message needs
 neither.
 
-- **Supply:** 3200 × 640 (desktop), 1200 × 600 (phone)
+- **Supply:** 3200 × 540 (desktop), 1200 × 600 (phone)
 - **Behaviour:** `cover` — crops
 - **Bucket:** `content`, max 4 MB
 
 | Window         | Renders at | Shape |
 | -------------- | ---------- | ----- |
-| 390            | 348 × 174  | 2:1   |
+| 390            | 348 × 176  | 2:1   |
 | 768            | 726 × 182  | 4:1   |
-| 1024           | 971 × 194  | 5:1   |
-| 1440           | 1366 × 273 | 5:1   |
-| 1920 and above | 1582 × 316 | 5:1   |
+| 1024           | 971 × 196  | 5:1   |
+| 1440           | 1368 × 202 | 6.8:1 |
+| 1920 and above | 1584 × 202 | 7.8:1 |
 
-One desktop file is stretched across three shapes — 4:1 on a tablet, 5:1 from 1024 up — so top and
-bottom get shaved on the wider ones. **Keep type and logos inside the middle 80% of the height.** If you
-intend to use the headline and button fields, leave the left third visually quiet.
+The height is **capped at 200 px from 1024 up**, so the slot is a consistent band rather than
+something that inflates with the monitor. It used to be a pure 5:1 ratio, which made it 318 px tall at
+1920 — 29% of the first screen, and it pushed the first product row past the fold.
+
+One desktop file is stretched from **4:1 on a tablet to 7.8:1 on a wide monitor**, so a 6:1 master
+loses some width on the narrow end and some height on the wide end. **Keep type and logos inside the
+middle 66% of the width and 76% of the height.** If you intend to use the headline and button fields,
+leave the left third visually quiet.
 
 ---
 

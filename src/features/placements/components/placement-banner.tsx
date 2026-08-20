@@ -157,7 +157,25 @@ function PlacementSlide({
         The box owns the aspect ratio and the image fills it — the height is reserved before the
         creative resolves, so a late image cannot move the grid below it.
       */}
-      <div className="relative aspect-[2/1] w-full sm:aspect-[4/1] lg:aspect-[5/1]">
+      {/*
+        A band, not a billboard.
+
+        The aspect ratios alone meant the slot grew with the monitor: 5:1 of a 1584px container is
+        **318px**, so on a 1920 screen the advertisement took 29% of the first viewport and pushed the
+        first product row to y=693 — measured on the live page. The title, the count and the whole
+        banner accounted for 450px before a single product appeared, and 318 of those 450 were the ad.
+        It also left a 240 x 350 hole in the filter column beside it, because the rail can only start
+        once the banner ends.
+
+        `lg:max-h-[12.5rem]` caps it at 200px, which is where the 5:1 ratio already lands at 1024 — so
+        from `lg` up the slot is a consistent ~195-200px band instead of something that inflates with
+        the screen. Everything below it moves up by ~118px at 1920, and the dead column shrinks with it.
+        Still a generous leaderboard: the headline, subline and button need about 110px of that.
+
+        The ratios stay as the floor so narrow screens are untouched, and `object-cover` means the
+        creative fills whatever the box resolves to — see IMAGE-SPECS.md for the master to supply.
+      */}
+      <div className="relative aspect-[2/1] w-full sm:aspect-[4/1] lg:aspect-[5/1] lg:max-h-[12.5rem]">
         <Image
           src={mobile ?? desktop}
           alt={mobileAlt}
