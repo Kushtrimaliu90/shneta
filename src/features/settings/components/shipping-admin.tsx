@@ -3,6 +3,7 @@
 import { useActionState, useState } from 'react';
 import { Plus, Truck } from 'lucide-react';
 import { Alert } from '@/components/ui/alert';
+import { ActionForm } from '@/components/ui/action-form';
 import { Button } from '@/components/ui/button';
 import { SubmitButton } from '@/components/ui/submit-button';
 import {
@@ -95,7 +96,9 @@ export function ShippingAdmin({ rows }: { rows: ShippingMethodRow[] }) {
                   type="button"
                   size="sm"
                   variant="ghost"
-                  onClick={() => setEditing(editing !== 'new' && editing?.id === row.id ? null : row)}
+                  onClick={() =>
+                    setEditing(editing !== 'new' && editing?.id === row.id ? null : row)
+                  }
                 >
                   Edit
                 </Button>
@@ -130,7 +133,11 @@ function MethodForm({
   const [state, action] = useActionState<SettingsState, FormData>(saveShippingMethod, null);
 
   return (
-    <form action={action} className="rounded-lg border border-line-strong bg-surface p-4">
+    <ActionForm
+      action={action}
+      state={state}
+      className="rounded-lg border border-line-strong bg-surface p-4"
+    >
       {method && <input type="hidden" name="id" value={method.id} />}
 
       <div className="grid gap-3 sm:grid-cols-3">
@@ -294,6 +301,6 @@ function MethodForm({
           {formError(state)}
         </Alert>
       )}
-    </form>
+    </ActionForm>
   );
 }

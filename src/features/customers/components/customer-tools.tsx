@@ -3,6 +3,7 @@
 import { useActionState, useState } from 'react';
 import { ShieldAlert } from 'lucide-react';
 import { Alert } from '@/components/ui/alert';
+import { ActionForm } from '@/components/ui/action-form';
 import { Button } from '@/components/ui/button';
 import { SubmitButton } from '@/components/ui/submit-button';
 import {
@@ -41,7 +42,7 @@ export function LoyaltyAdjuster({ userId, balance }: { userId: string; balance: 
   const error = errorOf(state);
 
   return (
-    <form action={action} className="mt-3 flex flex-wrap items-start gap-3">
+    <ActionForm action={action} state={state} className="mt-3 flex flex-wrap items-start gap-3">
       <input type="hidden" name="userId" value={userId} />
 
       <div className="w-32">
@@ -91,7 +92,7 @@ export function LoyaltyAdjuster({ userId, balance }: { userId: string; balance: 
           {error}
         </Alert>
       )}
-    </form>
+    </ActionForm>
   );
 }
 
@@ -123,7 +124,11 @@ export function AnonymizeCustomer({ userId, email }: { userId: string; email: st
           Erase this customer&rsquo;s data
         </Button>
       ) : (
-        <form action={action} className="rounded-lg border border-error bg-error/5 p-4">
+        <ActionForm
+          action={action}
+          state={state}
+          className="rounded-lg border border-error bg-error/5 p-4"
+        >
           <input type="hidden" name="userId" value={userId} />
 
           <p className="flex items-start gap-2 text-sm font-medium text-ink-900">
@@ -131,10 +136,10 @@ export function AnonymizeCustomer({ userId, email }: { userId: string; email: st
             This cannot be undone.
           </p>
           <p className="mt-2 max-w-prose text-sm text-ink-600">
-            The name, email, phone and addresses are removed from the profile, every order and
-            every subscription. Orders themselves are kept — totals, dates and the delivery city —
-            because the business has already reported on them and the law requires they be
-            retained. The person can no longer sign in.
+            The name, email, phone and addresses are removed from the profile, every order and every
+            subscription. Orders themselves are kept — totals, dates and the delivery city — because
+            the business has already reported on them and the law requires they be retained. The
+            person can no longer sign in.
           </p>
 
           <label htmlFor="confirm-email" className="mt-3 block text-xs font-medium text-ink-900">
@@ -162,7 +167,7 @@ export function AnonymizeCustomer({ userId, email }: { userId: string; email: st
               {error}
             </Alert>
           )}
-        </form>
+        </ActionForm>
       )}
     </div>
   );

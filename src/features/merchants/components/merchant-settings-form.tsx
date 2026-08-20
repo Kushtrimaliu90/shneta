@@ -3,13 +3,11 @@
 import { useActionState, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Alert } from '@/components/ui/alert';
+import { ActionForm } from '@/components/ui/action-form';
 import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { SubmitButton } from '@/components/ui/submit-button';
-import {
-  updateMerchantProfile,
-  type ProfileState,
-} from '@/features/merchants/profile-actions';
+import { updateMerchantProfile, type ProfileState } from '@/features/merchants/profile-actions';
 import type { MyMerchant } from '@/features/merchants/queries';
 import { settingsErrorLeaf } from '@/features/merchants/error-keys';
 
@@ -51,7 +49,7 @@ export function MerchantSettingsForm({ merchant }: { merchant: MyMerchant }) {
         </dl>
       </section>
 
-      <form action={action} className="flex flex-col gap-5">
+      <ActionForm action={action} state={state} className="flex flex-col gap-5">
         <section aria-labelledby="editable" className="flex flex-col gap-4">
           <h3 id="editable" className="font-display text-lg font-semibold text-forest-900">
             {t('editableTitle')}
@@ -171,7 +169,7 @@ export function MerchantSettingsForm({ merchant }: { merchant: MyMerchant }) {
         <div>
           <SubmitButton>{t('save')}</SubmitButton>
         </div>
-      </form>
+      </ActionForm>
     </div>
   );
 }

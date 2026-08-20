@@ -4951,3 +4951,113 @@ Two empty slots worth knowing about: `/goals` tiles (3:2) and knowledge article 
 their fallbacks because no image path is set on any row, and `/brands` renders no logo at all. And there is
 **no social share image anywhere** — `openGraph` sets a title and description but no `images`, and no
 `opengraph-image` file exists, so every WhatsApp or Facebook share of the shop shows text only.
+
+## AW. Every form on the site emptied itself when it reported an error
+
+Reported from real use, on the one form where it costs money: a customer filled in checkout, the coupon
+was rejected for not meeting its minimum, the error appeared **correctly** — and every field was blank.
+Name, phone, address, city, notes. All to be typed again, on a phone, to fix a mistake in a field they
+had got right.
+
+### It was never a checkout bug
+
+Reproduced on `/auth/sign-in`, chosen because it has no side effects:
+
+```
+before submit  email = "no-such-person-9f2a@biocode.test"
+after  submit  email = ""
+after  submit  password = ""
+error shown          = Email-i ose fjalëkalimi nuk është i saktë.
+```
+
+**React 19 resets the uncontrolled fields of a `<form action={fn}>` once the action resolves, and it
+does not look at what the action returned.** A rejected coupon and a placed order are the same event to
+it. So the behaviour was site-wide, and every form built the sanctioned way — `useActionState` plus a
+Server Action returning `ActionResult` — had it.
+
+`ActionResult` is the structural reason it could not be fixed field-by-field on the way out:
+`{ ok: false, error, fieldErrors? }` carries what was _wrong_ and has no channel for what was _sent_.
+
+### What was already in place
+
+Three prior encounters with this, none of them joined up:
+
+| Where                                            | Mechanism                                           |
+| ------------------------------------------------ | --------------------------------------------------- |
+| `placement-editor`, `hero-admin`, `slide-editor` | hand-rolled `Object.fromEntries` + remount key      |
+| `product-editor`, `bulk-decide`                  | `useFormDraft`, which replaced four such copies     |
+| `order-lookup-form`                              | the action returns `values`; strongest of the three |
+
+Everything else — checkout, sign-up, contact, reviews, the merchant application, the address book — was
+exposed. The two admin mechanisms had been built and documented twice without anyone noticing that the
+customer-facing forms had the same defect.
+
+### The fix
+
+`<ActionForm>` in `src/components/ui/action-form.tsx`. It snapshots the fields in the submit capture
+phase and, when the state comes back `ok: false`, puts back what disagrees. Converting a form is one
+line, so no field can be forgotten — which is the failure mode of the per-field approaches above.
+
+**The rule that makes it safe to write into the DOM:** a field is only touched when it _disagrees_ with
+what was submitted. A React-controlled input is driven by state the reset does not touch, so React
+re-asserts its value before this runs and it always already agrees — it cannot be clobbered. No
+detection of controlled-vs-uncontrolled is needed; the disagreement is the discriminator. Checkout's
+shipping-method radio is controlled this way, and a DOM value silently disagreeing with React state
+would have been a worse bug than the one being fixed.
+
+Out of scope on purpose: passwords (cleared, as everywhere else), checkboxes, radios and selects (one
+click each, and the ones most likely to be controlled), and file inputs (a `FileList` cannot be
+assigned).
+
+### A second bug found by the test that failed
+
+Writing the "respects a field the customer deliberately emptied" case turned up something the original
+report did not mention. A field seeded from the session — `defaultEmail` on checkout — that the customer
+**clears on purpose** is reset by React back to the stale seeded value, not to empty. So the address they
+had just removed reappears, and on checkout that is an order shipped to the wrong place. The snapshot
+knows the field was submitted empty, so `ActionForm` now clears it back. This was pre-existing React
+behaviour, not something the fix introduced.
+
+### Which mechanism to use where
+
+`useFormDraft` stays, and both files now say why. An editor's fields default from a **saved record**, so
+it has to tell three states apart — the rejected draft, the record to fall back to, and a value the
+operator deliberately cleared — and it handles the checkbox groups editors are full of. That earns its
+per-field wiring. A checkout or contact form has no record behind it, so "give back exactly what was
+submitted" is the whole requirement, and it should carry no wiring at all.
+
+**Is there a record behind these fields?** If yes, the hook. If no, the component.
+
+### Scope
+
+64 forms across 40 files. 37 forms containing only hidden inputs and a button were reverted to plain
+`<form>` — a delete button has nothing to keep, and wrapping it would only invite the question.
+
+Every pairing was validated against the nearest preceding `useActionState`, which caught three forms
+where a colliding dispatch name (`action`) had been matched to a different component's state. All three
+were delete buttons whose hooks discard state entirely (`const [, action] = …`), so they fell out in the
+revert pass.
+
+Verified in a real browser against the dev server, not only in jsdom: sign-in keeps the email and still
+clears the password, and the contact form keeps a full Albanian message and the sender's name when the
+email fails validation.
+
+### What is still not covered
+
+A form submitted **before hydration** has no snapshot to restore from, so it still empties. Measured on
+sign-in, filling and clicking at each point:
+
+| Submitted                         | Email field afterwards |
+| --------------------------------- | ---------------------- |
+| immediately on `domcontentloaded` | **lost**               |
+| after `networkidle` + 1.5s        | kept                   |
+
+Not a regression — this is the behaviour every form had before, and the window is narrow in practice
+because filling a form takes seconds while hydration takes hundreds of milliseconds. Closing it needs
+the values returned from the server so they arrive as `defaultValue`, which is the one mechanism that
+fixes both paths at once, and is what `order-lookup-form` already does. Worth doing for checkout and
+sign-in specifically if it ever proves to matter.
+
+`<select>` values are not restored. They reset to their `defaultValue`, which for an editor is the saved
+record and for `subscription-card`'s frequency picker is the current setting — correct in both cases, and
+one click otherwise.

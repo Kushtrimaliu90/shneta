@@ -4,6 +4,7 @@ import { useActionState, useRef, useState } from 'react';
 import Image from 'next/image';
 import { Plus, Upload } from 'lucide-react';
 import { Alert } from '@/components/ui/alert';
+import { ActionForm } from '@/components/ui/action-form';
 import { buttonVariants } from '@/components/ui/button';
 import { SubmitButton } from '@/components/ui/submit-button';
 import { CATALOG_ERRORS } from '@/features/catalog/admin-copy';
@@ -265,7 +266,7 @@ function TaxonomyForm({
         {row ? `Edit ${row.nameSq || row.slug}` : `New ${config.singular}`}
       </h2>
 
-      <form action={formAction} className="mt-3 flex flex-col gap-3">
+      <ActionForm action={formAction} state={state} className="mt-3 flex flex-col gap-3">
         <input type="hidden" name="kind" value={kind} />
         {row && <input type="hidden" name="id" value={row.id} />}
 
@@ -477,7 +478,7 @@ function TaxonomyForm({
             Cancel
           </button>
         </div>
-      </form>
+      </ActionForm>
 
       {config.hasLogo && row && logoBaseUrl && (
         <BrandLogo kind={kind} brandId={row.id} logoPath={row.logoPath} baseUrl={logoBaseUrl} />

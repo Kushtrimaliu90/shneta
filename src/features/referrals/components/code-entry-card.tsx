@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl';
 import { Gift } from 'lucide-react';
 import { Link } from '@/i18n/routing';
 import { Card, CardContent } from '@/components/ui/card';
+import { ActionForm } from '@/components/ui/action-form';
 import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Alert } from '@/components/ui/alert';
@@ -53,7 +54,12 @@ export function ReferralCodeEntry({ suggestedCode }: { suggestedCode: string | n
             </h2>
             <p className="mt-1 text-sm text-ink-600">{t('account.referrals.haveCodeBody')}</p>
 
-            <form action={formAction} className="mt-4 flex flex-col gap-3" noValidate>
+            <ActionForm
+              action={formAction}
+              state={state}
+              className="mt-4 flex flex-col gap-3"
+              noValidate
+            >
               {failure && !fieldInvalid && <Alert tone="error">{t(failure.error)}</Alert>}
 
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
@@ -99,7 +105,7 @@ export function ReferralCodeEntry({ suggestedCode }: { suggestedCode: string | n
                   ),
                 })}
               </p>
-            </form>
+            </ActionForm>
           </div>
         </div>
       </CardContent>

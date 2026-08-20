@@ -6,6 +6,7 @@ import { formatPrice } from '@/lib/money';
 import { pickLocale } from '@/lib/i18n';
 import type { Locale } from '@/lib/constants';
 import { Field } from '@/components/ui/field';
+import { ActionForm } from '@/components/ui/action-form';
 import { Input } from '@/components/ui/input';
 import { Alert } from '@/components/ui/alert';
 import { SubmitButton } from '@/components/ui/submit-button';
@@ -63,7 +64,12 @@ export function CheckoutForm({
   const fieldErrors = state && !state.ok ? state.fieldErrors : undefined;
 
   return (
-    <form action={formAction} className="grid gap-10 lg:grid-cols-[1.4fr_1fr] lg:gap-16" noValidate>
+    <ActionForm
+      action={formAction}
+      state={state}
+      className="grid gap-10 lg:grid-cols-[1.4fr_1fr] lg:gap-16"
+      noValidate
+    >
       <div className="flex flex-col gap-8">
         {state && !state.ok && (
           <Alert tone="error">
@@ -361,6 +367,6 @@ export function CheckoutForm({
           <p className="mt-3 text-center text-xs text-ink-500">{t('cart.codNote')}</p>
         </div>
       </aside>
-    </form>
+    </ActionForm>
   );
 }

@@ -4,6 +4,7 @@ import { useActionState, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Check, PackageCheck, Truck, X } from 'lucide-react';
 import { Alert } from '@/components/ui/alert';
+import { ActionForm } from '@/components/ui/action-form';
 import { Button } from '@/components/ui/button';
 import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
@@ -94,7 +95,11 @@ export function FulfilmentActionsPanel({ fulfilment }: { fulfilment: FulfilmentD
         </div>
 
         {declining && (
-          <form action={decline} className="flex flex-col gap-3 border-t border-line pt-4">
+          <ActionForm
+            action={decline}
+            state={declineState}
+            className="flex flex-col gap-3 border-t border-line pt-4"
+          >
             <input type="hidden" name="fulfilmentId" value={fulfilment.id} />
             <label className="flex flex-col gap-1 text-sm">
               <span className="font-medium text-ink-900">{t('declineReason')}</span>
@@ -113,7 +118,7 @@ export function FulfilmentActionsPanel({ fulfilment }: { fulfilment: FulfilmentD
                 {t('confirmDecline')}
               </SubmitButton>
             </div>
-          </form>
+          </ActionForm>
         )}
       </div>
     );
@@ -137,7 +142,11 @@ export function FulfilmentActionsPanel({ fulfilment }: { fulfilment: FulfilmentD
 
   if (fulfilment.status === 'packed') {
     return (
-      <form action={ship} className="flex flex-col gap-4 rounded-lg border border-line bg-surface p-4">
+      <ActionForm
+        action={ship}
+        state={shipState}
+        className="flex flex-col gap-4 rounded-lg border border-line bg-surface p-4"
+      >
         <input type="hidden" name="fulfilmentId" value={fulfilment.id} />
         <div>
           <p className="font-medium text-ink-900">{t('nextShip')}</p>
@@ -161,7 +170,7 @@ export function FulfilmentActionsPanel({ fulfilment }: { fulfilment: FulfilmentD
             {t('markShipped')}
           </SubmitButton>
         </div>
-      </form>
+      </ActionForm>
     );
   }
 

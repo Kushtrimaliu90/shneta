@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from 'react';
 import { Alert } from '@/components/ui/alert';
+import { ActionForm } from '@/components/ui/action-form';
 import { buttonVariants } from '@/components/ui/button';
 import { SubmitButton } from '@/components/ui/submit-button';
 import { ORDER_ERRORS, TRANSITION_LABELS } from '@/features/admin/copy';
@@ -103,7 +104,11 @@ export function ShipmentForm({ orderId }: { orderId: string }) {
   }
 
   return (
-    <form action={formAction} className="rounded-md border border-line-strong bg-surface p-4">
+    <ActionForm
+      action={formAction}
+      state={state}
+      className="rounded-md border border-line-strong bg-surface p-4"
+    >
       <input type="hidden" name="orderId" value={orderId} />
       <h3 className="font-display text-sm font-semibold text-forest-900">Shipment details</h3>
 
@@ -160,7 +165,7 @@ export function ShipmentForm({ orderId }: { orderId: string }) {
       </div>
 
       <ActionError state={state} />
-    </form>
+    </ActionForm>
   );
 }
 
@@ -182,7 +187,11 @@ export function CancelOrderForm({ orderId }: { orderId: string }) {
   }
 
   return (
-    <form action={formAction} className="rounded-md border border-error/40 bg-surface p-4">
+    <ActionForm
+      action={formAction}
+      state={state}
+      className="rounded-md border border-error/40 bg-surface p-4"
+    >
       <input type="hidden" name="orderId" value={orderId} />
       <h3 className="font-display text-sm font-semibold text-forest-900">Cancel this order</h3>
       <p className="mt-1 text-xs text-ink-600">
@@ -220,7 +229,7 @@ export function CancelOrderForm({ orderId }: { orderId: string }) {
       </div>
 
       <ActionError state={state} />
-    </form>
+    </ActionForm>
   );
 }
 
@@ -264,7 +273,11 @@ export function RefundForm({
   }
 
   return (
-    <form action={formAction} className="rounded-md border border-line-strong bg-surface p-4">
+    <ActionForm
+      action={formAction}
+      state={state}
+      className="rounded-md border border-line-strong bg-surface p-4"
+    >
       <input type="hidden" name="orderId" value={orderId} />
       <h3 className="font-display text-sm font-semibold text-forest-900">Issue a refund</h3>
       <p className="mt-1 text-xs text-ink-600">
@@ -329,7 +342,7 @@ export function RefundForm({
       </div>
 
       <ActionError state={state} />
-    </form>
+    </ActionForm>
   );
 }
 

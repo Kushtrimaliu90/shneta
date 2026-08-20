@@ -9,6 +9,7 @@ import { formatPrice } from '@/lib/money';
 import type { Locale } from '@/lib/constants';
 import { cn } from '@/lib/utils';
 import { Alert } from '@/components/ui/alert';
+import { ActionForm } from '@/components/ui/action-form';
 import { SubmitButton } from '@/components/ui/submit-button';
 import { ScrollRegion } from '@/components/ui/scroll-region';
 import {
@@ -63,7 +64,7 @@ export function OffersTable({
         </thead>
         <tbody>
           {offers.map((offer) => (
-            <tr key={offer.id} className="border-b border-line last:border-0 align-top">
+            <tr key={offer.id} className="border-b border-line align-top last:border-0">
               <td className="px-3 py-3">
                 <Link
                   href={`/merchant/offers/${offer.id}`}
@@ -145,7 +146,7 @@ function StockCell({ offer }: { offer: OfferRow }) {
   const inputId = `stock-${offer.id}`;
 
   return (
-    <form action={action} className="flex flex-col gap-1">
+    <ActionForm action={action} state={state} className="flex flex-col gap-1">
       <input type="hidden" name="offerId" value={offer.id} />
       <div className="flex items-center gap-1.5">
         <label htmlFor={inputId} className="sr-only">
@@ -174,7 +175,7 @@ function StockCell({ offer }: { offer: OfferRow }) {
           {t(`errors.${offerErrorLeaf(state.error)}`)}
         </p>
       )}
-    </form>
+    </ActionForm>
   );
 }
 
@@ -202,7 +203,9 @@ function PauseCell({ offer }: { offer: OfferRow }) {
         )}
         {pausing ? t('pause') : t('resume')}
       </SubmitButton>
-      {state && !state.ok && <Alert tone="error">{t(`errors.${offerErrorLeaf(state.error)}`)}</Alert>}
+      {state && !state.ok && (
+        <Alert tone="error">{t(`errors.${offerErrorLeaf(state.error)}`)}</Alert>
+      )}
     </form>
   );
 }
@@ -230,7 +233,10 @@ function StatusChip({ status, label }: { status: OfferRow['status']; label: stri
 
   return (
     <span
-      className={cn('inline-block rounded-sm px-1.5 py-0.5 font-ui text-[11px] font-semibold', tone)}
+      className={cn(
+        'inline-block rounded-sm px-1.5 py-0.5 font-ui text-[11px] font-semibold',
+        tone,
+      )}
     >
       {label}
     </span>

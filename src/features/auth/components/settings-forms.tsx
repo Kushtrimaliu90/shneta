@@ -3,6 +3,7 @@
 import { useActionState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Field } from '@/components/ui/field';
+import { ActionForm } from '@/components/ui/action-form';
 import { Input } from '@/components/ui/input';
 import { Alert } from '@/components/ui/alert';
 import { SubmitButton } from '@/components/ui/submit-button';
@@ -18,7 +19,7 @@ export function ProfileForm({ profile }: { profile: Profile }) {
   const fieldErrors = state && !state.ok ? state.fieldErrors : undefined;
 
   return (
-    <form action={formAction} className="flex flex-col gap-4" noValidate>
+    <ActionForm action={formAction} state={state} className="flex flex-col gap-4" noValidate>
       {state?.ok && state.data?.message && <Alert tone="success">{t(state.data.message)}</Alert>}
       {state && !state.ok && <Alert tone="error">{t(state.error)}</Alert>}
 
@@ -98,7 +99,7 @@ export function ProfileForm({ profile }: { profile: Profile }) {
       <div>
         <SubmitButton loadingLabel={t('common.loading')}>{t('account.settings.save')}</SubmitButton>
       </div>
-    </form>
+    </ActionForm>
   );
 }
 
@@ -109,7 +110,7 @@ export function ChangePasswordForm() {
   const fieldErrors = state && !state.ok ? state.fieldErrors : undefined;
 
   return (
-    <form action={formAction} className="flex flex-col gap-4" noValidate>
+    <ActionForm action={formAction} state={state} className="flex flex-col gap-4" noValidate>
       {state?.ok && state.data?.message && <Alert tone="success">{t(state.data.message)}</Alert>}
       {state && !state.ok && <Alert tone="error">{t(state.error)}</Alert>}
 
@@ -141,6 +142,6 @@ export function ChangePasswordForm() {
           {t('account.settings.changePassword')}
         </SubmitButton>
       </div>
-    </form>
+    </ActionForm>
   );
 }

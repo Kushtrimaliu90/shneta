@@ -3,6 +3,7 @@
 import { useActionState } from 'react';
 import Link from 'next/link';
 import { SubmitButton } from '@/components/ui/submit-button';
+import { ActionForm } from '@/components/ui/action-form';
 import { removeArticle, saveArticle, type ContentState } from '@/features/content/editor-actions';
 import {
   BilingualField,
@@ -58,7 +59,7 @@ export function ArticleEditor({
 
   return (
     <>
-      <form action={action} className="max-w-4xl">
+      <ActionForm action={action} state={state} className="max-w-4xl">
         {article && <input type="hidden" name="id" value={article.id} />}
 
         <div className="grid gap-3 sm:grid-cols-3">
@@ -219,7 +220,7 @@ export function ArticleEditor({
         </div>
 
         <Feedback state={state} saved="Saved. The shop will show it on the next request." />
-      </form>
+      </ActionForm>
 
       {/*
         Removal lives **outside** the editor form, not in that footer.

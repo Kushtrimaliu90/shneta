@@ -3,6 +3,7 @@
 import { useActionState, useState } from 'react';
 import { Plus } from 'lucide-react';
 import { Alert } from '@/components/ui/alert';
+import { ActionForm } from '@/components/ui/action-form';
 import { buttonVariants } from '@/components/ui/button';
 import { SubmitButton } from '@/components/ui/submit-button';
 import { CATALOG_ERRORS } from '@/features/catalog/admin-copy';
@@ -66,8 +67,9 @@ export function NewProductForm({ brands }: { brands: { id: string; name: string 
   }
 
   return (
-    <form
+    <ActionForm
       action={formAction}
+      state={state}
       className="w-full rounded-lg border border-line-strong bg-surface p-4"
     >
       <h2 className="font-display text-sm font-semibold text-forest-900">New product</h2>
@@ -189,6 +191,6 @@ export function NewProductForm({ brands }: { brands: { id: string; name: string 
             : CATALOG_ERRORS[state.error]}
         </Alert>
       )}
-    </form>
+    </ActionForm>
   );
 }

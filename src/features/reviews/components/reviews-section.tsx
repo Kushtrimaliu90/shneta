@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl';
 import { BadgeCheck, Star, ThumbsUp } from 'lucide-react';
 import { Link } from '@/i18n/routing';
 import { Alert } from '@/components/ui/alert';
+import { ActionForm } from '@/components/ui/action-form';
 import { buttonVariants } from '@/components/ui/button';
 import { SubmitButton } from '@/components/ui/submit-button';
 import { ReviewSummaryPanel } from '@/features/reviews/components/review-summary';
@@ -323,7 +324,11 @@ function ReviewForm({ productId, onDone }: { productId: string; onDone: () => vo
   }
 
   return (
-    <form action={formAction} className="rounded-lg border border-line-strong bg-surface p-4">
+    <ActionForm
+      action={formAction}
+      state={state}
+      className="rounded-lg border border-line-strong bg-surface p-4"
+    >
       <input type="hidden" name="productId" value={productId} />
       <input type="hidden" name="rating" value={rating} />
 
@@ -400,6 +405,6 @@ function ReviewForm({ productId, onDone }: { productId: string; onDone: () => vo
           {tRoot(state.error)}
         </Alert>
       )}
-    </form>
+    </ActionForm>
   );
 }

@@ -5,6 +5,7 @@ import { ExternalLink } from 'lucide-react';
 import { formatPrice } from '@/lib/money';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { ActionForm } from '@/components/ui/action-form';
 import { SubmitButton } from '@/components/ui/submit-button';
 import { ScrollRegion } from '@/components/ui/scroll-region';
 import { decideBatch, type DecideBatchState } from '@/features/merchants/batch-actions';
@@ -118,8 +119,9 @@ export function BatchReview({ batch }: { batch: BatchWithRows }) {
       )}
 
       {panel && (
-        <form
+        <ActionForm
           action={action}
+          state={state}
           className="flex flex-col gap-3 rounded-md border border-line bg-cream p-4"
         >
           <input type="hidden" name="batchId" value={batch.id} />
@@ -153,7 +155,7 @@ export function BatchReview({ batch }: { batch: BatchWithRows }) {
               Cancel
             </Button>
           </div>
-        </form>
+        </ActionForm>
       )}
 
       {rowState && !rowState.ok && (
@@ -273,7 +275,11 @@ export function BatchReview({ batch }: { batch: BatchWithRows }) {
                     {row.status === 'rejected' ? (
                       <span className="text-[13px] text-ink-500">—</span>
                     ) : rejecting === row.id ? (
-                      <form action={rowAction} className="flex flex-col gap-1.5">
+                      <ActionForm
+                        action={rowAction}
+                        state={rowState}
+                        className="flex flex-col gap-1.5"
+                      >
                         <input type="hidden" name="proposalId" value={row.id} />
                         <input type="hidden" name="decision" value="reject" />
                         <label className="flex flex-col gap-1">
@@ -295,7 +301,7 @@ export function BatchReview({ batch }: { batch: BatchWithRows }) {
                             Cancel
                           </Button>
                         </div>
-                      </form>
+                      </ActionForm>
                     ) : (
                       <Button variant="ghost" size="sm" onClick={() => setRejecting(row.id)}>
                         Reject

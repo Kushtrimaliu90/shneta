@@ -8,6 +8,7 @@ import { pickLocale } from '@/lib/i18n';
 import { formatPrice, fromCents } from '@/lib/money';
 import type { Locale } from '@/lib/constants';
 import { Field } from '@/components/ui/field';
+import { ActionForm } from '@/components/ui/action-form';
 import { Input } from '@/components/ui/input';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -118,9 +119,10 @@ export function OfferForm({
   const [asking, setAsking] = useState(offer ? fromCents(offer.askingPriceCents) : '');
 
   const [state, action] = useActionState<OfferState, FormData>(async (previous, formData) => {
-    const result = mode === 'create'
-      ? await createOffer(previous, formData)
-      : await updateOffer(previous, formData);
+    const result =
+      mode === 'create'
+        ? await createOffer(previous, formData)
+        : await updateOffer(previous, formData);
     if (result?.ok) router.push('/merchant/offers');
     return result;
   }, null);
@@ -144,7 +146,7 @@ export function OfferForm({
 
   return (
     <div className="flex flex-col gap-6">
-      <form action={action} className="flex flex-col gap-5">
+      <ActionForm action={action} state={state} className="flex flex-col gap-5">
         {mode === 'edit' && offer && <input type="hidden" name="offerId" value={offer.id} />}
 
         {mode === 'create' ? (
@@ -282,12 +284,7 @@ export function OfferForm({
             )}
           </Field>
 
-          <Field
-            id="lowStockThreshold"
-            label={t('threshold')}
-            hint={t('thresholdHint')}
-            required
-          >
+          <Field id="lowStockThreshold" label={t('threshold')} hint={t('thresholdHint')} required>
             {(field) => (
               <Input
                 {...field}
@@ -328,9 +325,11 @@ export function OfferForm({
           reviewer looks. That is the behaviour the owner asked for, and it is a surprise worth spending
           a sentence on: the merchant may reasonably want to wait for a quiet hour to do it.
         */}
-        {mode === 'edit' && offer?.status === 'approved' && askingCents !== offer.askingPriceCents && (
-          <Alert tone="warning">{t('priceReturnsToReview')}</Alert>
-        )}
+        {mode === 'edit' &&
+          offer?.status === 'approved' &&
+          askingCents !== offer.askingPriceCents && (
+            <Alert tone="warning">{t('priceReturnsToReview')}</Alert>
+          )}
 
         {askingAboveDue && (
           <Alert tone="warning">
@@ -366,7 +365,7 @@ export function OfferForm({
             {t('cancel')}
           </Button>
         </div>
-      </form>
+      </ActionForm>
 
       {/* Submit-for-review and delete are separate forms: each is one verb with one outcome, and
           nesting them in the edit form would make Enter in the price field ambiguous. */}

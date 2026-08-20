@@ -3,11 +3,15 @@
 import { useActionState, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Alert } from '@/components/ui/alert';
+import { ActionForm } from '@/components/ui/action-form';
 import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { SubmitButton } from '@/components/ui/submit-button';
 import { submitProposal, type ProposalState } from '@/features/merchants/proposal-actions';
-import { ProposalImages, type UploadedImage } from '@/features/merchants/components/proposal-images';
+import {
+  ProposalImages,
+  type UploadedImage,
+} from '@/features/merchants/components/proposal-images';
 
 const LEAVES = ['generic', 'invalid', 'notMerchant', 'tooMany'] as const;
 type Leaf = (typeof LEAVES)[number];
@@ -42,7 +46,11 @@ export function ProposalForm({ merchantId }: { merchantId: string }) {
   }, null);
 
   return (
-    <form action={action} className="flex flex-col gap-5 rounded-lg border border-line bg-surface p-5">
+    <ActionForm
+      action={action}
+      state={state}
+      className="flex flex-col gap-5 rounded-lg border border-line bg-surface p-5"
+    >
       <p className="text-sm text-ink-600">{t('formIntro')}</p>
 
       <div className="grid gap-5 sm:grid-cols-2">
@@ -71,12 +79,20 @@ export function ProposalForm({ merchantId }: { merchantId: string }) {
         </Field>
 
         <Field id="stockOnHand" label={t('stock')} hint={t('stockHint')} required>
-          {(field) => <Input {...field} name="stockOnHand" type="number" min={0} step={1} defaultValue={0} />}
+          {(field) => (
+            <Input {...field} name="stockOnHand" type="number" min={0} step={1} defaultValue={0} />
+          )}
         </Field>
 
         <Field id="askingPriceEuro" label={t('asking2')} hint={t('askingHint')} required>
           {(field) => (
-            <Input {...field} name="askingPriceEuro" type="text" inputMode="decimal" autoComplete="off" />
+            <Input
+              {...field}
+              name="askingPriceEuro"
+              type="text"
+              inputMode="decimal"
+              autoComplete="off"
+            />
           )}
         </Field>
 
@@ -93,13 +109,28 @@ export function ProposalForm({ merchantId }: { merchantId: string }) {
         */}
         <Field id="handlingDays" label={t('handling')} hint={t('handlingHint')}>
           {(field) => (
-            <Input {...field} name="handlingDays" type="number" min={0} max={30} step={1} defaultValue={1} />
+            <Input
+              {...field}
+              name="handlingDays"
+              type="number"
+              min={0}
+              max={30}
+              step={1}
+              defaultValue={1}
+            />
           )}
         </Field>
 
         <Field id="lowStockThreshold" label={t('threshold')} hint={t('thresholdHint')}>
           {(field) => (
-            <Input {...field} name="lowStockThreshold" type="number" min={0} step={1} defaultValue={3} />
+            <Input
+              {...field}
+              name="lowStockThreshold"
+              type="number"
+              min={0}
+              step={1}
+              defaultValue={3}
+            />
           )}
         </Field>
 
@@ -132,6 +163,6 @@ export function ProposalForm({ merchantId }: { merchantId: string }) {
       <div>
         <SubmitButton>{t('submit')}</SubmitButton>
       </div>
-    </form>
+    </ActionForm>
   );
 }

@@ -3,6 +3,7 @@
 import { useActionState, useState } from 'react';
 import { AlertTriangle, Gift, Plus, ShieldAlert } from 'lucide-react';
 import { Alert } from '@/components/ui/alert';
+import { ActionForm } from '@/components/ui/action-form';
 import { Button } from '@/components/ui/button';
 import { SubmitButton } from '@/components/ui/submit-button';
 import { formatPrice } from '@/lib/money';
@@ -156,8 +157,8 @@ export function ReferralsAdmin({
             {formatPrice(liability.unpostedCents, 'sq')}
           </p>
           <p className="mt-1 text-xs text-ink-600">
-            {liability.unpostedPoints} points earned and not yet in a wallet. With monthly posting this
-            is normal for most of the month.
+            {liability.unpostedPoints} points earned and not yet in a wallet. With monthly posting
+            this is normal for most of the month.
           </p>
         </div>
         <div className="rounded-lg border border-line bg-surface p-4">
@@ -280,7 +281,7 @@ function Queue({ rows }: { rows: AdminReferralRow[] }) {
                   <span className="font-ui text-xs text-ink-600">{row.source}</span>
                 </Td>
                 <Td>
-                  <form action={action} className="flex flex-col gap-2">
+                  <ActionForm action={action} state={state} className="flex flex-col gap-2">
                     <input type="hidden" name="linkId" value={row.id} />
                     <input
                       name="note"
@@ -290,12 +291,7 @@ function Queue({ rows }: { rows: AdminReferralRow[] }) {
                       aria-label={`Note for ${row.referee.email}`}
                     />
                     <div className="flex gap-2">
-                      <SubmitButton
-                        name="approve"
-                        value="true"
-                        size="sm"
-                        loadingLabel="Saving…"
-                      >
+                      <SubmitButton name="approve" value="true" size="sm" loadingLabel="Saving…">
                         Approve
                       </SubmitButton>
                       <SubmitButton
@@ -308,7 +304,7 @@ function Queue({ rows }: { rows: AdminReferralRow[] }) {
                         Reject
                       </SubmitButton>
                     </div>
-                  </form>
+                  </ActionForm>
                 </Td>
               </tr>
             ))}
@@ -415,7 +411,11 @@ function Links({ rows, canManage }: { rows: AdminReferralRow[]; canManage: boole
 
                       {open === row.id && (
                         <div className="flex flex-col gap-3 rounded-sm border border-line bg-surface p-2">
-                          <form action={revokeAction} className="flex flex-col gap-1.5">
+                          <ActionForm
+                            action={revokeAction}
+                            state={revokeState}
+                            className="flex flex-col gap-1.5"
+                          >
                             <input type="hidden" name="linkId" value={row.id} />
                             <label className={labelClass} htmlFor={`reason-${row.id}`}>
                               Reason to stop
@@ -431,10 +431,14 @@ function Links({ rows, canManage }: { rows: AdminReferralRow[]; canManage: boole
                             <SubmitButton size="sm" variant="secondary" loadingLabel="Stopping…">
                               Stop this link
                             </SubmitButton>
-                          </form>
+                          </ActionForm>
 
                           {canManage && row.status === 'approved' && row.extendedCount === 0 && (
-                            <form action={extendAction} className="flex flex-col gap-1.5">
+                            <ActionForm
+                              action={extendAction}
+                              state={extendState}
+                              className="flex flex-col gap-1.5"
+                            >
                               <input type="hidden" name="linkId" value={row.id} />
                               <label className={labelClass} htmlFor={`months-${row.id}`}>
                                 Extend by months (once only)
@@ -461,7 +465,7 @@ function Links({ rows, canManage }: { rows: AdminReferralRow[]; canManage: boole
                               <SubmitButton size="sm" variant="secondary" loadingLabel="Saving…">
                                 Extend
                               </SubmitButton>
-                            </form>
+                            </ActionForm>
                           )}
                         </div>
                       )}
@@ -509,7 +513,7 @@ function ManualLink({ canManage }: { canManage: boolean }) {
         referrer, and not two accounts sharing a phone number.
       </p>
 
-      <form action={action} className="mt-4 flex flex-col gap-3">
+      <ActionForm action={action} state={state} className="mt-4 flex flex-col gap-3">
         <div>
           <label className={labelClass} htmlFor="manual-code">
             Referrer&apos;s code
@@ -554,8 +558,8 @@ function ManualLink({ canManage }: { canManage: boolean }) {
             data-numeric
           />
           <p className="mt-1 text-[11px] text-ink-500">
-            Leave at 0 to start today. Backdating shortens the twelve months, so use it only when the
-            recommendation genuinely happened then.
+            Leave at 0 to start today. Backdating shortens the twelve months, so use it only when
+            the recommendation genuinely happened then.
           </p>
         </div>
 
@@ -577,7 +581,7 @@ function ManualLink({ canManage }: { canManage: boolean }) {
           <Plus className="size-4" aria-hidden="true" />
           Link and approve
         </SubmitButton>
-      </form>
+      </ActionForm>
     </div>
   );
 }
@@ -726,9 +730,7 @@ function Fraud({ rows, canManage }: { rows: FraudSignalRow[]; canManage: boolean
                   </Td>
                   <Td>
                     <span data-numeric>{row.linksTotal}</span>
-                    <span className="block text-xs text-ink-500">
-                      {row.linksApproved} approved
-                    </span>
+                    <span className="block text-xs text-ink-500">{row.linksApproved} approved</span>
                   </Td>
                   <Td>
                     <span
@@ -777,7 +779,11 @@ function Fraud({ rows, canManage }: { rows: FraudSignalRow[]; canManage: boolean
                           {open === row.referrerId ? 'Close' : 'Stop all'}
                         </Button>
                         {open === row.referrerId && (
-                          <form action={action} className="flex flex-col gap-1.5">
+                          <ActionForm
+                            action={action}
+                            state={state}
+                            className="flex flex-col gap-1.5"
+                          >
                             <input type="hidden" name="referrerId" value={row.referrerId} />
                             <label className={labelClass} htmlFor={`all-${row.referrerId}`}>
                               Reason
@@ -801,7 +807,7 @@ function Fraud({ rows, canManage }: { rows: FraudSignalRow[]; canManage: boolean
                             <SubmitButton size="sm" variant="secondary" loadingLabel="Stopping…">
                               Stop all links
                             </SubmitButton>
-                          </form>
+                          </ActionForm>
                         )}
                       </div>
                     ) : (
@@ -823,5 +829,5 @@ function Th({ children }: { children: React.ReactNode }) {
 }
 
 function Td({ children }: { children: React.ReactNode }) {
-  return <td className="px-3 py-2.5 text-ink-700">{children}</td>;
+  return <td className="text-ink-700 px-3 py-2.5">{children}</td>;
 }

@@ -3,6 +3,7 @@
 import { useActionState, useState } from 'react';
 import { Lock, Plus, Ticket } from 'lucide-react';
 import { Alert } from '@/components/ui/alert';
+import { ActionForm } from '@/components/ui/action-form';
 import { Button } from '@/components/ui/button';
 import { SubmitButton } from '@/components/ui/submit-button';
 import {
@@ -230,7 +231,11 @@ function CouponForm({ coupon, onDone }: { coupon: CouponRow | null; onDone: () =
   const [type, setType] = useState<DiscountType>(coupon?.type ?? 'percentage');
 
   return (
-    <form action={action} className="rounded-lg border border-line-strong bg-surface p-4">
+    <ActionForm
+      action={action}
+      state={state}
+      className="rounded-lg border border-line-strong bg-surface p-4"
+    >
       {coupon && <input type="hidden" name="id" value={coupon.id} />}
 
       <div className="grid gap-3 sm:grid-cols-3">
@@ -411,6 +416,6 @@ function CouponForm({ coupon, onDone }: { coupon: CouponRow | null; onDone: () =
           {formError(state)}
         </Alert>
       )}
-    </form>
+    </ActionForm>
   );
 }

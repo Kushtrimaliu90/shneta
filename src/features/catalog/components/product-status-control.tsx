@@ -3,6 +3,7 @@
 import { useActionState, useState } from 'react';
 import { Copy } from 'lucide-react';
 import { Alert } from '@/components/ui/alert';
+import { ActionForm } from '@/components/ui/action-form';
 import { buttonVariants } from '@/components/ui/button';
 import { SubmitButton } from '@/components/ui/submit-button';
 import { CATALOG_ERRORS } from '@/features/catalog/admin-copy';
@@ -181,7 +182,11 @@ export function ProductStatusControl({
       </div>
 
       {rejecting && (
-        <form action={rejectAction} className="mt-4 border-t border-line pt-3">
+        <ActionForm
+          action={rejectAction}
+          state={rejectState}
+          className="mt-4 border-t border-line pt-3"
+        >
           <input type="hidden" name="productId" value={productId} />
           <label htmlFor="reject-note" className="block text-xs font-medium text-ink-900">
             Why is this being sent back?
@@ -215,7 +220,7 @@ export function ProductStatusControl({
               Cancel
             </button>
           </div>
-        </form>
+        </ActionForm>
       )}
 
       {error && !error.ok && (

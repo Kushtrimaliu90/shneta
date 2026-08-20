@@ -3,6 +3,7 @@
 import { useActionState, useState } from 'react';
 import { Award, Plus } from 'lucide-react';
 import { Alert } from '@/components/ui/alert';
+import { ActionForm } from '@/components/ui/action-form';
 import { Button } from '@/components/ui/button';
 import { SubmitButton } from '@/components/ui/submit-button';
 import {
@@ -148,7 +149,11 @@ function CertificationForm({
   const key = item?.id ?? 'new';
 
   return (
-    <form action={action} className="rounded-sm border border-line-strong bg-surface p-3">
+    <ActionForm
+      action={action}
+      state={state}
+      className="rounded-sm border border-line-strong bg-surface p-3"
+    >
       {item && <input type="hidden" name="id" value={item.id} />}
 
       <div className="grid gap-3 sm:grid-cols-3">
@@ -205,6 +210,6 @@ function CertificationForm({
           {error}
         </Alert>
       )}
-    </form>
+    </ActionForm>
   );
 }

@@ -4,6 +4,7 @@ import { useActionState, useState } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { ActionForm } from '@/components/ui/action-form';
 import { SubmitButton } from '@/components/ui/submit-button';
 import { deleteBlock, saveBlock, type BioHackState } from '@/features/biohack/admin-actions';
 import { BANNED_CLAIM_WORDS } from '@/lib/claims';
@@ -95,9 +96,7 @@ export function AdminMatrix({
                 <span className="font-medium text-ink-900">
                   {block.ingredientName ?? block.habit?.en ?? block.habit?.sq ?? '—'}
                 </span>
-                {block.ingredientName === null && (
-                  <Tag tone="lime">habit</Tag>
-                )}
+                {block.ingredientName === null && <Tag tone="lime">habit</Tag>}
                 {block.isCore && <Tag tone="forest">core</Tag>}
                 {block.phase === 2 && <Tag>phase 2</Tag>}
                 {!block.active && <Tag>inactive</Tag>}
@@ -114,7 +113,9 @@ export function AdminMatrix({
 
                 <p className="w-full text-xs text-ink-600">{block.why.en || block.why.sq}</p>
                 {block.caution && (
-                  <p className="w-full text-xs text-warning">⚠ {block.caution.en || block.caution.sq}</p>
+                  <p className="w-full text-xs text-warning">
+                    ⚠ {block.caution.en || block.caution.sq}
+                  </p>
                 )}
               </article>
             )}
@@ -153,7 +154,11 @@ function BlockForm({
   const [isHabit, setIsHabit] = useState(block ? block.ingredientId === null : false);
 
   return (
-    <form action={action} className="flex flex-col gap-4 rounded-md border border-forest-500/40 bg-forest-50/50 p-4">
+    <ActionForm
+      action={action}
+      state={state}
+      className="flex flex-col gap-4 rounded-md border border-forest-500/40 bg-forest-50/50 p-4"
+    >
       <input type="hidden" name="configId" value={configId} />
       <input type="hidden" name="goalId" value={goalId} />
       {block && <input type="hidden" name="blockId" value={block.id} />}
@@ -254,8 +259,16 @@ function BlockForm({
       <div className="grid gap-3 sm:grid-cols-2">
         <TextArea name="whySq" label='"PSE" copy (sq)' defaultValue={block?.why.sq ?? ''} />
         <TextArea name="whyEn" label='"WHY" copy (en)' defaultValue={block?.why.en ?? ''} />
-        <TextArea name="cautionSq" label="Caution (sq, optional)" defaultValue={block?.caution?.sq ?? ''} />
-        <TextArea name="cautionEn" label="Caution (en, optional)" defaultValue={block?.caution?.en ?? ''} />
+        <TextArea
+          name="cautionSq"
+          label="Caution (sq, optional)"
+          defaultValue={block?.caution?.sq ?? ''}
+        />
+        <TextArea
+          name="cautionEn"
+          label="Caution (en, optional)"
+          defaultValue={block?.caution?.en ?? ''}
+        />
       </div>
 
       <p className="text-xs text-ink-600">
@@ -279,7 +292,7 @@ function BlockForm({
           Cancel
         </Button>
       </div>
-    </form>
+    </ActionForm>
   );
 }
 

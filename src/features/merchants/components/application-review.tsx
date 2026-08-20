@@ -4,6 +4,7 @@ import { useActionState, useState } from 'react';
 import { FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { ActionForm } from '@/components/ui/action-form';
 import { SubmitButton } from '@/components/ui/submit-button';
 import {
   approveMerchant,
@@ -37,9 +38,7 @@ export function ApplicationReview({
 }) {
   const [panel, setPanel] = useState<'approve' | 'reject' | 'info' | 'settlement' | null>(null);
 
-  const hasRegistration = merchant.documents.some(
-    (doc) => doc.kind === 'business_registration',
-  );
+  const hasRegistration = merchant.documents.some((doc) => doc.kind === 'business_registration');
 
   return (
     <article className="flex flex-col gap-4 rounded-lg border border-line bg-surface p-5">
@@ -152,10 +151,18 @@ export function ApplicationReview({
             <Button size="sm" onClick={() => setPanel(panel === 'approve' ? null : 'approve')}>
               Approve
             </Button>
-            <Button variant="secondary" size="sm" onClick={() => setPanel(panel === 'info' ? null : 'info')}>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setPanel(panel === 'info' ? null : 'info')}
+            >
               Request info
             </Button>
-            <Button variant="destructive" size="sm" onClick={() => setPanel(panel === 'reject' ? null : 'reject')}>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => setPanel(panel === 'reject' ? null : 'reject')}
+            >
               Reject
             </Button>
           </>
@@ -186,8 +193,12 @@ export function ApplicationReview({
           onDone={() => setPanel(null)}
         />
       )}
-      {panel === 'reject' && <NoteForm merchantId={merchant.id} kind="reject" onDone={() => setPanel(null)} />}
-      {panel === 'info' && <NoteForm merchantId={merchant.id} kind="info" onDone={() => setPanel(null)} />}
+      {panel === 'reject' && (
+        <NoteForm merchantId={merchant.id} kind="reject" onDone={() => setPanel(null)} />
+      )}
+      {panel === 'info' && (
+        <NoteForm merchantId={merchant.id} kind="info" onDone={() => setPanel(null)} />
+      )}
       {panel === 'settlement' && (
         <SettlementForm merchant={merchant} onDone={() => setPanel(null)} />
       )}
@@ -217,8 +228,9 @@ function SettlementForm({ merchant, onDone }: { merchant: MerchantRow; onDone: (
   }, null);
 
   return (
-    <form
+    <ActionForm
       action={action}
+      state={state}
       className="flex flex-col gap-3 rounded-md border border-line-strong bg-cream p-4"
     >
       <input type="hidden" name="merchantId" value={merchant.id} />
@@ -285,7 +297,7 @@ function SettlementForm({ merchant, onDone }: { merchant: MerchantRow; onDone: (
           Cancel
         </Button>
       </div>
-    </form>
+    </ActionForm>
   );
 }
 
@@ -307,7 +319,11 @@ function ApproveForm({
   }, null);
 
   return (
-    <form action={action} className="flex flex-col gap-4 rounded-md border border-forest-500/40 bg-forest-50/50 p-4">
+    <ActionForm
+      action={action}
+      state={state}
+      className="flex flex-col gap-4 rounded-md border border-forest-500/40 bg-forest-50/50 p-4"
+    >
       <input type="hidden" name="merchantId" value={merchantId} />
 
       <p className="text-sm text-ink-600">
@@ -352,11 +368,22 @@ function ApproveForm({
 
       <div className="flex flex-wrap gap-4">
         <label className="flex items-center gap-2 text-sm">
-          <input type="checkbox" name="shipsOwn" value="true" defaultChecked className="size-4 accent-forest-700" />
+          <input
+            type="checkbox"
+            name="shipsOwn"
+            value="true"
+            defaultChecked
+            className="size-4 accent-forest-700"
+          />
           Ships its own parcels
         </label>
         <label className="flex items-center gap-2 text-sm">
-          <input type="checkbox" name="collectsCash" value="true" className="size-4 accent-forest-700" />
+          <input
+            type="checkbox"
+            name="collectsCash"
+            value="true"
+            className="size-4 accent-forest-700"
+          />
           Collects the COD cash itself
         </label>
       </div>
@@ -375,7 +402,7 @@ function ApproveForm({
           Cancel
         </Button>
       </div>
-    </form>
+    </ActionForm>
   );
 }
 
@@ -390,15 +417,20 @@ function NoteForm({
   onDone: () => void;
 }) {
   const [state, action] = useActionState<MerchantState, FormData>(async (previous, formData) => {
-    const result = kind === 'reject'
-      ? await rejectMerchant(previous, formData)
-      : await requestMerchantInfo(previous, formData);
+    const result =
+      kind === 'reject'
+        ? await rejectMerchant(previous, formData)
+        : await requestMerchantInfo(previous, formData);
     if (result?.ok) onDone();
     return result;
   }, null);
 
   return (
-    <form action={action} className="flex flex-col gap-3 rounded-md border border-line-strong bg-cream p-4">
+    <ActionForm
+      action={action}
+      state={state}
+      className="flex flex-col gap-3 rounded-md border border-line-strong bg-cream p-4"
+    >
       <input type="hidden" name="merchantId" value={merchantId} />
 
       <label className="flex flex-col gap-1 text-sm">
@@ -433,7 +465,7 @@ function NoteForm({
           Cancel
         </Button>
       </div>
-    </form>
+    </ActionForm>
   );
 }
 

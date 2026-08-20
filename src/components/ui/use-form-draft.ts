@@ -27,6 +27,12 @@ import { useCallback, useState } from 'react';
  *
  * So the draft holds `string[]` per name, and the accessors below are the only supported way to read
  * it back.
+ *
+ * ── Not for the customer forms ──
+ *
+ * Use `<ActionForm>` from `action-form.tsx` there instead. This hook earns its per-field wiring by
+ * having a saved record to fall back to and checkbox groups to keep straight; a checkout or contact
+ * form has neither, and wiring every field by hand on those would only add somewhere to forget one.
  */
 export interface FormDraft {
   /** Bump on every rejected attempt. Use as `key` on the `<form>` to force the remount. */

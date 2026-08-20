@@ -4,6 +4,7 @@ import { useActionState, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import { Alert } from '@/components/ui/alert';
+import { ActionForm } from '@/components/ui/action-form';
 import { SubmitButton } from '@/components/ui/submit-button';
 import {
   submitMerchantApplication,
@@ -27,10 +28,7 @@ import {
  */
 export function MerchantApplyForm({ commissionDefault }: { commissionDefault: number }) {
   const t = useTranslations('merchant.apply');
-  const [state, action] = useActionState<MerchantState, FormData>(
-    submitMerchantApplication,
-    null,
-  );
+  const [state, action] = useActionState<MerchantState, FormData>(submitMerchantApplication, null);
   const [settlement, setSettlement] = useState<'bank_transfer' | 'cash'>('bank_transfer');
 
   if (state?.ok) {
@@ -43,10 +41,8 @@ export function MerchantApplyForm({ commissionDefault }: { commissionDefault: nu
   }
 
   return (
-    <form action={action} className="flex flex-col gap-10">
-      {state && !state.ok && (
-        <Alert tone="error">{t(errorKey(state.error))}</Alert>
-      )}
+    <ActionForm action={action} state={state} className="flex flex-col gap-10">
+      {state && !state.ok && <Alert tone="error">{t(errorKey(state.error))}</Alert>}
 
       <Section title={t('identityTitle')} hint={t('identityHint')}>
         <Field name="legalName" label={t('legalName')} hint={t('legalNameHint')} required />
@@ -57,7 +53,13 @@ export function MerchantApplyForm({ commissionDefault }: { commissionDefault: nu
 
       <Section title={t('contactTitle')}>
         <Field name="contactName" label={t('contactName')} required />
-        <Field name="contactEmail" label={t('contactEmail')} type="email" hint={t('contactEmailHint')} required />
+        <Field
+          name="contactEmail"
+          label={t('contactEmail')}
+          type="email"
+          hint={t('contactEmailHint')}
+          required
+        />
         <Field name="contactPhone" label={t('contactPhone')} type="tel" required />
       </Section>
 
@@ -108,9 +110,7 @@ export function MerchantApplyForm({ commissionDefault }: { commissionDefault: nu
       </Section>
 
       <Section title={t('agreeTitle')}>
-        <p className="text-sm text-ink-600">
-          {t('commissionNote', { pct: commissionDefault })}
-        </p>
+        <p className="text-sm text-ink-600">{t('commissionNote', { pct: commissionDefault })}</p>
         <Checkbox name="acceptsCommission" label={t('acceptsCommission')} required />
         <Checkbox
           name="acceptsTerms"
@@ -139,7 +139,7 @@ export function MerchantApplyForm({ commissionDefault }: { commissionDefault: nu
           {t('submit')}
         </SubmitButton>
       </div>
-    </form>
+    </ActionForm>
   );
 }
 

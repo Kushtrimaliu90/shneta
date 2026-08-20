@@ -6,6 +6,7 @@ import { ShoppingBag } from 'lucide-react';
 import { pickLocale } from '@/lib/i18n';
 import type { Locale } from '@/lib/constants';
 import { Alert } from '@/components/ui/alert';
+import { ActionForm } from '@/components/ui/action-form';
 import { notifyCartChanged } from '@/features/cart/cart-events';
 import { PriceTag } from '@/components/storefront/price-tag';
 import { SellerLine } from '@/components/storefront/seller-line';
@@ -74,7 +75,7 @@ export function BuyBox({
   const soldOut = selected.stockStatus === 'out_of_stock';
 
   return (
-    <form action={formAction} className="flex flex-col gap-6">
+    <ActionForm action={formAction} state={state} className="flex flex-col gap-6">
       <div>
         <PriceTag
           priceCents={selected.priceCents}
@@ -174,6 +175,6 @@ export function BuyBox({
         )}
         {state && !state.ok && <Alert tone="error">{t(state.error)}</Alert>}
       </div>
-    </form>
+    </ActionForm>
   );
 }

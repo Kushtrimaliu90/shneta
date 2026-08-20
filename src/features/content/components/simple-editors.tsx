@@ -3,6 +3,7 @@
 import { useActionState, useState } from 'react';
 import { HelpCircle, Megaphone, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { ActionForm } from '@/components/ui/action-form';
 import { SubmitButton } from '@/components/ui/submit-button';
 import {
   deleteBanner,
@@ -88,7 +89,7 @@ function PageForm({ page }: { page: PageRow }) {
       </button>
 
       {open && (
-        <form action={action} className="border-t border-line p-4">
+        <ActionForm action={action} state={state} className="border-t border-line p-4">
           <input type="hidden" name="id" value={page.id} />
 
           <BilingualField
@@ -135,7 +136,7 @@ function PageForm({ page }: { page: PageRow }) {
             </SubmitButton>
           </div>
           <Feedback state={state} />
-        </form>
+        </ActionForm>
       )}
 
       {/*
@@ -255,7 +256,11 @@ function FaqForm({
 
   return (
     <>
-      <form action={action} className="rounded-sm border border-line-strong bg-surface p-3">
+      <ActionForm
+        action={action}
+        state={state}
+        className="rounded-sm border border-line-strong bg-surface p-3"
+      >
         {faq && <input type="hidden" name="id" value={faq.id} />}
 
         <BilingualField
@@ -325,7 +330,7 @@ function FaqForm({
           </Button>
         </div>
         <Feedback state={state} />
-      </form>
+      </ActionForm>
 
       {/* Outside the form, and only once it is switched off — see the note on the page editor. */}
       {faq && !faq.isActive && (
@@ -430,7 +435,11 @@ function BannerForm({ banner, onDone }: { banner: BannerRow | null; onDone: () =
 
   return (
     <>
-      <form action={action} className="rounded-sm border border-line-strong bg-surface p-3">
+      <ActionForm
+        action={action}
+        state={state}
+        className="rounded-sm border border-line-strong bg-surface p-3"
+      >
         {banner && <input type="hidden" name="id" value={banner.id} />}
 
         <div className="grid gap-3 sm:grid-cols-3">
@@ -543,7 +552,7 @@ function BannerForm({ banner, onDone }: { banner: BannerRow | null; onDone: () =
           </Button>
         </div>
         <Feedback state={state} />
-      </form>
+      </ActionForm>
 
       {/*
         Outside the form, and only once it is switched off.

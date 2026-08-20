@@ -3,6 +3,7 @@
 import { useActionState, useState } from 'react';
 import { Trash2 } from 'lucide-react';
 import { Alert } from '@/components/ui/alert';
+import { ActionForm } from '@/components/ui/action-form';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
@@ -100,14 +101,18 @@ function ReportPanel({ rows }: { rows: QueryReportRow[] }) {
    * words and got nothing — and buried in a 200-row table sorted by volume they would never be seen,
    * because a query that fails tends also to be a query few people repeat.
    */
-  const zero = rows.filter((row) => row.zeroResults > 0).sort((a, b) => b.zeroResults - a.zeroResults);
-  const noClicks = rows.filter((row) => row.searches >= 3 && row.clicks === 0 && row.zeroResults === 0);
+  const zero = rows
+    .filter((row) => row.zeroResults > 0)
+    .sort((a, b) => b.zeroResults - a.zeroResults);
+  const noClicks = rows.filter(
+    (row) => row.searches >= 3 && row.clicks === 0 && row.zeroResults === 0,
+  );
 
   if (rows.length === 0) {
     return (
       <Alert tone="info" className="mt-4">
-        No searches recorded yet. Every submitted search on the storefront lands here — query, result
-        count, and whether anyone clicked a result.
+        No searches recorded yet. Every submitted search on the storefront lands here — query,
+        result count, and whether anyone clicked a result.
       </Alert>
     );
   }
@@ -121,8 +126,8 @@ function ReportPanel({ rows }: { rows: QueryReportRow[] }) {
           </CardHeader>
           <CardContent>
             <p className="text-sm text-ink-600">
-              Each of these is a shopper describing what they wanted. Fix with a synonym group if the
-              product exists under another name, or note it as a gap in the range.
+              Each of these is a shopper describing what they wanted. Fix with a synonym group if
+              the product exists under another name, or note it as a gap in the range.
             </p>
             <ul className="mt-3 flex flex-wrap gap-2">
               {zero.slice(0, 40).map((row) => (
@@ -171,28 +176,52 @@ function ReportPanel({ rows }: { rows: QueryReportRow[] }) {
       <div className="overflow-x-auto">
         <table className="w-full min-w-[46rem] text-sm">
           <thead>
-            <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-ink-500">
-              <th scope="col" className="py-2 pr-4 font-medium">Query</th>
-              <th scope="col" className="py-2 pr-4 text-right font-medium">Searches</th>
-              <th scope="col" className="py-2 pr-4 text-right font-medium">Zero</th>
-              <th scope="col" className="py-2 pr-4 text-right font-medium">Relaxed</th>
-              <th scope="col" className="py-2 pr-4 text-right font-medium">Clicks</th>
-              <th scope="col" className="py-2 pr-4 text-right font-medium">CTR</th>
-              <th scope="col" className="py-2 text-right font-medium">Avg results</th>
+            <tr className="border-b border-line text-left text-xs tracking-wide text-ink-500 uppercase">
+              <th scope="col" className="py-2 pr-4 font-medium">
+                Query
+              </th>
+              <th scope="col" className="py-2 pr-4 text-right font-medium">
+                Searches
+              </th>
+              <th scope="col" className="py-2 pr-4 text-right font-medium">
+                Zero
+              </th>
+              <th scope="col" className="py-2 pr-4 text-right font-medium">
+                Relaxed
+              </th>
+              <th scope="col" className="py-2 pr-4 text-right font-medium">
+                Clicks
+              </th>
+              <th scope="col" className="py-2 pr-4 text-right font-medium">
+                CTR
+              </th>
+              <th scope="col" className="py-2 text-right font-medium">
+                Avg results
+              </th>
             </tr>
           </thead>
           <tbody>
             {rows.map((row) => (
               <tr key={row.queryNorm} className="border-b border-line/60">
                 <td className="py-2 pr-4 text-ink-900">{row.exampleQuery}</td>
-                <td className="py-2 pr-4 text-right" data-numeric>{row.searches}</td>
-                <td className="py-2 pr-4 text-right" data-numeric>{row.zeroResults || '—'}</td>
-                <td className="py-2 pr-4 text-right" data-numeric>{row.relaxedResults || '—'}</td>
-                <td className="py-2 pr-4 text-right" data-numeric>{row.clicks}</td>
+                <td className="py-2 pr-4 text-right" data-numeric>
+                  {row.searches}
+                </td>
+                <td className="py-2 pr-4 text-right" data-numeric>
+                  {row.zeroResults || '—'}
+                </td>
+                <td className="py-2 pr-4 text-right" data-numeric>
+                  {row.relaxedResults || '—'}
+                </td>
+                <td className="py-2 pr-4 text-right" data-numeric>
+                  {row.clicks}
+                </td>
                 <td className="py-2 pr-4 text-right" data-numeric>
                   {row.clickRatePct == null ? '—' : `${row.clickRatePct}%`}
                 </td>
-                <td className="py-2 text-right" data-numeric>{row.avgResults ?? '—'}</td>
+                <td className="py-2 text-right" data-numeric>
+                  {row.avgResults ?? '—'}
+                </td>
               </tr>
             ))}
           </tbody>
@@ -215,16 +244,16 @@ function SynonymsPanel({ groups, canManage }: { groups: SynonymGroupRow[]; canMa
         </CardHeader>
         <CardContent>
           <p className="text-sm text-ink-600">
-            One group per concept. If a product mentions any term in the group, every term is added to
-            its search index — so “magnez”, “magnesium” and “magnezium” all find the same products.
-            Saving re-indexes the whole catalogue, which takes a moment.
+            One group per concept. If a product mentions any term in the group, every term is added
+            to its search index — so “magnez”, “magnesium” and “magnezium” all find the same
+            products. Saving re-indexes the whole catalogue, which takes a moment.
           </p>
           <p className="mt-2 text-sm text-ink-600">
             Avoid units and single letters. “mg” looks like a fine synonym for magnesium until
             “Vitamin C 500 mg” starts appearing under it.
           </p>
 
-          <form action={formAction} className="mt-4 grid gap-4 sm:grid-cols-2">
+          <ActionForm action={formAction} state={state} className="mt-4 grid gap-4 sm:grid-cols-2">
             <Field
               id="syn-label"
               label="Label"
@@ -251,12 +280,12 @@ function SynonymsPanel({ groups, canManage }: { groups: SynonymGroupRow[]; canMa
                   {...props}
                   name="terms"
                   rows={4}
-                  className="w-full rounded-md border border-line bg-surface px-3 py-2 text-sm text-ink-900 focus:outline-none focus:ring-2 focus:ring-forest-600"
+                  className="w-full rounded-md border border-line bg-surface px-3 py-2 text-sm text-ink-900 focus:ring-2 focus:ring-forest-600 focus:outline-none"
                   placeholder={'magnez\nmagnesium\nmagnezium'}
                 />
               )}
             </Field>
-            <div className="sm:col-span-2 flex items-center gap-3">
+            <div className="flex items-center gap-3 sm:col-span-2">
               <label className="flex items-center gap-2 text-sm text-ink-900">
                 <input type="checkbox" name="isActive" defaultChecked className="size-4" />
                 Active
@@ -265,7 +294,7 @@ function SynonymsPanel({ groups, canManage }: { groups: SynonymGroupRow[]; canMa
                 Save group
               </SubmitButton>
             </div>
-          </form>
+          </ActionForm>
 
           <Feedback state={state} />
         </CardContent>
@@ -274,11 +303,19 @@ function SynonymsPanel({ groups, canManage }: { groups: SynonymGroupRow[]; canMa
       <div className="overflow-x-auto">
         <table className="w-full min-w-[40rem] text-sm">
           <thead>
-            <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-ink-500">
-              <th scope="col" className="py-2 pr-4 font-medium">Label</th>
-              <th scope="col" className="py-2 pr-4 font-medium">Terms</th>
-              <th scope="col" className="py-2 pr-4 font-medium">Active</th>
-              <th scope="col" className="py-2 font-medium"><span className="sr-only">Actions</span></th>
+            <tr className="border-b border-line text-left text-xs tracking-wide text-ink-500 uppercase">
+              <th scope="col" className="py-2 pr-4 font-medium">
+                Label
+              </th>
+              <th scope="col" className="py-2 pr-4 font-medium">
+                Terms
+              </th>
+              <th scope="col" className="py-2 pr-4 font-medium">
+                Active
+              </th>
+              <th scope="col" className="py-2 font-medium">
+                <span className="sr-only">Actions</span>
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -326,16 +363,18 @@ function RulesPanel({
         </CardHeader>
         <CardContent>
           <p className="text-sm text-ink-600">
-            <strong>Pin</strong> forces a position. <strong>Boost</strong> and <strong>bury</strong>
-            {' '}add to or subtract from the relevance score — a nudge, still beaten by a much better
-            text match. <strong>Hide</strong> removes the product from results without unpublishing it.
+            <strong>Pin</strong> forces a position. <strong>Boost</strong> and <strong>bury</strong>{' '}
+            add to or subtract from the relevance score — a nudge, still beaten by a much better
+            text match. <strong>Hide</strong> removes the product from results without unpublishing
+            it.
           </p>
           <p className="mt-2 text-sm text-ink-600">
-            Pins and boosts apply under relevance sorting only. A shopper who asked for cheapest-first
-            has overruled you, and out-of-stock products stay below in-stock ones regardless.
+            Pins and boosts apply under relevance sorting only. A shopper who asked for
+            cheapest-first has overruled you, and out-of-stock products stay below in-stock ones
+            regardless.
           </p>
 
-          <form action={formAction} className="mt-4 grid gap-4 sm:grid-cols-2">
+          <ActionForm action={formAction} state={state} className="mt-4 grid gap-4 sm:grid-cols-2">
             <Field
               id="rule-product"
               label="Product"
@@ -414,7 +453,7 @@ function RulesPanel({
                 Save rule
               </SubmitButton>
             </div>
-          </form>
+          </ActionForm>
 
           <Feedback state={state} />
         </CardContent>
@@ -423,12 +462,22 @@ function RulesPanel({
       <div className="overflow-x-auto">
         <table className="w-full min-w-[44rem] text-sm">
           <thead>
-            <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-ink-500">
-              <th scope="col" className="py-2 pr-4 font-medium">Query</th>
-              <th scope="col" className="py-2 pr-4 font-medium">Action</th>
-              <th scope="col" className="py-2 pr-4 font-medium">Product</th>
-              <th scope="col" className="py-2 pr-4 text-right font-medium">Value</th>
-              <th scope="col" className="py-2 font-medium"><span className="sr-only">Actions</span></th>
+            <tr className="border-b border-line text-left text-xs tracking-wide text-ink-500 uppercase">
+              <th scope="col" className="py-2 pr-4 font-medium">
+                Query
+              </th>
+              <th scope="col" className="py-2 pr-4 font-medium">
+                Action
+              </th>
+              <th scope="col" className="py-2 pr-4 font-medium">
+                Product
+              </th>
+              <th scope="col" className="py-2 pr-4 text-right font-medium">
+                Value
+              </th>
+              <th scope="col" className="py-2 font-medium">
+                <span className="sr-only">Actions</span>
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -482,15 +531,15 @@ function RedirectsPanel({
         </CardHeader>
         <CardContent>
           <p className="text-sm text-ink-600">
-            Queries that want a page rather than a product list. “transporti” means the shipping page;
-            answering it with an empty grid reads as “we don’t do that”.
+            Queries that want a page rather than a product list. “transporti” means the shipping
+            page; answering it with an empty grid reads as “we don’t do that”.
           </p>
           <p className="mt-2 text-sm text-ink-600">
-            Write the path without a locale prefix — <code>/legal/shipping-returns</code>, not
-            {' '}<code>/en/legal/shipping-returns</code>. Both locales are handled from the one row.
+            Write the path without a locale prefix — <code>/legal/shipping-returns</code>, not{' '}
+            <code>/en/legal/shipping-returns</code>. Both locales are handled from the one row.
           </p>
 
-          <form action={formAction} className="mt-4 grid gap-4 sm:grid-cols-2">
+          <ActionForm action={formAction} state={state} className="mt-4 grid gap-4 sm:grid-cols-2">
             <Field
               id="red-query"
               label="Query"
@@ -536,7 +585,7 @@ function RedirectsPanel({
                 Save redirect
               </SubmitButton>
             </div>
-          </form>
+          </ActionForm>
 
           <Feedback state={state} />
         </CardContent>
@@ -545,11 +594,19 @@ function RedirectsPanel({
       <div className="overflow-x-auto">
         <table className="w-full min-w-[36rem] text-sm">
           <thead>
-            <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-ink-500">
-              <th scope="col" className="py-2 pr-4 font-medium">Query</th>
-              <th scope="col" className="py-2 pr-4 font-medium">Match</th>
-              <th scope="col" className="py-2 pr-4 font-medium">Destination</th>
-              <th scope="col" className="py-2 font-medium"><span className="sr-only">Actions</span></th>
+            <tr className="border-b border-line text-left text-xs tracking-wide text-ink-500 uppercase">
+              <th scope="col" className="py-2 pr-4 font-medium">
+                Query
+              </th>
+              <th scope="col" className="py-2 pr-4 font-medium">
+                Match
+              </th>
+              <th scope="col" className="py-2 pr-4 font-medium">
+                Destination
+              </th>
+              <th scope="col" className="py-2 font-medium">
+                <span className="sr-only">Actions</span>
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -603,7 +660,11 @@ export function SearchAdmin({
         </Alert>
       )}
 
-      <div role="tablist" aria-label="Search console" className="flex flex-wrap gap-1 border-b border-line">
+      <div
+        role="tablist"
+        aria-label="Search console"
+        className="flex flex-wrap gap-1 border-b border-line"
+      >
         {TABS.map((name) => (
           <button
             key={name}
@@ -627,9 +688,7 @@ export function SearchAdmin({
       <div role="tabpanel" id={`search-panel-${tab}`} aria-labelledby={`search-tab-${tab}`}>
         {tab === 'report' && <ReportPanel rows={report} />}
         {tab === 'synonyms' && <SynonymsPanel groups={groups} canManage={canManage} />}
-        {tab === 'rules' && (
-          <RulesPanel rules={rules} products={products} canManage={canManage} />
-        )}
+        {tab === 'rules' && <RulesPanel rules={rules} products={products} canManage={canManage} />}
         {tab === 'redirects' && <RedirectsPanel redirects={redirects} canManage={canManage} />}
       </div>
     </div>

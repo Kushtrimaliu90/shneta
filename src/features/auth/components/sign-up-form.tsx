@@ -4,6 +4,7 @@ import { useActionState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import { Field } from '@/components/ui/field';
+import { ActionForm } from '@/components/ui/action-form';
 import { Input } from '@/components/ui/input';
 import { Alert } from '@/components/ui/alert';
 import { SubmitButton } from '@/components/ui/submit-button';
@@ -33,7 +34,7 @@ export function SignUpForm({
   }
 
   return (
-    <form action={formAction} className="flex flex-col gap-4" noValidate>
+    <ActionForm action={formAction} state={state} className="flex flex-col gap-4" noValidate>
       {state && !state.ok && <Alert tone="error">{t(state.error)}</Alert>}
 
       <input type="hidden" name="next" value={next ?? ''} />
@@ -149,6 +150,6 @@ export function SignUpForm({
           {t('auth.signIn.submit')}
         </Link>
       </p>
-    </form>
+    </ActionForm>
   );
 }

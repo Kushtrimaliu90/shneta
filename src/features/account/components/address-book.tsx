@@ -4,6 +4,7 @@ import { useActionState, useCallback, useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { MapPin, Plus } from 'lucide-react';
 import { Alert } from '@/components/ui/alert';
+import { ActionForm } from '@/components/ui/action-form';
 import { Button } from '@/components/ui/button';
 import { SubmitButton } from '@/components/ui/submit-button';
 import {
@@ -95,7 +96,7 @@ function AddressCard({ address }: { address: AddressRow }) {
         </p>
       </div>
 
-      <address className="mt-1 text-sm not-italic text-ink-600">
+      <address className="mt-1 text-sm text-ink-600 not-italic">
         <span className="block">{address.recipientName}</span>
         <span className="block">
           {address.line1}
@@ -170,7 +171,11 @@ function AddressForm({ address, onDone }: { address: AddressRow | null; onDone: 
   const key = address?.id ?? 'new';
 
   return (
-    <form action={action} className="rounded-lg border border-line-strong bg-surface p-4">
+    <ActionForm
+      action={action}
+      state={state}
+      className="rounded-lg border border-line-strong bg-surface p-4"
+    >
       {address && <input type="hidden" name="id" value={address.id} />}
 
       <div className="grid gap-3 sm:grid-cols-2">
@@ -274,7 +279,7 @@ function AddressForm({ address, onDone }: { address: AddressRow | null; onDone: 
           {t(`errors.${state.error.split('.').pop()}` as 'errors.generic')}
         </Alert>
       )}
-    </form>
+    </ActionForm>
   );
 }
 

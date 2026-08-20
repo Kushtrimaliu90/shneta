@@ -3,6 +3,7 @@
 import { useActionState, useState } from 'react';
 import { BadgeCheck, Star } from 'lucide-react';
 import { Alert } from '@/components/ui/alert';
+import { ActionForm } from '@/components/ui/action-form';
 import { buttonVariants } from '@/components/ui/button';
 import { SubmitButton } from '@/components/ui/submit-button';
 import { RemoveControl } from '@/components/ui/remove-control';
@@ -152,7 +153,7 @@ export function ModerationCard({
       </div>
 
       {mode === 'reject' && (
-        <form action={formAction} className="mt-3 border-t border-line pt-3">
+        <ActionForm action={formAction} state={state} className="mt-3 border-t border-line pt-3">
           <input type="hidden" name="reviewId" value={review.id} />
           <input type="hidden" name="action" value="reject" />
           <label htmlFor={`reason-${review.id}`} className="block text-xs font-medium text-ink-900">
@@ -178,11 +179,11 @@ export function ModerationCard({
               Cancel
             </button>
           </div>
-        </form>
+        </ActionForm>
       )}
 
       {mode === 'reply' && (
-        <form action={formAction} className="mt-3 border-t border-line pt-3">
+        <ActionForm action={formAction} state={state} className="mt-3 border-t border-line pt-3">
           <input type="hidden" name="reviewId" value={review.id} />
           <input type="hidden" name="action" value="reply" />
           <label htmlFor={`reply-${review.id}`} className="block text-xs font-medium text-ink-900">
@@ -212,7 +213,7 @@ export function ModerationCard({
               Cancel
             </button>
           </div>
-        </form>
+        </ActionForm>
       )}
 
       {state && !state.ok && (

@@ -4,6 +4,7 @@ import { useActionState } from 'react';
 import { useTranslations } from 'next-intl';
 import { CheckCircle2 } from 'lucide-react';
 import { Alert } from '@/components/ui/alert';
+import { ActionForm } from '@/components/ui/action-form';
 import { SubmitButton } from '@/components/ui/submit-button';
 import { submitContact, type ContactState } from '@/features/content/actions';
 import { cn } from '@/lib/utils';
@@ -57,7 +58,7 @@ export function ContactForm() {
   const inputClass = 'mt-1 h-11 w-full rounded-sm border bg-surface px-3 text-sm text-ink-900';
 
   return (
-    <form action={formAction} className="flex flex-col gap-4">
+    <ActionForm action={formAction} state={state} className="flex flex-col gap-4">
       {/* Off-screen, not hidden — see the note above. */}
       <div className="sr-only" aria-hidden="true">
         <label htmlFor="contact-company">Company</label>
@@ -138,6 +139,6 @@ export function ContactForm() {
       </div>
 
       {state && !state.ok && <Alert tone="error">{tRoot(state.error)}</Alert>}
-    </form>
+    </ActionForm>
   );
 }

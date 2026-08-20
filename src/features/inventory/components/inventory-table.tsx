@@ -3,6 +3,7 @@
 import { useActionState, useCallback, useEffect, useState } from 'react';
 import { PackagePlus, SlidersHorizontal } from 'lucide-react';
 import { Alert } from '@/components/ui/alert';
+import { ActionForm } from '@/components/ui/action-form';
 import { Button } from '@/components/ui/button';
 import { SubmitButton } from '@/components/ui/submit-button';
 import {
@@ -189,7 +190,7 @@ function ReceiveForm({ row, onDone }: { row: InventoryRow; onDone: () => void })
   useCloseOnSuccess(state, onDone);
 
   return (
-    <form action={action} className="flex flex-wrap items-start gap-3">
+    <ActionForm action={action} state={state} className="flex flex-wrap items-start gap-3">
       <input type="hidden" name="variantId" value={row.variantId} />
       <input type="hidden" name="warehouseId" value={row.warehouseId} />
 
@@ -250,7 +251,7 @@ function ReceiveForm({ row, onDone }: { row: InventoryRow; onDone: () => void })
       </div>
 
       <FormFeedback state={state} fields={['quantity', 'expiryDate']} />
-    </form>
+    </ActionForm>
   );
 }
 
@@ -260,7 +261,7 @@ function AdjustForm({ row, onDone }: { row: InventoryRow; onDone: () => void }) 
   useCloseOnSuccess(state, onDone);
 
   return (
-    <form action={action} className="flex flex-wrap items-start gap-3">
+    <ActionForm action={action} state={state} className="flex flex-wrap items-start gap-3">
       <input type="hidden" name="variantId" value={row.variantId} />
       <input type="hidden" name="warehouseId" value={row.warehouseId} />
 
@@ -305,7 +306,7 @@ function AdjustForm({ row, onDone }: { row: InventoryRow; onDone: () => void }) 
       </div>
 
       <FormFeedback state={state} fields={['quantity', 'note']} />
-    </form>
+    </ActionForm>
   );
 }
 
@@ -315,7 +316,7 @@ function ThresholdForm({ row, onDone }: { row: InventoryRow; onDone: () => void 
   useCloseOnSuccess(state, onDone);
 
   return (
-    <form action={action} className="flex flex-wrap items-start gap-3">
+    <ActionForm action={action} state={state} className="flex flex-wrap items-start gap-3">
       <input type="hidden" name="variantId" value={row.variantId} />
       <input type="hidden" name="warehouseId" value={row.warehouseId} />
 
@@ -350,7 +351,7 @@ function ThresholdForm({ row, onDone }: { row: InventoryRow; onDone: () => void 
       </div>
 
       <FormFeedback state={state} fields={['threshold']} />
-    </form>
+    </ActionForm>
   );
 }
 

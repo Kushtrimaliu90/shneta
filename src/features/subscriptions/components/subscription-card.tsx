@@ -5,6 +5,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import { AlertTriangle, CalendarClock } from 'lucide-react';
 import { Link } from '@/i18n/routing';
 import { Alert } from '@/components/ui/alert';
+import { ActionForm } from '@/components/ui/action-form';
 import { buttonVariants } from '@/components/ui/button';
 import { SubmitButton } from '@/components/ui/submit-button';
 import { ProductImage } from '@/components/storefront/product-image';
@@ -236,7 +237,7 @@ export function SubscriptionCard({ subscription }: { subscription: SubscriptionV
               </SubmitButton>
             </form>
           ) : (
-            <form action={pauseAction} className="flex items-end gap-2">
+            <ActionForm action={pauseAction} state={pauseState} className="flex items-end gap-2">
               <input type="hidden" name="subscriptionId" value={subscription.id} />
               <div>
                 <label htmlFor={`resume-${subscription.id}`} className="block text-xs text-ink-600">
@@ -252,11 +253,15 @@ export function SubscriptionCard({ subscription }: { subscription: SubscriptionV
               <SubmitButton size="sm" variant="secondary" loadingLabel={t('pausing')}>
                 {t('pause')}
               </SubmitButton>
-            </form>
+            </ActionForm>
           )}
 
           {editingFrequency ? (
-            <form action={frequencyAction} className="flex items-end gap-2">
+            <ActionForm
+              action={frequencyAction}
+              state={frequencyState}
+              className="flex items-end gap-2"
+            >
               <input type="hidden" name="subscriptionId" value={subscription.id} />
               <div>
                 <label
@@ -281,7 +286,7 @@ export function SubscriptionCard({ subscription }: { subscription: SubscriptionV
               <SubmitButton size="sm" loadingLabel={t('saving')}>
                 {t('save')}
               </SubmitButton>
-            </form>
+            </ActionForm>
           ) : (
             <button
               type="button"
@@ -308,7 +313,11 @@ export function SubscriptionCard({ subscription }: { subscription: SubscriptionV
       )}
 
       {confirmingCancel && (
-        <form action={cancelAction} className="mt-3 border-t border-line pt-3">
+        <ActionForm
+          action={cancelAction}
+          state={cancelState}
+          className="mt-3 border-t border-line pt-3"
+        >
           <input type="hidden" name="subscriptionId" value={subscription.id} />
           <p className="text-sm font-medium text-ink-900">{t('cancelConfirm')}</p>
 
@@ -334,7 +343,7 @@ export function SubscriptionCard({ subscription }: { subscription: SubscriptionV
               {t('keepIt')}
             </button>
           </div>
-        </form>
+        </ActionForm>
       )}
 
       {subscription.orders.length > 0 && (

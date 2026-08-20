@@ -4,6 +4,7 @@ import { useActionState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import { Field } from '@/components/ui/field';
+import { ActionForm } from '@/components/ui/action-form';
 import { Input } from '@/components/ui/input';
 import { Alert } from '@/components/ui/alert';
 import { SubmitButton } from '@/components/ui/submit-button';
@@ -38,7 +39,7 @@ export function ForgotPasswordForm() {
   const fieldErrors = state && !state.ok ? state.fieldErrors : undefined;
 
   return (
-    <form action={formAction} className="flex flex-col gap-4" noValidate>
+    <ActionForm action={formAction} state={state} className="flex flex-col gap-4" noValidate>
       {state && !state.ok && <Alert tone="error">{t(state.error)}</Alert>}
 
       <Field id="email" label={t('auth.fields.email')} errors={fieldErrors?.email} required>
@@ -55,7 +56,7 @@ export function ForgotPasswordForm() {
       >
         {t('auth.forgotPassword.backToSignIn')}
       </Link>
-    </form>
+    </ActionForm>
   );
 }
 
@@ -70,7 +71,7 @@ export function ResetPasswordForm({ next }: { next?: string }) {
   const fieldErrors = state && !state.ok ? state.fieldErrors : undefined;
 
   return (
-    <form action={formAction} className="flex flex-col gap-4" noValidate>
+    <ActionForm action={formAction} state={state} className="flex flex-col gap-4" noValidate>
       {state && !state.ok && <Alert tone="error">{t(state.error)}</Alert>}
 
       <input type="hidden" name="next" value={next ?? ''} />
@@ -101,7 +102,7 @@ export function ResetPasswordForm({ next }: { next?: string }) {
       <SubmitButton size="lg" block loadingLabel={t('common.loading')}>
         {t('auth.resetPassword.submit')}
       </SubmitButton>
-    </form>
+    </ActionForm>
   );
 }
 
@@ -140,7 +141,7 @@ export function MagicLinkForm({ next }: { next?: string }) {
   const fieldErrors = state && !state.ok ? state.fieldErrors : undefined;
 
   return (
-    <form action={formAction} className="flex flex-col gap-4" noValidate>
+    <ActionForm action={formAction} state={state} className="flex flex-col gap-4" noValidate>
       {state && !state.ok && <Alert tone="error">{t(state.error)}</Alert>}
 
       <input type="hidden" name="next" value={next ?? ''} />
@@ -159,6 +160,6 @@ export function MagicLinkForm({ next }: { next?: string }) {
       >
         {t('auth.magicLink.backToSignIn')}
       </Link>
-    </form>
+    </ActionForm>
   );
 }

@@ -3,6 +3,7 @@
 import { useActionState, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Alert } from '@/components/ui/alert';
+import { ActionForm } from '@/components/ui/action-form';
 import { SubmitButton } from '@/components/ui/submit-button';
 import { bulkApplyOffers, type BulkState } from '@/features/merchants/bulk-actions';
 import { SheetUpload } from '@/features/merchants/components/sheet-upload';
@@ -84,8 +85,9 @@ export function BulkForm() {
   );
 
   return (
-    <form
+    <ActionForm
       action={action}
+      state={state}
       className="flex flex-col gap-4 rounded-lg border border-line bg-surface p-5"
     >
       <div>
@@ -178,6 +180,6 @@ export function BulkForm() {
       <div>
         <SubmitButton>{t('submit')}</SubmitButton>
       </div>
-    </form>
+    </ActionForm>
   );
 }

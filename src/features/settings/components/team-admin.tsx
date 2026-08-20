@@ -3,6 +3,7 @@
 import { useActionState, useState } from 'react';
 import { UserPlus } from 'lucide-react';
 import { Alert } from '@/components/ui/alert';
+import { ActionForm } from '@/components/ui/action-form';
 import { Button } from '@/components/ui/button';
 import { SubmitButton } from '@/components/ui/submit-button';
 import {
@@ -71,7 +72,11 @@ function InviteForm() {
   }
 
   return (
-    <form action={action} className="rounded-lg border border-line-strong bg-surface p-4">
+    <ActionForm
+      action={action}
+      state={state}
+      className="rounded-lg border border-line-strong bg-surface p-4"
+    >
       <div className="grid gap-3 sm:grid-cols-3">
         <div>
           <label htmlFor="email" className={labelClass}>
@@ -130,7 +135,7 @@ function InviteForm() {
           {result.text}
         </Alert>
       )}
-    </form>
+    </ActionForm>
   );
 }
 
@@ -165,7 +170,7 @@ function MemberRow({ member, isSelf }: { member: TeamMember; isSelf: boolean }) 
         </div>
 
         <div className="flex flex-wrap items-end gap-2">
-          <form action={roleAction} className="flex items-end gap-2">
+          <ActionForm action={roleAction} state={roleState} className="flex items-end gap-2">
             <input type="hidden" name="userId" value={member.id} />
             <div>
               <label htmlFor={`role-${member.id}`} className="sr-only">
@@ -187,7 +192,7 @@ function MemberRow({ member, isSelf }: { member: TeamMember; isSelf: boolean }) 
             <SubmitButton size="sm" variant="secondary" loadingLabel="…">
               Set role
             </SubmitButton>
-          </form>
+          </ActionForm>
 
           {/*
             Deactivating yourself is possible and deliberately not blocked — an admin locking

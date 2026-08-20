@@ -4,6 +4,7 @@ import { useActionState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import { Field } from '@/components/ui/field';
+import { ActionForm } from '@/components/ui/action-form';
 import { Input } from '@/components/ui/input';
 import { Alert } from '@/components/ui/alert';
 import { SubmitButton } from '@/components/ui/submit-button';
@@ -42,7 +43,7 @@ export function SignInForm({
   const fieldErrors = state && !state.ok ? state.fieldErrors : undefined;
 
   return (
-    <form action={formAction} className="flex flex-col gap-4" noValidate>
+    <ActionForm action={formAction} state={state} className="flex flex-col gap-4" noValidate>
       {linkError && <Alert tone="error">{t('auth.errors.linkInvalid')}</Alert>}
       {oauthError && <Alert tone="error">{t('auth.errors.oauthFailed')}</Alert>}
       {state && !state.ok && <Alert tone="error">{t(state.error)}</Alert>}
@@ -101,6 +102,6 @@ export function SignInForm({
           {t('auth.signIn.createAccount')}
         </Link>
       </p>
-    </form>
+    </ActionForm>
   );
 }

@@ -3,6 +3,7 @@
 import { useActionState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Field } from '@/components/ui/field';
+import { ActionForm } from '@/components/ui/action-form';
 import { Input } from '@/components/ui/input';
 import { Alert } from '@/components/ui/alert';
 import { SubmitButton } from '@/components/ui/submit-button';
@@ -19,7 +20,7 @@ export function OrderLookupForm() {
   const t = useTranslations();
 
   return (
-    <form action={formAction} className="flex flex-col gap-4" noValidate>
+    <ActionForm action={formAction} state={state} className="flex flex-col gap-4" noValidate>
       {state && !state.ok && <Alert tone="error">{t(state.error)}</Alert>}
 
       {/*
@@ -58,6 +59,6 @@ export function OrderLookupForm() {
       <SubmitButton size="lg" block loadingLabel={t('order.lookup.searching')}>
         {t('order.lookup.submit')}
       </SubmitButton>
-    </form>
+    </ActionForm>
   );
 }

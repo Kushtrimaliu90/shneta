@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from 'react';
 import { Alert } from '@/components/ui/alert';
+import { ActionForm } from '@/components/ui/action-form';
 import { buttonVariants } from '@/components/ui/button';
 import { SubmitButton } from '@/components/ui/submit-button';
 import { CATALOG_ERRORS } from '@/features/catalog/admin-copy';
@@ -61,7 +62,7 @@ export function ComplianceReview({ productId }: { productId: string }) {
       </div>
 
       {rejecting && (
-        <form action={rejectAction} className="mt-3">
+        <ActionForm action={rejectAction} state={rejectState} className="mt-3">
           <label htmlFor={`reject-${productId}`} className="block text-xs font-medium text-ink-900">
             What has to change?
           </label>
@@ -90,7 +91,7 @@ export function ComplianceReview({ productId }: { productId: string }) {
               Cancel
             </button>
           </div>
-        </form>
+        </ActionForm>
       )}
 
       {error && !error.ok && (

@@ -4,6 +4,7 @@ import { useActionState, useState } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { ActionForm } from '@/components/ui/action-form';
 import { SubmitButton } from '@/components/ui/submit-button';
 import { BANNED_CLAIM_WORDS } from '@/lib/claims';
 import {
@@ -57,9 +58,9 @@ export function AdminProfileRules({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="max-w-2xl">
           <p className="text-sm text-ink-600">
-            {rules.length} rule{rules.length === 1 ? '' : 's'}. Each one reads: <em>for this kind of
-            person, do this to this ingredient</em>. They are applied in sort order, after the
-            medication and caffeine filters and before conflicts and selection.
+            {rules.length} rule{rules.length === 1 ? '' : 's'}. Each one reads:{' '}
+            <em>for this kind of person, do this to this ingredient</em>. They are applied in sort
+            order, after the medication and caffeine filters and before conflicts and selection.
           </p>
           <p className="mt-1 text-xs text-ink-600">
             A band nobody answered matches nothing — declining to state a sex applies no
@@ -211,8 +212,9 @@ function RuleForm({
   const num = typeof rule?.effect.weight_delta === 'number' ? rule.effect.weight_delta : 0;
 
   return (
-    <form
+    <ActionForm
       action={action}
+      state={state}
       className="flex flex-col gap-4 rounded-md border border-forest-500/40 bg-forest-50/50 p-4"
     >
       <input type="hidden" name="configId" value={configId} />
@@ -241,8 +243,16 @@ function RuleForm({
 
       <fieldset className="flex flex-wrap gap-4">
         <legend className="text-sm font-medium text-ink-900">Effect</legend>
-        <Check name="exclude" label="Remove the ingredient" checked={rule?.effect.exclude === true} />
-        <Check name="require" label="Guarantee it a place" checked={rule?.effect.require === true} />
+        <Check
+          name="exclude"
+          label="Remove the ingredient"
+          checked={rule?.effect.exclude === true}
+        />
+        <Check
+          name="require"
+          label="Guarantee it a place"
+          checked={rule?.effect.require === true}
+        />
         <Check
           name="servingsHint"
           label="Show the body-weight serving note"
@@ -252,7 +262,12 @@ function RuleForm({
       </fieldset>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <Bands name="ageBands" label="Age bands" options={AGE_BANDS} checked={stored('age_bands')} />
+        <Bands
+          name="ageBands"
+          label="Age bands"
+          options={AGE_BANDS}
+          checked={stored('age_bands')}
+        />
         <Bands name="sexes" label="Sex" options={SEX_BANDS} checked={stored('sexes')} />
         <Bands
           name="weightBands"
@@ -286,8 +301,16 @@ function RuleForm({
       </p>
 
       <div className="grid gap-3 sm:grid-cols-2">
-        <TextArea name="reasonSq" label="Reason shown to the customer (sq)" value={rule?.reason?.sq ?? ''} />
-        <TextArea name="reasonEn" label="Reason shown to the customer (en)" value={rule?.reason?.en ?? ''} />
+        <TextArea
+          name="reasonSq"
+          label="Reason shown to the customer (sq)"
+          value={rule?.reason?.sq ?? ''}
+        />
+        <TextArea
+          name="reasonEn"
+          label="Reason shown to the customer (en)"
+          value={rule?.reason?.en ?? ''}
+        />
         <TextArea name="cautionSq" label="Caution (sq, optional)" value={rule?.caution?.sq ?? ''} />
         <TextArea name="cautionEn" label="Caution (en, optional)" value={rule?.caution?.en ?? ''} />
       </div>
@@ -313,7 +336,7 @@ function RuleForm({
           Cancel
         </Button>
       </div>
-    </form>
+    </ActionForm>
   );
 }
 

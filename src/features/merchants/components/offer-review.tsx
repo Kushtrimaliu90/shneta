@@ -6,6 +6,7 @@ import { pickLocale } from '@/lib/i18n';
 import { formatPrice } from '@/lib/money';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { ActionForm } from '@/components/ui/action-form';
 import { SubmitButton } from '@/components/ui/submit-button';
 import { decideOffer, type OfferState } from '@/features/merchants/offer-actions';
 import type { ReviewOffer } from '@/features/merchants/offer-admin-queries';
@@ -131,7 +132,11 @@ export function OfferReview({ offer }: { offer: ReviewOffer }) {
       </div>
 
       {panel === 'reject' && (
-        <form action={action} className="flex flex-col gap-3 rounded-md border border-line bg-cream p-4">
+        <ActionForm
+          action={action}
+          state={state}
+          className="flex flex-col gap-3 rounded-md border border-line bg-cream p-4"
+        >
           <input type="hidden" name="offerId" value={offer.id} />
           <input type="hidden" name="decision" value="reject" />
 
@@ -146,7 +151,8 @@ export function OfferReview({ offer }: { offer: ReviewOffer }) {
             />
             {/* The merchant reads this in the portal, so it has to say what to change. */}
             <span className="text-xs text-ink-600">
-              The merchant sees this on the offer. A rejection with no reason is one they cannot fix.
+              The merchant sees this on the offer. A rejection with no reason is one they cannot
+              fix.
             </span>
           </label>
 
@@ -158,21 +164,13 @@ export function OfferReview({ offer }: { offer: ReviewOffer }) {
               Cancel
             </Button>
           </div>
-        </form>
+        </ActionForm>
       )}
     </article>
   );
 }
 
-function Figure({
-  label,
-  value,
-  tone,
-}: {
-  label: string;
-  value: string;
-  tone?: 'good' | 'bad';
-}) {
+function Figure({ label, value, tone }: { label: string; value: string; tone?: 'good' | 'bad' }) {
   return (
     <div>
       <dt className="text-[11px] font-semibold tracking-wide text-ink-500 uppercase">{label}</dt>

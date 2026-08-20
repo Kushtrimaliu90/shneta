@@ -5,6 +5,7 @@ import { Banknote, Play } from 'lucide-react';
 import { formatPrice } from '@/lib/money';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { ActionForm } from '@/components/ui/action-form';
 import { SubmitButton } from '@/components/ui/submit-button';
 import {
   buildPayoutRun,
@@ -54,8 +55,9 @@ export function PayoutAdmin({
           Build the run
         </h2>
 
-        <form
+        <ActionForm
           action={run}
+          state={runState}
           className="flex flex-col gap-4 rounded-lg border border-line bg-surface p-5"
         >
           <p className="text-sm text-ink-600">
@@ -87,7 +89,8 @@ export function PayoutAdmin({
 
           {/* Prefilled with the fortnight that just closed — the normal case needs no typing. */}
           <p className="text-[13px] text-ink-500">
-            Defaults to the fortnight that has just closed. The cron does this on the 1st and the 16th.
+            Defaults to the fortnight that has just closed. The cron does this on the 1st and the
+            16th.
           </p>
 
           {runState?.ok && (
@@ -111,7 +114,7 @@ export function PayoutAdmin({
               Build statements
             </SubmitButton>
           </div>
-        </form>
+        </ActionForm>
       </section>
 
       <section aria-labelledby="owed" className="flex flex-col gap-3">
@@ -171,14 +174,11 @@ export function PayoutAdmin({
  */
 function OwingRow({ entry }: { entry: MerchantOwing }) {
   const [open, setOpen] = useState(false);
-  const [state, action] = useActionState<PayoutState, FormData>(
-    async (previous, formData) => {
-      const result = await postAdjustment(previous, formData);
-      if (result?.ok) setOpen(false);
-      return result;
-    },
-    null,
-  );
+  const [state, action] = useActionState<PayoutState, FormData>(async (previous, formData) => {
+    const result = await postAdjustment(previous, formData);
+    if (result?.ok) setOpen(false);
+    return result;
+  }, null);
 
   return (
     <div className="rounded-lg border border-line bg-surface p-4">
@@ -202,7 +202,11 @@ function OwingRow({ entry }: { entry: MerchantOwing }) {
       </div>
 
       {open && (
-        <form action={action} className="mt-4 flex flex-col gap-3 border-t border-line pt-4">
+        <ActionForm
+          action={action}
+          state={state}
+          className="mt-4 flex flex-col gap-3 border-t border-line pt-4"
+        >
           <input type="hidden" name="merchantId" value={entry.merchantId} />
 
           <div className="grid gap-3 sm:grid-cols-[10rem_1fr]">
@@ -245,7 +249,7 @@ function OwingRow({ entry }: { entry: MerchantOwing }) {
               Cancel
             </Button>
           </div>
-        </form>
+        </ActionForm>
       )}
     </div>
   );
@@ -285,7 +289,11 @@ function PayoutCard({ payout }: { payout: PayoutRow }) {
           Paid {payout.paidAt?.slice(0, 10)} · ref <span data-numeric>{payout.reference}</span>
         </p>
       ) : payable ? (
-        <form action={action} className="flex flex-wrap items-end gap-2 border-t border-line pt-3">
+        <ActionForm
+          action={action}
+          state={state}
+          className="flex flex-wrap items-end gap-2 border-t border-line pt-3"
+        >
           <input type="hidden" name="payoutId" value={payout.id} />
           <label className="flex min-w-48 flex-1 flex-col gap-1 text-sm">
             <span className="font-medium text-ink-900">Bank reference</span>
@@ -308,7 +316,7 @@ function PayoutCard({ payout }: { payout: PayoutRow }) {
                   : 'Could not record the payment.'}
             </p>
           )}
-        </form>
+        </ActionForm>
       ) : (
         <p className="text-sm text-ink-600">On hold.</p>
       )}

@@ -2,6 +2,7 @@
 
 import { useActionState } from 'react';
 import { Alert } from '@/components/ui/alert';
+import { ActionForm } from '@/components/ui/action-form';
 import { SubmitButton } from '@/components/ui/submit-button';
 import {
   saveLoyaltySettings,
@@ -105,9 +106,15 @@ export function StoreForm({ settings }: { settings: StoreSettings }) {
   const [state, action] = useActionState<SettingsState, FormData>(saveStoreSettings, null);
 
   return (
-    <form action={action}>
+    <ActionForm action={action} state={state}>
       <div className="grid gap-3 sm:grid-cols-2">
-        <TextField name="name" label="Shop name" defaultValue={settings.name} state={state} required />
+        <TextField
+          name="name"
+          label="Shop name"
+          defaultValue={settings.name}
+          state={state}
+          required
+        />
         <TextField
           name="email"
           label="Contact email"
@@ -126,7 +133,12 @@ export function StoreForm({ settings }: { settings: StoreSettings }) {
           state={state}
         />
         <TextField name="tiktok" label="TikTok" defaultValue={settings.tiktok} state={state} />
-        <TextField name="facebook" label="Facebook" defaultValue={settings.facebook} state={state} />
+        <TextField
+          name="facebook"
+          label="Facebook"
+          defaultValue={settings.facebook}
+          state={state}
+        />
         <TextField
           name="announcement"
           label="Announcement bar"
@@ -142,7 +154,7 @@ export function StoreForm({ settings }: { settings: StoreSettings }) {
         </SubmitButton>
       </div>
       <Feedback state={state} />
-    </form>
+    </ActionForm>
   );
 }
 
@@ -151,7 +163,7 @@ export function TaxForm({ settings }: { settings: TaxSettings }) {
   const [state, action] = useActionState<SettingsState, FormData>(saveTaxSettings, null);
 
   return (
-    <form action={action}>
+    <ActionForm action={action} state={state}>
       <div className="grid gap-3 sm:grid-cols-2">
         <div>
           <label htmlFor="rate" className={labelClass}>
@@ -177,8 +189,8 @@ export function TaxForm({ settings }: { settings: TaxSettings }) {
         <div className="rounded-sm border border-line bg-cream p-3 text-xs text-ink-600">
           <p className="font-medium text-ink-900">Prices include VAT</p>
           <p className="mt-1">
-            Fixed, and not a preference. Every price in the catalogue is what the customer pays;
-            the VAT line on an order is worked back out of it. Changing this would not change a
+            Fixed, and not a preference. Every price in the catalogue is what the customer pays; the
+            VAT line on an order is worked back out of it. Changing this would not change a
             calculation — it would change what every price in the shop means.
           </p>
         </div>
@@ -190,7 +202,7 @@ export function TaxForm({ settings }: { settings: TaxSettings }) {
         </SubmitButton>
       </div>
       <Feedback state={state} />
-    </form>
+    </ActionForm>
   );
 }
 
@@ -205,7 +217,7 @@ export function PaymentsForm({
   const [state, action] = useActionState<SettingsState, FormData>(savePaymentSettings, null);
 
   return (
-    <form action={action}>
+    <ActionForm action={action} state={state}>
       <label className="flex items-start gap-2 text-sm text-ink-900">
         <input
           type="checkbox"
@@ -267,7 +279,7 @@ export function PaymentsForm({
         </SubmitButton>
       </div>
       <Feedback state={state} />
-    </form>
+    </ActionForm>
   );
 }
 
@@ -282,7 +294,7 @@ export function LoyaltyForm({
   const [state, action] = useActionState<SettingsState, FormData>(saveLoyaltySettings, null);
 
   return (
-    <form action={action}>
+    <ActionForm action={action} state={state}>
       <div className="grid gap-3 sm:grid-cols-2">
         <div>
           <label htmlFor="earnRate" className={labelClass}>
@@ -403,7 +415,7 @@ export function LoyaltyForm({
         </SubmitButton>
       </div>
       <Feedback state={state} />
-    </form>
+    </ActionForm>
   );
 }
 
@@ -419,7 +431,7 @@ export function ReferralForm({ settings }: { settings: ReferralSettings }) {
   const [state, action] = useActionState<SettingsState, FormData>(saveReferralSettings, null);
 
   return (
-    <form action={action}>
+    <ActionForm action={action} state={state}>
       <label className="flex items-start gap-2.5 text-sm">
         <input
           type="checkbox"
@@ -428,8 +440,8 @@ export function ReferralForm({ settings }: { settings: ReferralSettings }) {
           className="mt-0.5 size-4 shrink-0 rounded-[3px] border border-line-strong"
         />
         <span className="text-ink-600">
-          Run the programme. Turning it off stops new links and stops accrual; links already approved
-          keep the points they earned.
+          Run the programme. Turning it off stops new links and stops accrual; links already
+          approved keep the points they earned.
         </span>
       </label>
 
@@ -458,8 +470,8 @@ export function ReferralForm({ settings }: { settings: ReferralSettings }) {
             only, and the number is written out in the customer-facing terms.
           */}
           <p className="mt-1 text-[11px] text-ink-500">
-            Applies to future orders only. The referral terms page states this figure in words — change
-            it there too.
+            Applies to future orders only. The referral terms page states this figure in words —
+            change it there too.
           </p>
         </div>
 
@@ -515,8 +527,8 @@ export function ReferralForm({ settings }: { settings: ReferralSettings }) {
             data-numeric
           />
           <p className="mt-1 text-[11px] text-ink-500">
-            Reaching it pays up to the cap and flags the link for review rather than dropping the rest
-            silently.
+            Reaching it pays up to the cap and flags the link for review rather than dropping the
+            rest silently.
           </p>
         </div>
 
@@ -538,8 +550,8 @@ export function ReferralForm({ settings }: { settings: ReferralSettings }) {
             own points ledger into a dated list of when a referred customer shopped (docs/17 §0.2).
           */}
           <p className="mt-1 text-[11px] text-ink-500">
-            Monthly is the safer default: posting per order tells the referrer the dates their friend
-            shopped.
+            Monthly is the safer default: posting per order tells the referrer the dates their
+            friend shopped.
           </p>
         </div>
       </div>
@@ -552,8 +564,8 @@ export function ReferralForm({ settings }: { settings: ReferralSettings }) {
           className="mt-0.5 size-4 shrink-0 rounded-[3px] border border-line-strong"
         />
         <span className="text-ink-600">
-          Approve a referral automatically once the new customer&apos;s first order is delivered. Off
-          means every link waits for a person, which is the launch setting.
+          Approve a referral automatically once the new customer&apos;s first order is delivered.
+          Off means every link waits for a person, which is the launch setting.
         </span>
       </label>
 
@@ -563,6 +575,6 @@ export function ReferralForm({ settings }: { settings: ReferralSettings }) {
         </SubmitButton>
       </div>
       <Feedback state={state} />
-    </form>
+    </ActionForm>
   );
 }

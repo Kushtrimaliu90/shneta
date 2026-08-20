@@ -3,6 +3,7 @@
 import { useActionState } from 'react';
 import { EyeOff } from 'lucide-react';
 import { Alert } from '@/components/ui/alert';
+import { ActionForm } from '@/components/ui/action-form';
 import { SubmitButton } from '@/components/ui/submit-button';
 import { ORDER_ERRORS, formatAdminDateTime } from '@/features/admin/copy';
 import { addInternalNote, type OrderActionState } from '@/features/orders/actions';
@@ -81,7 +82,7 @@ export function OrderTimeline({ orderId, events }: { orderId: string; events: Or
         </ol>
       )}
 
-      <form action={formAction} className="mt-5 max-w-xl">
+      <ActionForm action={formAction} state={state} className="mt-5 max-w-xl">
         <input type="hidden" name="orderId" value={orderId} />
         <label htmlFor="note-message" className="block text-xs font-medium text-ink-900">
           Add an internal note
@@ -106,7 +107,7 @@ export function OrderTimeline({ orderId, events }: { orderId: string; events: Or
             {ORDER_ERRORS[state.error]}
           </Alert>
         )}
-      </form>
+      </ActionForm>
     </section>
   );
 }

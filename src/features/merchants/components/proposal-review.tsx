@@ -4,6 +4,7 @@ import { useActionState, useState } from 'react';
 import { ExternalLink, ImageOff } from 'lucide-react';
 import { formatPrice } from '@/lib/money';
 import { Button } from '@/components/ui/button';
+import { ActionForm } from '@/components/ui/action-form';
 import { SubmitButton } from '@/components/ui/submit-button';
 import { decideProposal, type ProposalState } from '@/features/merchants/proposal-actions';
 import type { Proposal } from '@/features/merchants/proposal-queries';
@@ -24,14 +25,11 @@ import type { Proposal } from '@/features/merchants/proposal-queries';
 export function ProposalReview({ proposal }: { proposal: Proposal }) {
   const [panel, setPanel] = useState<'reject' | 'info' | 'approve' | null>(null);
 
-  const [state, action] = useActionState<ProposalState, FormData>(
-    async (previous, formData) => {
-      const result = await decideProposal(previous, formData);
-      if (result?.ok) setPanel(null);
-      return result;
-    },
-    null,
-  );
+  const [state, action] = useActionState<ProposalState, FormData>(async (previous, formData) => {
+    const result = await decideProposal(previous, formData);
+    if (result?.ok) setPanel(null);
+    return result;
+  }, null);
 
   const open = proposal.status === 'pending' || proposal.status === 'needs_info';
 
@@ -53,7 +51,7 @@ export function ProposalReview({ proposal }: { proposal: Proposal }) {
           </p>
         </div>
 
-        <span className="rounded-sm bg-ink-100 px-1.5 py-0.5 font-ui text-[11px] font-semibold text-ink-900">
+        <span className="bg-ink-100 rounded-sm px-1.5 py-0.5 font-ui text-[11px] font-semibold text-ink-900">
           {proposal.status.replace('_', ' ')}
         </span>
       </header>
@@ -190,7 +188,11 @@ export function ProposalReview({ proposal }: { proposal: Proposal }) {
       )}
 
       {panel && (
-        <form action={action} className="flex flex-col gap-3 rounded-md border border-line bg-cream p-4">
+        <ActionForm
+          action={action}
+          state={state}
+          className="flex flex-col gap-3 rounded-md border border-line bg-cream p-4"
+        >
           <input type="hidden" name="proposalId" value={proposal.id} />
           <input
             type="hidden"
@@ -228,7 +230,7 @@ export function ProposalReview({ proposal }: { proposal: Proposal }) {
               Cancel
             </Button>
           </div>
-        </form>
+        </ActionForm>
       )}
     </article>
   );

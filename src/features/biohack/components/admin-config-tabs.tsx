@@ -4,6 +4,7 @@ import { useActionState, useState } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { ActionForm } from '@/components/ui/action-form';
 import { SubmitButton } from '@/components/ui/submit-button';
 import { TIMING_SLOTS, type EngineSettings } from '@/features/biohack/types';
 import {
@@ -145,15 +146,21 @@ function ConflictForm({
   const [kind, setKind] = useState<'exclude' | 'caution' | 'timing_rule'>('timing_rule');
 
   return (
-    <form
+    <ActionForm
       action={action}
+      state={state}
       className="flex flex-col gap-4 rounded-md border border-forest-500/40 bg-forest-50/50 p-4"
     >
       <input type="hidden" name="configId" value={configId} />
 
       <div className="grid gap-3 sm:grid-cols-3">
         <Select name="aIngredientId" label="Ingredient A" options={ingredients} />
-        <Select name="bIngredientId" label="Ingredient B (optional)" options={ingredients} optional />
+        <Select
+          name="bIngredientId"
+          label="Ingredient B (optional)"
+          options={ingredients}
+          optional
+        />
         <Select name="bGoalId" label="…or goal B (optional)" options={goals} optional />
       </div>
 
@@ -192,7 +199,12 @@ function ConflictForm({
 
       {kind === 'caution' && (
         <label className="flex items-center gap-2 text-sm">
-          <input type="checkbox" name="separateSlots" value="true" className="size-4 accent-forest-700" />
+          <input
+            type="checkbox"
+            name="separateSlots"
+            value="true"
+            className="size-4 accent-forest-700"
+          />
           Take at separate times
         </label>
       )}
@@ -200,11 +212,19 @@ function ConflictForm({
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="flex flex-col gap-1 text-sm">
           <span className="font-medium text-ink-900">Note (sq)</span>
-          <textarea name="noteSq" rows={2} className="rounded-md border border-line-strong bg-surface p-2.5 text-sm" />
+          <textarea
+            name="noteSq"
+            rows={2}
+            className="rounded-md border border-line-strong bg-surface p-2.5 text-sm"
+          />
         </label>
         <label className="flex flex-col gap-1 text-sm">
           <span className="font-medium text-ink-900">Note (en)</span>
-          <textarea name="noteEn" rows={2} className="rounded-md border border-line-strong bg-surface p-2.5 text-sm" />
+          <textarea
+            name="noteEn"
+            rows={2}
+            className="rounded-md border border-line-strong bg-surface p-2.5 text-sm"
+          />
         </label>
       </div>
 
@@ -220,7 +240,7 @@ function ConflictForm({
           Cancel
         </Button>
       </div>
-    </form>
+    </ActionForm>
   );
 }
 
@@ -244,7 +264,7 @@ export function AdminEngineSettings({ settings }: { settings: EngineSettings }) 
   const [state, action] = useActionState<BioHackState, FormData>(saveEngineSettings, null);
 
   return (
-    <form action={action} className="flex max-w-2xl flex-col gap-5">
+    <ActionForm action={action} state={state} className="flex max-w-2xl flex-col gap-5">
       <p className="text-sm text-ink-600">
         `settings.biohack_engine`. These are operational dials, not the ruleset — they apply
         immediately and are not part of the approval cycle.
@@ -299,7 +319,7 @@ export function AdminEngineSettings({ settings }: { settings: EngineSettings }) 
       <div>
         <SubmitButton>Save settings</SubmitButton>
       </div>
-    </form>
+    </ActionForm>
   );
 }
 
@@ -330,7 +350,9 @@ export function AdminVersions({
     <div className="flex flex-col gap-5">
       {canEdit && !hasEditable && (
         <form action={draftAction}>
-          <SubmitButton disabled={draftPending}>Start a new draft from the approved version</SubmitButton>
+          <SubmitButton disabled={draftPending}>
+            Start a new draft from the approved version
+          </SubmitButton>
         </form>
       )}
 
@@ -385,12 +407,16 @@ function ReviewForm({
   action: 'submit' | 'approve' | 'reject';
 }) {
   const handler =
-    action === 'submit' ? submitConfigForReview : action === 'approve' ? approveConfig : rejectConfig;
+    action === 'submit'
+      ? submitConfigForReview
+      : action === 'approve'
+        ? approveConfig
+        : rejectConfig;
 
   const [state, formAction] = useActionState<BioHackState, FormData>(handler, null);
 
   return (
-    <form action={formAction} className="flex items-center gap-2">
+    <ActionForm action={formAction} state={state} className="flex items-center gap-2">
       <input type="hidden" name="configId" value={configId} />
       {action !== 'submit' && (
         <input
@@ -402,7 +428,9 @@ function ReviewForm({
       )}
       <SubmitButton
         size="sm"
-        variant={action === 'approve' ? 'primary' : action === 'reject' ? 'destructive' : 'secondary'}
+        variant={
+          action === 'approve' ? 'primary' : action === 'reject' ? 'destructive' : 'secondary'
+        }
       >
         {action === 'submit' ? 'Send for approval' : action === 'approve' ? 'Approve' : 'Send back'}
       </SubmitButton>
@@ -411,7 +439,7 @@ function ReviewForm({
           {errorText(state)}
         </span>
       )}
-    </form>
+    </ActionForm>
   );
 }
 
