@@ -55,7 +55,7 @@ export default async function OffersPage({ params }: Props) {
   const nothing = onSale.items.length === 0 && coupons.length === 0;
 
   return (
-    <div className="container-page py-8 lg:py-12">
+    <div className="container-wide py-8 lg:py-12">
       <header className="mb-8">
         <h1 className="font-display text-3xl font-semibold text-forest-900 lg:text-4xl">
           {t('title')}
@@ -100,7 +100,7 @@ export default async function OffersPage({ params }: Props) {
               <h2 className="font-display text-2xl font-semibold text-forest-900">
                 {t('couponsTitle')}
               </h2>
-              <ul className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <ul className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 3xl:grid-cols-4">
                 {coupons.map((coupon) => (
                   <CouponCard key={coupon.code} coupon={coupon} />
                 ))}

@@ -85,7 +85,13 @@ export async function Navbar() {
    */
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-cream">
-      <div className="container-page flex h-14 items-center gap-3 lg:h-20 lg:gap-4">
+      {/*
+        `container-wide`, not `container-page`. At 1920 the logo had 340 px of empty cream to its
+        left and the search field was squeezed to about 345 px — on a marketplace, where search is a
+        primary surface. The header is the one element that should always reach for the page's real
+        margin, and the hero's copy column now aligns to this same edge.
+      */}
+      <div className="container-wide flex h-14 items-center gap-3 lg:h-20 lg:gap-4">
         <MobileNav />
 
         <Link href="/" className="shrink-0 rounded-sm" aria-label={t('common.brand')}>
@@ -112,7 +118,8 @@ export async function Navbar() {
           sprawling on a wide monitor; `flex-1` is what gives it real presence at 1280.
         */}
         <div className="ml-auto hidden min-w-0 flex-1 justify-end lg:flex">
-          <HeaderSearch placeholders={placeholders} className="w-full max-w-md" />
+          {/* Allowed to grow once the header does: 448 px through `xl`, 576 px on a wide monitor. */}
+          <HeaderSearch placeholders={placeholders} className="w-full max-w-md 2xl:max-w-xl" />
         </div>
 
         <div className="ml-auto flex shrink-0 items-center gap-1 lg:ml-2">
@@ -143,7 +150,7 @@ export async function Navbar() {
         tap on every single search. It costs about 56 px of vertical space, which is why the hero was
         re-measured at 393 × 852 after this landed rather than before.
       */}
-      <div className="container-page pb-2 lg:hidden">
+      <div className="container-wide pb-2 lg:hidden">
         <HeaderSearch placeholders={placeholders} />
       </div>
     </header>

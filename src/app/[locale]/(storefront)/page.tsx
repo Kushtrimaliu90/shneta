@@ -54,16 +54,15 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
   const locale = resolveLocale((await params).locale);
   setRequestLocale(locale);
 
-  const [products, categoryTiles, slides, heroSettings, trustItems, thresholdCents] = await Promise.all(
-    [
-      listFeaturedProducts(8),
+  const [products, categoryTiles, slides, heroSettings, trustItems, thresholdCents] =
+    await Promise.all([
+      listFeaturedProducts(12),
       getCategoryTiles(6),
       listHeroSlides(),
       getHeroSettings(),
       getTrustItems(),
       getFreeShippingThresholdCents(),
-    ],
-  );
+    ]);
 
   const t = await getTranslations();
   const origin = clientEnv.NEXT_PUBLIC_SITE_URL;
@@ -81,11 +80,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
         is degraded but coherent.
       */}
       {slides.length > 0 && (
-        <HeroCarousel
-          slides={slides}
-          settings={heroSettings}
-          locale={locale}
-        />
+        <HeroCarousel slides={slides} settings={heroSettings} locale={locale} />
       )}
 
       <TrustStrip items={trustItems} locale={locale} freeShippingThreshold={threshold} />
@@ -95,14 +90,19 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
       {/* docs/05 §1.5 — bestsellers */}
       {products.length > 0 && (
         <section aria-labelledby="bestsellers-heading" className="bg-forest-50/50 py-12 lg:py-16">
-          <div className="container-page">
+          <div className="container-wide">
             <h2
               id="bestsellers-heading"
               className="font-display text-2xl font-semibold text-forest-900 lg:text-3xl"
             >
               {t('home.sections.bestsellers')}
             </h2>
-            <ol className="mt-6 grid grid-cols-2 gap-4 lg:grid-cols-4 lg:gap-6">
+            {/*
+              The same ladder as the catalogue's full-width grid, and the reason the query above asks
+              for twelve rather than eight: four frozen columns on a 1680px track is a 400px product
+              card, which is not a premium signal, it is a stretched one.
+            */}
+            <ol className="mt-6 grid grid-cols-2 gap-4 lg:grid-cols-4 lg:gap-6 xl:grid-cols-5 3xl:grid-cols-6">
               {products.map((product) => (
                 <li key={product.id} className="flex">
                   {/*

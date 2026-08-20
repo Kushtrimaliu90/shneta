@@ -47,6 +47,8 @@ export function Carousel<T extends { id: string }>({
   intervalSeconds,
   loop = true,
   arrows = true,
+  controls = 'edge',
+  tone,
   className,
   renderItem,
 }: {
@@ -57,6 +59,29 @@ export function Carousel<T extends { id: string }>({
   loop?: boolean;
   /** Desktop prev/next. Off for short, wide slots where they would sit over the creative. */
   arrows?: boolean;
+  /**
+   * Where the controls live.
+   *
+   * `edge` pins prev/next to the region's left and right edges and centres the dots — correct for a
+   * short, contained banner, and the default so the sponsored placements are untouched.
+   *
+   * `cluster` gathers prev, next, dots and a slide counter into one group aligned to
+   * `container-wide`'s content edge. That is the right answer for a full-bleed slide, and on the
+   * hero it fixes something measurable: at 2560 the edge arrows sat about 24px from the viewport
+   * border while the copy column began at 684px, so the controls were floating in the dead margin
+   * roughly 650px from the content they operate. Two lone circles at the screen edges read as a
+   * plugin; a cluster reads as editorial furniture.
+   */
+  controls?: 'edge' | 'cluster';
+  /**
+   * Chrome colour, resolved from the **active** item rather than set once for the carousel.
+   *
+   * Without it the controls are styled for a light ground, which is a real defect and not a
+   * hypothetical one: the hero's brand slide is `forest-950`, and `forest-800` dots on it measure
+   * about 1.3:1 — the dots were effectively invisible on the site's most-viewed slide. A carousel
+   * whose slides choose their own ground has to let the chrome follow.
+   */
+  tone?: (item: T) => 'light' | 'dark';
   className?: string;
   renderItem: (item: T, state: { active: boolean; index: number }) => React.ReactNode;
 }) {
@@ -101,13 +126,16 @@ export function Carousel<T extends { id: string }>({
 
   useEffect(() => {
     if (!running) return;
-    const timer = window.setInterval(() => {
-      setActive((current) => {
-        const next = current + 1;
-        if (!loop && next >= count) return current;
-        return next % count;
-      });
-    }, Math.max(3, intervalSeconds) * 1000);
+    const timer = window.setInterval(
+      () => {
+        setActive((current) => {
+          const next = current + 1;
+          if (!loop && next >= count) return current;
+          return next % count;
+        });
+      },
+      Math.max(3, intervalSeconds) * 1000,
+    );
     return () => window.clearInterval(timer);
   }, [running, intervalSeconds, loop, count]);
 
@@ -156,6 +184,27 @@ export function Carousel<T extends { id: string }>({
 
   const fill = (template: string, index: number) =>
     template.replace('{index}', String(index + 1)).replace('{total}', String(count));
+
+  const clustered = controls === 'cluster';
+
+  /*
+   * Resolved from the active item every render, so a slide that chooses a dark ground gets light
+   * chrome the moment it becomes active. `dark` chrome (dark controls for a light ground) is the
+   * default and is what every existing caller gets.
+   */
+  const activeItem = items[active];
+  const chrome = tone && activeItem ? tone(activeItem) : 'dark';
+  const light = chrome === 'light';
+
+  const arrowClass = cn(
+    'inline-flex size-11 items-center justify-center rounded-full border transition-colors',
+    light
+      ? 'border-cream/30 bg-cream/10 text-cream hover:bg-cream/20'
+      : 'border-line bg-surface/90 text-forest-800 hover:bg-surface',
+  );
+
+  /** Two digits reads as a set — "01 / 03" is furniture, "1 / 3" is a stray fraction. */
+  const pad = (value: number) => String(value).padStart(2, '0');
 
   /* One item is not a carousel: no chrome, no timer, no live region. */
   if (count === 1 && items[0]) {
@@ -206,7 +255,7 @@ export function Carousel<T extends { id: string }>({
         })}
       </div>
 
-      {arrows && (
+      {arrows && !clustered && (
         <>
           <button
             type="button"
@@ -227,10 +276,19 @@ export function Carousel<T extends { id: string }>({
         </>
       )}
 
-      {/* A real tablist, so a screen reader can say which item is current and move between them. */}
+      {/*
+        The control row.
+
+        `cluster` gathers prev, next, the dots and the counter into one group and aligns it to
+        `container-wide`'s content edge, which is the same edge the hero's copy column starts on —
+        so the controls sit under the headline they belong to instead of in the margin. `edge`
+        keeps the centred dots the contained banners were built around.
+
+        Everything below `sm` is deliberately identical in both modes. The phone arrangement is
+        measured to 17 px of fold headroom and `e2e/hero.spec.ts` asserts that no dot lands on a
+        CTA; the cluster's extra furniture is `lg`-only for exactly that reason.
+      */}
       <div
-        role="tablist"
-        aria-label={labels.choose}
         /*
          * In normal flow on a phone, absolutely positioned from sm up.
          *
@@ -255,24 +313,81 @@ export function Carousel<T extends { id: string }>({
          * closer to the thing it controls, so 16/12 reads as "these belong to the carousel" where
          * 20/0 read as "these belong to the trust strip".
          */
-        className="relative z-20 mt-1 mb-3 flex justify-center gap-2 sm:absolute sm:inset-x-0 sm:bottom-3 sm:mt-0 sm:mb-0 lg:bottom-4"
+        className={cn(
+          'relative z-20 mt-1 mb-3 flex justify-center sm:absolute sm:inset-x-0 sm:mt-0 sm:mb-0',
+          clustered
+            ? 'sm:bottom-6 lg:bottom-10 lg:container-wide lg:justify-start'
+            : 'sm:bottom-3 lg:bottom-4',
+        )}
       >
-        {items.map((item, index) => (
-          <button
-            key={item.id}
-            type="button"
-            role="tab"
-            aria-selected={index === active}
-            aria-label={fill(labels.goTo, index)}
-            onClick={() => go(index, true)}
-            className={cn(
-              'relative',
-              // A 24 px hit area around a 8 px dot: the visual stays small, the target does not.
-              'h-2 rounded-full transition-all before:absolute before:-inset-2 before:content-[""]',
-              index === active ? 'w-6 bg-forest-800' : 'w-2 bg-forest-800/30 hover:bg-forest-800/60',
-            )}
-          />
-        ))}
+        <div className={cn('flex items-center gap-3', clustered && 'lg:gap-4')}>
+          {clustered && arrows && (
+            <div className="hidden items-center gap-2 lg:flex">
+              <button
+                type="button"
+                onClick={() => go(active - 1, true)}
+                aria-label={labels.previous}
+                className={arrowClass}
+              >
+                <ChevronLeft className="size-5" aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                onClick={() => go(active + 1, true)}
+                aria-label={labels.next}
+                className={arrowClass}
+              >
+                <ChevronRight className="size-5" aria-hidden="true" />
+              </button>
+            </div>
+          )}
+
+          {/* A real tablist, so a screen reader can say which item is current and move between them. */}
+          <div role="tablist" aria-label={labels.choose} className="flex items-center gap-2">
+            {items.map((item, index) => (
+              <button
+                key={item.id}
+                type="button"
+                role="tab"
+                aria-selected={index === active}
+                aria-label={fill(labels.goTo, index)}
+                onClick={() => go(index, true)}
+                className={cn(
+                  'relative',
+                  // A 24 px hit area around a 8 px dot: the visual stays small, the target does not.
+                  'h-2 rounded-full transition-all before:absolute before:-inset-2 before:content-[""]',
+                  index === active ? 'w-6' : 'w-2',
+                  light
+                    ? index === active
+                      ? 'bg-cream'
+                      : 'bg-cream/35 hover:bg-cream/60'
+                    : index === active
+                      ? 'bg-forest-800'
+                      : 'bg-forest-800/30 hover:bg-forest-800/60',
+                )}
+              />
+            ))}
+          </div>
+
+          {/*
+            The counter carries no information the live region below does not already announce, so
+            it is `aria-hidden` rather than a second thing for a screen reader to read out. It is
+            here because a cluster of two arrows and three dots does not say *how many* — and
+            "01 / 03" is what turns a set of controls into editorial furniture.
+          */}
+          {clustered && (
+            <span
+              aria-hidden="true"
+              data-numeric
+              className={cn(
+                'hidden font-ui text-[13px] font-semibold tracking-wide lg:inline',
+                light ? 'text-cream/70' : 'text-ink-500',
+              )}
+            >
+              {pad(active + 1)} / {pad(count)}
+            </span>
+          )}
+        </div>
       </div>
 
       <p aria-live="polite" aria-atomic="true" className="sr-only">

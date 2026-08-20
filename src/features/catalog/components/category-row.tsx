@@ -40,19 +40,13 @@ import type { CategoryTile } from '@/features/catalog/queries';
  * rail shows two and a half — the half is the affordance, and it costs one row of height instead of
  * three. The grid returns at `sm`, where the width is there to use.
  */
-export async function CategoryRow({
-  tiles,
-  locale,
-}: {
-  tiles: CategoryTile[];
-  locale: Locale;
-}) {
+export async function CategoryRow({ tiles, locale }: { tiles: CategoryTile[]; locale: Locale }) {
   if (tiles.length === 0) return null;
   const t = await getTranslations('home');
 
   return (
     <section aria-labelledby="categories-heading" className="py-12 lg:py-16">
-      <div className="container-page">
+      <div className="container-wide">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <h2
             id="categories-heading"
@@ -77,7 +71,7 @@ export async function CategoryRow({
           up with the heading. Without it the row starts inset and reads as a boxed widget rather than a
           shelf that continues off-screen.
         */}
-        <ul className="mt-6 -mx-5 flex snap-x snap-mandatory gap-3 overflow-x-auto px-5 pb-2 sm:mx-0 sm:grid sm:grid-cols-3 sm:overflow-visible sm:px-0 sm:pb-0 lg:grid-cols-6 lg:gap-4">
+        <ul className="-mx-5 mt-6 flex snap-x snap-mandatory gap-3 overflow-x-auto px-5 pb-2 sm:mx-0 sm:grid sm:grid-cols-3 sm:overflow-visible sm:px-0 sm:pb-0 lg:grid-cols-6 lg:gap-4">
           {tiles.map((tile) => {
             const image = tile.imagePath ? storageUrl('product-images', tile.imagePath) : null;
 
@@ -87,18 +81,20 @@ export async function CategoryRow({
                   href={`/shop/${tile.slug}`}
                   className="group flex h-full flex-col overflow-hidden rounded-xl border border-line bg-surface transition-all hover:-translate-y-0.5 hover:border-forest-500 hover:shadow-md"
                 >
-                  <div className={cn(
-                    'relative aspect-square overflow-hidden',
-                    /*
-                     * White behind a photograph, tinted behind nothing.
-                     *
-                     * Supplement packshots are cut out on white, so a tinted panel put a hard white square
-                     * inside every tile — the photo read as pasted on rather than sitting in the card. The
-                     * tint is worth keeping for the empty case, where it is a deliberate surface rather
-                     * than an accident.
-                     */
-                    image ? 'bg-white' : 'bg-forest-50',
-                  )}>
+                  <div
+                    className={cn(
+                      'relative aspect-square overflow-hidden',
+                      /*
+                       * White behind a photograph, tinted behind nothing.
+                       *
+                       * Supplement packshots are cut out on white, so a tinted panel put a hard white square
+                       * inside every tile — the photo read as pasted on rather than sitting in the card. The
+                       * tint is worth keeping for the empty case, where it is a deliberate surface rather
+                       * than an accident.
+                       */
+                      image ? 'bg-white' : 'bg-forest-50',
+                    )}
+                  >
                     {image ? (
                       <Image
                         src={image}

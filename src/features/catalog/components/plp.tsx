@@ -86,8 +86,13 @@ export async function ProductListingPage({
     (filters.inStock ? 1 : 0) +
     (filters.onSale ? 1 : 0);
 
+  /*
+   * The wide tier: this page is a grid with a facet column, which is exactly the shape that should
+   * show more when the screen has more room. Sixty-nine products presented four-at-a-time on a 2560
+   * screen read like a small shop.
+   */
   return (
-    <div className="container-page py-8 lg:py-12">
+    <div className="container-wide py-8 lg:py-12">
       <header className="mb-8">
         <h1 className="font-display text-3xl font-semibold text-forest-900 lg:text-4xl">{title}</h1>
         <p className="mt-2 text-sm text-ink-500" data-numeric>
@@ -185,6 +190,16 @@ export async function ProductListingPage({
           />
 
           <ProductGrid
+            /*
+              The rail-aware ladder. This grid sits in `content − 240px rail − 48px gap`, so it
+              cannot share the full-width ladder without either ballooning the cards or shrinking
+              them: four columns of a 928px track at 1280 is 214px a card, where four columns of the
+              full 1216px track is 292px.
+
+              Tuned so a card stays between 212 and 280px at every width from 1024 to 2560 — 3 / 4 / 5
+              columns rather than the single frozen 4 it used to be.
+            */
+            columns="lg:grid-cols-3 xl:grid-cols-4 3xl:grid-cols-5"
             result={result}
             hasFilters={hasActiveFilters(filters)}
             /*

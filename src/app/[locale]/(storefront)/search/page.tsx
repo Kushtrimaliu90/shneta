@@ -117,7 +117,7 @@ export default async function SearchPage({ params, searchParams }: Props) {
   const trackedItems = products.items.map((item) => ({ slug: item.slug, id: item.id }));
 
   return (
-    <div className="container-page py-8 lg:py-12">
+    <div className="container-wide py-8 lg:py-12">
       <h1 className="font-display text-3xl font-semibold text-forest-900">
         {t('resultsFor', { query: q })}
       </h1>

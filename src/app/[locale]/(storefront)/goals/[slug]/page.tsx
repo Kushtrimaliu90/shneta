@@ -59,7 +59,7 @@ export default async function GoalPage({ params, searchParams }: Props) {
 
   return (
     <>
-      <nav aria-label={t('shop.breadcrumbs')} className="container-page pt-6">
+      <nav aria-label={t('shop.breadcrumbs')} className="container-wide pt-6">
         <ol className="flex flex-wrap items-center gap-1.5 text-sm text-ink-500">
           <li>
             <Link
@@ -76,7 +76,7 @@ export default async function GoalPage({ params, searchParams }: Props) {
         </ol>
       </nav>
 
-      <section className="container-page pt-6">
+      <section className="container-wide pt-6">
         <p className="eyebrow">{pickLocale(goal.tagline, locale)}</p>
       </section>
 
@@ -89,7 +89,7 @@ export default async function GoalPage({ params, searchParams }: Props) {
       />
 
       {/* docs/08 §7.3 — required on goal pages, which are educational surfaces. */}
-      <div className="container-page pb-12">
+      <div className="container-wide pb-12">
         <p className="max-w-3xl border-t border-line pt-6 text-xs leading-relaxed text-ink-500">
           {t('footer.disclaimer')}
         </p>

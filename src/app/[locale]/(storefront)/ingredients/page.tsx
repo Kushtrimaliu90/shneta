@@ -44,7 +44,7 @@ export default async function IngredientsPage({ params }: Props) {
   }
 
   return (
-    <div className="container-page py-8 lg:py-12">
+    <div className="container-wide py-8 lg:py-12">
       <h1 className="font-display text-3xl font-semibold text-forest-900 lg:text-4xl">
         {t('title')}
       </h1>

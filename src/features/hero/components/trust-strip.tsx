@@ -47,7 +47,7 @@ export function TrustStrip({
       aria-label={locale === 'sq' ? 'Pse të blini te BIOCODE' : 'Why shop with BIOCODE'}
       className="border-y border-line bg-surface"
     >
-      <ul className="container-page grid grid-cols-2 gap-x-6 gap-y-2.5 py-3 lg:grid-cols-4 lg:py-3.5">
+      <ul className="container-wide grid grid-cols-2 gap-x-6 gap-y-2.5 py-3 lg:grid-cols-4 lg:py-3.5">
         {items.map((item) => {
           const Icon = ICONS[item.icon] ?? BadgeCheck;
           /*
@@ -62,7 +62,10 @@ export function TrustStrip({
           );
 
           return (
-            <li key={`${item.icon}-${label}`} className="flex items-center gap-2 text-sm text-ink-600">
+            <li
+              key={`${item.icon}-${label}`}
+              className="flex items-center gap-2 text-sm text-ink-600"
+            >
               <Icon className="size-4 shrink-0 text-forest-500" aria-hidden="true" />
               <span>{label}</span>
             </li>

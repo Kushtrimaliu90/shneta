@@ -26,9 +26,15 @@ export async function StaticPageBody({
   const [page, t] = await Promise.all([getPage(slug), getTranslations('legal')]);
   if (!page) notFound();
 
+  /*
+   * The prose tier. These four pages are pure reading, and a reading measure does not get wider
+   * because the monitor did — they opt out of the wide tier rather than inheriting it. The
+   * `max-w-3xl` that used to sit on the article did the same job by hand; the token replaces it so
+   * there is one definition of "a line of body copy is this long" instead of one per page.
+   */
   return (
-    <div className="container-page py-8 lg:py-12">
-      <article className="max-w-3xl">
+    <div className="container-text py-8 lg:py-12">
+      <article>
         <h1 className="font-display text-3xl font-semibold text-forest-900 lg:text-4xl">
           {pickLocale(page.title, locale)}
         </h1>

@@ -10,7 +10,31 @@ import { cn } from '@/lib/utils';
 /**
  * One hero slide.
  *
- * ── The vertical rhythm fix ──
+ * ── The full-bleed split (desktop) ──
+ *
+ * The hero used to be a 1240px two-column grid inside a full-width coloured band, with the
+ * photograph capped at `lg:max-w-sm`. Measured on the live site at 2560 × 1400 before this change:
+ * the band was **2560 × 560 of `forest-950`**, the photograph inside it was **384px wide**, and so
+ * the brand's single most important image occupied about **2.6% of the area it sat in** while
+ * roughly 1160px of that band was empty paint. docs/04 §3 says photography does the selling; the
+ * layout was not letting it.
+ *
+ * Now, from `lg` up, the media is absolutely positioned into the **right half of the viewport** —
+ * edge to edge, top to bottom, `object-cover`, no card, no radius, no `max-w`. The copy sits in
+ * `container-wide`'s first column on the left.
+ *
+ * **The join is exact, and it is arithmetic rather than a magic number.** `container-wide` is
+ * `max-width: W` with `margin-inline: auto` and `padding-inline: g`, so for a body of width `B` its
+ * first column of two ends at `(B − W)/2 + g + (W − 2g)/2`, which reduces to `B/2` — precisely where
+ * an `absolute right-0 w-1/2` panel begins. The two edges therefore meet at every viewport width
+ * without either side knowing the other's numbers. This is also why `--gutter-wide` is expressed in
+ * `%` and not `vw`: `vw` includes the classic scrollbar, `B` does not, and a few pixels of drift
+ * would show as a seam.
+ *
+ * The gradient over the media's leading edge is not decoration — it is what keeps that seam from
+ * reading as a hard cut when a photograph's left edge happens to be light against `forest-950`.
+ *
+ * ── The vertical rhythm fix (kept) ──
  *
  * The old hero put a **667 × 898 portrait** photograph in a two-column grid at `max-w-md`. At 448 px
  * wide that image is 603 px tall, so it — not the copy — set the row height, and `items-center`
@@ -18,12 +42,13 @@ import { cn } from '@/lib/utils';
  * sat at **462 px of a 900 px viewport**, which is the "headline starts halfway down" complaint,
  * stated in pixels.
  *
- * Three changes fix it and none of them is a magic number:
+ * Three changes fixed it and none of them is a magic number:
  *
- *   1. **The media has its own aspect ratio** (`4/5` desktop, `16/9` mobile) with `object-cover`, so
- *      the image fills a box the layout chose instead of dictating one. A future slide with a
- *      different source file cannot reintroduce the problem. The phone gets the *wider* crop, which
- *      is the opposite of the usual instinct and is what buys the trust strip its place on screen.
+ *   1. **The media has its own aspect ratio** (`16/9` mobile; on desktop it now fills the panel the
+ *      layout gave it) with `object-cover`, so the image fills a box the layout chose instead of
+ *      dictating one. A future slide with a different source file cannot reintroduce the problem.
+ *      The phone gets the *wider* crop, which is the opposite of the usual instinct and is what buys
+ *      the trust strip its place on screen.
  *   2. **The section is `min-h`, not padding-driven.** Content is centred inside a box sized to leave
  *      room for the trust strip under it.
  *   3. **Top padding is small.** The sticky header already separates the hero from the top of the
@@ -65,10 +90,26 @@ export function HeroSlideView({
 
   const Headline = isHeading ? 'h1' : 'p';
 
+  /*
+   * The media is 50vw from `lg` up, and the full width below it. Getting this wrong is invisible
+   * locally and expensive in production — it is what decides which srcset candidate every visitor
+   * downloads for the LCP element.
+   */
+  const desktopSizes = '(min-width: 1024px) 50vw, 100vw';
+
   return (
     <section
       className={cn(
-        'flex items-center',
+        /*
+         * `relative` establishes the containing block the media panel is positioned into, and
+         * `overflow-hidden` is what guarantees a `w-1/2` panel cannot contribute horizontal scroll
+         * on a sub-pixel viewport width.
+         *
+         * `flex-col justify-center` rather than the old `items-center`: the media is a sibling of
+         * the copy container now (so that DOM order still puts the image first on a phone, where it
+         * is in flow), and on mobile the two need to stack and centre as a group.
+         */
+        'relative flex flex-col justify-center overflow-hidden',
         light ? 'bg-forest-950' : 'bg-cream',
         /*
          * Sized to leave the trust strip room inside the first viewport. `svh` rather than `vh` so a
@@ -91,18 +132,168 @@ export function HeroSlideView({
          * separates the hero from the top of the window, so the top gap is the cheapest 4 px on the
          * page — and it buys the one place that needed it, between the dots and the trust strip.
          */
-        'min-h-[24rem] pt-2 pb-3 sm:py-4 lg:min-h-[min(34rem,calc(100svh-14rem))] lg:py-10',
+        /*
+         * The desktop cap goes 34rem → 48.75rem (780px) so a 1080p or taller screen gets a hero that
+         * fills the fold on purpose rather than a 560px band floating in it.
+         *
+         * **`calc(100svh - 14rem)` stays, and it is the important half.** That term is what reserves
+         * room for the trust strip inside the first viewport, and `e2e/hero.spec.ts` asserts it: at
+         * 1280 × 720 the min-height still resolves to 496px exactly as before, because 720 − 224 is
+         * smaller than the new cap. Only viewports tall enough to afford it see the larger hero.
+         */
+        'min-h-[24rem] pt-2 pb-3 sm:py-4 lg:min-h-[min(48.75rem,calc(100svh-14rem))] lg:py-16',
       )}
     >
-      <div className="container-page grid w-full items-center gap-4 sm:gap-6 lg:grid-cols-[1.05fr_0.95fr] lg:gap-12">
+      {desktopSrc && (
+        /*
+         * In flow above the copy on a phone; the right half of the viewport from `lg` up.
+         *
+         * DOM order does the mobile ordering that `order-first` used to, now that this is a sibling
+         * of the copy container rather than a second grid cell.
+         *
+         * **`px-5 md:px-6` replaces the padding this element lost when it left `container-page`.**
+         * Without it the phone image goes edge-to-edge, which looks fine and costs 22 px of height
+         * (350 px wide at 16/9 is 197 px tall; 390 px wide is 219). Measured at 390 × 844 that took
+         * the trust strip's headroom inside the first viewport from **17 px to 2 px** — still passing
+         * `e2e/hero.spec.ts`, and one long Albanian string away from not. The fold budget on this page
+         * is documented to the pixel below; a nicer mobile bleed is not worth spending it.
+         */
+        <div className="px-5 md:px-6 lg:absolute lg:inset-y-0 lg:right-0 lg:z-0 lg:w-1/2 lg:px-0">
+          {/*
+            The box owns the aspect ratio; the image fills it. That is what stops a portrait source
+            from setting the row height, and it reserves the space before the file resolves — the
+            baseline was CLS 0.0000 and this keeps it there.
+          */}
+          {/*
+            A wider crop on the phone than on the desktop, which is the opposite of the usual
+            instinct and is what makes the fold fit: the original 16/11 was 243 px tall at 353 px
+            wide, and 16/9 is 198.
+
+            It went to 7/3 (151 px) first, which fit beautifully and sliced the tops off the product
+            tubs — reported from a phone, and it looked careless rather than tight. `object-contain`
+            was the next attempt and was worse: a portrait source contained in a 7/3 box is a
+            postage stamp floating in empty margins. 16/9 with `cover` is the compromise that keeps
+            the subject intact and still leaves the trust strip 138 px of room.
+
+            The real answer for this slide is a **mobile creative** composed for the ratio; the slot
+            exists and is empty. When one is supplied it gets `cover` in the branch above, and none
+            of this applies.
+          */}
+          {/*
+            Every mobile class here is deliberately untouched — the phone fold is measured to 17 px
+            of headroom and is asserted in `e2e/hero.spec.ts`. The desktop half drops the card
+            entirely: a full-bleed panel with a radius and a hairline border would be a card
+            pretending to be a bleed.
+          */}
+          <div
+            className={cn(
+              'relative mx-auto aspect-[16/9] w-full max-w-md overflow-hidden rounded-xl border border-line/60',
+              'lg:aspect-auto lg:h-full lg:max-w-none lg:rounded-none lg:border-0',
+            )}
+          >
+            {/*
+              One element when both breakpoints use the same file, two only when the admin has
+              actually supplied a separate mobile crop.
+
+              The first version rendered both unconditionally and let CSS hide one. It measured
+              **CLS 0.0002** against a baseline of exactly 0.0000 — negligible in absolute terms, and
+              still a regression against a number that was perfect. Two `fill` children in one
+              relative box are two subscribers to the same layout, and the `display:none` one is
+              resolved a frame later than the box that contains it.
+            */}
+            {mobileSrc && mobileSrc !== desktopSrc ? (
+              <>
+                <Image
+                  src={mobileSrc}
+                  alt={mobileAlt}
+                  fill
+                  sizes="100vw"
+                  priority={priority}
+                  /* Slides 2+ sit behind the active one, so they wait. */
+                  loading={priority ? undefined : 'lazy'}
+                  className="object-cover lg:hidden"
+                />
+                <Image
+                  src={desktopSrc}
+                  alt={desktopAlt}
+                  fill
+                  sizes="50vw"
+                  priority={priority}
+                  loading={priority ? undefined : 'lazy'}
+                  className="hidden object-cover lg:block"
+                />
+              </>
+            ) : (
+              /*
+               * One file for both breakpoints, `cover` at each. The desktop panel is now a
+               * viewport-height half-screen rather than a 4:5 card, which suits a portrait product
+               * photograph better than the card ever did.
+               *
+               * This applies only to the fallback path. When an admin has supplied a **mobile
+               * creative** it was composed for the phone ratio and gets `cover` in the branch above,
+               * which is the better answer and the reason that slot exists.
+               */
+              <Image
+                src={desktopSrc}
+                alt={desktopAlt}
+                fill
+                sizes={desktopSizes}
+                priority={priority}
+                loading={priority ? undefined : 'lazy'}
+                className="object-cover"
+              />
+            )}
+
+            {/*
+              The seam softener, desktop only.
+
+              The copy half and the media half meet on an exact pixel boundary (see the join
+              arithmetic in this file's header). Whether that boundary *reads* as a seam depends
+              entirely on the photograph: a light left edge against `forest-950` is a hard cut. A
+              short gradient in the ground colour over the media's leading edge removes the cut
+              without dimming the image where the subject actually is.
+
+              `aria-hidden` and no text: it is a legibility device, not content.
+            */}
+            <div
+              aria-hidden="true"
+              className={cn(
+                'pointer-events-none absolute inset-y-0 left-0 hidden w-[18%] lg:block',
+                light
+                  ? 'bg-gradient-to-r from-forest-950 to-transparent'
+                  : 'bg-gradient-to-r from-cream to-transparent',
+              )}
+            />
+          </div>
+        </div>
+      )}
+
+      {/*
+        `container-wide`, not `container-page`: the copy column has to line up with the navbar's
+        left edge, and the navbar moved to the wide tier in the same change. Two columns at `lg`
+        with the copy in the first — the empty second column is what the media panel overlays, and
+        what makes the join exact.
+      */}
+      <div className="relative z-10 container-wide grid w-full items-center gap-4 sm:gap-6 lg:grid-cols-2 lg:gap-12">
         <div>
-          {eyebrow && (
-            <p className={cn('eyebrow', light && 'text-lime-400')}>{eyebrow}</p>
-          )}
+          {eyebrow && <p className={cn('eyebrow', light && 'text-lime-400')}>{eyebrow}</p>}
 
           <Headline
             className={cn(
-              'mt-2 sm:mt-3 font-display text-[2.25rem] leading-[1.05] font-semibold tracking-tight text-balance sm:text-[2.5rem] lg:text-[3.25rem]',
+              'mt-2 font-display leading-[1.05] font-semibold tracking-tight text-balance sm:mt-3',
+              /*
+               * Fluid from `lg` up. It was a fixed 52px, which is the same headline on a 14-inch
+               * laptop and on a 27-inch monitor — measured identical at 1440 and at 2560, and it
+               * reads timid on the larger one.
+               *
+               * **The floor is today's 52px, not the 48px the viewport maths wants.** The first
+               * version used a `3rem` floor and measured 48px at 1024 through 1440 — fluid type that
+               * makes the headline *smaller* on most laptops is not an improvement, it is a
+               * regression with a nicer implementation. So the clamp only ever adds: 52px up to
+               * ~1530, then 65px at 1920, topping out at 72px. The ceiling exists because a headline
+               * still has to wrap somewhere sensible inside its column.
+               */
+              'text-[2.25rem] sm:text-[2.5rem] lg:text-[clamp(3.25rem,3.4vw,4.5rem)]',
               light ? 'text-cream' : 'text-forest-900',
             )}
           >
@@ -112,7 +303,7 @@ export function HeroSlideView({
           {subhead && (
             <p
               className={cn(
-                'mt-2 max-w-xl text-base text-pretty sm:mt-3 lg:mt-4 lg:text-lg',
+                'mt-2 max-w-xl text-base text-pretty sm:mt-3 lg:mt-4 lg:max-w-2xl lg:text-lg 2xl:text-xl',
                 light ? 'text-cream/80' : 'text-ink-600',
               )}
             >
@@ -169,89 +360,7 @@ export function HeroSlideView({
               </Link>
             )}
           </div>
-
         </div>
-
-        {desktopSrc && (
-          <div className="order-first lg:order-none">
-            {/*
-              The box owns the aspect ratio; the image fills it. That is what stops a portrait source
-              from setting the row height, and it reserves the space before the file resolves — the
-              baseline was CLS 0.0000 and this keeps it there.
-            */}
-            {/*
-              A wider crop on the phone than on the desktop, which is the opposite of the usual
-              instinct and is what makes the fold fit: the original 16/11 was 243 px tall at 353 px
-              wide, and 16/9 is 198.
-
-              It went to 7/3 (151 px) first, which fit beautifully and sliced the tops off the product
-              tubs — reported from a phone, and it looked careless rather than tight. `object-contain`
-              was the next attempt and was worse: a portrait source contained in a 7/3 box is a
-              postage stamp floating in empty margins. 16/9 with `cover` is the compromise that keeps
-              the subject intact and still leaves the trust strip 138 px of room.
-
-              The real answer for this slide is a **mobile creative** composed for the ratio; the slot
-              exists and is empty. When one is supplied it gets `cover` in the branch above, and none
-              of this applies.
-            */}
-            <div className="relative mx-auto aspect-[16/9] w-full max-w-md overflow-hidden rounded-xl border border-line/60 lg:aspect-[4/5] lg:max-w-sm">
-              {/*
-                One element when both breakpoints use the same file, two only when the admin has
-                actually supplied a separate mobile crop.
-
-                The first version rendered both unconditionally and let CSS hide one. It measured
-                **CLS 0.0002** against a baseline of exactly 0.0000 — negligible in absolute terms, and
-                still a regression against a number that was perfect. Two `fill` children in one
-                relative box are two subscribers to the same layout, and the `display:none` one is
-                resolved a frame later than the box that contains it.
-              */}
-              {mobileSrc && mobileSrc !== desktopSrc ? (
-                <>
-                  <Image
-                    src={mobileSrc}
-                    alt={mobileAlt}
-                    fill
-                    sizes="100vw"
-                    priority={priority}
-                    /* Slides 2+ sit behind the active one, so they wait. */
-                    loading={priority ? undefined : 'lazy'}
-                    className="object-cover lg:hidden"
-                  />
-                  <Image
-                    src={desktopSrc}
-                    alt={desktopAlt}
-                    fill
-                    sizes="24rem"
-                    priority={priority}
-                    loading={priority ? undefined : 'lazy'}
-                    className="hidden object-cover lg:block"
-                  />
-                </>
-              ) : (
-                /*
-                 * `contain` on the phone when there is no dedicated mobile crop, `cover` on desktop.
-                 *
-                 * A 7:3 cover crop of a portrait product photograph slices the tops and bottoms off
-                 * the tubs — reported from a phone, and it looks careless rather than tight. The
-                 * desktop box is 4:5 and close enough to the source that cover is right there.
-                 *
-                 * This applies only to the fallback path. When an admin has supplied a **mobile
-                 * creative** it was composed for 7:3 and gets `cover` in the branch above, which is
-                 * the better answer and the reason that slot exists.
-                 */
-                <Image
-                  src={desktopSrc}
-                  alt={desktopAlt}
-                  fill
-                  sizes="(min-width: 1024px) 24rem, 100vw"
-                  priority={priority}
-                  loading={priority ? undefined : 'lazy'}
-                  className="object-cover"
-                />
-              )}
-            </div>
-          </div>
-        )}
       </div>
     </section>
   );

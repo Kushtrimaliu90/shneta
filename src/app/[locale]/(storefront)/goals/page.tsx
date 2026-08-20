@@ -36,7 +36,7 @@ export default async function GoalsPage({ params }: Props) {
   const t = await getTranslations('goals');
 
   return (
-    <div className="container-page py-8 lg:py-12">
+    <div className="container-wide py-8 lg:py-12">
       <h1 className="font-display text-3xl font-semibold text-forest-900 lg:text-4xl">
         {t('title')}
       </h1>
@@ -45,7 +45,7 @@ export default async function GoalsPage({ params }: Props) {
       {goals.length === 0 ? (
         <EmptyState title={t('empty')} className="mt-10" />
       ) : (
-        <ul className="mt-10 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+        <ul className="mt-10 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 3xl:grid-cols-6">
           {goals.map((goal) => (
             <li key={goal.slug}>
               <Link

@@ -48,7 +48,7 @@ export async function IntentBand({ locale }: { locale: Locale }) {
 
   return (
     <section aria-labelledby="intent-heading" className="pt-9 pb-11 lg:pt-10 lg:pb-12">
-      <div className="container-page">
+      <div className="container-wide">
         <h2 id="intent-heading" className="sr-only">
           {t('heading')}
         </h2>
@@ -57,13 +57,13 @@ export async function IntentBand({ locale }: { locale: Locale }) {
           {tiles.map((tile) => {
             const Icon = ICONS[tile.icon] ?? Target;
             return (
-            <li key={tile.href + tile.icon} className="flex">
-              {/*
+              <li key={tile.href + tile.icon} className="flex">
+                {/*
                 The whole tile is the link — a title-only anchor inside a clickable card is the
                 pattern where the visible target and the real target disagree, and on a phone the
                 difference is most of the tile.
               */}
-              {/*
+                {/*
                 Horizontal on a phone, stacked from `sm` up.
 
                 As four stacked cards these were about 250 px each — a thousand pixels of pure
@@ -72,21 +72,21 @@ export async function IntentBand({ locale }: { locale: Locale }) {
                 and reads better besides: on a narrow screen a list scans faster than a column of
                 cards, and the tile is still one tap target either way.
               */}
-              <Link
-                href={tile.href}
-                className="group flex w-full items-center gap-3 rounded-lg border border-line bg-surface p-4 transition-colors hover:border-forest-500 hover:bg-forest-50/40 sm:flex-col sm:items-start sm:gap-2 sm:p-5"
-              >
-                <Icon className="size-5 shrink-0 text-forest-500" aria-hidden="true" />
-                <span className="min-w-0">
-                  <span className="block font-medium text-ink-900">
-                    {pickLocale(tile.title, locale)}
+                <Link
+                  href={tile.href}
+                  className="group flex w-full items-center gap-3 rounded-lg border border-line bg-surface p-4 transition-colors hover:border-forest-500 hover:bg-forest-50/40 sm:flex-col sm:items-start sm:gap-2 sm:p-5"
+                >
+                  <Icon className="size-5 shrink-0 text-forest-500" aria-hidden="true" />
+                  <span className="min-w-0">
+                    <span className="block font-medium text-ink-900">
+                      {pickLocale(tile.title, locale)}
+                    </span>
+                    <span className="mt-0.5 block text-sm text-ink-500">
+                      {pickLocale(tile.body, locale)}
+                    </span>
                   </span>
-                  <span className="mt-0.5 block text-sm text-ink-500">
-                    {pickLocale(tile.body, locale)}
-                  </span>
-                </span>
-              </Link>
-            </li>
+                </Link>
+              </li>
             );
           })}
         </ul>

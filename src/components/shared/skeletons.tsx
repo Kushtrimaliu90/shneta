@@ -27,11 +27,16 @@ export function ProductCardSkeleton() {
   );
 }
 
-/** docs/04 §9 — a card grid loads as eight skeleton cards. */
-export function ProductGridSkeleton({ count = 8, label }: { count?: number; label: string }) {
+/**
+ * docs/04 §9 — a card grid loads as skeleton cards.
+ *
+ * The ladder is copied from `product-grid.tsx` deliberately: a skeleton whose column count differs
+ * from the grid it stands in for is a layout shift dressed as a loading state.
+ */
+export function ProductGridSkeleton({ count = 12, label }: { count?: number; label: string }) {
   return (
     <div role="status" aria-live="polite" aria-label={label}>
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4 lg:gap-6">
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4 lg:gap-6 xl:grid-cols-5 3xl:grid-cols-6">
         {Array.from({ length: count }, (_, index) => (
           <ProductCardSkeleton key={index} />
         ))}

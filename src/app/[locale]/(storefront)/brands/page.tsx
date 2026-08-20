@@ -41,7 +41,7 @@ export default async function BrandsPage({ params }: Props) {
   }
 
   return (
-    <div className="container-page py-8 lg:py-12">
+    <div className="container-wide py-8 lg:py-12">
       <h1 className="font-display text-3xl font-semibold text-forest-900 lg:text-4xl">
         {t('title')}
       </h1>
@@ -59,7 +59,7 @@ export default async function BrandsPage({ params }: Props) {
               >
                 {letter}
               </h2>
-              <ul className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              <ul className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 3xl:grid-cols-5">
                 {entries.map((brand) => (
                   <li key={brand.slug}>
                     <Link

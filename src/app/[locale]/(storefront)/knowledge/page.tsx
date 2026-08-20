@@ -75,7 +75,7 @@ export default async function KnowledgePage({ params, searchParams }: Props) {
   const rest = featured ? result.items.slice(1) : result.items;
 
   return (
-    <div className="container-page py-8 lg:py-12">
+    <div className="container-wide py-8 lg:py-12">
       <header className="mb-8">
         <h1 className="font-display text-3xl font-semibold text-forest-900 lg:text-4xl">
           {t('title')}
@@ -160,7 +160,7 @@ export default async function KnowledgePage({ params, searchParams }: Props) {
             </div>
           )}
 
-          <ol className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          <ol className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3 3xl:grid-cols-4">
             {rest.map((article) => (
               <li key={article.slug} className="flex">
                 <ArticleCardTile article={article} className="w-full" />

@@ -74,7 +74,8 @@ export async function Footer() {
 
   return (
     <footer className="mt-auto bg-forest-950 text-cream" data-print="hide">
-      <div className="container-page py-14 lg:py-20">
+      {/* The wide tier, so the footer's columns share the header's margin rather than the old 1240. */}
+      <div className="container-wide py-14 lg:py-20">
         {/*
           `1.8fr` and a tighter gap, not `1.4fr` with the old one.
 

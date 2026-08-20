@@ -94,8 +94,74 @@
   --duration-ui: 250ms;
   --duration-page: 400ms;
 
-  /* docs/04 §1 — 1240px max content width. */
+  /* --- Width tiers (docs/04 §1) ------------------------------------------
+   *
+   * Four tiers, not one. The site had exactly two width layers — full-bleed, which in practice
+   * meant background colour and nothing else, and `--spacing-content`, which meant everything
+   * else. So above 1240px the only thing that grew was paint. Measured on the live site before
+   * this change: at 1920 the content band left **340px of dead margin per side (35% of the
+   * screen)**, and at 2560 it left **660px per side (52%)** — while the h1 stayed at 52px, the
+   * product grid stayed at four 280px cards and the hero band stayed 560px tall at every width.
+   * The root cause was one fact: across the whole storefront there were 157 `lg:` rules and not a
+   * single `xl:` or `2xl:` one, so the design had no instruction for any screen wider than
+   * 1024px and repeated the 1024px answer forever.
+   *
+   * The fix is deliberately *not* "widen the measure". 1240px is a good measure for a form or a
+   * table and 62ch is the right one for prose; stretching either would make the site worse. What
+   * was missing is somewhere for the extra width to go.
+   */
+
+  /** Prose. Never wider, at any viewport — `container-text`. */
+  --spacing-text: 42rem;
+
+  /** docs/04 §1 — 1240px. Forms, tables, purchase column, account. Unchanged. */
   --spacing-content: 77.5rem;
+
+  /**
+   * 1680px. Grids, rails, navbar, footer — `container-wide`.
+   *
+   * Capped rather than fluid: a navbar that spans 2560px reads as unfinished, not as generous.
+   *
+   * The cap and the gutter were chosen together, against the one constraint that matters — **do not
+   * regress the widths that already work.** Resulting content widths, against `container-page`:
+   *
+   * | Viewport | container-page | container-wide |
+   * | -------- | -------------- | -------------- |
+   * | 1024     | 976            | 972            |
+   * | 1280     | 1232           | 1216           |
+   * | 1440     | 1240           | 1368           |
+   * | 1920     | 1240           | 1680           |
+   * | 2560     | 1240           | 1680           |
+   *
+   * So 1024–1280 is within a few pixels of today, 1440 gains 128px, and 2560 goes from 48% of the
+   * screen doing work to 66% — with the remaining 440px per side being a real margin rather than a
+   * void, because the header, the hero and the grids now all share that edge.
+   */
+  --spacing-wide: 105rem;
+
+  /**
+   * A gutter that grows — most of the difference between "letterboxed" and "composed", and the half
+   * of the fix that is easy to leave out.
+   *
+   * It stays modest on purpose: past ~1780px the `max-width` cap is what opens the margins, so the
+   * gutter only has to carry the range below that. A gutter aggressive enough to look right at 2560
+   * would eat 80px of a 1280px laptop, which is how you fix a monitor by breaking a laptop.
+   *
+   * `%` rather than `vw`: `vw` includes the classic scrollbar, so a `vw`-based gutter drifts a few
+   * pixels out of alignment with a `max-width` container that centres inside the content box.
+   * Percentages resolve against the containing block, which is what every surface here is actually
+   * aligned to — and it is what makes the hero's join exact. See `hero-slide.tsx`.
+   */
+  --gutter-wide: clamp(1.25rem, 2.5%, 3rem);
+
+  /**
+   * 1800px — the width at which `container-wide` has saturated at its 1680px cap.
+   *
+   * Tailwind stops at `2xl` (1536), which is below that point, so without this there is no way to
+   * say "six columns once the container has actually stopped growing". Every grid ladder in the
+   * storefront tops out here.
+   */
+  --breakpoint-3xl: 112.5rem;
 }
 
 /* ==========================================================================
@@ -171,11 +237,52 @@
    Utilities
    ========================================================================== */
 
-/** docs/04 §1 — 1240px, 24px gutters. */
+/**
+ * docs/04 §1 — 1240px, 24px gutters.
+ *
+ * Deliberately unchanged by the width-tier work. This is the *narrow* tier now, and it is still
+ * the right container for a form, a table, a purchase column or an account page — a checkout
+ * column centred under a wide header reads as focus, not as misalignment. What changed is that
+ * it is no longer the only option, so it stops being applied to grids by default.
+ */
 @utility container-page {
   margin-inline: auto;
   width: 100%;
   max-width: var(--spacing-content);
+  padding-inline: 1.25rem;
+
+  @media (width >= 48rem) {
+    padding-inline: 1.5rem;
+  }
+}
+
+/**
+ * docs/04 §1 — the wide tier: 1920px cap with a gutter that grows.
+ *
+ * For anything whose job is to show *more* when there is more room: product grids, category
+ * rails, the navbar, the footer, the hero's copy column. Not for prose and not for forms.
+ *
+ * Below ~1780px the growing gutter does the work; above it the `max-width` cap does. Between them
+ * a 2560px screen goes from 1240px of content in a 660px-per-side void to 1680px of content with a
+ * 440px-per-side margin that the header, the hero and every grid share.
+ */
+@utility container-wide {
+  margin-inline: auto;
+  width: 100%;
+  max-width: var(--spacing-wide);
+  padding-inline: var(--gutter-wide);
+}
+
+/**
+ * docs/04 §1 — the prose tier: ~62 characters.
+ *
+ * A reading measure does not get wider because the monitor did. Knowledge articles and the
+ * legal/static pages set their body text here even when the page furniture around them is wide.
+ */
+@utility container-text {
+  margin-inline: auto;
+  width: 100%;
+  max-width: var(--spacing-text);
   padding-inline: 1.25rem;
 
   @media (width >= 48rem) {

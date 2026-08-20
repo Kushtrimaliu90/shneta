@@ -82,6 +82,17 @@ export function HeroCarousel({
       autoplay={settings.autoplay}
       intervalSeconds={settings.intervalSeconds}
       loop={settings.loop}
+      /*
+       * The hero is full-bleed, so its controls belong on the copy column's edge rather than on the
+       * viewport's. See `controls` in `carousel.tsx` for the measurement that prompted it.
+       */
+      controls="cluster"
+      /*
+       * A slide picks its own ground via `text_variant`, so the chrome has to follow it. The brand
+       * slide is `forest-950` and the dots were `forest-800` on it — about 1.3:1, which is to say
+       * invisible on the most-viewed slide on the site.
+       */
+      tone={(slide) => (slide.textVariant === 'light' ? 'light' : 'dark')}
       labels={{
         region: t('carouselLabel'),
         // The shared component substitutes `{index}` and `{total}`, so the placeholders are passed

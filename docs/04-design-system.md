@@ -5,10 +5,29 @@ The brief pins the direction: **minimal, premium, warm, trustworthy wellness** �
 ## 1. Design tenets
 
 1. One primary action per screen; the lime accent is reserved for it (and for "live/health" signals). If lime appears twice in a viewport, something is wrong.
-2. Whitespace is the luxury cue: generous section padding (96–128 px desktop, 56–72 px mobile), max content width 1240 px, 12-col grid, 24 px gutters.
+2. Whitespace is the luxury cue: generous section padding (96–128 px desktop, 56–72 px mobile), 12-col grid. **Width is four tiers, not one measure** — see §1.1. A tier is chosen per surface; nothing inherits a width by accident.
 3. Photography does the selling (clean product shots on warm-white); UI stays quiet: hairline borders (`1px` at 8–10% charcoal), soft shadows, no gradients except the token gradient in §2.
 4. Education is a first-class UI citizen: ingredient chips, evidence badges, NRV tables get real design attention, not footnote styling.
 5. Trust microcopy near money: delivery estimate, COD note, return policy line — always visible at the point of decision.
+
+### 1.1 Width tiers
+
+Because "max content width 1240 px" was read as "1240 px everywhere", and the result was a 1240 px band centred on a 2560 px screen with 52% of the viewport as margin (docs/13 §AP). The measure was never the problem; having only one was.
+
+| Tier           | Utility          | Token               | Value                     | Use it for                                                                       |
+| -------------- | ---------------- | ------------------- | ------------------------- | -------------------------------------------------------------------------------- |
+| **Prose**      | `container-text` | `--spacing-text`    | 672 px                    | Knowledge articles, legal and static pages. **Never wider, at any viewport.**    |
+| **Content**    | `container-page` | `--spacing-content` | 1240 px                   | Forms, tables, cart, checkout, auth, account, merchant, the PDP purchase column. |
+| **Wide**       | `container-wide` | `--spacing-wide`    | 1680 px + `--gutter-wide` | Product grids, category rails, navbar, footer, hero copy column, listing pages.  |
+| **Full-bleed** | —                | —                   | 100%                      | Hero media, section grounds, anything whose job is to reach the edge.            |
+
+Rules:
+
+- **The gutter grows with the tier, not with the page.** `--gutter-wide` is `clamp(1.25rem, 2.5%, 3rem)`, expressed in `%` rather than `vw` — `vw` includes the scrollbar and drifts out of alignment with a centred `max-width` container, which shows up as a seam wherever a bleed panel has to meet a container column.
+- **Grids must have a column ladder, not a frozen count.** Every product grid tops out at `--breakpoint-3xl` (1800 px), the width at which the wide tier saturates. Full-width tracks run `lg:grid-cols-4 xl:grid-cols-5 3xl:grid-cols-6`; the `/shop` track, which loses 240 px to the facet rail plus a 48 px gap, runs `lg:grid-cols-3 xl:grid-cols-4 3xl:grid-cols-5`. A card should stay between roughly 210 and 300 px at every width — the extra room buys **more products, not bigger cards**.
+- **A narrow column under a wide header is correct, not a mistake.** Checkout at the content tier beneath a 1680 px navbar reads as focus. Do not "fix" it by widening the form.
+- **Skeletons carry the same ladder as the grid they stand in for** (§9). A different column count is a layout shift dressed as a loading state.
+- **New surfaces pick a tier explicitly.** If a component's width is not obvious from this table, it is the wrong shape for the page, not a missing token.
 
 ## 2. Signature element — the "Vitality Ring"
 

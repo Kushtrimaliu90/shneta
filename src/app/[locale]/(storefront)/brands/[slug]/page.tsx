@@ -52,7 +52,7 @@ export default async function BrandPage({ params, searchParams }: Props) {
 
   return (
     <>
-      <nav aria-label={t('shop.breadcrumbs')} className="container-page pt-6">
+      <nav aria-label={t('shop.breadcrumbs')} className="container-wide pt-6">
         <ol className="flex flex-wrap items-center gap-1.5 text-sm text-ink-500">
           <li>
             <Link

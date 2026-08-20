@@ -1739,7 +1739,7 @@ put them right.
 
 A test suite that has never been mutated is a suite whose coverage is a guess.
 
-### T4 · An `sr-only` input is invisible to a person *and* to everything else
+### T4 · An `sr-only` input is invisible to a person _and_ to everything else
 
 The goal tiles hid a 1×1 `sr-only` checkbox behind a decorative checkmark span. Clicking the
 label worked, keyboard focus worked, a screen reader read it correctly — by every test a human
@@ -1747,7 +1747,7 @@ would run, it was fine. Playwright's `.check()` could not tick it: the click lan
 decoration.
 
 The instinct is to fix the test. The right fix was the markup: the input is now transparent and
-stretched over the whole tile, so the hit area *is* the control. Same appearance, and now the
+stretched over the whole tile, so the hit area _is_ the control. Same appearance, and now the
 thing that receives the click is the thing that holds the state. When automation cannot drive a
 control that a person can, the control is usually wrong — automation is a second implementation
 of "use this widget", and disagreement between the two is a finding.
@@ -1855,7 +1855,7 @@ no-JavaScript rendering to protect.
 **Two E2E lessons came with it.** The first: content can sit under the bottom stack while consent
 is unanswered — a general property of the layout, not of this feature, and the reason every
 context in `biohack.spec.ts` starts with the consent cookie already set. The second is why it is a
-*cookie* and not a click: the banner reads its cookie **after mount**, deliberately, to avoid a
+_cookie_ and not a click: the banner reads its cookie **after mount**, deliberately, to avoid a
 hydration flash. A dismiss-if-visible helper therefore raced it and lost — not yet rendered when
 the check ran, covering the button by the time the test clicked. Seeding the state beats
 dismissing the symptom.
@@ -1954,7 +1954,7 @@ matters because the Albanian is what the market reads and an English-only check 
 half fewer customers see.
 
 The legal pages are a different problem and it is worth naming the difference. Engineering can
-write a privacy policy that is *more* accurate than a template, because the facts are in the
+write a privacy policy that is _more_ accurate than a template, because the facts are in the
 codebase: what is collected, which processor receives it, how long it is kept. What engineering
 cannot supply is whether the document is sufficient under Kosovo law, or the trader's registration
 details. So the copy is written, and both pages carry a visible `[BIZNESI: plotëso]` marker where
@@ -1977,7 +1977,7 @@ and every script read
     "BIOCODE <porosite@shtrejt.com>"
 
 For eleven variables that difference is invisible, because nothing else in the file is quoted —
-quoting is only *required* for `EMAIL_FROM`, whose value contains spaces and angle brackets.
+quoting is only _required_ for `EMAIL_FROM`, whose value contains spaces and angle brackets.
 
 Which meant the one place the discrepancy surfaced was `pnpm email:test`, the tool whose entire
 job is to prove email works. It posted the quoted string as the `from` address and Resend
@@ -1990,7 +1990,7 @@ that exercises the part you did not implement. `envFromLocalFile` now matches do
 rule and has its own unit tests.
 
 The same trap is waiting in the hosting dashboard, from the other direction: Vercel stores the
-literal string, so quoting `EMAIL_FROM` *there* reproduces the 422 in production. `.env.example`
+literal string, so quoting `EMAIL_FROM` _there_ reproduces the 422 in production. `.env.example`
 now says so at the line.
 
 ### V2 · Three hundred and nineteen log rows, zero sends
@@ -2089,13 +2089,13 @@ changed nothing. `pnpm typecheck` then produced several hundred errors in files 
 
 It is now `tsx scripts/gen-types.ts`, which generates into memory and writes only on success — so a
 failed run leaves the file alone, which is what a failed command should do. It also refuses a
-*successful* run whose output has no `public:` schema in it, because the CLI prints a valid-but-empty
+_successful_ run whose output has no `public:` schema in it, because the CLI prints a valid-but-empty
 `Database` type when it cannot introspect, and writing that is worse than writing nothing: it
 typechecks.
 
 One Windows detail, recorded because it will come up again: the Supabase CLI is a `.CMD` shim, and
 since Node 20 closed CVE-2024-27980 spawning one without a shell fails with `EINVAL`. Passing an
-argument array *with* `shell: true` then earns `DEP0190`. A single literal command string through
+argument array _with_ `shell: true` then earns `DEP0190`. A single literal command string through
 `execSync` is the honest form of what actually happens.
 
 ### W3 · The router that forgets which language you are working in
@@ -2148,7 +2148,7 @@ reversed by somebody who did not know it was one.
 
 **The canonical variant price is the only customer-facing price.** A merchant offer is supply, and its
 `price_cents` is what the merchant asks BioCode. The alternative — the winning offer prices the line —
-fails on a fact about the ordering of events: routing happens *after* the order exists, so the merchant
+fails on a fact about the ordering of events: routing happens _after_ the order exists, so the merchant
 who priced the line need not be the merchant who ships it, and the customer would have paid a price
 belonging to a supplier who never touched the parcel. It would also have put a different price on the
 PLP and the PDP the moment BioCode ran out of something.
@@ -2192,7 +2192,7 @@ body at first execution, not at `create`.** The migration applied perfectly, `ch
 defect surfaced as a failed checkout — that is, on the first order anyone placed.
 
 The lesson is not "cast your enums". It is that a plpgsql function is not tested by applying it, and the
-routing integration suite existing *before* the screens is what turned a production incident into a red
+routing integration suite existing _before_ the screens is what turned a production incident into a red
 test.
 
 ### X2 · A `returns table` signature that had to match exactly
@@ -2217,7 +2217,7 @@ Extending checkout to source a line from a merchant meant reproducing `checkout_
 silently reverted **migration 13**, which had changed `set search_path = public` to `public, extensions`.
 
 One missing schema breaks exactly one thing, invisibly. `coupons.code` is `citext`; the cast in the
-comparison is schema-qualified and resolves, but the `=` *operator* for citext also lives in `extensions`
+comparison is schema-qualified and resolves, but the `=` _operator_ for citext also lives in `extensions`
 and cannot be qualified inside an expression. Postgres cannot see `=(citext, citext)`, citext is
 binary-coercible to text, so it silently resolves `=(text, text)` — no error, no warning, just a
 case-sensitive comparison, and `welcome10` stops matching `WELCOME10`.
@@ -2228,7 +2228,7 @@ Two things follow.
 knows it. Restating one means reading `\df+` or the latest `alter`, not the migration that created it.
 
 **The test that caught it was written when the bug was first fixed**, and its docstring says so:
-*"Fixed by migration 20260731001300; this test is what stops it coming back."* That is the entire
+_"Fixed by migration 20260731001300; this test is what stops it coming back."_ That is the entire
 argument for writing the regression test with the fix rather than after it — five milestones later,
 somebody who had never read migration 13 was told within ninety seconds.
 
@@ -2252,8 +2252,8 @@ the right row. A test that merely exercised the feature would have passed.
 Every module in `features/*` that touches the database opens with `import 'server-only'`. The package
 ships two entry points: a no-op for the server and a module that throws for the browser, chosen by
 `exports` conditions Next sets and Vitest does not — so Vitest's **node** environment gets the browser
-one, and any test importing such a module dies with *"This module cannot be imported from a Client
-Component module"* before its first line runs.
+one, and any test importing such a module dies with _"This module cannot be imported from a Client
+Component module"_ before its first line runs.
 
 The consequence was not subtle: none of the email senders could be tested at all, which is how an email
 ships addressed to the wrong person.
@@ -2294,8 +2294,8 @@ holding rendered as **out of stock on a page whose checkout would have sold it**
 what checkout would have accepted.
 
 Nothing failed. The integration suite passed, because it called the RPC directly. The E2E assertion that
-caught it was the one written at step 3 to say *"a merchant-only variant is out of stock and names no
-seller"*, with a note that the day this changed the test would change with it deliberately — and when
+caught it was the one written at step 3 to say _"a merchant-only variant is out of stock and names no
+seller"_, with a note that the day this changed the test would change with it deliberately — and when
 step 4 arrived, inverting that assertion is what exposed that only half the change had been made.
 
 An assertion about behaviour you intend to change later is worth writing precisely because it fails when
@@ -2338,7 +2338,7 @@ The consequences worth knowing before touching it:
 
 - building a payout must post its own balancing row, or the balance will not move;
 - a second build of the same period must find nothing, which is what makes a daily cron safe;
-- marking a payout *paid* must post nothing, because the money left the balance when it was *built*;
+- marking a payout _paid_ must post nothing, because the money left the balance when it was _built_;
 - there is no update or delete policy on the ledger for anyone, including admin. A correction is another
   row — the same discipline as `stock_movements`, and the reason a statement can be trusted.
 
@@ -2350,7 +2350,7 @@ as §X1 and §X2, three times in one milestone. The lesson is recorded there; wh
 is that **the obvious fix was worse than the error**.
 
 A bare `::product_form` throws on any value outside the ten enum members, and the proposal form asks for
-the form as free text *deliberately* — a merchant knows forms BioCode does not, and "effervescent
+the form as free text _deliberately_ — a merchant knows forms BioCode does not, and "effervescent
 tablets", "drops" and "pluhur" are all reasonable answers. So a reviewer approving a perfectly good
 proposal would have seen the promotion fail, in a way that looks like broken software rather than a
 free-text field meeting a closed set.
@@ -2392,7 +2392,7 @@ uploader**, rendered with no CSS at all.
 
 Nothing was wrong with the component. `playwright.config.ts` sets `reuseExistingServer: !CI`, a `pnpm start`
 from seven hours earlier was still listening on 3000, and `pnpm build` had since overwritten `.next`
-underneath it. So the server kept serving the *old* compiled app from memory while its asset URLs pointed
+underneath it. So the server kept serving the _old_ compiled app from memory while its asset URLs pointed
 at hashes that no longer existed — hence a live page missing a feature, with its stylesheet 404ing.
 
 The tell is the **unstyled page**, not the missing element: a selector bug does not remove the CSS. When an
@@ -2423,10 +2423,10 @@ error by its message alone**; a `describeAuthError` helper now prints the name a
 
 **And the real defect: GoTrue answers a duplicate id and a duplicate email differently.**
 
-| Conflict            | Response                                     |
-| ------------------- | -------------------------------------------- |
-| Email already taken | `422` · `"email address has already been registered"` |
-| **Id** already taken | **`500` · empty body**                       |
+| Conflict             | Response                                              |
+| -------------------- | ----------------------------------------------------- |
+| Email already taken  | `422` · `"email address has already been registered"` |
+| **Id** already taken | **`500` · empty body**                                |
 
 `upsertUser` decided "already there, reconcile it" by sniffing the message for
 `/already|registered|exists|duplicate/`. That is exactly backwards for a script whose whole point is
@@ -2438,7 +2438,7 @@ not be, and the two merchant fixtures behind it were never created at all.
 
 The fix inverts the question: **look the id up, then create or reconcile**, keyed on the 404 status
 rather than on the words "User not found". A `createUser` failure now means something real and unambiguous
-— the id was free and the *email* was not, i.e. it belongs to a different account — and it says so.
+— the id was free and the _email_ was not, i.e. it belongs to a different account — and it says so.
 
 The general rule, and it is the same one twice: **branch on an API's status codes and identifiers, never
 on its prose.** Message text is for humans, and it changes without warning; here it did not even exist.
@@ -2456,7 +2456,7 @@ somebody twenty minutes of "the password doesn't work".
 photographs attached. **Zero rows had changed.**
 
 `p_own_update` is `using (merchant_id = any (current_merchant_ids()) and status = 'needs_info')` — a merchant
-may edit a proposal a reviewer sent *back*, and nothing else. That is correct and worth keeping: a pending
+may edit a proposal a reviewer sent _back_, and nothing else. That is correct and worth keeping: a pending
 proposal must not change under the reviewer reading it. But a batch's photographs arrive **after** its rows
 by design, so the one write the merchant legitimately needs was the one the policy forbade.
 
@@ -2493,15 +2493,15 @@ Three separate reasons, and each is a different lesson:
 
 1. **The integration teardown deleted in the wrong order.** `product_proposals.created_product_id` references
    `products(id)` with no cascade, so deleting the promoted product while its proposal still pointed at it was
-   refused by the foreign key. The loop did not check the error. It left thirty products whose variants *had*
+   refused by the foreign key. The loop did not check the error. It left thirty products whose variants _had_
    been deleted — orphans that could never be sold and never be published. **A cleanup loop that ignores its
    errors is a leak with a green tick.** It now throws.
 2. **The E2E test predated the change and registered nothing.** `a merchant proposes a product and a reviewer
-   answers` was written when approval created nothing, so it tracked nothing for cleanup. It now reads
+answers` was written when approval created nothing, so it tracked nothing for cleanup. It now reads
    `created_product_id` back and registers the product and its brand.
 3. **The purge could not see them.** It sweeps `slug LIKE 'product-%'`, and a promoted draft is slugged from
-   the *product name* — `e2e-creatine-431a6f`, `promoted-probe-1785849308525`. The pattern that has caught
-   every fixture product since M2 was blind to a new way of creating one. The purge now follows the *link*
+   the _product name_ — `e2e-creatine-431a6f`, `promoted-probe-1785849308525`. The pattern that has caught
+   every fixture product since M2 was blind to a new way of creating one. The purge now follows the _link_
    instead: draft products referenced by a fixture merchant's proposals, read before the proposals are deleted
    and deleted after, plus the brands the promotion invented if nothing else uses them.
 
@@ -2514,7 +2514,7 @@ because slug patterns, name prefixes and email suffixes are all conventions a ne
 Counting again after the row leak was fixed showed **29 objects in the private proposals bucket and 27 under
 `product-images`**, growing by five or six per suite run. Rows were clean; bytes were not. Two causes:
 
-- every storage sweep in `purge.ts` removes objects for rows *it* is deleting, and a spec that tidies its own
+- every storage sweep in `purge.ts` removes objects for rows _it_ is deleting, and a spec that tidies its own
   rows in `afterAll` leaves the bytes — deleting a product cascades `product_images` and says nothing about
   storage;
 - nothing had ever swept `merchant-proposals` at all, because before §9 nothing wrote to it from a test.
@@ -2548,7 +2548,7 @@ also production (§7).
 ### X17 · The test suite puts its fixtures on the customer-facing storefront
 
 Reported as "the category list contains test-related names": `Emri Provë`, `Kategori e Zënë`, `Prindi` —
-Albanian for *Test Name*, *Taken Category*, *Parent* — each appearing **twice** in the shop's category
+Albanian for _Test Name_, _Taken Category_, _Parent_ — each appearing **twice** in the shop's category
 sidebar, on the live site.
 
 They were not catalogue rows. They were **E2E fixtures, live, while the suite was running.** The admin
@@ -2563,7 +2563,7 @@ The teardown line at the end of that run is the whole story:
 
 **Nothing here is a bug in the code**, which is what makes it worth writing down. The fixtures are correctly
 named, correctly scoped and correctly cleaned. The purge works. The tests are right to create them. What is
-wrong is the *arrangement*: a suite that must create a category to prove creating a category works cannot
+wrong is the _arrangement_: a suite that must create a category to prove creating a category works cannot
 share a database with customers.
 
 Three things follow:
@@ -2577,7 +2577,7 @@ Three things follow:
    teardown.
 3. **Do not "fix" it by making fixtures invisible** — deactivating them, or filtering fixture slugs out of
    the storefront query. Both would weaken the tests to protect production from the tests, which is the
-   wrong direction: the assertion that a new category *appears* is exactly the one worth keeping.
+   wrong direction: the assertion that a new category _appears_ is exactly the one worth keeping.
 
 The diagnosis also corrected the report. The names looked like leaked rows and were assumed to be leaked
 rows; counting them after the suite finished showed zero. The genuine catalogue leak was one row — a brand
@@ -2595,7 +2595,7 @@ The migration's own header comment cites §X3 and warns about exactly this. **Re
 same as checking.** What caught it, within a minute of the push, was the regression test written when §X4 was
 first fixed — `matches the merchant's own SKU in preference to BioCode's`.
 
-Sharper form of the rule: a restated function is the accumulation of *every* migration that ever touched it.
+Sharper form of the rule: a restated function is the accumulation of _every_ migration that ever touched it.
 Before restating one, `grep` the function name across `supabase/migrations/` and read every hit in order — or
 better, do not restate. And keep the test that pins the behaviour, because it is the only thing that notices.
 
@@ -2621,7 +2621,7 @@ malformed array literal: "rapid_signup"
 Array value must start with "{" or dimension information.
 ```
 
-So every link that *should* have carried a flag was instead **not created at all** — the exact population a
+So every link that _should_ have carried a flag was instead **not created at all** — the exact population a
 fraud review exists to look at. Use `array_append(v_flags, 'same_address')`, which has one meaning, or cast
 the literal.
 
@@ -2638,7 +2638,7 @@ end;
 
 That guard is right and stays. But it converts "the flag logic is broken" into "some referrals silently do not
 exist", and nobody audits referrals that were never created. In production the symptom would have been a fraud
-panel that never flagged anything — which reads as *good news*.
+panel that never flagged anything — which reads as _good news_.
 
 The rule this yields: **a swallowed exception needs a test that asserts the work happened, not just that the
 caller survived.** The test that found this asserts `risk_flags` contains `same_address`, not merely that the
@@ -2669,14 +2669,14 @@ later without touching either.
 The code is optional, so the temptation is to accept anything and drop what does not resolve. That loses
 referrals silently: a mistyped code is only fixable while the person who typed it is still looking at the field.
 
-So it *is* validated for shape — and the tests pin both halves of the compromise: a present-and-malformed code
+So it _is_ validated for shape — and the tests pin both halves of the compromise: a present-and-malformed code
 is a field error on `referralCode` alone (never a whole-form failure), and an empty field parses clean. Two
 tests, and they are there because the failure mode is a sign-up form that rejects customers over a field that
 does not matter.
 
 The Zod 4 detail found on the way: `z.union([schema, z.literal(''), z.undefined()]).transform(…)` still
 rejects a **missing** key. `.transform()` yields a pipe, and a pipe is non-optional regardless of what its
-input union accepts — listing `z.undefined()` parses a *present* `undefined` only. `.optional()` after the
+input union accepts — listing `z.undefined()` parses a _present_ `undefined` only. `.optional()` after the
 transform is what makes the key itself optional.
 
 ### Y4 · One new test file broke twenty tests in files it never touched
@@ -2695,15 +2695,15 @@ already creates around fifty accounts per run; the new file added twenty-one mor
 whole thing over. The failures then landed in whichever file happened to be running when the budget ran out —
 `referrals.test.ts`, which the change had nothing to do with.
 
-Most of those twenty-one sign-ins were waste: the accounts existed to *own a referral code* or *be a row the
-service client reads*, and their clients were discarded. So the file grew a local `createBareUser()` that
+Most of those twenty-one sign-ins were waste: the accounts existed to _own a referral code_ or _be a row the
+service client reads_, and their clients were discarded. So the file grew a local `createBareUser()` that
 creates a confirmed user through `auth.admin.createUser` and stops there, and signs in only the six accounts
 that genuinely assert through RLS. 21 → 6.
 
 Two rules out of this:
 
 - **A sign-in is a shared, rate-limited resource, not a free fixture.** Reach for `createUser` when the test
-  needs a *customer-context client*; create the account bare when it only needs to exist. Reuse one signed-in
+  needs a _customer-context client_; create the account bare when it only needs to exist. Reuse one signed-in
   account across cases that all end in rejection — a rejected attempt leaves nothing behind, so the account is
   still pristine for the next one.
 - **A test file that passes alone has not been tested.** This suite is `fileParallelism: false` against one
@@ -2728,7 +2728,7 @@ carried — and `request.url` reports the same thing, so swapping one for the ot
 stop naming a host at all:
 
 ```ts
-new NextResponse(null, { status: 307, headers: { Location: localizePath(path, locale) } })
+new NextResponse(null, { status: 307, headers: { Location: localizePath(path, locale) } });
 ```
 
 A relative `Location` (RFC 7231 §7.1.2) keeps the visitor on whatever host they arrived at, so the host that
@@ -2839,7 +2839,7 @@ nullif(regexp_replace(trim(coalesce(p_full_name, '')), '\s+', ' ', 'g'), '')
 ```
 
 Worth remembering because the input is a free-text field a person typed on a phone, and `trim` alone is
-not enough — `split_part` cares about *internal* runs too. Any `split_part` over user-entered text wants
+not enough — `split_part` cares about _internal_ runs too. Any `split_part` over user-entered text wants
 whitespace collapsed first.
 
 ### Y11 · Adding photographs broke two buttons, because a component's two branches had different layout
@@ -2869,7 +2869,7 @@ tree — in one case a whole list, swallowing every click in it.
 product rendered the in-flow fallback, so the broken branch was unreachable. It appeared the day real
 images landed, in two places at once, in features nobody had touched.
 
-Fixed in the component: the wrapper is always rendered and always `relative`, `className` sizes *it*
+Fixed in the component: the wrapper is always rendered and always `relative`, `className` sizes _it_
 (which is what every call site already meant), and `inset: 0` resolves against its padding box so `p-2`
 still insets the photograph exactly as before. `object-cover` became an explicit `fit` prop, because a
 class name landing on the wrapper would be silently inert.
@@ -2915,7 +2915,7 @@ comment explaining that other specs publish fixtures concurrently, so an exact c
 The lesson was applied to the unfiltered count and not to the four scoped ones.
 
 Updating `12` to the new number would only move the breakage to the next catalogue edit — and a literal
-proves nothing about filtering when it passes. Each is now the relationship the test is *named* for:
+proves nothing about filtering when it passes. Each is now the relationship the test is _named_ for:
 filtered is greater than zero and fewer than unfiltered; a category, brand or goal page shows fewer than
 the whole shop. **When a test asserts a number, check whether the number or the relationship is the
 claim.** Here the relationship was always the claim, and the number was a convenient way to spell it that
@@ -2926,38 +2926,38 @@ stopped being true.
 Vercel reported 22.8M external API requests over three days on a shop with no customers. `pg_stat_statements`
 found it in one query:
 
-| calls | statement |
-| --- | --- |
-| 1,765,834 | `search_products` — goal only |
-| 1,466,627 | `search_products` — brand + goal |
-| 557,732 | `search_products` — category + brand + goal + tags |
+| calls     | statement                                                        |
+| --------- | ---------------------------------------------------------------- |
+| 1,765,834 | `search_products` — goal only                                    |
+| 1,466,627 | `search_products` — brand + goal                                 |
+| 557,732   | `search_products` — category + brand + goal + tags               |
 | 4,796,226 | **all `search_products`, of 4,814,468 PostgREST requests total** |
 
 **93% of every database request was the product listing**, 4 hours of CPU over 5.6 days. And the shape of
 the arguments is the diagnosis: combinations like goal+brand+category+tag, in proportions no human
 clicking around produces.
 
-The filter panel renders a link per facet value, each one *the current filters plus one more*. So the
+The filter panel renders a link per facet value, each one _the current filters plus one more_. So the
 reachable set is the product of every facet — 16 categories × 20 brands × 9 goals × tags × sorts × pages —
 and `/shop` is deliberately dynamic, because "the filter combinations are unbounded". Every node in that
 graph is a live query that no cache can ever serve twice, and something was walking it.
 
 The page already had the canonical tag pointing every filtered view back at `/shop`. **It does nothing for
-this.** A canonical deduplicates in the *index*, after the crawler has fetched the URL — and the fetch is
+this.** A canonical deduplicates in the _index_, after the crawler has fetched the URL — and the fetch is
 the entire cost.
 
 Three layers, because only the first is free:
 
 - `rel="nofollow"` on every facet link. This is the one that stops the walk.
 - `robots.txt` disallows the parameterised listings, for crawlers that ignore `nofollow`.
-- `noindex` on any `/shop` with a search param, to drop what is already indexed. Keyed on *any* param
+- `noindex` on any `/shop` with a search param, to drop what is already indexed. Keyed on _any_ param
   rather than a list of names, so a facet added later is covered without anybody remembering.
 
 Two things worth carrying forward:
 
 - **Measure before hypothesising.** The obvious suspects — a query in a `map`, a `useEffect` without deps,
   a polling interval — were all absent; the client is clean and the batched helpers batch correctly.
-  `pg_stat_statements` named the culprit in about a minute, and the *argument shapes* pointed at the
+  `pg_stat_statements` named the culprit in about a minute, and the _argument shapes_ pointed at the
   caller more precisely than reading code would have.
 - **"Dynamic because the inputs are unbounded" and "crawlable" cannot both be true.** Either bound the
   inputs or stop advertising them. This page had the first half of that reasoning written in a comment
@@ -2992,7 +2992,7 @@ Two things worth carrying:
   z-index cannot make an element larger than its containing block, so "hidden behind the page" and
   "clipped to a strip" are the same symptom seen from different angles. Measuring `boundingBox()` against
   the viewport separates them in one step; staring at z-index values never will.
-- **Assert the cause, not just the effect.** `e2e/shell.spec.ts` now checks the panel's geometry *and*
+- **Assert the cause, not just the effect.** `e2e/shell.spec.ts` now checks the panel's geometry _and_
   reads the header's computed style for every property that establishes a containing block, naming the
   offender if one returns. The second test is what makes the failure legible to whoever adds a
   `transform` here in a year.
@@ -3036,7 +3036,7 @@ is the honest answer since neither name contains "magnesium". Genuine matches ar
 "vitamina c" against "Solgar Vitamina C 1000 mg") and noise falls (0.091 → 0.053).
 
 **The rejected fix is the more useful record.** Adding whole-string `similarity` back as a "focus"
-tiebreak — short single-subject names being more *about* the query — made it worse, and for the same
+tiebreak — short single-subject names being more _about_ the query — made it worse, and for the same
 reason: `similarity('magnesium', 'solgar kalcium magnez plus d3') = 0.212` against `0.161` for the pure
 product. `kalcium` contaminates both measures; two readings of the same error do not cancel.
 
@@ -3047,8 +3047,8 @@ exactly the unfalsifiable tuning the logging exists to replace.
 
 ### Z3 · pg_trgm's GUCs do not exist until its module loads
 
-`create function … set pg_trgm.word_similarity_threshold = '0.45'` fails with *unrecognized configuration
-parameter* in any session that has not yet touched pg_trgm. The extension being installed is not enough —
+`create function … set pg_trgm.word_similarity_threshold = '0.45'` fails with _unrecognized configuration
+parameter_ in any session that has not yet touched pg_trgm. The extension being installed is not enough —
 the GUCs are registered when the shared library loads, which happens on first use.
 
 Migration 68 carried such a `SET` and applied cleanly, but only because it shared a push, and therefore a
@@ -3079,7 +3079,7 @@ language sql immutable strict parallel safe
 as $$ select extensions.unaccent('extensions.unaccent'::regdictionary, p_text) $$;
 ```
 
-Index and query must then use the *same* expression — `search_normalize(name->>'sq')` in both — or the
+Index and query must then use the _same_ expression — `search_normalize(name->>'sq')` in both — or the
 index is silently unused, and the only symptom is a sequential scan nobody notices until the catalogue is
 large enough to hurt.
 
@@ -3098,18 +3098,18 @@ cheapest guard is a test that fails when the claim stops being true.
 
 Recall against the live catalogue — old matcher and old document versus new:
 
-| query | before | after |
-| --- | --- | --- |
-| `acid askorbik` | 0 | 6 |
-| `hirre` (whey) | 0 | 5 |
-| `energji` | 0 | 21 |
-| `vaj peshku` | 1 | 5 |
-| `gjume` | 1 | 5 |
-| `sleep` | 1 | 5 |
-| `kolagjen` | 3 | 4 |
-| `magnez` | 4 | 7 |
-| `proteina` | 6 | 11 |
-| `kapsula` | 12 | 24 |
+| query           | before | after |
+| --------------- | ------ | ----- |
+| `acid askorbik` | 0      | 6     |
+| `hirre` (whey)  | 0      | 5     |
+| `energji`       | 0      | 21    |
+| `vaj peshku`    | 1      | 5     |
+| `gjume`         | 1      | 5     |
+| `sleep`         | 1      | 5     |
+| `kolagjen`      | 3      | 4     |
+| `magnez`        | 4      | 7     |
+| `proteina`      | 6      | 11    |
+| `kapsula`       | 12     | 24    |
 
 The three zeroes are the point. Each was a shopper describing what they wanted in the ordinary word for
 it, and being told the shop did not sell it.
@@ -3219,7 +3219,7 @@ already correct, and one did not reproduce. Recorded because the diagnosis matte
 
 1. **"The dot overlaps the buttons" and "the primary button has one squared corner" were the same
    bug.** The dot strip was `absolute … bottom-3` at every width. On a phone the slide is short enough
-   that it landed *on* the CTA row, and because the active dot is `forest-800` — the same token as the
+   that it landed _on_ the CTA row, and because the active dot is `forest-800` — the same token as the
    primary button's background — it did not read as a dot on a button. It read as the button having a
    squared-off bottom-right corner. Both buttons already computed `border-radius: 12px` on all four
    corners, measured; there was never a radius bug. Fixed by putting the dots in normal flow under
@@ -3241,7 +3241,7 @@ Stacking the CTAs cost 14 px of height and moving the dots into flow cost 24 px.
 **17 px** of headroom at 390 × 844, so the fix pushed the trust strip off the first viewport — the
 regression `e2e/hero.spec.ts` exists to catch, and it caught it. Repaid with a one-step trim on each
 mobile gap (`py-4→py-3`, `gap-6→gap-4`, headline/subhead `mt-3→mt-2`, CTA `mt-6→mt-4`, dots `mt-4→mt-2`),
-each restoring at `sm`. Net result is 2 px *better* than production at every mobile width.
+each restoring at `sm`. Net result is 2 px _better_ than production at every mobile width.
 
 `no carousel dot sits on a hero CTA` asserts the two rectangles do not intersect, and was verified to
 fail under the old positioning before being trusted.
@@ -3285,12 +3285,12 @@ server component made the matrix untestable — proving the label-only case woul
 the `banners` row that is live on screen. `announcement-parts.ts` takes the row and the locale and
 returns the decision as a plain object, so the cases are Vitest assertions instead:
 
-| label | link | renders |
-| --- | --- | --- |
-| ✓ | ✓ | clickable pill; message stays plain |
-| ✓ | — | pill as plain text, no hover |
-| — | ✓ | the message itself is the link |
-| — | — | message only, no pill |
+| label | link | renders                             |
+| ----- | ---- | ----------------------------------- |
+| ✓     | ✓    | clickable pill; message stays plain |
+| ✓     | —    | pill as plain text, no hover        |
+| —     | ✓    | the message itself is the link      |
+| —     | —    | message only, no pill               |
 
 Whitespace counts as absent in both fields. A pill is never an empty outline — an outlined box with
 nothing in it looks like a design rather than the bug it is. And the two branches are exclusive by
@@ -3324,14 +3324,14 @@ is to read that instead, copying `link_label` into both locales.
 On 8 Aug 2026 every route began returning `503 DEPLOYMENT_PAUSED`. Not a deploy, not a regression —
 Vercel spend management had hit its limit. The day's bill was **$7.02** on a shop with no customers:
 
-| line | | |
-| --- | --- | --- |
-| Fluid Active CPU | $2.44 | 35 % |
-| Fast Origin Transfer | $1.74 | 25 % |
-| ISR Writes | $0.97 | 14 % |
-| Function Invocations | $0.82 | 12 % |
-| Build CPU Minutes | $0.48 | 7 % |
-| Fluid Provisioned Memory | $0.46 | 7 % |
+| line                     |       |      |
+| ------------------------ | ----- | ---- |
+| Fluid Active CPU         | $2.44 | 35 % |
+| Fast Origin Transfer     | $1.74 | 25 % |
+| ISR Writes               | $0.97 | 14 % |
+| Function Invocations     | $0.82 | 12 % |
+| Build CPU Minutes        | $0.48 | 7 %  |
+| Fluid Provisioned Memory | $0.46 | 7 %  |
 
 The first four are $5.97 of it and they are not four problems. They are four meters on one event: a
 page being generated on the server. ISR Writes is the only line named after it, and reading the bill
@@ -3353,7 +3353,7 @@ Not the cause, despite being the obvious suspects: image optimization was alread
 one-year `minimumCacheTTL`, trimmed size lists — AVIF had been removed earlier for doubling billed
 transformations), and the crons are four invocations a day. The listing query was already inside a
 tagged `unstable_cache`, so `/shop` was not re-querying the database on every hit — it was
-re-*rendering*, which is a different meter.
+re-_rendering_, which is a different meter.
 
 ### The fixes
 
@@ -3457,7 +3457,7 @@ so it did not error; it matched nothing. Measured: `whey` matched **0** variant 
 names.
 
 No argument to `.or()` fixes it — PostgREST cannot OR a parent column together with an embedded
-resource — so the product title has to *be* a column. `v_catalogue_variant_search` (migration 78)
+resource — so the product title has to _be_ a column. `v_catalogue_variant_search` (migration 78)
 flattens the join with one prebuilt lowercase haystack over brand, product name, variant name, SKU and
 barcode. `security_invoker`, so RLS still applies and deactivating a brand still withdraws its variants
 from every picker — the owner's supply lever, now depended on deliberately.
@@ -3506,7 +3506,7 @@ service role — so half the offers from one decision would name an approver and
 ### Caught while verifying: three tests asserting the old robots.txt
 
 `checkout.spec.ts` and two in `compliance.spec.ts` asserted per-path `Disallow` lines and a `Sitemap:`
-line. The pre-launch crawl block (§AC) makes robots.txt `Disallow: /`, which covers those paths *more*
+line. The pre-launch crawl block (§AC) makes robots.txt `Disallow: /`, which covers those paths _more_
 strictly — so the suite was reporting a stronger robots.txt as a regression. I shipped §AC without
 running these, which is the actual mistake. The money-path test now accepts either shape; the two that
 describe the indexable configuration skip while the block is on, rather than being weakened into
@@ -3760,11 +3760,11 @@ Verified in the emitted stylesheet, because a Tailwind arbitrary variant contain
 exactly the kind of thing that silently fails to compile — and had it dropped, the fix would have shipped
 looking identical to the bug. Then verified in a browser:
 
-| state | label |
-| --- | --- |
-| collapsed | "Show 6 more" / "Show 10 more" — the hidden count |
-| clicked open | "Show fewer" |
-| hidden brand active | forced open, label "Show fewer" |
+| state               | label                                             |
+| ------------------- | ------------------------------------------------- |
+| collapsed           | "Show 6 more" / "Show 10 more" — the hidden count |
+| clicked open        | "Show fewer"                                      |
+| hidden brand active | forced open, label "Show fewer"                   |
 
 No JavaScript, so it behaves the same in the desktop sidebar and the mobile sheet, and it is correct in the
 first paint rather than after hydration.
@@ -3772,7 +3772,7 @@ first paint rather than after hydration.
 ### Known and deliberate
 
 **Expansion does not survive a click.** Every option is a link, so the server re-renders and `open` is
-recomputed from whether a hidden option is active — expand to browse, pick a *visible* option, and the
+recomputed from whether a hidden option is active — expand to browse, pick a _visible_ option, and the
 group closes. Fixing it needs either a URL parameter, which `robots.ts` exists to keep out of URLs, or
 client state that survives a soft navigation, which a server-rendered panel cannot hold. Recorded rather
 than left to be rediscovered.
@@ -3790,14 +3790,14 @@ dead end.
 
 Checked before drawing anything, and it decided the design:
 
-| | |
-| --- | --- |
-| `categories.image_path` | null on every row |
-| `categories.icon` | set on exactly one of twelve |
-| product photography | 45 of 63 published products |
-| product counts | 8, 7, 5, 5, 5, 5, 4 … and one zero |
+|                         |                                    |
+| ----------------------- | ---------------------------------- |
+| `categories.image_path` | null on every row                  |
+| `categories.icon`       | set on exactly one of twelve       |
+| product photography     | 45 of 63 published products        |
+| product counts          | 8, 7, 5, 5, 5, 5, 4 … and one zero |
 
-So any layout leaning on category artwork would have rendered *worse* than the rectangles, because the
+So any layout leaning on category artwork would have rendered _worse_ than the rectangles, because the
 fallback would have been most of the row. What exists is product photography, so each tile shows the
 best-rated photographed product in its category. That is the better idea regardless: a category picture
 is a stock photo of an abstraction, while a real product from the shelf is a promise about what is behind
@@ -3815,8 +3815,8 @@ pick-the-best-one per group. It returned an empty array, the component returned 
 `distinct on`, can be tested on its own — it was, before being wired — and leaves the storefront read an
 ordinary select.
 
-`order by (storage_path is null), rating_avg desc` is the whole trick: the best-rated product *that has a
-photograph* wins, so a five-star unphotographed product cannot leave a tile blank. The image join is
+`order by (storage_path is null), rating_avg desc` is the whole trick: the best-rated product _that has a
+photograph_ wins, so a five-star unphotographed product cannot leave a tile blank. The image join is
 `left`, so a category with products but no photography still appears with its count and a tinted panel.
 
 ### Three things caught only by looking at it
@@ -3825,7 +3825,7 @@ photograph* wins, so a five-star unphotographed product cannot leave a tile blan
   icon. Confirmed fixed by asserting `naturalWidth > 0` on all six rather than by eye.
 - **White squares in green tiles.** Supplement packshots are cut out on white, so a tinted image panel made
   every photo look pasted on. White behind a photograph, tint only behind the empty case.
-- **A stale data cache.** After the view was correct the section was *still* missing, because
+- **A stale data cache.** After the view was correct the section was _still_ missing, because
   `unstable_cache` was serving the empty array from the broken query. Second time in two days that a
   `.next/cache` entry outlived the code that produced it.
 
@@ -3843,11 +3843,11 @@ queue is to already suspect you have one.
 
 ### The numbers, counted before designing anything
 
-| Table | Predicate | Count |
-| --- | --- | --- |
-| `product_proposals` | `status = 'pending'` | 6 |
-| `merchant_offers` | `status = 'pending_review'` | 2 |
-| `contact_messages` | `status = 'new'` | **82** |
+| Table               | Predicate                   | Count  |
+| ------------------- | --------------------------- | ------ |
+| `product_proposals` | `status = 'pending'`        | 6      |
+| `merchant_offers`   | `status = 'pending_review'` | 2      |
+| `contact_messages`  | `status = 'new'`            | **82** |
 
 Ninety items in queues, visible from nowhere. The messages backlog was the largest and the oldest, and
 nobody had thought to ask about it — which decided the scope: **all eleven staff queues**, not the two
@@ -3861,7 +3861,7 @@ counter that only appears after someone notices its absence is the bug being fix
 ### Three surfaces, one query
 
 - A count pill on each sidebar and drawer nav item.
-- A dot on the mobile hamburger. Below `lg` the nav is a closed drawer, so a badge *inside* it reproduces
+- A dot on the mobile hamburger. Below `lg` the nav is a closed drawer, so a badge _inside_ it reproduces
   the original defect one breakpoint down — invisible until you already went looking.
 - "Needs attention" at the top of the dashboard: one sentence per queue, linking to it already filtered.
 
@@ -3927,7 +3927,7 @@ logger.info('Product save rejected', { issues: parsed.error.flatten().fieldError
 return catalogFail('admin.catalog.errors.checkFields');
 ```
 
-That key's text is *"Check the fields marked below."* — so the copy promised something the code did not
+That key's text is _"Check the fields marked below."_ — so the copy promised something the code did not
 do. `saveVariant` was worse: a bare `catalogFail`, not even logged.
 
 **And `flatten()` could not have marked them anyway.** Probed against this project's Zod (4.4.3) with the
@@ -3944,7 +3944,7 @@ attributes verbatim, so the lookup needs no mapping table. Extracted to `lib/fie
 Two things that probe also settled:
 
 - Zod's own wording is written for whoever wrote the schema: `Too big: expected string to have <=160
-  characters`, `Invalid option: expected one of "capsule"|"tablet"`, `Invalid UUID`. And this project
+characters`, `Invalid option: expected one of "capsule"|"tablet"`, `Invalid UUID`. And this project
   deliberately uses custom messages **as machine codes** (`REQUIRED`, `SLUG_INVALID`), which would put a
   constant name in front of an editor. Hence `CATALOG_FIELD_MESSAGES` plus a code-derived fallback.
 - A `.max()` inside `.optional().or(z.literal(''))` still reports a plain `too_big` carrying `maximum`,
@@ -4004,9 +4004,9 @@ behead an 8000-character description. `product-editor.tsx` never read it anyway.
 Signed in as a real admin against a **draft** product, typed a subtitle, a description and a serving size,
 ticked all seven dietary tags and two categories, then broke the slug and emptied the required name:
 
-- alert: *"Check the fields marked below. 2 fields need attention — nothing you typed has been lost."*
-- `slug` marked *"Lowercase letters, numbers and single hyphens only — like vitamin-d3-4000."*
-- `name.sq` marked *"Required."*
+- alert: _"Check the fields marked below. 2 fields need attention — nothing you typed has been lost."_
+- `slug` marked _"Lowercase letters, numbers and single hyphens only — like vitamin-d3-4000."_
+- `name.sq` marked _"Required."_
 - all three typed fields, all seven tags and both categories still there; the bad slug still present to be
   corrected; the emptied name still empty
 - the database row untouched, because the check only ever submits an invalid form
@@ -4057,7 +4057,7 @@ fixture. Read the setup output before believing the result.
 
 That reshaped hard delete from an alternative into a **second step from the bin**, because it adds exactly
 one thing over removal — the slug becomes reusable. It is refused unless the record is provably empty, and
-the guard is tight because *succeeding* is the dangerous case: thirteen tables cascade with a product,
+the guard is tight because _succeeding_ is the dangerous case: thirteen tables cascade with a product,
 including customer reviews and merchant offers, which would go with no audit row of their own.
 
 ### Where a soft delete would have been wrong
@@ -4071,7 +4071,7 @@ foreign keys, so a delete there cannot orphan anything either.
 ### Three bugs the audit turned up
 
 - **`rejectProduct` left the approval stamp behind.** It wrote `{ status: 'draft' }` alone, so a product
-  compliance had just rejected still reported *Approved* and its checklist read "Everything is in place."
+  compliance had just rejected still reported _Approved_ and its checklist read "Everything is in place."
   `guard_product_publish` keys the whole publish gate on that stamp.
 - **A comment had a foreign key backwards.** `certification-actions.ts` claimed
   `product_certifications` has no cascade, so "a delete would fail at the foreign key anyway". Migration
@@ -4110,9 +4110,9 @@ correct outcome for a product whose history outweighs its slug.
 
 ## AN. The catalogue in Excel, and the diff nobody made
 
-Reported at `/admin/products` as: *"i need to be able to download an excel file with all the fields. then i
+Reported at `/admin/products` as: _"i need to be able to download an excel file with all the fields. then i
 can fill those fields in excel file and upload it back to reflect the changes i added in the file. this is
-much more convinient than filling each one by one"* — which is correct, and was correct for merchants two
+much more convinient than filling each one by one"_ — which is correct, and was correct for merchants two
 milestones earlier (§ the merchant sheet). 71 products edited one form at a time is the wrong shape for a
 price round or a translation pass.
 
@@ -4124,12 +4124,12 @@ lost the only protection the feature has.
 
 The cause was three conversions that each looked lossless:
 
-| step | value |
-| ---- | ----- |
-| `fromCents(1090)` writes | `"10.90"` |
-| Excel stores the number | `10.9` |
-| the reader returns | `"10.9"` |
-| compared as text | **changed** |
+| step                     | value       |
+| ------------------------ | ----------- |
+| `fromCents(1090)` writes | `"10.90"`   |
+| Excel stores the number  | `10.9`      |
+| the reader returns       | `"10.9"`    |
+| compared as text         | **changed** |
 
 Fixed by comparing **amounts**, not text — `sameAmount()` in `src/lib/money.ts`, which parses both sides
 through `toCents` and treats two unparseable strings as equal only when both are blank. Re-measured against
@@ -4201,10 +4201,10 @@ correct (§10 forbids destroying audit history). Discarding it was not.
 
 Measured rather than assumed. Against a fixture with one audit row:
 
-| step | result |
-| ---- | ------ |
-| old one-liner: `deleteUser(id)` | error, **ignored** |
-| profile afterwards | present, `role=admin` |
+| step                            | result                |
+| ------------------------------- | --------------------- |
+| old one-liner: `deleteUser(id)` | error, **ignored**    |
+| profile afterwards              | present, `role=admin` |
 
 Then a sweep of `%@biocode.test` found **nine** leaked fixture admins — every fixture from this session that
 had performed an audited action, which is exactly what the bug predicts. A shared database accumulating
@@ -4244,17 +4244,17 @@ transaction, and every number shown afterwards came from the **plan** rather tha
 Forced by giving two draft products the same slug in one file, so the first write succeeds and the second hits
 the unique index. Before and after, on the same file:
 
-| | before | after |
-| --- | --- | --- |
-| headline | `Saved. 2 rows updated.` | `Partly saved. 1 of 2 rows updated.` |
-| audit rows written | **2** — one for a change that never happened | 1 |
-| the failure | listed | listed |
-| the instruction below it | `Confirming saves the rows above…` | `Fix these in the file… Everything else is saved.` |
-| category/goal write errors | discarded silently | reported |
-| variant whose product vanished | `continue`, no trace | reported |
+|                                | before                                       | after                                              |
+| ------------------------------ | -------------------------------------------- | -------------------------------------------------- |
+| headline                       | `Saved. 2 rows updated.`                     | `Partly saved. 1 of 2 rows updated.`               |
+| audit rows written             | **2** — one for a change that never happened | 1                                                  |
+| the failure                    | listed                                       | listed                                             |
+| the instruction below it       | `Confirming saves the rows above…`           | `Fix these in the file… Everything else is saved.` |
+| category/goal write errors     | discarded silently                           | reported                                           |
+| variant whose product vanished | `continue`, no trace                         | reported                                           |
 
 The audit row is the worst of the four. The stated reason for auditing per product rather than per import is
-so somebody can answer *"what did that file do to the price of this product?"* — and auditing the plan answers
+so somebody can answer _"what did that file do to the price of this product?"_ — and auditing the plan answers
 that question **wrongly**, which is worse than not answering it. A refused write read as a change that
 happened.
 
@@ -4262,6 +4262,7 @@ happened.
 panel treats a shortfall as a warning rather than a success — no green tick on a partial save.
 
 Two things the run also exposed, both visible to an operator and both mine:
+
 - `1 row were not saved` — the pluralisation branched on the noun and not the verb.
 - `Products row 0 · …` — `row: 0` is the sentinel for a write-phase failure, which has no line in the file.
   Printing it sends the operator looking for a row that does not exist. Suppressed when zero.
@@ -4280,18 +4281,18 @@ price_cents)`. `readMoneyCell` judges one amount against its own previous value 
 column, so raising the price of an on-sale variant previewed as a clean change and then failed on write as
 `Could not be saved.` Not a corner case: it is a price round, the operation the feature exists for, and live
 seeded data hits it (`ON-GSW-2270-CHOC`, 69.90 against a was-price of 79.90). Now refused at plan time:
-*"A was-price of 79.90 is not above the price of 79.90. Raise it or clear the compare_at_price cell."*
+_"A was-price of 79.90 is not above the price of 79.90. Raise it or clear the compare_at_price cell."_
 
 **Moving the default variant.** `one_default_variant` is a partial unique index, so promoting one variant
 while another is still default fails with 23505. The form path clears the incumbent first and says why; this
 path did not, and the result was decided by the alphabet — the export orders variants by SKU and writes
 followed file order:
 
-| the file says | what happened before |
-| --- | --- |
-| promote a SKU sorting **after** the incumbent | worked |
+| the file says                                  | what happened before                                                            |
+| ---------------------------------------------- | ------------------------------------------------------------------------------- |
+| promote a SKU sorting **after** the incumbent  | worked                                                                          |
 | promote a SKU sorting **before** the incumbent | promotion refused, demotion succeeded — **product left with no default at all** |
-| promote without demoting | 23505, reported as *"Another variant already uses that SKU"* |
+| promote without demoting                       | 23505, reported as _"Another variant already uses that SKU"_                    |
 
 The misdiagnosis was the worst part: it sends the operator hunting a SKU collision that does not exist. Now
 demotions are ordered before promotions, and a promotion with no matching demotion is refused by name.
@@ -4300,7 +4301,7 @@ Verified in the order that used to break: `Saved. 2 rows updated`, exactly one d
 **A formula whose result is an Excel error.** Measured, not assumed: such a cell reads back as
 `{ formula: 'B99/0', result: { error: '#DIV/0!' } }`, and the `String(value)` fallback turned it into the
 literal text **`[object Object]`** — written into a product name on the live shop. Empty would be no better;
-an empty cell in a present column means *clear this field*. The reader now records it in `badCells` and the
+an empty cell in a present column means _clear this field_. The reader now records it in `badCells` and the
 row is refused, naming the column and the Excel error.
 
 **Two columns with the same heading.** Rows are keyed by header name, so the rightmost duplicate silently won
@@ -4308,7 +4309,7 @@ and the other column's data was discarded — or landed in a field the operator 
 by copying a column to keep a working copy of a field. Refused, with both names.
 
 **Tabs reordered.** The products sheet is found by name with a positional fallback, so dragging Variants to
-the front made it *the* products sheet: seventy identical `No id` complaints under a heading saying nothing
+the front made it _the_ products sheet: seventy identical `No id` complaints under a heading saying nothing
 would change — a description of the file rather than of the mistake. The sheet must now contain an `id`
 column.
 
@@ -4342,10 +4343,10 @@ see. The general rule: **if deleting the mechanism leaves the test green, the te
 
 Six of fifteen were refuted, and two are worth recording because they read convincingly:
 
-- *"An exception mid-write reports 'Nothing would change' after writing half the catalogue."* The premise was
+- _"An exception mid-write reports 'Nothing would change' after writing half the catalogue."_ The premise was
   that supabase-js rejects on transport failure. It does not — `PostgrestBuilder.then()` resolves errors into
   the result object, so the write loops cannot throw partway.
-- *"CSP enforcement would switch on an unmeasured policy."* Inverted: the header that survives Next's dedupe
+- _"CSP enforcement would switch on an unmeasured policy."_ Inverted: the header that survives Next's dedupe
   is the stricter one, and the enforced candidate carries `'unsafe-inline'` deliberately.
 
 Both were plausible readings of real code. Refuting them cost less than acting on them would have.
@@ -4370,7 +4371,7 @@ every usage/observability endpoint returns 404 on this plan. So the traffic coul
 identified — and three plausible theories (crawler, self-inflicted loop, the agent's own testing) all fitted
 the same shape.
 
-What settled it: the log stream *does* carry a function's own `console` output. One temporary line in
+What settled it: the log stream _does_ carry a function's own `console` output. One temporary line in
 `middleware.ts`, sampled at 1 in 50 and gated behind `TRAFFIC_PROBE=on`, deployed, sampled, reverted:
 
 ```
@@ -4396,11 +4397,11 @@ The sampling rate is why the probe was safe: 2% of requests, one `console.warn`,
 Vercel's **managed** `ai_bots` ruleset, set to deny. Managed rather than hand-written for a reason recorded
 below.
 
-| | requests/second | requests/day |
-| --- | --- | --- |
-| before | 21.3 | ~1,840,000 |
-| `ai_bots` deny | 0.5 | ~45,000 |
-| `ai_bots` + `bot_filter` | 0.2 | ~21,000 |
+|                          | requests/second | requests/day |
+| ------------------------ | --------------- | ------------ |
+| before                   | 21.3            | ~1,840,000   |
+| `ai_bots` deny           | 0.5             | ~45,000      |
+| `ai_bots` + `bot_filter` | 0.2             | ~21,000      |
 
 `bot_filter` was enabled, measured, and then **turned off again**: it buys ~24,000 requests a day — pennies —
 and blocks `curl`, uptime monitors and anything else without a browser user agent. `/api/health` returned
@@ -4435,7 +4436,7 @@ Two rules out of it:
 ### What is still true, and worth doing next
 
 **`/shop/[category]` never caches.** It declares `generateStaticParams` for all 16 categories, and then reads
-`searchParams` — which in Next 15 makes the route dynamic on *every* request, prebuilt params or not. So each
+`searchParams` — which in Next 15 makes the route dynamic on _every_ request, prebuilt params or not. So each
 of those crawl hits was a full server render with `no-store`, which is why Fluid Active CPU ($3.25) ran almost
 level with Edge Requests ($3.66). The prerender manifest confirms it: 20 dynamic routes are prerendered and
 `/[locale]/shop/[category]` is not among them.
@@ -4450,8 +4451,8 @@ of silent burn into one afternoon's alert.
 
 ### The rule that generalises
 
-The cheapest question here was *"who is calling?"*, and it went unanswered for a whole session because the
-obvious tools do not report it. Two theories were argued from request *shapes* — path mix, locale prefixes,
+The cheapest question here was _"who is calling?"_, and it went unanswered for a whole session because the
+obvious tools do not report it. Two theories were argued from request _shapes_ — path mix, locale prefixes,
 POST ratios — when a single header would have settled it. **When traffic is the problem, identify the client
 before modelling the traffic.** Everything downstream of that identification took twenty minutes; everything
 upstream of it was guesswork.
@@ -4461,11 +4462,11 @@ upstream of it was guesswork.
 The route declares `generateStaticParams` for all 16 categories and then reads `searchParams`, which in
 Next 15 makes it dynamic on **every** request — prebuilt params or not. The contrast on production is exact:
 
-| URL | Cache-Control | X-Vercel-Cache |
-| --- | --- | --- |
-| `/` | `public, max-age=0, must-revalidate` | **HIT**, `Age: 173` |
-| `/shop/vitaminat` | `private, no-cache, no-store` | MISS |
-| `/shop/vitaminat?brand=solgar` | `private, no-cache, no-store` | MISS |
+| URL                            | Cache-Control                        | X-Vercel-Cache      |
+| ------------------------------ | ------------------------------------ | ------------------- |
+| `/`                            | `public, max-age=0, must-revalidate` | **HIT**, `Age: 173` |
+| `/shop/vitaminat`              | `private, no-cache, no-store`        | MISS                |
+| `/shop/vitaminat?brand=solgar` | `private, no-cache, no-store`        | MISS                |
 
 So every listing hit is a full server render. That is why Fluid Active CPU ($3.25) ran almost level with
 Edge Requests ($3.66) on the 15 Aug bill.
@@ -4484,7 +4485,7 @@ Moving the project to a canary channel to cache one route is the wrong trade.
 query string, so a header of `public, s-maxage=300, stale-while-revalidate=43200` scoped to `/shop/:path*`
 would have made every listing URL — filtered or not — edge-cacheable with no code change and no URL change.
 It was written, built, deployed, and measured. It does nothing: Next sets `private, no-cache, no-store` on a
-dynamic route *after* the configured headers are applied, and its header wins. Both passes over three URLs
+dynamic route _after_ the configured headers are applied, and its header wins. Both passes over three URLs
 returned MISS. Reverted rather than left in the config looking like protection.
 
 The safety analysis done for it is worth keeping, because any future attempt needs it: `public` caching is
@@ -4511,3 +4512,137 @@ real saving, and a product decision rather than an engineering one.
 
 Neither was attempted, because blocking `meta-externalagent` had already removed 97.6% of the traffic and
 neither is worth doing unwatched at the end of a session.
+
+## AP. The desktop layout had no instruction for anything wider than 1024px
+
+**Reported as** "on desktop a big part of the screen is left blank on both the left and the right side".
+Measured on the live site in Chromium at three widths before anything was changed:
+
+| Viewport | Content band | Margin per side | Screen unused | Product cards | `h1` |
+| -------- | ------------ | --------------- | ------------- | ------------- | ---- |
+| 1440     | 1240         | 100             | 13.9%         | 4 × 280       | 52px |
+| 1920     | 1240         | 340             | 35.4%         | 4 × 280       | 52px |
+| 2560     | 1240         | 660             | 51.6%         | 4 × 280       | 52px |
+
+Every number in the last three columns is identical across the three rows, which is the finding: the page was
+not adapting at all. `--spacing-content` is 1240px exactly as docs/04 §1 specifies, and at 1440 that is
+correct — 100px gutters read as a considered margin. Above it the margin becomes a void.
+
+**The root cause, stated as a fact.** Across the whole storefront — every page, every feature component —
+there were **157 `lg:` rules and zero `xl:` or `2xl:` rules**. The design had no instruction for any screen
+wider than 1024px, so it repeated the 1024px answer forever and centred the result.
+
+**The fix is not "widen the measure".** 1240px is a good measure for a form or a table; stretching it gives
+90-character lines of Albanian body copy and poster-sized product cards. The actual defect is that the page
+had exactly **two** width layers — full-bleed, which in practice meant background colour and nothing else,
+and 1240px, which meant everything else. So when the viewport grew, the only thing that grew was paint.
+
+### The four tiers
+
+| Token               | Value                        | Carries                                                    |
+| ------------------- | ---------------------------- | ---------------------------------------------------------- |
+| `--spacing-text`    | 42rem (672px)                | prose — `container-text`                                   |
+| `--spacing-content` | 77.5rem (1240px)             | forms, tables, cart, checkout, account — `container-page`  |
+| `--spacing-wide`    | 105rem (1680px)              | grids, rails, navbar, footer, hero copy — `container-wide` |
+| full-bleed          | 100%                         | hero media, section grounds                                |
+| `--gutter-wide`     | `clamp(1.25rem, 2.5%, 3rem)` | the gutter for the wide tier                               |
+| `--breakpoint-3xl`  | 112.5rem (1800px)            | the width at which the wide tier saturates                 |
+
+`container-page` is **unchanged**. It is the narrow tier now rather than the only tier, and cart, checkout,
+auth, account and the PDP purchase column still use it — a narrow column centred under a wide header reads as
+focus, not as misalignment, and `/cart` was checked at 1920 to confirm it.
+
+Two details that are easy to get wrong and were both measured:
+
+- **The gutter is expressed in `%`, not `vw`.** `vw` includes the classic scrollbar, so a `vw` gutter drifts a
+  few pixels away from a `max-width` container centring inside the content box. That drift is what would show
+  as a seam in the hero.
+- **The gutter stays modest on purpose.** Past ~1780px the `max-width` cap opens the margins by itself, so the
+  gutter only has to carry the range below it. A gutter aggressive enough to look right at 2560 costs 80px on
+  a 1280px laptop. The first attempt used `5%` with a 1920px cap and did exactly that; the curve was retuned
+  so 1024 and 1280 land within a few pixels of `container-page` and only 1440 upward gains width.
+
+Resulting content widths: 972 at 1024 (was 976), 1216 at 1280 (was 1232), 1368 at 1440 (was 1240), 1680 at
+1920 and at 2560 (was 1240). At 2560 the share of the screen doing work goes from 48% to 66%, and the
+remaining 440px per side is a real margin because the header, the hero and every grid now share that edge.
+
+### Grids needed a ladder, or the width just inflates the cards
+
+Four frozen columns on a 1680px track is a 400px product card, which is a stretched signal rather than a
+premium one. Two ladders, because `ProductGrid` renders in two materially different tracks:
+
+- **Full width** (search, offers, home bestsellers): `lg:grid-cols-4 xl:grid-cols-5 3xl:grid-cols-6`.
+- **With the facet rail** (`/shop` and the category, brand and goal listings): the track is
+  `content − 240px rail − 48px gap`, so it gets `lg:grid-cols-3 xl:grid-cols-4 3xl:grid-cols-5` via the new
+  `columns` prop. Sharing one ladder would have meant 214px cards at 1280 in one context and 292px in the
+  other.
+
+Measured card widths after the change: 225 at 1024, 224 at 1280, 254 at 1440, 244 at 1920 and 2560 — against a
+frozen 280 before. Home bestsellers went from 8 featured products to 12, because 8 cannot fill a six-column
+row. `ProductGridSkeleton` carries the same ladder: a skeleton whose column count differs from the grid it
+stands in for is a layout shift dressed as a loading state.
+
+## AQ. The hero photograph occupied 2.6% of the band it sat in
+
+Measured at 2560 × 1400 before the change: the hero was a **2560 × 560 band of `forest-950`**, and the
+photograph inside it was **384px wide** — capped by `lg:max-w-sm` inside a 1240px grid. Roughly 1160px of that
+band was empty paint. docs/04 §3 says photography does the selling, and the layout was not letting it.
+
+Worse, and funnier once measured: the carousel arrows pinned to the viewport edges at about 24px in, while the
+copy column began at 684px. **The controls were sitting in the dead margin, roughly 650px from the content
+they operate.**
+
+### The full-bleed split, and why the join is arithmetic
+
+From `lg` up the media is `absolute inset-y-0 right-0 w-1/2` — edge to edge, top to bottom, `object-cover`, no
+card, no radius, no `max-w`. The copy sits in `container-wide`'s first column of two.
+
+The two edges meet exactly, at every width, without either side knowing the other's numbers. For a body of
+width `B`, `container-wide` is `max-width: W` with `margin-inline: auto` and `padding-inline: g`, so its first
+column of two ends at `(B − W)/2 + g + (W − 2g)/2`, which reduces to `B/2` — precisely where an
+`absolute right-0 w-1/2` panel begins. Verified in the browser: the panel's left edge measured 512, 640, 720,
+960 and 1280 at body widths of 1024, 1280, 1440, 1920 and 2560. This is the reason `--gutter-wide` is a
+percentage; the `%` / `vw` distinction above is not pedantry, it is this seam.
+
+A short gradient in the ground colour sits over the media's leading edge. It is not decoration — whether that
+exact boundary _reads_ as a seam depends on the photograph, and a light left edge against `forest-950` is a
+hard cut.
+
+### The three things that had to survive untouched
+
+1. **`calc(100svh - 14rem)` stays in the `min-h`.** The cap went 34rem → 48.75rem so a 1080p screen gets a
+   780px hero instead of a 560px band, but the `svh` term is what reserves room for the trust strip inside the
+   first viewport. At the 1280 × 720 viewport `e2e/hero.spec.ts` runs, the min-height still resolves to 496px
+   exactly as before, because 720 − 224 is smaller than the new cap. Only viewports tall enough to afford the
+   larger hero see it.
+2. **The phone fold budget.** Moving the media out of `container-page` silently took its 20px of horizontal
+   padding with it, so the phone image went edge-to-edge: 390px wide at 16/9 is 219px tall where 350px wide is
+   197px. Measured at 390 × 844 that cut the trust strip's headroom inside the first viewport **from 17px to
+   2px** — still passing the assertion, and one long Albanian string away from not. `px-5 md:px-6 lg:px-0`
+   restores it; the strip now clears the fold by 25px, better than the baseline, because the old 16px grid gap
+   between media and copy is gone.
+3. **The fluid headline's floor is today's 52px, not the 48px the viewport maths wanted.** The first clamp
+   used a `3rem` floor and measured 48px from 1024 through 1440 — fluid type that makes the headline _smaller_
+   on most laptops is a regression with a nicer implementation. `clamp(3.25rem, 3.4vw, 4.5rem)` only ever
+   adds: 52px to ~1530, 65px at 1920, 72px at 2560.
+
+### The controls became a cluster, and the dots became visible
+
+`Carousel` gained two opt-in props, both defaulted so the sponsored placements are untouched:
+
+- `controls: 'edge' | 'cluster'` — `cluster` gathers prev, next, the dots and an `01 / 02` counter into one
+  group aligned to `container-wide`'s content edge, so they sit under the headline they belong to. Measured at
+  1920: the cluster starts at x=168 and the `h1` starts at x=168. Everything below `sm` is identical in both
+  modes, because the phone arrangement is the one with 25px of fold headroom and an assertion about dots not
+  landing on a CTA.
+- `tone: (item) => 'light' | 'dark'` — chrome resolved from the **active** item. This fixed a live defect
+  rather than a hypothetical one: the hero's brand slide is `forest-950` and the dots were `forest-800`, about
+  **1.3:1**, so the dots were effectively invisible on the most-viewed slide on the site.
+
+### Known consequence: the desktop hero slot now wants a landscape creative
+
+A bleed panel must `cover`, and the current desktop sources are portrait (889 × 1197) and square (384 × 384).
+Covering either into a 1280 × 780 panel is a heavy centre crop — it happens to look good on both published
+slides, and that is luck rather than design. The admin already has separate desktop and mobile slots; the
+desktop one should be re-shot at 16:10 or wider. Until then, a new slide's crop needs looking at before it is
+published.
