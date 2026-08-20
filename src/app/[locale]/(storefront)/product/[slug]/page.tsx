@@ -167,7 +167,12 @@ export default async function ProductPage({ params }: Props) {
               path={product.images[0]?.path ?? null}
               alt={pickLocale(product.images[0]?.alt, locale) || name}
               priority
-              sizes="(min-width: 1024px) 50vw, 100vw"
+              /*
+                The gallery sits in `container-page`, which caps at 1240 — so half of it is about 596px
+                and never more, whatever the monitor. `50vw` asked for 960 at 1920 and fetched a 1080px
+                variant for a 562px box.
+              */
+              sizes="(min-width: 1024px) 620px, 100vw"
               className="absolute inset-0 size-full p-8"
             />
           </div>

@@ -4912,3 +4912,42 @@ credential, and it is being redeemed on the phone.
 If that becomes a real complaint, the answer is the **6-digit code** Supabase can send instead of a
 link (docs/13 §AS already records it as worth revisiting). The person reads the code off the phone and
 types it into the PC, which is the only arrangement that genuinely signs in the device that asked.
+
+## AV. Three `sizes` attributes that had drifted from the layout
+
+Found while compiling an image-dimension reference for marketing, by measuring what the live site
+_renders_ against what Next actually _fetches_. All three were wrong, and one of them I broke myself.
+
+**Product cards, both directions.** `sizes` claimed `(min-width: 640px) 33vw, (min-width: 1024px) 25vw`,
+written when the grid was a frozen four columns. After the ladder in §AP it is 2/4/5/6 columns in a
+container that caps at 1680, so measured card widths are 167 at 390, **356 at 768**, 225 at 1024, 254 at
+1440 and **244 at 1920 and above**. That meant a tablet asked for a 256px variant to fill a 356px box —
+a visibly soft product photograph — while a large monitor fetched a **640px variant for a 244px box**,
+twenty-four times a page. Changing a column count without revisiting `sizes` is the drift; the lesson is
+that `sizes` is a claim about layout and has to be re-measured when the layout moves.
+
+Now `(min-width: 1800px) 256px, (min-width: 1280px) 20vw, (min-width: 1024px) 24vw, 50vw` — a fixed
+value at the top end because past ~1800 the container has stopped growing and the card is a constant.
+
+**The sponsored banner was upscaling.** `(min-width: 1280px) 1200px` against a slot that renders 1366 at
+1440 and 1582 at 1920 and up. So Next stretched a 1200px file across 1582 CSS pixels, and across 3164
+device pixels on a 2× display. A soft banner is a poor advertisement for the advertiser and for us.
+
+**The PDP gallery over-fetched.** `50vw` on a page whose container caps at 1240, so the image is about
+596px wide and never more, whatever the monitor — and 1920 asked for 960 and got a 1080px variant for a
+562px box.
+
+Verified after the change, rendered against fetched at six widths for all three slots: nothing
+under-served, nothing fetching beyond ~1.5× of its box.
+
+### The reference this came out of
+
+Every image slot on the site is now documented with its aspect ratio, its measured rendered size at each
+breakpoint, its `object-fit`, and the source dimensions to supply — including the safe area for the hero,
+whose panel swings from roughly 2:3 on a small laptop to 16:9 on a wide monitor, so a subject that is not
+centred is cropped away on one of them.
+
+Two empty slots worth knowing about: `/goals` tiles (3:2) and knowledge article covers (16:9) both render
+their fallbacks because no image path is set on any row, and `/brands` renders no logo at all. And there is
+**no social share image anywhere** — `openGraph` sets a title and description but no `images`, and no
+`opengraph-image` file exists, so every WhatsApp or Facebook share of the shop shows text only.

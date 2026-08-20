@@ -171,7 +171,13 @@ function PlacementSlide({
           src={desktop}
           alt={desktopAlt}
           fill
-          sizes="(min-width: 1280px) 1200px, 100vw"
+          /*
+            1600, not 1200. The slot renders 1366px wide at 1440 and 1582 at 1920 and above — the
+            container caps at 1680 — so the old value had Next upscaling a 1200px file across a 1582px
+            box, and on a 2x display across 3164 device pixels. A soft banner is a poor advertisement
+            for the advertiser and for us.
+          */
+          sizes="(min-width: 1280px) 1600px, 100vw"
           priority={priority}
           loading={priority ? undefined : 'lazy'}
           className="hidden object-cover sm:block"
@@ -185,7 +191,9 @@ function PlacementSlide({
         {(headline || ctaLabel) && (
           <div className="absolute inset-y-0 left-0 flex max-w-[60%] flex-col justify-center gap-1 bg-gradient-to-r from-forest-950/70 to-transparent p-4 lg:p-6">
             {headline && (
-              <p className="font-display text-base font-semibold text-cream lg:text-xl">{headline}</p>
+              <p className="font-display text-base font-semibold text-cream lg:text-xl">
+                {headline}
+              </p>
             )}
             {subhead && <p className="hidden text-sm text-cream/80 lg:block">{subhead}</p>}
             {ctaLabel && (

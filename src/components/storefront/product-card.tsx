@@ -65,7 +65,15 @@ export function ProductCard({
    * the price down. Ordered by what a supplement buyer actually filters on rather than by whatever
    * order the array happens to hold — avoiding gluten is a harder constraint than preferring non-GMO.
    */
-  const chips = ['vegan', 'gluten_free', 'lactose_free', 'sugar_free', 'vegetarian', 'non_gmo', 'halal']
+  const chips = [
+    'vegan',
+    'gluten_free',
+    'lactose_free',
+    'sugar_free',
+    'vegetarian',
+    'non_gmo',
+    'halal',
+  ]
     .filter((tag) => product.dietaryTags.includes(tag))
     .slice(0, 2);
 
@@ -80,7 +88,7 @@ export function ProductCard({
          * table of boxes. A 60%-opacity ring plus a barely-there resting shadow lets the card sit on the
          * cream page as an object; the weight arrives on hover, where it means something.
          */
-        'ring-1 ring-line/60 shadow-[0_1px_2px_rgb(0_0_0/0.04)]',
+        'shadow-[0_1px_2px_rgb(0_0_0/0.04)] ring-1 ring-line/60',
         /*
          * `translate`, not `transform`.
          *
@@ -97,7 +105,7 @@ export function ProductCard({
         /* The same treatment for a keyboard user, who previously got none of it. */
         'focus-within:-translate-y-1 focus-within:shadow-[0_16px_32px_-16px_rgb(15_42_31/0.28)] focus-within:ring-forest-500/40',
         /* Honest about motion: a lift is decoration, and some people are made ill by it. */
-        'motion-reduce:transition-none motion-reduce:hover:translate-y-0 motion-reduce:focus-within:translate-y-0',
+        'motion-reduce:transition-none motion-reduce:focus-within:translate-y-0 motion-reduce:hover:translate-y-0',
         className,
       )}
     >
@@ -109,7 +117,17 @@ export function ProductCard({
         <ProductImage
           path={product.imagePath}
           alt={name}
-          sizes="(min-width: 1024px) 25vw, (min-width: 640px) 33vw, 50vw"
+          /*
+            Measured against the real grid rather than assumed from it, and it was wrong in both
+            directions once the column ladder changed (docs/13 §AP).
+            
+            Rendered card widths on the live site: 167 at 390, 356 at 768, 225 at 1024, 254 at 1440,
+            244 at 1920 and at 2560 — the container caps at 1680, so past ~1800 the card is a constant.
+            The old attribute claimed 33vw from 640 up, which under-served a tablet (asked 256 for a
+            356px box, so a visibly soft product photo) and claimed 25vw from 1024 up, which fetched a
+            **640px variant for a 244px box** — on twenty-four cards a page.
+          */
+          sizes="(min-width: 1800px) 256px, (min-width: 1280px) 20vw, (min-width: 1024px) 24vw, 50vw"
           priority={priority}
           className={cn(
             'absolute inset-0 size-full p-5',
@@ -171,7 +189,7 @@ export function ProductCard({
           real work: a touch device has no hover state, so revealing on it would make wishlist
           unreachable. There they stay visible, which is correct rather than a compromise.
         */}
-        <div className="absolute top-2 right-2 z-10 flex flex-col gap-1 transition-opacity duration-200 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100 [@media(hover:hover)]:group-focus-within:opacity-100">
+        <div className="absolute top-2 right-2 z-10 flex flex-col gap-1 transition-opacity duration-200 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-focus-within:opacity-100 [@media(hover:hover)]:group-hover:opacity-100">
           <WishlistButton
             productId={product.id}
             productName={name}
