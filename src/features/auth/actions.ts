@@ -335,7 +335,11 @@ export const resetPassword: FormAction = async (_prevState, formData) => {
   }
 
   revalidatePath('/', 'layout');
-  return localizedRedirect('/account?password=updated');
+  /*
+   * `/account?password=updated` unless the link said otherwise — an invited seller is sent to
+   * `/merchant`, where the thing they were invited to actually is.
+   */
+  return localizedRedirect(safeNextPath(parsed.data.next, '/account?password=updated'));
 };
 
 // ---------------------------------------------------------------------------

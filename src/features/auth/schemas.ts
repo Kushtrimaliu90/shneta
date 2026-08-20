@@ -83,6 +83,14 @@ export const resetPasswordSchema = z
   .object({
     password: passwordSchema,
     confirmPassword: z.string(),
+    /*
+     * Where to land once the password is set.
+     *
+     * This page serves two journeys that end in different places: a customer who forgot their
+     * password belongs back in `/account`, and an approved seller setting their *first* password
+     * belongs in `/merchant`. Sanitised through `safeNextPath` like every other `next` on the site.
+     */
+    next: z.string().optional(),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: 'PASSWORDS_DO_NOT_MATCH',

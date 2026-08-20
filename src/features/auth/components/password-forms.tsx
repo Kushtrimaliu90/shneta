@@ -63,7 +63,7 @@ export function ForgotPasswordForm() {
  * Reached through the recovery link, which the callback route has already exchanged for a
  * session — so the user is authenticated here and simply sets a new password.
  */
-export function ResetPasswordForm() {
+export function ResetPasswordForm({ next }: { next?: string }) {
   const [state, formAction] = useActionState<FormState, FormData>(resetPassword, null);
   const t = useTranslations();
 
@@ -72,6 +72,8 @@ export function ResetPasswordForm() {
   return (
     <form action={formAction} className="flex flex-col gap-4" noValidate>
       {state && !state.ok && <Alert tone="error">{t(state.error)}</Alert>}
+
+      <input type="hidden" name="next" value={next ?? ''} />
 
       <Field
         id="password"

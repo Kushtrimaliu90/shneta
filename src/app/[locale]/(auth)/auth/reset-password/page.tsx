@@ -4,7 +4,10 @@ import { resolveLocale } from '@/i18n/locale';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ResetPasswordForm } from '@/features/auth/components/password-forms';
 
-type Props = { params: Promise<{ locale: string }> };
+type Props = {
+  params: Promise<{ locale: string }>;
+  searchParams: Promise<{ next?: string }>;
+};
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const t = await getTranslations({
@@ -20,8 +23,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
  * `auth.errors.resetLinkInvalid` if the link expired, so an expired link fails with an
  * explanation rather than a silent no-op.
  */
-export default async function ResetPasswordPage({ params }: Props) {
+export default async function ResetPasswordPage({ params, searchParams }: Props) {
   setRequestLocale(resolveLocale((await params).locale));
+  const { next } = await searchParams;
   const t = await getTranslations('auth.resetPassword');
 
   return (
@@ -31,7 +35,7 @@ export default async function ResetPasswordPage({ params }: Props) {
         <CardDescription>{t('subtitle')}</CardDescription>
       </CardHeader>
       <CardContent>
-        <ResetPasswordForm />
+        <ResetPasswordForm next={next} />
       </CardContent>
     </Card>
   );

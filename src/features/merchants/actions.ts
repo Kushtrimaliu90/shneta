@@ -3,6 +3,7 @@
 import { headers } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { clientEnv } from '@/lib/env.client';
 import { logger, describeError } from '@/lib/logger';
 import { fail, ok, type ActionResult } from '@/lib/result';
 import { limitByIp } from '@/lib/rate-limit';
@@ -42,9 +43,10 @@ export type MerchantErrorKey =
   | 'merchant.errors.invalid'
   | 'admin.errors.forbidden';
 
-export type MerchantState =
-  | ActionResult<{ merchantId?: string; slug?: string }, MerchantErrorKey>
-  | null;
+export type MerchantState = ActionResult<
+  { merchantId?: string; slug?: string },
+  MerchantErrorKey
+> | null;
 
 function no(error: MerchantErrorKey): MerchantState {
   return fail<MerchantErrorKey, { merchantId?: string; slug?: string }>(error);
@@ -250,8 +252,28 @@ async function linkApplicant(
     }
 
     if (!userId) {
+      /*
+       * `redirectTo` is what makes the invitation land somewhere useful, and its absence was a real
+       * defect rather than an omission.
+       *
+       * Without it Supabase sends the invitee to the project's Site URL — the **storefront home
+       * page**. So an approved seller clicked "activate account" in their email and arrived at the
+       * shop: signed in, with no password set, no mention of their application, and nothing pointing
+       * at `/merchant`. The invite worked and looked like it had failed.
+       *
+       * `/auth/reset-password` is the set-a-password page. It is reached the same way a recovery link
+       * reaches it — through `/api/auth/callback`, which has already exchanged the code for a session
+       * — and its `next` now carries the seller into the portal once the password is saved.
+       *
+       * Double-encoded on purpose: the inner `next` belongs to the reset-password page, the outer one
+       * to the callback, and each is decoded by exactly one hop.
+       */
+      const setPassword = `/auth/reset-password?next=${encodeURIComponent('/merchant')}`;
       const { data: invited, error } = await supabase.auth.admin.inviteUserByEmail(contactEmail, {
         data: { full_name: contactName },
+        redirectTo: `${clientEnv.NEXT_PUBLIC_SITE_URL}/api/auth/callback?next=${encodeURIComponent(
+          setPassword,
+        )}`,
       });
       if (error || !invited.user) {
         logger.error('merchant invite failed', { merchantId, cause: error?.message });

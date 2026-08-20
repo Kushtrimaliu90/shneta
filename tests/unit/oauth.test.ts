@@ -173,3 +173,62 @@ describe('profile name from provider metadata', () => {
     expect(sql).toContain('exception when others then');
   });
 });
+
+/**
+ * The merchant invitation's destination (docs/13 §AT).
+ *
+ * Asserted against the source because the failure is silent and looks like success: `inviteUserByEmail`
+ * with no `redirectTo` sends the invitee to the project's Site URL, so an approved seller landed on the
+ * storefront home page — signed in, no password set, nothing pointing at the portal they were invited
+ * to. The invite had worked and looked broken.
+ */
+describe('merchant invitation redirect', () => {
+  const source = readFileSync('src/features/merchants/actions.ts', 'utf8');
+  const invite = source.slice(source.indexOf('inviteUserByEmail'));
+  const call = invite.slice(0, invite.indexOf('});') + 3);
+
+  it('tells Supabase where to send the invitee', () => {
+    expect(call).toContain('redirectTo');
+  });
+
+  it('routes through the callback that exchanges the code for a session', () => {
+    expect(call).toContain('/api/auth/callback');
+  });
+
+  it('lands on the set-password page, then the seller portal', () => {
+    const context = source.slice(
+      source.indexOf('const setPassword'),
+      source.indexOf('inviteUserByEmail'),
+    );
+    expect(context).toContain('/auth/reset-password');
+    expect(context).toContain("encodeURIComponent('/merchant')");
+  });
+
+  /*
+   * The origin is configuration, not the incoming request: a forged Host header must not be able to
+   * point an invitation's landing page at another site.
+   */
+  it('builds the absolute URL from configuration', () => {
+    expect(call).toContain('clientEnv.NEXT_PUBLIC_SITE_URL');
+  });
+});
+
+/**
+ * `resetPassword` honouring that destination — the other half of the same fix.
+ *
+ * The page serves two journeys with different endings: a customer who forgot their password belongs in
+ * `/account`, an invited seller in `/merchant`. Sanitised, because `next` arrives from a URL.
+ */
+describe('set-password destination', () => {
+  const source = readFileSync('src/features/auth/actions.ts', 'utf8');
+  const action = source.slice(source.indexOf('export const resetPassword'));
+  const body = action.slice(0, action.indexOf('\n};'));
+
+  it('redirects to the requested destination, defaulting to the account page', () => {
+    expect(body).toContain("safeNextPath(parsed.data.next, '/account?password=updated')");
+  });
+
+  it('does not hard-code the account page any more', () => {
+    expect(body).not.toContain("localizedRedirect('/account?password=updated')");
+  });
+});

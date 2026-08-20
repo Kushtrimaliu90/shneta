@@ -4801,3 +4801,49 @@ often better: it works when email and browser are on different devices, and a co
 cannot "click" a number — link pre-fetching consumes the one-time token and leaves the customer with
 "this link is no longer valid" and no idea why. The cost is typing six digits. Worth revisiting if
 support hears about dead links.
+
+## AT. The seller invitation that landed on the shop's front page
+
+Found while rewriting the Supabase auth email templates, by asking what the "Invite user" email is
+actually for. `inviteUserByEmail` appears exactly once in the codebase — `linkApplicant` in
+`features/merchants/actions.ts`, called when a merchant application is approved. Staff are created
+with `admin.createUser`, which sends nothing, so this template has one audience: an approved seller.
+
+The call passed no `redirectTo`.
+
+Supabase falls back to the project's **Site URL** in that case, which is the storefront home page. So
+the sequence for every approved seller was: receive an email inviting them to activate a seller
+account, click it, and arrive at the shop. Signed in, with **no password set**, no acknowledgement of
+their application, and nothing anywhere pointing at `/merchant`. The invitation had worked perfectly
+and was indistinguishable from a broken one.
+
+It is the worst shape of bug — no error, no log line, and the only person who sees it is a new business
+partner at the exact moment they are deciding whether this operation is competent.
+
+### The fix, and why it needed two halves
+
+`redirectTo` now points at `/api/auth/callback?next=/auth/reset-password?next=/merchant`, double-encoded
+so each hop decodes exactly one layer. `/auth/reset-password` is already the set-a-password page and is
+already reached this way by recovery links, so nothing new was built for the first half.
+
+The second half is that the page's ending was hard-coded:
+
+    return localizedRedirect('/account?password=updated');
+
+Correct for a customer who forgot their password, wrong for a seller who just set their first one — it
+would have deposited them in the customer account area instead of the portal. `resetPasswordSchema`
+now carries an optional `next`, the form passes it through as a hidden field the way sign-in and
+sign-up already do, and the action redirects through `safeNextPath` with the old destination as the
+fallback. Sanitised because `next` arrives from a URL, and §AR is a reminder of what happens when a
+`next` is trusted.
+
+Verified against a running server: the page renders `value="/merchant"` into the hidden field from
+`?next=%2Fmerchant`, and a hostile `?next=https://evil.example` is echoed into the field (escaped) but
+rewritten to the fallback server-side on submit.
+
+### Known rough edge, deliberately not smoothed
+
+The page still says "Rivendos fjalëkalimin" — _reset_ your password — to a seller who has never had
+one. The heading is shared between both journeys and splitting it means either a second page or a mode
+flag on this one. Recorded rather than fixed, because it is a wording nuance and this was a
+functional defect; worth doing when somebody next touches that page.
