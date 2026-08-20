@@ -4847,3 +4847,68 @@ The page still says "Rivendos fjalëkalimin" — _reset_ your password — to a 
 one. The heading is shared between both journeys and splitting it means either a second page or a mode
 flag on this one. Recorded rather than fixed, because it is a wording nuance and this was a
 functional defect; worth doing when somebody next touches that page.
+
+## AU. Every email link only worked on the device that asked for it
+
+Reported from real use, and the report was exactly right about what _should_ happen: request a sign-in
+link on a PC, open it in the mail app on a phone, press the button — "that link is no longer valid".
+Do the whole thing on the phone and it signs you in. The user's own conclusion was that the link ought
+to work and simply sign them in on the phone instead. It should, and now it does.
+
+### Nothing had expired
+
+`@supabase/ssr` uses the **PKCE** flow. Requesting a link generates a secret _code verifier_ and stores
+it in a cookie **in the browser that asked**. The emailed link carries only a `code`, which is useless
+without the matching verifier, so `exchangeCodeForSession` can only ever succeed in that same browser.
+Opened anywhere else it fails, and the failure surfaces as the generic "link no longer valid" — which
+is a truthful message about the exchange and a misleading one about the cause.
+
+**And this was never only about magic links.** Every email link went through
+`/api/auth/callback`: password recovery, signup confirmation, email change, and the seller invitation.
+So a customer resetting their password on a laptop and opening the mail on their phone had been hitting
+this since the feature shipped — one of the most ordinary things a person can do. The seller invitation
+is worse still, because a merchant is _more_ likely to read that on a phone than anywhere else.
+
+### The fix: verify a token hash, not a PKCE code
+
+`{{ .TokenHash }}` with `verifyOtp` instead of `{{ .ConfirmationURL }}` with
+`exchangeCodeForSession`. A token hash is checked against the server directly and carries no
+device-bound secret, so the link works wherever it is opened. This is what Supabase documents for
+server-side rendering, and this failure is the reason it documents it.
+
+New route `/api/auth/confirm?token_hash=…&type=…&next=…`, and the five link-bearing templates now point
+at it. `EMAIL_LINK_TYPES` is an allowlist rather than a pass-through: `type` arrives on a query string,
+`verifyOtp` accepts more values than these — phone types included — and a mismatched type against a real
+token is an error the visitor cannot act on. Both guards short-circuit before Supabase is called;
+measured against the running server, a bad type or a missing hash is refused in ~12ms while a
+syntactically valid token costs a ~190ms round trip.
+
+`email` is in the allowlist alongside `email_change`, because Supabase sends that type for the _second_
+leg of an address change — the confirmation to the new address. Omitting it would tell a customer who
+changed their email that their link was invalid.
+
+### `/api/auth/callback` stays, and keeps PKCE
+
+Deliberately not consolidated. OAuth's flow leaves for Google and returns to the same browser seconds
+later, so device binding there is a security property rather than an obstacle — and Google would not
+accept a token hash. Two routes, two mechanisms, each matched to how its flow actually travels:
+
+| Route                | Mechanism                       | For                                 |
+| -------------------- | ------------------------------- | ----------------------------------- |
+| `/api/auth/callback` | `exchangeCodeForSession` (PKCE) | OAuth — same browser, seconds apart |
+| `/api/auth/confirm`  | `verifyOtp` (token hash)        | email links — any device, any time  |
+
+The referral claim both routes need moved to `features/referrals/claim-from-cookie.ts` rather than being
+copied, since both are places where a session appears for the first time with a `/r/{CODE}` cookie
+possibly still unspent.
+
+### The consequence, stated plainly
+
+The visitor ends up signed in **on the device that opened the link** — the phone, if that is where the
+mail app is. That is the honest behaviour of an emailed credential and what somebody reading mail on
+their phone expects. It does not sign in the PC, and no mechanism exists that could: the link is the
+credential, and it is being redeemed on the phone.
+
+If that becomes a real complaint, the answer is the **6-digit code** Supabase can send instead of a
+link (docs/13 §AS already records it as worth revisiting). The person reads the code off the phone and
+types it into the PC, which is the only arrangement that genuinely signs in the device that asked.

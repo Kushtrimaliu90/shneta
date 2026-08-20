@@ -6,6 +6,7 @@ import {
   isOAuthProvider,
   oauthRedirectUrl,
 } from '@/features/auth/oauth';
+import { defaultNextFor, emailLinkUrl, isEmailLinkType } from '@/features/auth/email-links';
 
 /**
  * Social sign-in, the parts worth guarding (docs/05 §15).
@@ -230,5 +231,85 @@ describe('set-password destination', () => {
 
   it('does not hard-code the account page any more', () => {
     expect(body).not.toContain("localizedRedirect('/account?password=updated')");
+  });
+});
+
+/**
+ * Cross-device email links (docs/13 §AU).
+ *
+ * The bug: `@supabase/ssr` uses PKCE, so `exchangeCodeForSession` needs a code verifier stored in a
+ * cookie **in the browser that asked for the link**. Reported from real use — request a sign-in link on
+ * a PC, open it on the phone where the mail app is, and the phone is told the link is no longer valid.
+ * Nothing had expired; the verifier was on the PC. It affected every email link, password recovery
+ * included.
+ */
+describe('email links verify by token hash, not PKCE', () => {
+  const confirm = readFileSync('src/app/api/auth/confirm/route.ts', 'utf8');
+  const callback = readFileSync('src/app/api/auth/callback/route.ts', 'utf8');
+
+  it('the email route verifies a token hash', () => {
+    expect(confirm).toContain('verifyOtp');
+    expect(confirm).toContain('token_hash');
+  });
+
+  /*
+   * The whole point: no code verifier means no device binding. Asserted against the *call* rather than
+   * the word, because the route's own header comment explains what it replaced and would otherwise
+   * fail its own test.
+   */
+  it('the email route never exchanges a PKCE code', () => {
+    expect(confirm).toContain('auth.verifyOtp(');
+    expect(confirm).not.toContain('auth.exchangeCodeForSession(');
+  });
+
+  /*
+   * OAuth keeps PKCE deliberately. The flow leaves for Google and returns to the same browser seconds
+   * later, so device binding is a security property there rather than an obstacle.
+   */
+  it('the OAuth callback keeps PKCE', () => {
+    expect(callback).toContain('auth.exchangeCodeForSession(');
+    expect(callback).not.toContain('auth.verifyOtp(');
+  });
+
+  it('both routes claim a pending referral through the shared helper', () => {
+    for (const source of [confirm, callback]) {
+      expect(source).toContain('claimReferralFromCookie');
+    }
+  });
+});
+
+describe('email link types', () => {
+  it('accepts the five Supabase sends, plus the email-change second leg', () => {
+    for (const t of ['magiclink', 'signup', 'recovery', 'invite', 'email_change', 'email']) {
+      expect(isEmailLinkType(t)).toBe(true);
+    }
+  });
+
+  /* `type` arrives on a query string and `verifyOtp` accepts more than these, phone types included. */
+  it('refuses anything else', () => {
+    for (const t of ['sms', 'phone_change', 'MAGICLINK', '', null]) {
+      expect(isEmailLinkType(t)).toBe(false);
+    }
+  });
+
+  /*
+   * Recovery and invite both land on a password the person has to choose. Everything else belongs in
+   * the account area. This is only a floor — the templates pass `next` explicitly — but a template
+   * edited by hand should not strand somebody.
+   */
+  it('sends password journeys to the set-password page', () => {
+    expect(defaultNextFor('recovery')).toBe('/auth/reset-password');
+    expect(defaultNextFor('invite')).toBe('/auth/reset-password');
+    expect(defaultNextFor('magiclink')).toBe('/account');
+    expect(defaultNextFor('signup')).toBe('/account');
+  });
+
+  it('builds a link that cannot be redirected off-site', () => {
+    expect(emailLinkUrl('https://biocode.fit', 'magiclink', 'https://evil.example')).toBe(
+      'https://biocode.fit/api/auth/confirm?type=magiclink&next=%2Faccount',
+    );
+    expect(emailLinkUrl('https://biocode.fit', 'recovery', '/auth/reset-password')).toContain(
+      'next=%2Fauth%2Freset-password',
+    );
   });
 });

@@ -148,6 +148,22 @@ A third way in, alongside password and Google. `/auth/link` — one email field,
 
 **The prerequisite is not code.** Every sign-in sends an email, and auth mail still goes through Supabase's built-in sender (docs/10 §4), which is rate-limited to a handful an hour and documented as unsuitable for production. Enabled before Resend SMTP is configured this does not degrade gracefully — sign-in stops working for everyone as soon as a few people use it. docs/10 §4.2 has the steps.
 
+### 15.3 Email links are verified by token hash
+
+Every link Supabase emails — sign-in link, signup confirmation, password recovery, email change, seller invitation — points at `/api/auth/confirm?token_hash=…&type=…&next=…`, which calls `verifyOtp`.
+
+**Not `/api/auth/callback`, and not `{{ .ConfirmationURL }}`.** That route exchanges a PKCE code, and the code verifier lives in a cookie in the browser that requested the link — so an emailed link could only be opened on the device that asked for it. Requesting a password reset on a laptop and opening the mail on a phone failed with "link no longer valid" (docs/13 §AU).
+
+|           | `/api/auth/callback`            | `/api/auth/confirm`      |
+| --------- | ------------------------------- | ------------------------ |
+| Mechanism | `exchangeCodeForSession` (PKCE) | `verifyOtp` (token hash) |
+| Used by   | OAuth only                      | every email link         |
+| Device    | same browser, seconds apart     | any device, any time     |
+
+`type` is checked against an allowlist before Supabase is called — it arrives on a query string, and `verifyOtp` accepts more values than the six that reach a customer. `next` goes through `safeNextPath`.
+
+The visitor is signed in **on the device that opened the link**. That is the honest behaviour of an emailed credential; the alternative, if it is ever a complaint, is the 6-digit code Supabase can send instead.
+
 ## 16. Static & utility
 
 `/about` (story, values, team optional — from `pages`), `/contact` (form name/email/subject/message → `submitContact`, ack email, honeypot; company info + map optional), `/faq` (accordion grouped by category, FAQPage JSON-LD), `/legal/terms`, `/legal/privacy`, `/legal/shipping-returns` (from `pages`). `not-found`: search box + popular categories. `error`: retry. Cookie-consent banner (blocks analytics until accepted; link to privacy).
