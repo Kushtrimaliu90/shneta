@@ -119,6 +119,20 @@ Shell with side nav (mobile: horizontal scroll tabs). Pages:
 
 Sign-in, sign-up (name, email, password, marketing opt-in, terms), forgot/reset, verify-email landing. Card layout, minimal, brand mark. Post-auth redirect to `next` param; cart merge runs on sign-in (docs/07 §3.3). Errors: friendly, non-enumerating ("If the email exists, we sent a link"). Rate limited (docs/02 §9).
 
+### 15.1 Social sign-in
+
+Offered on both `/auth/sign-in` and `/auth/sign-up`, **below** the email form — this shop already has customers with passwords, and burying the field they came for under two buttons makes the familiar path look like the fallback.
+
+| Concern        | Decision                                                                                                                                                                                                                                      |
+| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Providers      | Google. Apple is designed for but not enabled — see docs/13 §AR for what it costs.                                                                                                                                                            |
+| Kick-off       | `GET /api/auth/oauth?provider=…&next=…`, reached by an anchor. Not a button, and not a server action: the CSP sets `form-action 'self'`, and every other auth form here works before hydration.                                               |
+| Return         | `/api/auth/callback`, the same handler email links already use. One redirect URL, both locales, because `/api` is unlocalized.                                                                                                                |
+| Terms          | A visible notice above the buttons linking terms and privacy. `signUpSchema` requires an explicit `terms` checkbox and a social sign-up never sees it, so without the notice accounts would be created on terms the customer was never shown. |
+| Enablement     | `NEXT_PUBLIC_GOOGLE_AUTH_ENABLED`. Off by default; the block renders nothing at all rather than an empty divider. A button whose provider has no credentials is worse than no button.                                                         |
+| Referral codes | Claimed in the callback via `claim_referral_code`, because `signInWithOAuth` cannot carry user metadata the way `signUp` does.                                                                                                                |
+| Name           | `handle_new_user` reads `full_name`, then `name`, then `given_name` + `family_name`. Never the email local part.                                                                                                                              |
+
 ## 16. Static & utility
 
 `/about` (story, values, team optional — from `pages`), `/contact` (form name/email/subject/message → `submitContact`, ack email, honeypot; company info + map optional), `/faq` (accordion grouped by category, FAQPage JSON-LD), `/legal/terms`, `/legal/privacy`, `/legal/shipping-returns` (from `pages`). `not-found`: search box + popular categories. `error`: retry. Cookie-consent banner (blocks analytics until accepted; link to privacy).

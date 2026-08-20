@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import { resolveLocale } from '@/i18n/locale';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { SignInForm } from '@/features/auth/components/sign-in-form';
+import { OAuthButtons } from '@/features/auth/components/oauth-buttons';
 
 type Props = {
   params: Promise<{ locale: string }>;
@@ -29,8 +30,21 @@ export default async function SignInPage({ params, searchParams }: Props) {
         <CardTitle>{t('title')}</CardTitle>
         <CardDescription>{t('subtitle')}</CardDescription>
       </CardHeader>
-      <CardContent>
-        <SignInForm next={next} linkError={error === 'link_invalid'} />
+      <CardContent className="flex flex-col gap-5">
+        {/*
+          Email first, social second.
+
+          The other way round is the more common arrangement and it is wrong here: this shop already
+          has customers with passwords, and burying the field they came to use under two buttons makes
+          the familiar path feel like the fallback. Social is the shortcut, offered after the thing that
+          already works.
+        */}
+        <SignInForm
+          next={next}
+          linkError={error === 'link_invalid'}
+          oauthError={error === 'oauth' || error === 'rate'}
+        />
+        <OAuthButtons next={next} />
       </CardContent>
     </Card>
   );

@@ -110,5 +110,29 @@ export function safeNextPath(next: string | null | undefined, fallback = '/accou
   if (!next) return fallback;
   if (!next.startsWith('/') || next.startsWith('//')) return fallback;
   if (next.includes('://')) return fallback;
+
+  /*
+   * A backslash is an authority separator in practice, whatever the RFC says.
+   *
+   * `/\evil.example` passes every check above — it starts with a single slash and contains no
+   * `://` — and then Chrome, Firefox and Safari all normalise the backslash to a forward slash, so a
+   * `Location: /\evil.example` header is a protocol-relative redirect to `evil.example`. That is an
+   * open redirect on the sign-in, sign-up, password-reset and social sign-in paths, every one of
+   * which takes `next` from a query string anybody can write.
+   *
+   * Found by a test written for `oauthRedirectUrl`, which passed `/\evil.example` on the assumption
+   * it was already covered here. It was not, and had not been since the function was written.
+   *
+   * The encoded form needs no separate case: `searchParams.get()` decodes `%5C` before this sees it.
+   */
+  if (next.includes('\\')) return fallback;
+
+  /*
+   * Control characters, which are the other half of the same family: browsers strip or normalise
+   * some of them while parsing a URL, so a tab or a newline spliced into the value can survive a
+   * naive prefix check and mean something else by the time it is acted on.
+   */
+  if (/[\u0000-\u001f\u007f]/.test(next)) return fallback;
+
   return next;
 }

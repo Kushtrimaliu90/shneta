@@ -145,6 +145,13 @@ describe('safeNextPath', () => {
     expect(safeNextPath('', '/')).toBe('/');
   });
 
+  /*
+   * The backslash case is the one that got through for months. `/\evil.example` starts with a single
+   * slash and contains no `://`, so the original three checks passed it — and then every major browser
+   * normalises the backslash to a forward slash, making `Location: /\evil.example` a protocol-relative
+   * redirect off-site. Caught by a test written for the social sign-in helper, which assumed this was
+   * already covered.
+   */
   it('rejects anything that could leave the site', () => {
     for (const hostile of [
       'https://evil.example.com',
@@ -154,6 +161,12 @@ describe('safeNextPath', () => {
       '///evil.example.com',
       'javascript:alert(1)',
       'account/orders',
+      // Backslash: normalised to '/' by every major browser, so this is protocol-relative too.
+      '/\\evil.example',
+      '/\\\\evil.example',
+      // A tab or newline spliced in, which some browsers strip while parsing the URL.
+      '/\tevil.example',
+      '/account\nLocation: https://evil.example',
     ]) {
       expect(safeNextPath(hostile), hostile).toBe('/account');
     }

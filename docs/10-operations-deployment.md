@@ -33,6 +33,26 @@ Jobs on PR: (1) **quality** — pnpm install (cached), `check:i18n`, `typecheck`
 
 Auth: email+password only v1; confirm email ON; secure email change ON; site URL + redirect URLs (local/staging/prod); auth email templates restyled (docs/08 §6); JWT expiry default; anonymous sign-ins OFF. Database: PITR/backups per plan (daily minimum; enable PITR on prod), `pg_trgm/citext/unaccent` via migration. Storage: create the five buckets (docs/03 §11) via migration/setup script with size+MIME limits. API: RLS everywhere (CI test asserts `rowsecurity` true on all public tables).
 
+## 4.1 Social sign-in providers
+
+The code ships dark. Nothing appears on the auth pages until `NEXT_PUBLIC_GOOGLE_AUTH_ENABLED=true`, so these steps can be done at any time without a deploy waiting on them.
+
+**Google** — free, about an hour, no Google review needed (email and profile are not sensitive scopes):
+
+1. Google Cloud Console -> new or existing project -> **APIs & Services -> OAuth consent screen**. User type **External**, then **Publish**. It asks for an app name, a support email, a homepage, a privacy policy URL and a terms URL: use `https://biocode.fit`, `https://biocode.fit/legal/privacy`, `https://biocode.fit/legal/terms`.
+2. **Credentials -> Create credentials -> OAuth client ID**, type **Web application**.
+3. Authorised redirect URI — this is **Supabase's callback, not ours**:
+   `https://<project-ref>.supabase.co/auth/v1/callback`
+   Our own `/api/auth/callback` is registered separately, in step 5.
+4. Copy the client ID and secret into **Supabase -> Authentication -> Providers -> Google**, and enable it.
+5. Confirm **Supabase -> Authentication -> URL Configuration** lists `https://biocode.fit/api/auth/callback` under Redirect URLs. It should already, because email confirmation uses the same handler.
+6. Set `NEXT_PUBLIC_GOOGLE_AUTH_ENABLED=true` in Vercel (Production, Preview) and redeploy. It is a `NEXT_PUBLIC_` variable, so it is inlined at build time — changing it needs a rebuild, not just a restart.
+7. Apply the pending migration (`pnpm db:push`) so a provider-supplied name lands on the profile. Google alone works without it; the migration is what stops the next provider arriving nameless.
+
+Verify in this order, because each step fails differently: the button appears -> Google shows an account chooser -> you land back on `/account` signed in -> `profiles` has a row with your name and a `referral_code`.
+
+**Apple** — not enabled. Budget for it before promising it: a $99/year Apple Developer membership, a Services ID, a domain-association file served from `/.well-known/`, a client secret that is a JWT expiring every six months and must be rotated, and registration of the Resend sending domain with Apple's private email relay or **order confirmations bounce** for anyone who hides their address. The code change itself is one entry in `OAUTH_PROVIDERS`.
+
 ## 5. Vercel configuration
 
 Framework Next.js; regions: `fra1` (closest to Kosovo). Image optimization remotePatterns → Supabase storage host. Headers in `next.config.ts`: HSTS (2 y, preload), X-Frame-Options DENY, X-Content-Type-Options, Referrer-Policy strict-origin-when-cross-origin, Permissions-Policy minimal, CSP (self + supabase + resend beacon none client-side + analytics domain; start report-only). Vercel Analytics + Speed Insights on. `vercel.json` crons:

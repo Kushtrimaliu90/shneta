@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import { resolveLocale } from '@/i18n/locale';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { SignUpForm } from '@/features/auth/components/sign-up-form';
+import { OAuthButtons } from '@/features/auth/components/oauth-buttons';
 import { getInviteCodeFromCookie } from '@/features/referrals/queries';
 
 type Props = {
@@ -35,8 +36,14 @@ export default async function SignUpPage({ params, searchParams }: Props) {
         <CardTitle>{t('title')}</CardTitle>
         <CardDescription>{t('subtitle')}</CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="flex flex-col gap-5">
         <SignUpForm next={next} inviteCode={inviteCode} />
+        {/*
+          An invite code the visitor arrived with still counts if they register with Google: the code
+          cannot ride in OAuth metadata, so `/api/auth/callback` claims it from the cookie afterwards.
+          See the note there.
+        */}
+        <OAuthButtons next={next} />
       </CardContent>
     </Card>
   );

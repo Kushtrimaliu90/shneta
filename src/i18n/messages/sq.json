@@ -167,6 +167,11 @@
       "checkEmailTitle": "Kontrollo email-in",
       "checkEmail": "Nëse adresa është e vlefshme, të dërguam një lidhje për ta konfirmuar llogarinë."
     },
+    "oauth": {
+      "divider": "ose",
+      "google": "Vazhdo me Google",
+      "terms": "Duke vazhduar, pranon <terms>kushtet e përdorimit</terms> dhe <privacy>politikën e privatësisë</privacy>."
+    },
     "forgotPassword": {
       "title": "Rivendos fjalëkalimin",
       "subtitle": "Shkruaj email-in dhe të dërgojmë një lidhje.",
@@ -194,7 +199,8 @@
       "linkInvalid": "Lidhja nuk është më e vlefshme. Provo përsëri.",
       "notSignedIn": "Sesioni ka skaduar. Hyr përsëri.",
       "generic": "Diçka shkoi keq. Provo përsëri.",
-      "invalidReferralCode": "Ky nuk duket si kod ftese. Kodet janë në formën BIO-XXXXX."
+      "invalidReferralCode": "Ky nuk duket si kod ftese. Kodet janë në formën BIO-XXXXX.",
+      "oauthFailed": "Nuk arritëm ta përfundojmë hyrjen. Provo përsëri, ose përdor email-in dhe fjalëkalimin."
     }
   },
   "account": {

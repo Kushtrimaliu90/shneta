@@ -129,6 +129,12 @@ export const RATE_LIMITS = {
   merchantApply: [3, 60 * 60],
   orderLookup: [10, 60 * 60],
   /*
+   * docs/05 §15 — starting a social sign-in is an unauthenticated GET that costs a Supabase round trip
+   * and sets a PKCE cookie. Twenty an hour: a person clicks once, changes their mind and clicks the
+   * other provider, or gets bounced back by Google and retries. A prefetcher does it hundreds of times.
+   */
+  oauthStart: [20, 60 * 60],
+  /*
    * docs/17 §6 — ten an hour. The endpoint answers "is this a real code?" for anyone signed in, so
    * without a limit it is a 33^5 keyspace walk at HTTP speed. A real customer submits once, or twice
    * after a typo.

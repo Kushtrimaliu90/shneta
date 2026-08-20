@@ -16,7 +16,20 @@ import { signIn, type FormState } from '@/features/auth/actions';
  * `error` from the action is a message key, never prose, so it is translated here
  * (CLAUDE.md §3).
  */
-export function SignInForm({ next, linkError }: { next?: string; linkError?: boolean }) {
+export function SignInForm({
+  next,
+  linkError,
+  /**
+   * A social sign-in that came back without a session. Reported on this form rather than beside the
+   * provider buttons because the recovery is here — the message tells them to use email and password,
+   * so the alert belongs where that is done.
+   */
+  oauthError,
+}: {
+  next?: string;
+  linkError?: boolean;
+  oauthError?: boolean;
+}) {
   const [state, formAction] = useActionState<FormState, FormData>(signIn, null);
   const t = useTranslations();
 
@@ -25,6 +38,7 @@ export function SignInForm({ next, linkError }: { next?: string; linkError?: boo
   return (
     <form action={formAction} className="flex flex-col gap-4" noValidate>
       {linkError && <Alert tone="error">{t('auth.errors.linkInvalid')}</Alert>}
+      {oauthError && <Alert tone="error">{t('auth.errors.oauthFailed')}</Alert>}
       {state && !state.ok && <Alert tone="error">{t(state.error)}</Alert>}
 
       <input type="hidden" name="next" value={next ?? ''} />

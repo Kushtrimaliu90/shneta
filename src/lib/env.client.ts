@@ -25,6 +25,23 @@ const clientSchema = z.object({
   NEXT_PUBLIC_SITE_URL: z.url().transform((value) => value.replace(/\/+$/, '')),
   NEXT_PUBLIC_SUPABASE_URL: z.url(),
   NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(20),
+
+  /*
+   * Whether to offer "Continue with Google" (docs/05 §15).
+   *
+   * A flag rather than always-on, because the button is only as good as the provider behind it: with
+   * no client ID in Supabase the flow reaches Google and comes back an error, and the visitor blames
+   * the shop rather than the configuration. So the code ships dark and the switch is flipped once
+   * Supabase → Auth → Providers → Google holds real credentials.
+   *
+   * Optional and defaulting to off, so no existing deployment fails a build over a variable it has
+   * never heard of. Any value other than 'true' means off — a half-set flag should not half-enable a
+   * sign-in path.
+   */
+  NEXT_PUBLIC_GOOGLE_AUTH_ENABLED: z
+    .string()
+    .optional()
+    .transform((value) => value === 'true'),
 });
 
 export type ClientEnv = z.infer<typeof clientSchema>;
@@ -42,6 +59,8 @@ const EXAMPLES: Record<keyof ClientEnv, string> = {
     'https://www.example.com (the scheme is required — a bare host is rejected)',
   NEXT_PUBLIC_SUPABASE_URL: 'https://<project-ref>.supabase.co',
   NEXT_PUBLIC_SUPABASE_ANON_KEY: 'the anon key from Supabase → Settings → API',
+  NEXT_PUBLIC_GOOGLE_AUTH_ENABLED:
+    "'true' once Supabase → Auth → Providers → Google has a client ID; omit it otherwise",
 };
 
 export function parseClientEnv(source: Record<string, string | undefined>): ClientEnv {
@@ -75,4 +94,5 @@ export const clientEnv: ClientEnv = parseClientEnv({
   NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL,
   NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
   NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+  NEXT_PUBLIC_GOOGLE_AUTH_ENABLED: process.env.NEXT_PUBLIC_GOOGLE_AUTH_ENABLED,
 });

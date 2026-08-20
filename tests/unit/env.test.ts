@@ -14,9 +14,37 @@ const VALID = {
   NEXT_PUBLIC_SUPABASE_ANON_KEY: 'a'.repeat(40),
 };
 
+/**
+ * The optional flags, with the defaults the parser applies.
+ *
+ * Kept separate from `VALID` so the "every required variable" assertions above stay a statement about
+ * what is *required* — adding an optional variable should never make those tests look like it is.
+ */
+const DEFAULTS = { NEXT_PUBLIC_GOOGLE_AUTH_ENABLED: false };
+
 describe('parseClientEnv', () => {
   it('accepts a complete public environment', () => {
-    expect(parseClientEnv(VALID)).toEqual(VALID);
+    expect(parseClientEnv(VALID)).toEqual({ ...VALID, ...DEFAULTS });
+  });
+
+  /*
+   * docs/05 §15 — social sign-in ships dark. The flag is optional so an existing deployment does not
+   * fail a build over a variable it has never heard of, and anything other than the exact string 'true'
+   * means off: a half-set flag must not half-enable a sign-in path.
+   */
+  it('treats the Google flag as off unless it is exactly "true"', () => {
+    expect(parseClientEnv(VALID).NEXT_PUBLIC_GOOGLE_AUTH_ENABLED).toBe(false);
+    for (const value of ['', 'false', 'TRUE', '1', 'yes', ' true']) {
+      expect(
+        parseClientEnv({ ...VALID, NEXT_PUBLIC_GOOGLE_AUTH_ENABLED: value })
+          .NEXT_PUBLIC_GOOGLE_AUTH_ENABLED,
+        value,
+      ).toBe(false);
+    }
+    expect(
+      parseClientEnv({ ...VALID, NEXT_PUBLIC_GOOGLE_AUTH_ENABLED: 'true' })
+        .NEXT_PUBLIC_GOOGLE_AUTH_ENABLED,
+    ).toBe(true);
   });
 
   it('names every missing variable in one throw', () => {
@@ -42,12 +70,14 @@ describe('parseClientEnv', () => {
    * what the person obviously meant, not fail a production deploy.
    */
   it('strips a trailing slash from the site URL', () => {
-    expect(parseClientEnv({ ...VALID, NEXT_PUBLIC_SITE_URL: 'https://biocode.com/' })).toEqual(
-      VALID,
-    );
-    expect(parseClientEnv({ ...VALID, NEXT_PUBLIC_SITE_URL: 'https://biocode.com///' })).toEqual(
-      VALID,
-    );
+    expect(parseClientEnv({ ...VALID, NEXT_PUBLIC_SITE_URL: 'https://biocode.com/' })).toEqual({
+      ...VALID,
+      ...DEFAULTS,
+    });
+    expect(parseClientEnv({ ...VALID, NEXT_PUBLIC_SITE_URL: 'https://biocode.com///' })).toEqual({
+      ...VALID,
+      ...DEFAULTS,
+    });
   });
 
   it('leaves a path-bearing origin alone apart from the trailing slash', () => {

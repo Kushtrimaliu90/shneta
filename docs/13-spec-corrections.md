@@ -4646,3 +4646,102 @@ Covering either into a 1280 × 780 panel is a heavy centre crop — it happens t
 slides, and that is luck rather than design. The admin already has separate desktop and mobile slots; the
 desktop one should be re-shot at 16:10 or wider. Until then, a new slide's crop needs looking at before it is
 published.
+
+## AR. Social sign-in, and an open redirect that had been there all along
+
+Google sign-in, end to end. Most of it was already built: `/api/auth/callback` has always called
+`exchangeCodeForSession`, which is the same PKCE exchange OAuth needs, and `handle_new_user` fires on
+any `auth.users` insert, so a social sign-up gets a profile and a referral code without help. What was
+missing was the half that _starts_ a flow, and four things around it that would each have failed
+quietly.
+
+### The kick-off is a GET route behind an anchor, not a button
+
+Two reasons, and the first would have bitten in production only.
+
+`next.config.ts` sets **`form-action 'self'`**. A button that POSTs to a server action which then 302s
+to Google is a form submission whose redirect chain leaves the origin, and browsers disagree about
+whether `form-action` follows redirects. A link is a navigation, so the directive does not apply and
+nothing in the CSP has to be loosened. Second: every other auth form on the site is a real
+`<form action>` that works before hydration (docs/05 §15), and a social button that needed React to
+have mounted would be the one control on the page that silently does nothing on a slow connection.
+
+### The route builds its own Supabase client, deliberately
+
+`signInWithOAuth` does not merely return a URL — it generates the PKCE **code verifier** and hands it
+to the cookie adapter, and `/api/auth/callback` cannot redeem the code without it. `lib/supabase/server`
+writes cookies through `cookies()` wrapped in an empty `catch {}`, which is correct there because it is
+shared with Server Components where cookies are read-only, and **fatal here**: the flow would end at
+`link_invalid` with nothing in the logs. So the route writes onto its own response, and because
+`NextResponse.redirect` cannot be re-pointed after construction, the cookies are copied onto the real
+redirect by hand. Verified against the running server: three `code-verifier` cookies, `SameSite=lax`,
+on the 307 to Supabase.
+
+`tests/unit/oauth.test.ts` asserts this against the source, because the tidy-up that would reintroduce
+the bug is "why does this route not use the shared client?".
+
+### `prompt=select_account`, always
+
+Without it Google reuses whichever account is already signed in. On a shared machine — a phone in a
+family, a laptop in a shop, which is a large share of this market — the second person is silently
+signed into the first person's BioCode account, with no visible choice. That is a privacy failure that
+looks like a bug in our shop rather than a Google default.
+
+### Referral codes could not ride along, so they are claimed afterwards
+
+The email path puts the invite code in `raw_user_meta_data` and `handle_new_user` links it in the same
+transaction. **`signInWithOAuth` cannot carry user metadata**, so a visitor who followed `/r/{CODE}`
+and then chose "Continue with Google" would have been credited to nobody — silently, and unfixably
+once the grace window closed. The callback now claims it through `claim_referral_code`, the same RPC
+the account page uses. Deliberately **not** `link_referral`, which is revoked from `authenticated` and
+only reachable from the trigger's security-definer context. It never blocks the redirect: a dropped
+claim is a support ticket an admin can fix from `/admin/referrals`, whereas a sign-in that dead-ends
+because a referral lookup threw is a lost customer.
+
+### Terms acceptance is the compliance gap nobody would have noticed
+
+`signUpSchema` enforces `terms: z.literal('on')` because docs/05 §15 requires acceptance to be
+explicit. **A social sign-up never sees that checkbox.** Without the notice now printed above the
+buttons, the site would create accounts on terms the customer was never shown — while selling
+supplements, in a regulated category. Stated before the button rather than after it, so it is read
+before the decision.
+
+### The feature ships dark
+
+`NEXT_PUBLIC_GOOGLE_AUTH_ENABLED`, optional and defaulting to off. A button whose provider has no
+credentials sends the visitor to Google and brings them back an error, and they blame the shop rather
+than the configuration. With the flag off the block renders `null` — not an empty divider with a lone
+terms notice under it. Confirmed both ways: zero occurrences of the link in the HTML with the flag
+unset, present on both auth pages with it set.
+
+### And the thing that was already broken
+
+A test written for `oauthRedirectUrl` passed it `/\evil.example` on the assumption `safeNextPath` already
+covered that. **It did not.** The original three checks were:
+
+```
+if (!next.startsWith('/') || next.startsWith('//')) return fallback;
+if (next.includes('://')) return fallback;
+```
+
+`/\evil.example` starts with a single slash and contains no `://`, so it passed — and Chrome, Firefox
+and Safari all normalise a backslash to a forward slash while parsing a URL, which makes
+`Location: /\evil.example` a **protocol-relative redirect off-site**. That is an open redirect on
+sign-in, sign-up, password reset and now social sign-in, every one of which takes `next` from a query
+string anybody can write. It had been there since the function was written.
+
+Fixed with a backslash check and a control-character check (a tab or newline spliced into the value
+survives a naive prefix test and can mean something else by the time it is acted on). The hostile cases
+are now in `tests/unit/auth-schemas.test.ts` beside the ones that were already covered.
+
+Worth stating plainly: this was not found by review or by an audit. It was found because a new caller
+was given its own test, and the test asserted the guarantee rather than the current behaviour.
+
+### Still to do, by somebody with the accounts
+
+docs/10 §4.1 has the Google Cloud steps, the Supabase provider fields and the verification order.
+Apple is designed for — one entry in `OAUTH_PROVIDERS` — but not enabled, and the reasons are money and
+operations rather than code: $99/year, a Services ID, a domain-association file, a client secret that
+is a JWT needing rotation every six months, and registration of the Resend sending domain with Apple's
+private email relay, without which **order confirmations bounce** for every customer who hides their
+address.
