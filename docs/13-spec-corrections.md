@@ -5122,3 +5122,67 @@ by hand against a production build.
 `<select>` values are not restored. They reset to their `defaultValue`, which for an editor is the saved
 record and for `subscription-card`'s frequency picker is the current setting — correct in both cases, and
 one click otherwise.
+
+## AX. `/en/admin` was a 404, while `/sq/admin` redirected correctly
+
+Reported from real use: typing `https://biocode.fit/en/admin` gives a 404, and only the unprefixed
+`/admin` reaches the panel. From the outside the admin panel simply looks missing.
+
+Measured on production before the change:
+
+| URL                  | Response                               |
+| -------------------- | -------------------------------------- |
+| `/en/admin`          | **404**                                |
+| `/en/admin/products` | **404**                                |
+| `/en/api/health`     | **404**                                |
+| `/admin`             | 307 → `/en/auth/sign-in?next=%2Fadmin` |
+| `/sq/admin`          | 307 → `/admin`                         |
+
+### Why one language worked and the other did not
+
+`/admin` and `/api` live outside `[locale]` deliberately (docs/02 §4) — the admin UI is English-only in
+v1, so localizing its routes would be pretending otherwise. The middleware routed them past the intl
+middleware by testing `pathname.startsWith('/admin')`, which `/en/admin` does not satisfy. So next-intl
+claimed it, rewrote it to `[locale]/admin`, found nothing there, and it fell through to
+`[locale]/[...rest]`.
+
+Albanian escaped only by accident of configuration. `localePrefix: 'as-needed'` has next-intl strip the
+default locale, so `/sq/admin` was redirected to `/admin` before any of this mattered. The same URL
+shape therefore worked in Albanian and 404'd in English, which is what makes it a bug rather than a
+quirk of an un-localized tree.
+
+### The fix
+
+`unlocalizedTarget` in `src/lib/route-locale.ts`, applied at the top of the middleware ahead of the
+session refresh — the target passes through the middleware again on the next hop and refreshes there,
+so there is nothing to carry across.
+
+Written over the `UNLOCALIZED` array rather than against `/admin` alone: that array is already the one
+statement of which routes are never localized, and `/en/api/health` had the identical hole one line
+away. Matching is segment-aware, so `/en/administrators` is left alone rather than being rewritten to
+`/administrators` — a path that merely starts with the same letters is not the same route.
+
+**307, not 308.** The panel is English-only _in v1_, and a permanent redirect is cached by the browser
+indefinitely: if admin is ever localized, everyone who had once typed `/en/admin` would be bounced away
+from it by their own cache.
+
+The locale helpers moved out of `middleware.ts` into `lib/route-locale.ts` as pure functions, because
+importing the middleware drags in `next-intl/middleware`, which cannot resolve `next/server` outside a
+Next runtime — so none of this was testable where it was.
+
+### Verified against a production build
+
+| URL                                      | Result                                |
+| ---------------------------------------- | ------------------------------------- |
+| `/en/admin`                              | 307 → `/admin`                        |
+| `/en/admin/products`                     | 307 → `/admin/products`               |
+| `/en/admin/orders/BIO-1042`              | 307 → `/admin/orders/BIO-1042`        |
+| `/en/admin/products?status=draft&page=2` | 307 → same path, query intact         |
+| `/en/api/health`                         | 307 → `/api/health`                   |
+| `/sq/admin`                              | 307 → `/admin` (unchanged)            |
+| `/en/administrators`                     | 404 (unchanged — no such page)        |
+| `/en/account`                            | 307 → `/en/auth/sign-in`, locale kept |
+| `/en/shop`                               | 200 (unchanged)                       |
+
+End to end, a signed-out person typing `/en/admin` now goes `/en/admin` → `/admin` →
+`/en/auth/sign-in?next=%2Fadmin` → 200.

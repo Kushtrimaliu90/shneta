@@ -2,6 +2,7 @@ import createIntlMiddleware from 'next-intl/middleware';
 import { NextResponse, type NextRequest } from 'next/server';
 import { routing } from '@/i18n/routing';
 import { refreshSession } from '@/lib/supabase/middleware';
+import { UNLOCALIZED, localePrefix, stripLocale, unlocalizedTarget } from '@/lib/route-locale';
 
 /**
  * docs/02 §8 + docs/13 §F1.
@@ -12,9 +13,6 @@ import { refreshSession } from '@/lib/supabase/middleware';
  * session refresh runs on *both* — otherwise an admin's session would never be renewed.
  */
 const intlMiddleware = createIntlMiddleware(routing);
-
-/** Paths that are never localized. */
-const UNLOCALIZED = ['/admin', '/api'];
 
 /** Storefront areas that require a session, matched after the locale prefix is stripped. */
 const PROTECTED_STOREFRONT = ['/account', '/merchant'];
@@ -34,30 +32,6 @@ const PROTECTED_STOREFRONT = ['/account', '/merchant'];
  */
 const PUBLIC_EXCEPTIONS = ['/merchant/apply'];
 
-function stripLocale(pathname: string): string {
-  for (const locale of routing.locales) {
-    if (locale === routing.defaultLocale) continue;
-    if (pathname === `/${locale}`) return '/';
-    if (pathname.startsWith(`/${locale}/`)) return pathname.slice(locale.length + 1);
-  }
-  return pathname;
-}
-
-/**
- * The locale prefix a path is already carrying, or `''` for the unprefixed default.
- *
- * Redirects must keep it. Sending someone from `/en/account` to `/auth/sign-in` drops them
- * on the Albanian page — they asked for English and we changed the language mid-journey,
- * which reads as a broken site rather than a sign-in prompt.
- */
-function localePrefix(pathname: string): string {
-  for (const locale of routing.locales) {
-    if (locale === routing.defaultLocale) continue;
-    if (pathname === `/${locale}` || pathname.startsWith(`/${locale}/`)) return `/${locale}`;
-  }
-  return '';
-}
-
 function redirectPreservingCookies(request: NextRequest, source: NextResponse, to: URL) {
   const redirect = NextResponse.redirect(to);
   for (const cookie of source.cookies.getAll()) {
@@ -68,6 +42,22 @@ function redirectPreservingCookies(request: NextRequest, source: NextResponse, t
 
 export async function middleware(request: NextRequest): Promise<NextResponse> {
   const { pathname } = request.nextUrl;
+
+  /*
+   * Before anything else, and before the session refresh: the target goes through this middleware
+   * again on the next hop and refreshes there, so there is nothing to carry across.
+   *
+   * 307 and not 308. The admin panel is English-only *in v1* (docs/01 §3), and a permanent redirect is
+   * cached by the browser indefinitely — if admin is ever localized, everyone who had once typed
+   * `/en/admin` would be bounced away from it by their own cache.
+   */
+  const target = unlocalizedTarget(pathname);
+  if (target) {
+    const to = new URL(target, request.url);
+    to.search = request.nextUrl.search;
+    return NextResponse.redirect(to, 307);
+  }
+
   const isUnlocalized = UNLOCALIZED.some((prefix) => pathname.startsWith(prefix));
 
   // The intl middleware may return a rewrite or a redirect; either way the refreshed auth
