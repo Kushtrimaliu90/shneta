@@ -41,8 +41,18 @@ export function CompareButton({
       title={disabled && !selected ? t('full') : label}
       className={cn(
         'inline-flex items-center gap-1.5 rounded-md transition-colors',
+        /*
+            docs/04 §10 — the 44px hit-area floor. The icon variant renders a 36px control, which is
+            the right *visual* weight sitting over a product photograph, so the target is grown with a
+            pseudo-element instead of the box: `before:-inset-1` puts 4px of invisible target on each
+            side, giving 44 x 44. Same device as the carousel dots, and for the same reason — the
+            visual stays small, the target does not.
+
+            axe passes either way (WCAG 2.5.8 asks for 24px), so this is the project's own stricter
+            rule rather than a compliance fix.
+          */
         variant === 'icon'
-          ? 'size-9 justify-center bg-surface/90 hover:bg-surface'
+          ? 'relative size-9 justify-center bg-surface/90 before:absolute before:-inset-1 before:content-[""] hover:bg-surface'
           : 'h-11 px-3 text-sm font-medium hover:bg-forest-50',
         selected ? 'text-forest-900' : 'text-forest-800',
         disabled && !selected && 'cursor-not-allowed opacity-40',

@@ -47,7 +47,26 @@ export function TrustStrip({
       aria-label={locale === 'sq' ? 'Pse të blini te BIOCODE' : 'Why shop with BIOCODE'}
       className="border-y border-line bg-surface"
     >
-      <ul className="container-wide grid grid-cols-2 gap-x-6 gap-y-2.5 py-3 lg:grid-cols-4 lg:py-3.5">
+      {/*
+        Four promises across a 1680px tier read as sparse rather than generous: each cell was 420px
+        wide with its content pinned left, so the row was mostly gap. Dividers instead of gap turn the
+        same spacing into structure, and centring each item in its cell stops the last one drifting
+        away from the edge it is nearest.
+
+        On a phone it is a single scrolling rail rather than a 2 x 2 grid, and that is the change that
+        finally put the category pills inside a phone's first screen. Four promises in two rows cost
+        **116px**; one row costs 50, and the 66px reclaimed is what moved the pills from 25px visible
+        to fully visible at 390 x 844. Two rows of two was also the clumsier reading order — a rail
+        scans left to right the way the desktop row does.
+
+        Deliberately **zero** extra height at `lg`, and that is not fussiness. This strip sits inside
+        the hero's fold budget — 180px below the hero, of which the category strip needs 107 (see
+        `hero-slide.tsx`) — and a first attempt at `py-4` added four pixels, which was enough to push
+        the category pills back below the fold at 1366 x 625. Presence here has to come from
+        arrangement, never from padding. The cell padding is `xl:` and not `lg:` for the same reason:
+        at 1024 the labels wrapped inside a 6rem-padded cell and the strip grew to 74px.
+      */}
+      <ul className="container-wide -mx-5 no-scrollbar flex snap-x gap-6 overflow-x-auto py-3 lg:mx-0 lg:grid lg:grid-cols-4 lg:gap-x-0 lg:divide-x lg:divide-line lg:overflow-visible lg:py-3.5">
         {items.map((item) => {
           const Icon = ICONS[item.icon] ?? BadgeCheck;
           /*
@@ -64,9 +83,9 @@ export function TrustStrip({
           return (
             <li
               key={`${item.icon}-${label}`}
-              className="flex items-center gap-2 text-sm text-ink-600"
+              className="flex shrink-0 snap-start items-center gap-2 text-sm whitespace-nowrap text-ink-600 lg:justify-center xl:px-6"
             >
-              <Icon className="size-4 shrink-0 text-forest-500" aria-hidden="true" />
+              <Icon className="size-4 shrink-0 text-forest-500 lg:size-5" aria-hidden="true" />
               <span>{label}</span>
             </li>
           );

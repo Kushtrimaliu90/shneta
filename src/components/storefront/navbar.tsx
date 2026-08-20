@@ -94,7 +94,12 @@ export async function Navbar() {
       <div className="container-wide flex h-14 items-center gap-3 lg:h-20 lg:gap-4">
         <MobileNav />
 
-        <Link href="/" className="shrink-0 rounded-sm" aria-label={t('common.brand')}>
+        {/* docs/04 §10 — the mark itself is 36px tall; `min-h-11` gives the link the 44px floor. */}
+        <Link
+          href="/"
+          className="inline-flex min-h-11 shrink-0 items-center rounded-sm"
+          aria-label={t('common.brand')}
+        >
           <BrandMark />
         </Link>
 

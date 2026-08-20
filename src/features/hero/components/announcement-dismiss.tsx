@@ -41,7 +41,14 @@ export function AnnouncementDismiss({
       type="button"
       onClick={dismiss}
       aria-label={label}
-      className="ml-1 inline-flex size-6 items-center justify-center rounded-sm text-cream/70 transition-colors hover:bg-cream/10 hover:text-cream"
+      /*
+        docs/04 §10 puts the hit-area floor at 44px. This measured 24 x 24 — which clears WCAG 2.5.8
+        (AA) at exactly its 24px minimum and is why axe never flagged it, but it is half the size this
+        project asked for, on the one control that makes an unwanted bar go away.
+        `size-11` with a `-m-2.5` pull-back so the target grows without moving the glyph or adding
+        height to the bar, which is inside the hero's fold budget.
+      */
+      className="-m-2.5 ml-0.5 inline-flex size-11 items-center justify-center rounded-sm text-cream/70 transition-colors hover:bg-cream/10 hover:text-cream"
     >
       <X className="size-4" aria-hidden="true" />
     </button>

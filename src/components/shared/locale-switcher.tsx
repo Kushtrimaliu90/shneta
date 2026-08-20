@@ -55,7 +55,12 @@ export function LocaleSwitcher({ className }: { className?: string }) {
             onClick={switchTo(locale)}
             aria-current={isActive ? 'true' : undefined}
             className={cn(
-              'rounded-sm px-2 py-1 font-ui text-xs font-semibold uppercase transition-colors',
+              /*
+                docs/04 §10 — 44px floor. These measured 33 x 24; `min-h-11` with centring gives the
+                target its height back without changing the type size or the switcher's footprint in
+                the header row, which is already vertically centred.
+              */
+              'inline-flex min-h-11 min-w-11 items-center justify-center rounded-sm px-2.5 font-ui text-xs font-semibold uppercase transition-colors',
               isActive
                 ? 'bg-forest-100 text-forest-900'
                 : 'text-ink-500 hover:bg-forest-50 hover:text-forest-800',

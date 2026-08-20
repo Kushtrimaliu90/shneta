@@ -288,7 +288,10 @@ async function fetchProduct(slug: string): Promise<ProductDetail | null> {
      * it (docs/16 §1). Awaiting them in sequence would add a round trip to every PDP for nothing.
      */
     const [stockResult, supply] = await Promise.all([
-      supabase.from('v_product_stock').select('variant_id, stock_status').in('variant_id', variantIds),
+      supabase
+        .from('v_product_stock')
+        .select('variant_id, stock_status')
+        .in('variant_id', variantIds),
       variantSupply(variantIds),
     ]);
 
@@ -662,11 +665,76 @@ const readIngredientBySlug = async (slug: string) => {
   };
 };
 
-/** Bestsellers for the home page. docs/05 §1 falls back to `is_featured` before sales exist. */
+/**
+ * Bestsellers for the home page. docs/05 §1 falls back to `is_featured` before sales exist.
+ *
+ * ── Why this de-duplicates flavour families ──
+ *
+ * Nothing in the catalogue has a review yet, so `sort: 'rating'` is close to arbitrary and the only
+ * real signal is `is_featured`. Measured on the live homepage, that produced **seven of twelve cards
+ * being "Kreatinë Monohidrat" in different flavours** — Qershi, Fruit Punch, Mango, Luleshtrydhe,
+ * Borovnicë and two more. Rendered four-up that was merely repetitive; at six columns it reads as if
+ * the shop sells one product.
+ *
+ * A flavour is a *variant* wearing a product's clothes: these are separate rows with separate slugs,
+ * so no amount of grid work fixes it. `MAX_PER_FAMILY` keeps at most two members of a family in the
+ * row and lets the rest through only if the catalogue is too thin to fill the limit otherwise — a
+ * shop with nine products should still show nine cards.
+ *
+ * The family key is brand plus the name with any trailing flavour words removed, which is a heuristic
+ * and deliberately a cheap one. The real fix is curation: an operator choosing twelve `is_featured`
+ * products that represent the range. This stops the default from looking careless while that is
+ * somebody's job rather than a query's.
+ */
+const MAX_PER_FAMILY = 2;
+
+/**
+ * "Kreatinë Monohidrat Fruit Punch" and "Kreatinë Monohidrat Mango" share a family.
+ *
+ * A **character prefix**, not a word count. Taking the first three words was the first attempt and it
+ * grouped nothing, because the third word *is* the flavour — "kreatine monohidrat qershi" and
+ * "kreatine monohidrat mango" are different three-word keys. Worse, the catalogue spells the same
+ * product two ways ("Monohidrat" and "Monohidrat**e**"), so any word-equality test splits it again.
+ *
+ * Twelve normalised characters with the spaces removed absorbs both problems: all six creatine rows
+ * collapse to `kreatinemono`, while `biocodeshish` and `biocodekutid` stay apart. Two products that
+ * genuinely share a twelve-character prefix are usually the same product at another strength, which is
+ * a family too.
+ */
+const familyKey = (item: ProductListItem): string => {
+  /* `LocalizedField` is nullable by definition; the key only has to be stable, not readable. */
+  const name = (item.name?.sq || item.name?.en || item.slug)
+    .toLowerCase()
+    .normalize('NFD')
+    /* Strip diacritics so "Borovnicë" and "borovnice" cannot land in different families. */
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9]/g, '')
+    .slice(0, 12);
+  return `${item.brandSlug}::${name}`;
+};
+
 export const listFeaturedProducts = cache(async (limit = 8): Promise<ProductListItem[]> => {
   const featured = await listProducts({ sort: 'rating' });
   const sorted = [...featured.items].sort((a, b) => Number(b.isFeatured) - Number(a.isFeatured));
-  return sorted.slice(0, limit);
+
+  const picked: ProductListItem[] = [];
+  const overflow: ProductListItem[] = [];
+  const seen = new Map<string, number>();
+
+  for (const item of sorted) {
+    const key = familyKey(item);
+    const count = seen.get(key) ?? 0;
+    if (count < MAX_PER_FAMILY) {
+      seen.set(key, count + 1);
+      picked.push(item);
+    } else {
+      overflow.push(item);
+    }
+    if (picked.length === limit) break;
+  }
+
+  /* Backfill rather than under-fill: a short catalogue still gets a full row. */
+  return [...picked, ...overflow].slice(0, limit);
 });
 
 /**
@@ -721,13 +789,15 @@ async function readCategoryTiles(limit: number): Promise<CategoryTile[]> {
     return [];
   }
 
-  return ((data ?? []) as unknown as {
-    slug: string;
-    name: unknown;
-    product_count: number;
-    image_path: string | null;
-    image_alt: unknown;
-  }[]).map((row) => ({
+  return (
+    (data ?? []) as unknown as {
+      slug: string;
+      name: unknown;
+      product_count: number;
+      image_path: string | null;
+      image_alt: unknown;
+    }[]
+  ).map((row) => ({
     slug: row.slug,
     name: asLocalizedField(row.name),
     productCount: row.product_count,

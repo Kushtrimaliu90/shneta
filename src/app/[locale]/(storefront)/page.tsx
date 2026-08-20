@@ -94,14 +94,12 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
         and a half screens of scrolling past a hero, four intent tiles and twelve product cards.
         A shopper who knows they want vitamins should not have to read the whole homepage first.
 
-        It sits above `IntentBand` rather than below it because the two answer different questions —
-        see the note in `intent-band.tsx`. Categories are the concrete answer ("vitamins, minerals,
-        sports nutrition"); the band is the oblique one ("by goal, bestsellers, offers"). Concrete
-        first.
+        It is the only navigation block at the top of the page now. The intent band used to sit here
+        and has moved below the grid — categories are the concrete answer ("vitamins, minerals, sports
+        nutrition"), and stacking the oblique one ("by goal, bestsellers, offers") underneath it made
+        the top of the page answer the same question three times over.
       */}
       <CategoryRow tiles={categoryTiles} locale={locale} />
-
-      <IntentBand locale={locale} />
 
       {/* docs/05 §1.5 — bestsellers */}
       {products.length > 0 && (
@@ -140,6 +138,27 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
           </div>
         </section>
       )}
+
+      {/*
+        The intent band, moved to the foot of the page from directly under the hero.
+
+        Its four tiles point at `/goals`, `/shop?sort=rating`, `/offers` and `/shop/equipments`. Two of
+        those are already in the header nav, the third is the section immediately above this one, and
+        the fourth is a category route — so at the top of the page, under a category strip that is
+        *also* navigation, it had become the third consecutive answer to the same question. The note in
+        `intent-band.tsx` is what warned against that arrangement; moving the categories up is what
+        created it.
+
+        At the foot of the page those same four tiles stop competing and start working: a reader who has
+        scrolled the whole grid without buying is exactly who needs "where next". It also restores the
+        section rhythm — dark hero, white strip, cream categories, tinted grid, cream band, dark footer
+        — instead of the two adjacent cream blocks the move produced.
+
+        Content note for whoever owns the tiles: "Më të shiturat" now sits under a section with that
+        same heading. Renaming it, or pointing it somewhere the page does not already go, is a settings
+        edit in /admin/hero rather than a code change.
+      */}
+      <IntentBand locale={locale} />
     </>
   );
 }
