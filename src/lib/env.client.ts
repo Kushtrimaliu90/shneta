@@ -42,6 +42,22 @@ const clientSchema = z.object({
     .string()
     .optional()
     .transform((value) => value === 'true'),
+
+  /*
+   * Whether to offer sign-in by emailed link (docs/05 §15.2).
+   *
+   * Behind a flag for a harder reason than the Google one. Password sign-in costs nothing to attempt;
+   * a magic link sends an email **every single time somebody signs in**, and auth mail still goes
+   * through Supabase's built-in sender (docs/10 §4), which is rate-limited to a handful an hour and
+   * documented as unsuitable for production. Enabled before Resend SMTP is configured, this does not
+   * degrade — it stops sign-in working for everyone the moment a few people use it.
+   *
+   * So: configure the mailer, then flip this. docs/10 §4.2 has the steps.
+   */
+  NEXT_PUBLIC_MAGIC_LINK_ENABLED: z
+    .string()
+    .optional()
+    .transform((value) => value === 'true'),
 });
 
 export type ClientEnv = z.infer<typeof clientSchema>;
@@ -61,6 +77,8 @@ const EXAMPLES: Record<keyof ClientEnv, string> = {
   NEXT_PUBLIC_SUPABASE_ANON_KEY: 'the anon key from Supabase → Settings → API',
   NEXT_PUBLIC_GOOGLE_AUTH_ENABLED:
     "'true' once Supabase → Auth → Providers → Google has a client ID; omit it otherwise",
+  NEXT_PUBLIC_MAGIC_LINK_ENABLED:
+    "'true' once Supabase → Project Settings → Auth → SMTP points at Resend; omit it otherwise",
 };
 
 export function parseClientEnv(source: Record<string, string | undefined>): ClientEnv {
@@ -95,4 +113,5 @@ export const clientEnv: ClientEnv = parseClientEnv({
   NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
   NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
   NEXT_PUBLIC_GOOGLE_AUTH_ENABLED: process.env.NEXT_PUBLIC_GOOGLE_AUTH_ENABLED,
+  NEXT_PUBLIC_MAGIC_LINK_ENABLED: process.env.NEXT_PUBLIC_MAGIC_LINK_ENABLED,
 });

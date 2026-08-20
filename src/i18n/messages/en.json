@@ -155,7 +155,8 @@
       "submit": "Sign in",
       "forgot": "Forgotten your password?",
       "noAccount": "No account yet?",
-      "createAccount": "Create one"
+      "createAccount": "Create one",
+      "useMagicLink": "Sign in with an email link instead"
     },
     "signUp": {
       "title": "Create an account",
@@ -171,6 +172,14 @@
       "divider": "or",
       "google": "Continue with Google",
       "terms": "By continuing you agree to the <terms>terms of use</terms> and the <privacy>privacy policy</privacy>."
+    },
+    "magicLink": {
+      "title": "Sign in with a link",
+      "subtitle": "We email you a link. No password needed.",
+      "submit": "Email me a link",
+      "sentTitle": "Check your email",
+      "sent": "If that address has an account, we’ve sent a link that signs you in. It works once and expires shortly.",
+      "backToSignIn": "Back to sign in"
     },
     "forgotPassword": {
       "title": "Reset your password",

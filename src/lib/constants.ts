@@ -135,6 +135,12 @@ export const RATE_LIMITS = {
    */
   oauthStart: [20, 60 * 60],
   /*
+   * docs/05 §15.2 — a sign-in link sends an email to an address the caller chose, which is the same
+   * shape of abuse as `forgotPassword` and gets the same budget. Three per fifteen minutes: a person
+   * asks once, and asks again when the first one is slow.
+   */
+  magicLink: [3, 15 * 60],
+  /*
    * docs/17 §6 — ten an hour. The endpoint answers "is this a real code?" for anyone signed in, so
    * without a limit it is a 33^5 keyspace walk at HTTP speed. A real customer submits once, or twice
    * after a typo.

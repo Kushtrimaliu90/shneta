@@ -19,6 +19,7 @@ import {
   resetPasswordSchema,
   safeNextPath,
   signInSchema,
+  magicLinkSchema,
   signUpSchema,
   updateProfileSchema,
 } from '@/features/auth/schemas';
@@ -49,6 +50,7 @@ export type AuthErrorKey =
 export type AuthSuccessKey =
   | 'auth.signUp.checkEmail'
   | 'auth.forgotPassword.sent'
+  | 'auth.magicLink.sent'
   | 'account.settings.saved'
   | 'account.settings.passwordChanged';
 
@@ -139,6 +141,69 @@ export const signIn: FormAction = async (_prevState, formData) => {
 };
 
 // ---------------------------------------------------------------------------
+// Magic link (docs/05 §15.2)
+// ---------------------------------------------------------------------------
+
+/**
+ * Emails a one-time sign-in link.
+ *
+ * ── `shouldCreateUser: false`, and this is the important line in the file ──
+ *
+ * Left at its default, `signInWithOtp` **creates an account** for any address it has not seen. That
+ * would make this form a second, silent registration path — one that collects no name and, more
+ * seriously, never asks anyone to accept the terms. `signUpSchema` requires `terms` explicitly because
+ * docs/05 §15 says acceptance must be, and a shop selling supplements cannot have a back door that
+ * skips it. So this signs people in and refuses to invent them; registering stays on `/auth/sign-up`,
+ * where the name is collected and the box is ticked.
+ *
+ * ── One answer, always ──
+ *
+ * An unknown address makes Supabase return an error here. Surfacing it would turn the form into an
+ * account-existence oracle — type an address, learn whether that person shops here — which is the same
+ * leak `signIn` and `requestPasswordReset` are careful to avoid. So the reply is identical either way,
+ * and the log line is the only place the difference is recorded.
+ *
+ * ── Every send is an email, which is why this is behind a flag ──
+ *
+ * Password sign-in costs nothing to attempt. This one sends mail on every single use, and the auth
+ * emails still go through Supabase's built-in sender (docs/10 §4), which is rate-limited to a handful
+ * an hour and is not intended for production. Turned on before Resend SMTP is configured, sign-in
+ * would simply stop working for everyone once a few people tried it — see `env.client.ts`.
+ */
+export const sendMagicLink: FormAction = async (_prevState, formData) => {
+  const parsed = magicLinkSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) {
+    return authFieldErrors('auth.errors.checkFields', parsed.error.flatten());
+  }
+
+  if (!(await limitByIp('magicLink', await clientHeaders()))) {
+    return authFail('auth.errors.tooManyAttempts');
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.auth.signInWithOtp({
+    email: parsed.data.email,
+    options: {
+      shouldCreateUser: false,
+      emailRedirectTo: `${clientEnv.NEXT_PUBLIC_SITE_URL}/api/auth/callback?next=${encodeURIComponent(
+        safeNextPath(parsed.data.next),
+      )}`,
+    },
+  });
+
+  if (error) {
+    /*
+     * Expected for any address without an account, which is why this is `info` and not `warn`: it is
+     * the ordinary case, not a fault. A genuine fault — a misconfigured mailer, a spent quota — lands
+     * here too, so the reason is kept.
+     */
+    logger.info('Magic link not sent', { reason: error.code ?? error.message });
+  }
+
+  return authOk('auth.magicLink.sent');
+};
+
+// ---------------------------------------------------------------------------
 // Sign up
 // ---------------------------------------------------------------------------
 
@@ -183,9 +248,7 @@ export const signUp: FormAction = async (_prevState, formData) => {
       data: {
         full_name: parsed.data.fullName,
         marketing_opt_in: parsed.data.marketingOptIn,
-        ...(referralCode
-          ? { referral_code: referralCode, referral_source: referralSource }
-          : {}),
+        ...(referralCode ? { referral_code: referralCode, referral_source: referralSource } : {}),
       },
     },
   });

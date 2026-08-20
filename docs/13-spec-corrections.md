@@ -4745,3 +4745,59 @@ operations rather than code: $99/year, a Services ID, a domain-association file,
 is a JWT needing rotation every six months, and registration of the Resend sending domain with Apple's
 private email relay, without which **order confirmations bounce** for every customer who hides their
 address.
+
+## AS. Magic-link sign-in, and the two defaults that would have hurt
+
+A third way in, added alongside password and Google: `/auth/link` emails a one-time link. Almost none
+of it is new machinery — `/api/auth/callback` already redeems these tokens, because that is what email
+confirmation and password reset have always been. What needed thought was the two Supabase defaults.
+
+### `shouldCreateUser` defaults to true, and that is a registration path nobody asked for
+
+Left alone, `signInWithOtp` **creates an account** for any address it has not seen. On a form labelled
+"sign in", that is a second way to register — one that collects no name and, more seriously, never asks
+anyone to accept the terms. `signUpSchema` enforces `terms: z.literal('on')` because docs/05 §15
+requires acceptance to be explicit, and a shop selling supplements cannot have a side door around it.
+
+Set to `false`. Signing in and registering stay separate: `/auth/sign-up` collects the name and the
+acceptance, and this only lets in people who already exist. Asserted in
+`tests/unit/auth-schemas.test.ts` against the action's source, because the failure mode is silent —
+accounts would simply appear, correctly formed, with nobody having agreed to anything.
+
+### An unknown address makes Supabase answer, and the answer is a leak
+
+With `shouldCreateUser: false`, an address with no account returns an error. Surfacing it turns the
+form into an account-existence oracle: type an address, learn whether that person shops here. That is
+the same leak `signIn` and `requestPasswordReset` already avoid, so this matches them — the error is
+logged at `info`, and the visitor sees the same "if that address has an account, we've sent a link"
+either way. The test scopes its assertion to the code _after_ `signInWithOtp`, because `authFail` before
+it is fine: the rate limit answers identically for everyone and leaks nothing.
+
+### It ships dark, and for a harder reason than Google did
+
+`NEXT_PUBLIC_MAGIC_LINK_ENABLED`, off by default. Google's flag exists so a button does not appear
+before its credentials do. This one exists because **every sign-in sends an email**, and auth mail still
+goes through Supabase's built-in sender — a few an hour, documented as unsuitable for production.
+Enabled before Resend SMTP is configured, this does not degrade: sign-in stops working for everyone as
+soon as a handful of people use it. docs/10 §4.2 is the prerequisite, and it is worth doing anyway,
+because verification and reset mail are on that same sender today.
+
+With the flag off the link is hidden **and the route returns 404**. A hidden button is enough for a
+button; a route is reachable from history and from anything that crawled it once, and a form that
+cannot send an email is worse than a page that admits it is not there.
+
+### Its own page, not a second button
+
+Sharing the sign-in form would mean one email field serving two actions, with a password box between
+them marked required, and a visitor who wanted a link having to work out that they should leave it
+empty. `/auth/forgot-password` is the same interaction — prove you can open this inbox — and has always
+been its own page. The entry point sits on the same row as "forgotten your password", because both
+answer the same moment: the password is the obstacle.
+
+### What was not built, and should be considered
+
+**A 6-digit code instead of a link.** Supabase can send either. For a phone-heavy market a code is
+often better: it works when email and browser are on different devices, and a corporate mail scanner
+cannot "click" a number — link pre-fetching consumes the one-time token and leaves the customer with
+"this link is no longer valid" and no idea why. The cost is typing six digits. Worth revisiting if
+support hears about dead links.

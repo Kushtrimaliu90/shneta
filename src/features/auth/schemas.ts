@@ -68,6 +68,17 @@ export const forgotPasswordSchema = z.object({
   email: emailSchema,
 });
 
+/**
+ * docs/05 §15.2 — a sign-in link, and nothing else.
+ *
+ * No password, and deliberately no `fullName` or `terms` either: this is a way to sign *in*, never a
+ * way to register. See `sendMagicLink` for why that distinction is load-bearing rather than tidy.
+ */
+export const magicLinkSchema = z.object({
+  email: emailSchema,
+  next: z.string().optional(),
+});
+
 export const resetPasswordSchema = z
   .object({
     password: passwordSchema,

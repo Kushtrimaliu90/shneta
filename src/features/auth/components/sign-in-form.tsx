@@ -20,6 +20,11 @@ export function SignInForm({
   next,
   linkError,
   /**
+   * Whether to offer the emailed-link alternative. Passed in rather than read here because this is a
+   * client component and `clientEnv` belongs on the server side of the boundary.
+   */
+  magicLinkEnabled,
+  /**
    * A social sign-in that came back without a session. Reported on this form rather than beside the
    * provider buttons because the recovery is here — the message tells them to use email and password,
    * so the alert belongs where that is done.
@@ -29,6 +34,7 @@ export function SignInForm({
   next?: string;
   linkError?: boolean;
   oauthError?: boolean;
+  magicLinkEnabled?: boolean;
 }) {
   const [state, formAction] = useActionState<FormState, FormData>(signIn, null);
   const t = useTranslations();
@@ -58,7 +64,22 @@ export function SignInForm({
         )}
       </Field>
 
-      <div className="flex justify-end">
+      {/*
+        Both escape hatches on one row: "I have forgotten it" and "I would rather not use one at all".
+        They belong together because they are the same moment — the password is the obstacle — and
+        putting the link option further down would have it read as a third, unrelated feature.
+      */}
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+        {magicLinkEnabled ? (
+          <Link
+            href={{ pathname: '/auth/link', query: next ? { next } : undefined }}
+            className="rounded-sm text-sm text-forest-700 underline underline-offset-4"
+          >
+            {t('auth.signIn.useMagicLink')}
+          </Link>
+        ) : (
+          <span />
+        )}
         <Link
           href="/auth/forgot-password"
           className="rounded-sm text-sm text-forest-700 underline underline-offset-4"

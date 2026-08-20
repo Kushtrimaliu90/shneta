@@ -53,6 +53,38 @@ Verify in this order, because each step fails differently: the button appears ->
 
 **Apple** — not enabled. Budget for it before promising it: a $99/year Apple Developer membership, a Services ID, a domain-association file served from `/.well-known/`, a client secret that is a JWT expiring every six months and must be rotated, and registration of the Resend sending domain with Apple's private email relay or **order confirmations bounce** for anyone who hides their address. The code change itself is one entry in `OAUTH_PROVIDERS`.
 
+## 4.2 Auth email sender (required before magic links)
+
+Supabase's built-in auth mailer is a development convenience: a few messages an hour, from a Supabase
+address. That is survivable for verification and password reset, which a person receives once or twice
+ever. It is **not** survivable for magic links, where every single sign-in is an email — the cap is
+reached and sign-in stops working for everybody.
+
+Resend is already the transactional sender for order mail, so point Supabase at it:
+
+1. **Resend -> API Keys -> Create API key** (sending permission is enough). Copy it once; it is not shown again.
+2. Confirm `biocode.fit` is a **verified domain** in Resend. It should be, because order emails already go out from it.
+3. **Supabase -> Project Settings -> Authentication -> SMTP Settings** -> enable custom SMTP:
+
+   | Field        | Value                                                          |
+   | ------------ | -------------------------------------------------------------- |
+   | Host         | `smtp.resend.com`                                              |
+   | Port         | `465`                                                          |
+   | Username     | `resend`                                                       |
+   | Password     | the Resend API key from step 1                                 |
+   | Sender email | an address on the verified domain, e.g. `no-reply@biocode.fit` |
+   | Sender name  | `BIOCODE`                                                      |
+
+4. **Supabase -> Authentication -> Rate Limits** -> raise the email limit. It stays conservative even
+   with custom SMTP, and the default is well below what a shop's sign-ins need.
+5. Send a test: request a password reset for your own address and confirm it arrives **from
+   biocode.fit**, not from Supabase.
+6. Only then set `NEXT_PUBLIC_MAGIC_LINK_ENABLED=true` in Vercel (Production and Preview) and
+   **redeploy** — it is a `NEXT_PUBLIC_` variable, so it is inlined at build time.
+
+Worth doing regardless of magic links: it moves verification and password-reset mail onto your own
+domain, which is better for deliverability and looks like the shop rather than like infrastructure.
+
 ## 5. Vercel configuration
 
 Framework Next.js; regions: `fra1` (closest to Kosovo). Image optimization remotePatterns → Supabase storage host. Headers in `next.config.ts`: HSTS (2 y, preload), X-Frame-Options DENY, X-Content-Type-Options, Referrer-Policy strict-origin-when-cross-origin, Permissions-Policy minimal, CSP (self + supabase + resend beacon none client-side + analytics domain; start report-only). Vercel Analytics + Speed Insights on. `vercel.json` crons:

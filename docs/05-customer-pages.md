@@ -133,6 +133,21 @@ Offered on both `/auth/sign-in` and `/auth/sign-up`, **below** the email form �
 | Referral codes | Claimed in the callback via `claim_referral_code`, because `signInWithOAuth` cannot carry user metadata the way `signUp` does.                                                                                                                |
 | Name           | `handle_new_user` reads `full_name`, then `name`, then `given_name` + `family_name`. Never the email local part.                                                                                                                              |
 
+### 15.2 Sign in with an emailed link
+
+A third way in, alongside password and Google. `/auth/link` — one email field, one button, and a link that signs you in when tapped. It reuses `/api/auth/callback`, the same handler email confirmation, password reset and Google already use.
+
+| Concern                     | Decision                                                                                                                                                                                                                                                                        |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Sign-in only, never sign-up | `shouldCreateUser: false`. Left at its default, `signInWithOtp` creates an account for any unseen address — a registration path collecting no name and never asking anyone to accept the terms, which §15 requires explicitly. Registering stays on `/auth/sign-up`.            |
+| Enumeration                 | One reply whatever happens. An unknown address makes Supabase return an error; it is logged and the visitor sees the same "check your email" as everyone else.                                                                                                                  |
+| Its own page                | Not a second button on the sign-in form. Sharing that form means one email field serving two actions with a required password box between them, and the visitor has to deduce that they should leave it empty. `/auth/forgot-password` already works this way.                  |
+| Entry point                 | A quiet link on the sign-in form, on the same row as "forgotten your password" — both are the same moment, where the password is the obstacle. Carries `next` through.                                                                                                          |
+| Enablement                  | `NEXT_PUBLIC_MAGIC_LINK_ENABLED`, off by default. With it off the link is hidden **and the route 404s** — a route is discoverable through history and crawlers in a way a button is not, and a form that cannot send an email is worse than a page that admits it is not there. |
+| Rate limit                  | `magicLink`, 3 per 15 minutes per IP — the same budget as `forgotPassword`, because it is the same abuse shape: mail sent to an address the caller chose.                                                                                                                       |
+
+**The prerequisite is not code.** Every sign-in sends an email, and auth mail still goes through Supabase's built-in sender (docs/10 §4), which is rate-limited to a handful an hour and documented as unsuitable for production. Enabled before Resend SMTP is configured this does not degrade gracefully — sign-in stops working for everyone as soon as a few people use it. docs/10 §4.2 has the steps.
+
 ## 16. Static & utility
 
 `/about` (story, values, team optional — from `pages`), `/contact` (form name/email/subject/message → `submitContact`, ack email, honeypot; company info + map optional), `/faq` (accordion grouped by category, FAQPage JSON-LD), `/legal/terms`, `/legal/privacy`, `/legal/shipping-returns` (from `pages`). `not-found`: search box + popular categories. `error`: retry. Cookie-consent banner (blocks analytics until accepted; link to privacy).

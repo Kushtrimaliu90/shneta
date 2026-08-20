@@ -20,7 +20,10 @@ const VALID = {
  * Kept separate from `VALID` so the "every required variable" assertions above stay a statement about
  * what is *required* — adding an optional variable should never make those tests look like it is.
  */
-const DEFAULTS = { NEXT_PUBLIC_GOOGLE_AUTH_ENABLED: false };
+const DEFAULTS = {
+  NEXT_PUBLIC_GOOGLE_AUTH_ENABLED: false,
+  NEXT_PUBLIC_MAGIC_LINK_ENABLED: false,
+};
 
 describe('parseClientEnv', () => {
   it('accepts a complete public environment', () => {
@@ -44,6 +47,26 @@ describe('parseClientEnv', () => {
     expect(
       parseClientEnv({ ...VALID, NEXT_PUBLIC_GOOGLE_AUTH_ENABLED: 'true' })
         .NEXT_PUBLIC_GOOGLE_AUTH_ENABLED,
+    ).toBe(true);
+  });
+
+  /*
+   * docs/05 §15.2 — magic links ship dark for a harder reason than Google does: every sign-in sends an
+   * email, and until Supabase's mailer points at Resend that means sign-in breaks under any real load.
+   * An unset or half-set flag must therefore mean off.
+   */
+  it('treats the magic-link flag as off unless it is exactly "true"', () => {
+    expect(parseClientEnv(VALID).NEXT_PUBLIC_MAGIC_LINK_ENABLED).toBe(false);
+    for (const value of ['', 'false', 'TRUE', '1', 'on']) {
+      expect(
+        parseClientEnv({ ...VALID, NEXT_PUBLIC_MAGIC_LINK_ENABLED: value })
+          .NEXT_PUBLIC_MAGIC_LINK_ENABLED,
+        value,
+      ).toBe(false);
+    }
+    expect(
+      parseClientEnv({ ...VALID, NEXT_PUBLIC_MAGIC_LINK_ENABLED: 'true' })
+        .NEXT_PUBLIC_MAGIC_LINK_ENABLED,
     ).toBe(true);
   });
 

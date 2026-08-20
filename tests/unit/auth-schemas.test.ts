@@ -1,9 +1,11 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
   emailSchema,
   phoneSchema,
   passwordSchema,
   resetPasswordSchema,
+  magicLinkSchema,
   safeNextPath,
   signUpSchema,
   updateProfileSchema,
@@ -170,5 +172,49 @@ describe('safeNextPath', () => {
     ]) {
       expect(safeNextPath(hostile), hostile).toBe('/account');
     }
+  });
+});
+
+/**
+ * docs/05 §15.2 — the sign-in link.
+ *
+ * The schema is small on purpose, and what it *omits* is the point: no password, no `fullName`, and no
+ * `terms`. Registering collects a name and an explicit acceptance; this only signs people in. The
+ * guarantee that it cannot become a second registration path lives in `sendMagicLink`
+ * (`shouldCreateUser: false`), and is asserted below so a future tidy-up cannot quietly drop it.
+ */
+describe('magicLinkSchema', () => {
+  it('takes an email and an optional destination, nothing else', () => {
+    const parsed = magicLinkSchema.parse({ email: 'a@b.com', next: '/account/orders' });
+    expect(parsed).toEqual({ email: 'a@b.com', next: '/account/orders' });
+    expect(magicLinkSchema.parse({ email: 'a@b.com' })).toEqual({ email: 'a@b.com' });
+  });
+
+  it('rejects an address that is not one', () => {
+    expect(magicLinkSchema.safeParse({ email: 'not-an-email' }).success).toBe(false);
+  });
+
+  /*
+   * Left at its default, `signInWithOtp` creates an account for any unseen address — a registration
+   * path that collects no name and never asks anyone to accept the terms, in a regulated category.
+   * Asserted against the source because the alternative is a live Supabase project.
+   */
+  it('never creates an account, and never says whether one exists', () => {
+    const source = readFileSync('src/features/auth/actions.ts', 'utf8');
+    const action = source.slice(source.indexOf('export const sendMagicLink'));
+    const body = action.slice(0, action.indexOf('\n};'));
+
+    expect(body).toContain('shouldCreateUser: false');
+    expect(body).toContain("limitByIp('magicLink'");
+
+    /*
+     * The enumeration guarantee, stated precisely: whatever Supabase says about the address, the
+     * branch that handles it only logs. `authFail` is fine *before* the call — the rate limit answers
+     * the same way for everybody and leaks nothing — so the assertion is scoped to what happens after.
+     */
+    const afterSend = body.slice(body.indexOf('signInWithOtp'));
+    expect(afterSend).toContain("logger.info('Magic link not sent'");
+    expect(afterSend).toContain("return authOk('auth.magicLink.sent')");
+    expect(afterSend).not.toContain('authFail(');
   });
 });

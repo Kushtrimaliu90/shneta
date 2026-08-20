@@ -155,7 +155,8 @@
       "submit": "Hyr",
       "forgot": "Keni harruar fjalëkalimin?",
       "noAccount": "Nuk keni llogari?",
-      "createAccount": "Krijo një llogari"
+      "createAccount": "Krijo një llogari",
+      "useMagicLink": "Hyr me link në email"
     },
     "signUp": {
       "title": "Krijo llogari",
@@ -171,6 +172,14 @@
       "divider": "ose",
       "google": "Vazhdo me Google",
       "terms": "Duke vazhduar, pranon <terms>kushtet e përdorimit</terms> dhe <privacy>politikën e privatësisë</privacy>."
+    },
+    "magicLink": {
+      "title": "Hyr me link",
+      "subtitle": "Ta dërgojmë një link me email. Pa fjalëkalim.",
+      "submit": "Dërgomë linkun",
+      "sentTitle": "Kontrollo email-in",
+      "sent": "Nëse kjo adresë ka llogari, e dërguam një link që të fut brenda. Punon një herë dhe skadon shpejt.",
+      "backToSignIn": "Kthehu te hyrja"
     },
     "forgotPassword": {
       "title": "Rivendos fjalëkalimin",

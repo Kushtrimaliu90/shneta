@@ -4,6 +4,7 @@ import { resolveLocale } from '@/i18n/locale';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { SignInForm } from '@/features/auth/components/sign-in-form';
 import { OAuthButtons } from '@/features/auth/components/oauth-buttons';
+import { clientEnv } from '@/lib/env.client';
 
 type Props = {
   params: Promise<{ locale: string }>;
@@ -43,6 +44,7 @@ export default async function SignInPage({ params, searchParams }: Props) {
           next={next}
           linkError={error === 'link_invalid'}
           oauthError={error === 'oauth' || error === 'rate'}
+          magicLinkEnabled={clientEnv.NEXT_PUBLIC_MAGIC_LINK_ENABLED}
         />
         <OAuthButtons next={next} />
       </CardContent>
