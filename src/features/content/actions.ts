@@ -10,6 +10,7 @@ import { fail, fromFieldErrors, ok, type ActionResult } from '@/lib/result';
 import { sendContactAcknowledgement } from '@/features/content/email';
 import { getLocale } from 'next-intl/server';
 import { DEFAULT_LOCALE, type Locale } from '@/lib/constants';
+import { keepSubmitted } from '@/lib/keep-submitted';
 
 /**
  * docs/05 §16 — the contact form.
@@ -40,7 +41,7 @@ const contactSchema = z.object({
   company: z.string().max(256).optional(),
 });
 
-export async function submitContact(
+async function submitContactImpl(
   _previous: ContactState,
   formData: FormData,
 ): Promise<ContactState> {
@@ -96,3 +97,5 @@ export async function submitContact(
     return fail<ContactErrorKey, { id?: string }>('contact.errors.generic');
   }
 }
+
+export const submitContact = keepSubmitted(submitContactImpl);

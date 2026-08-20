@@ -5042,21 +5042,82 @@ Verified in a real browser against the dev server, not only in jsdom: sign-in ke
 clears the password, and the contact form keeps a full Albanian message and the sender's name when the
 email fails validation.
 
-### What is still not covered
+### Closing the pre-hydration path as well
 
-A form submitted **before hydration** has no snapshot to restore from, so it still empties. Measured on
-sign-in, filling and clicking at each point:
+The first pass left one hole: a form submitted **before hydration** posts natively, so there is no
+client to restore anything. Measured on sign-in, filling and submitting at each point:
 
 | Submitted                         | Email field afterwards |
 | --------------------------------- | ---------------------- |
 | immediately on `domcontentloaded` | **lost**               |
-| after `networkidle` + 1.5s        | kept                   |
+| after hydration                   | kept                   |
 
-Not a regression — this is the behaviour every form had before, and the window is narrow in practice
-because filling a form takes seconds while hydration takes hundreds of milliseconds. Closing it needs
-the values returned from the server so they arrive as `defaultValue`, which is the one mechanism that
-fixes both paths at once, and is what `order-lookup-form` already does. Worth doing for checkout and
-sign-in specifically if it ever proves to matter.
+Narrow in practice — filling a form takes seconds, hydration takes hundreds of milliseconds — but
+reachable, and a returning customer whose browser autofills an email and password can submit in well
+under a second.
+
+Only the server can repopulate that render, so the values have to travel back in the result:
+
+- `ActionResult`'s failure branch gained `submitted?: Record<string, string[]>`. `string[]` per name,
+  not `string`, because a checkbox group shares one name and `Object.fromEntries` keeps only the last —
+  the mistake already documented in `use-form-draft.ts`.
+- `keepSubmitted` (`src/lib/keep-submitted.ts`) wraps an action so its failures carry it. **It has to
+  wrap in `actions.ts`, not next to `useActionState`** — without JavaScript the browser posts straight
+  to the action, so a wrapper defined in the client component would never run.
+- `ActionForm` publishes those values on a context. `Input` reads it for itself, so every field built
+  from `Input` is covered with nothing at the call site. Raw elements route through `useSubmitted`.
+
+**Context, not a walk over `children`.** A recursive clone was the obvious approach and it does not
+work here: `Field` takes its children as a _function_, so the input it labels does not exist as an
+element until `Field` calls it. Context passes through render props and every other component boundary
+without caring. There is a test asserting exactly that.
+
+Passwords are stripped on the way out — they would otherwise be written into the HTML of the response,
+a real regression against the minor convenience of not retyping one. So are field names that look like
+secrets, tokens, OTPs or card numbers.
+
+### Verified with JavaScript switched off
+
+The only reliable way to reproduce the pre-hydration path. Against a production build:
+
+| Form                 | Fields checked                                       | Result   |
+| -------------------- | ---------------------------------------------------- | -------- |
+| sign-in              | email kept, password cleared                         | **kept** |
+| sign-up              | full name                                            | **kept** |
+| forgot password      | email                                                | **kept** |
+| contact              | name, and the whole message body                     | **kept** |
+| merchant application | legal name, display name, business no., contact name | **kept** |
+
+Checkout is wired the same way and was audited field by field: every text field goes through `Input` or
+`useSubmitted`. Its two radio groups and the terms checkbox come back too — the shipping method by
+seeding `useState` from the submitted value, which matters more than it looks, because a customer who
+chose the more expensive delivery would otherwise have it silently reset to the default and be shown a
+total they had not picked.
+
+### Where each half applies
+
+|                                      | hydrated     | before hydration          |
+| ------------------------------------ | ------------ | ------------------------- |
+| Storefront and merchant-facing forms | `ActionForm` | `keepSubmitted` + context |
+| Admin editors                        | `ActionForm` | not wired                 |
+
+Admin is a decision, not an oversight. Those pages are reached by client-side navigation inside an
+authenticated panel, so the JavaScript is loaded long before anyone can type — the race cannot be run.
+It is also where the raw-element mass lives: 78 raw inputs against 10 `<Input>`, so wiring it would
+mean a large refactor of hand-styled inputs for a case that cannot occur. If an admin page ever becomes
+cold-landable, the mechanism is the same three lines per form.
+
+### What is still not covered
+
+Admin editors on the pre-hydration path, for the reason above.
+
+File inputs, anywhere. A `FileList` cannot be assigned to an input by any means — the browser owns that
+value — so a photograph attached to a merchant proposal has to be chosen again after a rejected save.
+The upload-bearing editors keep their own path state for this reason.
+
+A durable regression guard for the no-JS behaviour belongs in the Playwright suite, but that suite has
+never run anywhere (docs/14), so a test added there would be write-only. The verification above was run
+by hand against a production build.
 
 `<select>` values are not restored. They reset to their `defaultValue`, which for an editor is the saved
 record and for `subscription-card`'s frequency picker is the current setting — correct in both cases, and

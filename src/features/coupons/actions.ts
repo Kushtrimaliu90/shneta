@@ -61,7 +61,11 @@ const couponSchema = z
     if (data.type === 'percentage') {
       const percent = Number(data.value);
       if (!Number.isInteger(percent) || percent < 1 || percent > 100) {
-        ctx.addIssue({ code: 'custom', path: ['value'], message: 'A whole percent from 1 to 100.' });
+        ctx.addIssue({
+          code: 'custom',
+          path: ['value'],
+          message: 'A whole percent from 1 to 100.',
+        });
       }
     }
     if (data.type === 'fixed') {
@@ -88,10 +92,7 @@ function optionalInt(value: string | undefined): number | null {
   return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
 }
 
-export async function saveCoupon(
-  _previous: CouponState,
-  formData: FormData,
-): Promise<CouponState> {
+export async function saveCoupon(_previous: CouponState, formData: FormData): Promise<CouponState> {
   const gate = await requireCapability('coupons.manage');
   if (!gate.ok) return couponFail(gate.error);
 
@@ -158,11 +159,7 @@ export async function saveCoupon(
 
       await audit('coupon.update', 'coupon', id, existing, patch);
     } else {
-      const { data, error } = await supabase
-        .from('coupons')
-        .insert(patch)
-        .select('id')
-        .single();
+      const { data, error } = await supabase.from('coupons').insert(patch).select('id').single();
 
       if (error) {
         if (error.code === '23505') return couponFail('admin.coupons.errors.codeTaken');

@@ -40,7 +40,10 @@ import type { Json } from '@/lib/supabase/database.types';
 const ALPHABET = 'abcdefghjkmnpqrstvwxyz0123456789';
 
 function shareCode(): string {
-  return [...randomBytes(16)].map((byte) => ALPHABET[byte % 32]).join('').slice(0, 16);
+  return [...randomBytes(16)]
+    .map((byte) => ALPHABET[byte % 32])
+    .join('')
+    .slice(0, 16);
 }
 
 /**
@@ -212,9 +215,10 @@ export type ProtocolErrorKey =
   | 'biohack.errorSubscribe'
   | 'biohack.addAllEmpty';
 
-export type ProtocolActionState =
-  | ActionResult<{ added?: number; requested?: number; saved?: boolean }, ProtocolErrorKey>
-  | null;
+export type ProtocolActionState = ActionResult<
+  { added?: number; requested?: number; saved?: boolean },
+  ProtocolErrorKey
+> | null;
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const SHARE_CODE = /^[a-z0-9]{8,32}$/;

@@ -10,6 +10,7 @@ import { clientEnv } from '@/lib/env.client';
 import { REFERRAL_COOKIE_NAME } from '@/lib/constants';
 import { normalizeReferralCode } from '@/features/referrals/schemas';
 import { limitByIp } from '@/lib/rate-limit';
+import { keepSubmitted } from '@/lib/keep-submitted';
 import { logger, describeError } from '@/lib/logger';
 import { fail, fromFieldErrors, ok, type ActionResult } from '@/lib/result';
 import { mergeGuestCart } from '@/features/cart/actions';
@@ -103,7 +104,7 @@ async function localizedRedirect(path: string): Promise<never> {
 // Sign in
 // ---------------------------------------------------------------------------
 
-export const signIn: FormAction = async (_prevState, formData) => {
+export const signIn: FormAction = keepSubmitted(async (_prevState, formData) => {
   const parsed = signInSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) {
     return authFieldErrors('auth.errors.invalidCredentials', parsed.error.flatten());
@@ -138,7 +139,7 @@ export const signIn: FormAction = async (_prevState, formData) => {
   // Outside any try/catch: redirect() signals by throwing, and catching it would swallow
   // the navigation and render a blank success state instead.
   return localizedRedirect(safeNextPath(parsed.data.next));
-};
+});
 
 // ---------------------------------------------------------------------------
 // Magic link (docs/05 §15.2)
@@ -170,7 +171,7 @@ export const signIn: FormAction = async (_prevState, formData) => {
  * an hour and is not intended for production. Turned on before Resend SMTP is configured, sign-in
  * would simply stop working for everyone once a few people tried it — see `env.client.ts`.
  */
-export const sendMagicLink: FormAction = async (_prevState, formData) => {
+export const sendMagicLink: FormAction = keepSubmitted(async (_prevState, formData) => {
   const parsed = magicLinkSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) {
     return authFieldErrors('auth.errors.checkFields', parsed.error.flatten());
@@ -201,13 +202,13 @@ export const sendMagicLink: FormAction = async (_prevState, formData) => {
   }
 
   return authOk('auth.magicLink.sent');
-};
+});
 
 // ---------------------------------------------------------------------------
 // Sign up
 // ---------------------------------------------------------------------------
 
-export const signUp: FormAction = async (_prevState, formData) => {
+export const signUp: FormAction = keepSubmitted(async (_prevState, formData) => {
   const parsed = signUpSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) {
     return authFieldErrors('auth.errors.checkFields', parsed.error.flatten());
@@ -287,13 +288,13 @@ export const signUp: FormAction = async (_prevState, formData) => {
   cookieStore.delete(REFERRAL_COOKIE_NAME);
 
   return authOk('auth.signUp.checkEmail');
-};
+});
 
 // ---------------------------------------------------------------------------
 // Password reset
 // ---------------------------------------------------------------------------
 
-export const requestPasswordReset: FormAction = async (_prevState, formData) => {
+export const requestPasswordReset: FormAction = keepSubmitted(async (_prevState, formData) => {
   const parsed = forgotPasswordSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) {
     return authFieldErrors('auth.errors.checkFields', parsed.error.flatten());
@@ -313,9 +314,9 @@ export const requestPasswordReset: FormAction = async (_prevState, formData) => 
   // Always the same answer, error or not — "if the email exists, we sent a link"
   // (docs/05 §15).
   return authOk('auth.forgotPassword.sent');
-};
+});
 
-export const resetPassword: FormAction = async (_prevState, formData) => {
+export const resetPassword: FormAction = keepSubmitted(async (_prevState, formData) => {
   const parsed = resetPasswordSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) {
     return authFieldErrors('auth.errors.checkFields', parsed.error.flatten());
@@ -340,7 +341,7 @@ export const resetPassword: FormAction = async (_prevState, formData) => {
    * `/merchant`, where the thing they were invited to actually is.
    */
   return localizedRedirect(safeNextPath(parsed.data.next, '/account?password=updated'));
-};
+});
 
 // ---------------------------------------------------------------------------
 // Session
@@ -357,7 +358,7 @@ export async function signOut(): Promise<void> {
 // Account settings (docs/05 §14)
 // ---------------------------------------------------------------------------
 
-export const updateProfile: FormAction = async (_prevState, formData) => {
+export const updateProfile: FormAction = keepSubmitted(async (_prevState, formData) => {
   const parsed = updateProfileSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) {
     return authFieldErrors('auth.errors.checkFields', parsed.error.flatten());
@@ -391,9 +392,9 @@ export const updateProfile: FormAction = async (_prevState, formData) => {
 
   revalidatePath('/account', 'layout');
   return authOk('account.settings.saved');
-};
+});
 
-export const changePassword: FormAction = async (_prevState, formData) => {
+export const changePassword: FormAction = keepSubmitted(async (_prevState, formData) => {
   const parsed = changePasswordSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) {
     return authFieldErrors('auth.errors.checkFields', parsed.error.flatten());
@@ -415,4 +416,4 @@ export const changePassword: FormAction = async (_prevState, formData) => {
   }
 
   return authOk('account.settings.passwordChanged');
-};
+});

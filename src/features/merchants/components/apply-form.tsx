@@ -4,7 +4,7 @@ import { useActionState, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import { Alert } from '@/components/ui/alert';
-import { ActionForm } from '@/components/ui/action-form';
+import { ActionForm, useSubmitted } from '@/components/ui/action-form';
 import { SubmitButton } from '@/components/ui/submit-button';
 import {
   submitMerchantApplication,
@@ -193,6 +193,8 @@ function Field({
   textarea?: boolean;
 }) {
   const hintId = hint ? `${name}-hint` : undefined;
+  // One call here refills every field of the application after a rejected submission.
+  const submitted = useSubmitted(name);
 
   return (
     <label className={`flex flex-col gap-1 text-sm ${textarea ? 'sm:col-span-2' : ''}`}>
@@ -207,6 +209,7 @@ function Field({
       {textarea ? (
         <textarea
           name={name}
+          defaultValue={submitted}
           required={required}
           rows={3}
           aria-describedby={hintId}
@@ -216,6 +219,7 @@ function Field({
         <input
           type={type}
           name={name}
+          defaultValue={submitted}
           required={required}
           aria-describedby={hintId}
           className="h-11 rounded-md border border-line-strong bg-surface px-2.5 text-sm"

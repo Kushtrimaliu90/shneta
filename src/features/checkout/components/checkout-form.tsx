@@ -6,7 +6,7 @@ import { formatPrice } from '@/lib/money';
 import { pickLocale } from '@/lib/i18n';
 import type { Locale } from '@/lib/constants';
 import { Field } from '@/components/ui/field';
-import { ActionForm } from '@/components/ui/action-form';
+import { ActionForm, useSubmitted, useSubmittedChecked } from '@/components/ui/action-form';
 import { Input } from '@/components/ui/input';
 import { Alert } from '@/components/ui/alert';
 import { SubmitButton } from '@/components/ui/submit-button';
@@ -43,10 +43,24 @@ export function CheckoutForm({
   defaultName?: string;
 }) {
   const [state, formAction] = useActionState<CheckoutState, FormData>(placeOrder, null);
+  const submittedNote = useSubmitted('customerNote');
+  const submittedProvider = useSubmitted('paymentProvider');
+  const acceptedTerms = useSubmittedChecked('terms', 'on', false);
   const t = useTranslations();
   const locale = useLocale() as Locale;
 
-  const [methodId, setMethodId] = useState(methods[0]?.id ?? '');
+  const submittedMethodId = useSubmitted('shippingMethodId');
+  const [methodId, setMethodId] = useState(
+    /*
+     * Seeded from the rejected submission, not just from the first method. Without this a customer who
+     * chose the more expensive delivery has it silently reset to the default when the coupon is
+     * refused — and the total they are about to accept is not the one they picked.
+     */
+    () =>
+      submittedMethodId && methods.some((m) => m.id === submittedMethodId)
+        ? submittedMethodId
+        : (methods[0]?.id ?? ''),
+  );
   const selected = methods.find((method) => method.id === methodId) ?? methods[0];
 
   const shippingCents =
@@ -251,7 +265,9 @@ export function CheckoutForm({
                     type="radio"
                     name="paymentProvider"
                     value={provider}
-                    defaultChecked={provider === providers[0]}
+                    defaultChecked={
+                      submittedProvider ? submittedProvider === provider : provider === providers[0]
+                    }
                     className="mt-1"
                     required
                   />
@@ -284,6 +300,7 @@ export function CheckoutForm({
                 <textarea
                   {...props}
                   name="customerNote"
+                  defaultValue={submittedNote}
                   rows={3}
                   required={false}
                   className="w-full rounded-sm border border-line-strong bg-surface px-3 py-2 text-base text-ink-900"
@@ -296,6 +313,7 @@ export function CheckoutForm({
                 <input
                   type="checkbox"
                   name="terms"
+                  defaultChecked={acceptedTerms}
                   required
                   aria-invalid={Boolean(fieldErrors?.terms)}
                   className="mt-0.5 size-4 shrink-0 rounded-[3px] border border-line-strong"

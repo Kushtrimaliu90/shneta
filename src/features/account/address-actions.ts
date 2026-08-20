@@ -7,6 +7,7 @@ import { logger, describeError } from '@/lib/logger';
 import { fail, fromFieldErrors, ok, type ActionResult } from '@/lib/result';
 import { getCurrentUser } from '@/features/auth/queries';
 import { addressSchema } from '@/features/cart/schemas';
+import { keepSubmitted } from '@/lib/keep-submitted';
 
 /**
  * docs/05 §14 — the address book: create, edit, delete, set defaults.
@@ -39,10 +40,7 @@ const saveSchema = addressSchema.extend({
   isDefaultBilling: z.string().optional(),
 });
 
-export async function saveAddress(
-  _previous: AddressState,
-  formData: FormData,
-): Promise<AddressState> {
+async function saveAddressImpl(_previous: AddressState, formData: FormData): Promise<AddressState> {
   const user = await getCurrentUser();
   if (!user) return addressFail('account.addresses.errors.signedOut');
 
@@ -136,6 +134,8 @@ export async function saveAddress(
     return addressFail('account.addresses.errors.generic');
   }
 }
+
+export const saveAddress = keepSubmitted(saveAddressImpl);
 
 const idSchema = z.object({ id: z.string().uuid() });
 

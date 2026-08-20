@@ -10,7 +10,28 @@
  * `lib/` stays a dependency leaf: the key union is declared by the feature, not here.
  */
 export type ActionResult<T = void, E extends string = string> =
-  { ok: true; data: T } | { ok: false; error: E; fieldErrors?: Record<string, string[]> };
+  | { ok: true; data: T }
+  | {
+      ok: false;
+      error: E;
+      fieldErrors?: Record<string, string[]>;
+      /**
+       * What the caller submitted, so a rejected form can be redrawn with it still filled in.
+       *
+       * React 19 empties an uncontrolled `<form action={fn}>` once the action resolves and does not
+       * look at what came back (docs/13 §AW), and `<ActionForm>` repairs that in the browser. This
+       * field is what covers the case `<ActionForm>` cannot: a form submitted **before the page has
+       * hydrated** posts natively, so there is no client to restore anything — the values have to
+       * arrive from the server as `defaultValue`.
+       *
+       * Attached by `keepSubmitted` (`src/lib/keep-submitted.ts`), never by hand. Values are
+       * `string[]` per name because a checkbox group shares one name and `Object.fromEntries` would
+       * keep only the last — the mistake documented in `use-form-draft.ts`.
+       *
+       * Password fields are stripped before this leaves the server.
+       */
+      submitted?: Record<string, string[]>;
+    };
 
 /**
  * Returns the success branch precisely — `{ ok: true; data: T }` rather than the full

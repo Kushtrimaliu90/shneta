@@ -4,7 +4,7 @@ import { useActionState, useCallback, useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { MapPin, Plus } from 'lucide-react';
 import { Alert } from '@/components/ui/alert';
-import { ActionForm } from '@/components/ui/action-form';
+import { ActionForm, useSubmitted } from '@/components/ui/action-form';
 import { Button } from '@/components/ui/button';
 import { SubmitButton } from '@/components/ui/submit-button';
 import {
@@ -313,7 +313,7 @@ function Field({
       <input
         id={id}
         name={name}
-        defaultValue={defaultValue}
+        defaultValue={useSubmitted(name, defaultValue)}
         required={required}
         autoComplete={autoComplete}
         inputMode={inputMode}

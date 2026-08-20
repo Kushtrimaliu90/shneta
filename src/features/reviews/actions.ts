@@ -25,6 +25,7 @@ import {
   voteReviewSchema,
 } from '@/features/reviews/schemas';
 import type { ReviewEligibility, ReviewPage } from '@/features/reviews/types';
+import { keepSubmitted } from '@/lib/keep-submitted';
 
 /**
  * docs/05 §3 and docs/06 §10 — writing, voting on and moderating reviews.
@@ -101,10 +102,7 @@ function reviewFail(error: ReviewErrorKey): ReviewState {
  * reject a forged one, but a rejection at the RLS layer surfaces as "something went wrong",
  * and the customer would have no idea what to change.
  */
-export async function createReview(
-  _previous: ReviewState,
-  formData: FormData,
-): Promise<ReviewState> {
+async function createReviewImpl(_previous: ReviewState, formData: FormData): Promise<ReviewState> {
   const user = await getCurrentUser();
   if (!user) return reviewFail('review.errors.signedOut');
 
@@ -174,6 +172,8 @@ export async function createReview(
     return reviewFail('review.errors.generic');
   }
 }
+
+export const createReview = keepSubmitted(createReviewImpl);
 
 /**
  * docs/05 §3 — "was this helpful". A toggle, not a counter you can only push up.

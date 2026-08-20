@@ -4,7 +4,7 @@ import { useActionState } from 'react';
 import { useTranslations } from 'next-intl';
 import { CheckCircle2 } from 'lucide-react';
 import { Alert } from '@/components/ui/alert';
-import { ActionForm } from '@/components/ui/action-form';
+import { ActionForm, useSubmitted } from '@/components/ui/action-form';
 import { SubmitButton } from '@/components/ui/submit-button';
 import { submitContact, type ContactState } from '@/features/content/actions';
 import { cn } from '@/lib/utils';
@@ -34,6 +34,10 @@ export function ContactForm() {
   const t = useTranslations('contact');
   const tRoot = useTranslations();
   const [state, formAction] = useActionState<ContactState, FormData>(submitContact, null);
+  const submittedName = useSubmitted('name');
+  const submittedEmail = useSubmitted('email');
+  const submittedSubject = useSubmitted('subject');
+  const submittedBody = useSubmitted('body');
 
   if (state?.ok) {
     return (
@@ -73,6 +77,7 @@ export function ContactForm() {
           <input
             id="contact-name"
             name="name"
+            defaultValue={submittedName}
             required
             autoComplete="name"
             aria-invalid={Boolean(fieldError('name'))}
@@ -91,6 +96,7 @@ export function ContactForm() {
           <input
             id="contact-email"
             name="email"
+            defaultValue={submittedEmail}
             type="email"
             required
             autoComplete="email"
@@ -111,6 +117,7 @@ export function ContactForm() {
         <input
           id="contact-subject"
           name="subject"
+          defaultValue={submittedSubject}
           className={cn(inputClass, 'border-line-strong')}
         />
       </div>
@@ -122,6 +129,7 @@ export function ContactForm() {
         <textarea
           id="contact-body"
           name="body"
+          defaultValue={submittedBody}
           rows={6}
           required
           minLength={10}

@@ -79,7 +79,9 @@ function readSuggest(value: unknown): QuickResults {
 
   const rows = (key: string): Record<string, unknown>[] => {
     const list = raw[key];
-    return Array.isArray(list) ? (list.filter((r) => r != null && typeof r === 'object') as Record<string, unknown>[]) : [];
+    return Array.isArray(list)
+      ? (list.filter((r) => r != null && typeof r === 'object') as Record<string, unknown>[])
+      : [];
   };
 
   const taxa = (key: string): QuickTaxon[] =>
@@ -101,7 +103,9 @@ function readSuggest(value: unknown): QuickResults {
       slug: String(r.slug ?? ''),
       title: asLocalizedField(r.title),
     })),
-    terms: Array.isArray(raw.terms) ? raw.terms.filter((t): t is string => typeof t === 'string') : [],
+    terms: Array.isArray(raw.terms)
+      ? raw.terms.filter((t): t is string => typeof t === 'string')
+      : [],
     brands: rows('brands').map((r) => ({ slug: String(r.slug ?? ''), name: String(r.name ?? '') })),
     categories: taxa('categories'),
     ingredients: taxa('ingredients'),

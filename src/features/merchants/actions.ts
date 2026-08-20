@@ -25,6 +25,7 @@ import {
   sendMerchantRejected,
 } from '@/features/merchants/email';
 import type { Json } from '@/lib/supabase/database.types';
+import { keepSubmitted } from '@/lib/keep-submitted';
 
 /**
  * docs/16 §4 — applying to sell, and the admin decision on it.
@@ -87,7 +88,7 @@ async function freeSlug(base: string): Promise<string | null> {
  * email is invited. Either way `merchant_users` gets the membership, which is what
  * `current_merchant_ids()` reads and therefore what every merchant-side policy depends on.
  */
-export async function submitMerchantApplication(
+async function submitMerchantApplicationImpl(
   _previous: MerchantState,
   formData: FormData,
 ): Promise<MerchantState> {
@@ -213,6 +214,8 @@ export async function submitMerchantApplication(
     return no('merchant.errors.generic');
   }
 }
+
+export const submitMerchantApplication = keepSubmitted(submitMerchantApplicationImpl);
 
 /**
  * Gives the applicant a way in.

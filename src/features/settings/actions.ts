@@ -57,7 +57,10 @@ async function writeSetting(
 
   const { error } = await supabase
     .from('settings')
-    .upsert({ key, value: value as Json, updated_at: new Date().toISOString() }, { onConflict: 'key' });
+    .upsert(
+      { key, value: value as Json, updated_at: new Date().toISOString() },
+      { onConflict: 'key' },
+    );
 
   if (error) {
     logger.error('writeSetting failed', { key, cause: error.message });
@@ -80,9 +83,24 @@ const storeSchema = z.object({
   email: z.string().trim().email('A valid address, like info@biocode.com.'),
   phone: z.string().trim().max(40).optional().or(z.literal('')),
   address: z.string().trim().max(200).optional().or(z.literal('')),
-  instagram: z.string().trim().url('A full address, starting with https://').optional().or(z.literal('')),
-  tiktok: z.string().trim().url('A full address, starting with https://').optional().or(z.literal('')),
-  facebook: z.string().trim().url('A full address, starting with https://').optional().or(z.literal('')),
+  instagram: z
+    .string()
+    .trim()
+    .url('A full address, starting with https://')
+    .optional()
+    .or(z.literal('')),
+  tiktok: z
+    .string()
+    .trim()
+    .url('A full address, starting with https://')
+    .optional()
+    .or(z.literal('')),
+  facebook: z
+    .string()
+    .trim()
+    .url('A full address, starting with https://')
+    .optional()
+    .or(z.literal('')),
   announcement: z.string().trim().max(160).optional().or(z.literal('')),
 });
 
@@ -135,7 +153,10 @@ export async function saveTaxSettings(
     );
   }
 
-  return writeSetting('tax', { rate: parsed.data.rate }, [CACHE_TAGS.settings, CACHE_TAGS.products]);
+  return writeSetting('tax', { rate: parsed.data.rate }, [
+    CACHE_TAGS.settings,
+    CACHE_TAGS.products,
+  ]);
 }
 
 // -----------------------------------------------------------------------------
@@ -704,7 +725,9 @@ export async function setStaffActive(
     });
 
     revalidatePath('/admin/settings/team');
-    return ok({ message: `${current.email} ${activate ? 'can sign in again' : 'is deactivated'}.` });
+    return ok({
+      message: `${current.email} ${activate ? 'can sign in again' : 'is deactivated'}.`,
+    });
   } catch (error) {
     logger.error('setStaffActive threw', describeError(error));
     return settingsFail('admin.errors.generic');

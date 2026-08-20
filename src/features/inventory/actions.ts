@@ -33,10 +33,7 @@ export type InventoryErrorKey =
   | 'admin.inventory.errors.insufficient'
   | 'admin.inventory.errors.notFound';
 
-export type InventoryState = ActionResult<
-  { onHand?: number },
-  InventoryErrorKey
-> | null;
+export type InventoryState = ActionResult<{ onHand?: number }, InventoryErrorKey> | null;
 
 /** Purges the storefront's view of availability after a movement. */
 function purgeStorefront(): void {

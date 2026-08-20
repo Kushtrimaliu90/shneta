@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { createContext, useContext, useEffect, useRef } from 'react';
 
 /**
  * A `<form>` that does not throw away what the customer typed when the action fails.
@@ -57,10 +57,15 @@ import { useEffect, useRef } from 'react';
  *
  * ── The un-hydrated case ──
  *
- * A form submitted before this component has mounted is not covered — there is no snapshot to restore
- * from. That is the progressive-enhancement path the forms here deliberately support, and fixing it
- * needs the values to come back from the server in the action result. Worth doing for checkout
- * specifically if it ever proves to matter; for everybody else, this runs.
+ * A form submitted before this component has mounted has no snapshot to restore from, so the restore
+ * above cannot help it. That path is covered separately, by the server: an action wrapped in
+ * `keepSubmitted` returns what was posted, and this component publishes it on a context that `Input`
+ * and `useSubmitted` read as their `defaultValue`. Between the two, a rejected form keeps its
+ * contents whether or not JavaScript was running when it was sent.
+ *
+ * The two halves agree rather than fight. When the server has supplied the values, `defaultValue` is
+ * already what was submitted, so React's reset lands on it and the DOM restore finds nothing to
+ * change.
  */
 
 /** Restored only for these. `type` is absent on a plain text input, hence the empty string. */
@@ -141,6 +146,62 @@ function isFailure(state: unknown): boolean {
   );
 }
 
+/** `submitted` off a failed result, when the action was wrapped in `keepSubmitted`. */
+function submittedFrom(state: unknown): Record<string, string[]> | null {
+  if (!isFailure(state)) return null;
+  const value = (state as { submitted?: unknown }).submitted;
+  return typeof value === 'object' && value !== null ? (value as Record<string, string[]>) : null;
+}
+
+/**
+ * What the last rejected submission contained, for fields to read as their `defaultValue`.
+ *
+ * This is the half of the fix that survives without JavaScript. The snapshot-and-restore above needs
+ * a hydrated page; a form posted before hydration gets no client at all, so the only thing that can
+ * refill it is the server render — and that reaches the fields through here.
+ *
+ * Context rather than a walk over `children`, because the walk cannot see the fields. `Field` takes
+ * its children as a *function*, so the inputs it labels do not exist as elements until it calls it.
+ * Context passes through that, and through any other component boundary, without caring.
+ */
+const SubmittedContext = createContext<Record<string, string[]> | null>(null);
+
+/**
+ * The value this field should show, given a rejected submission.
+ *
+ * `Input` calls this for itself, so anything built from `Input` — which is most of the storefront —
+ * is covered with no wiring at all. Raw `<input>` and `<textarea>` elements cannot read context, so
+ * they pass through here explicitly:
+ *
+ * ```tsx
+ * <textarea name="notes" defaultValue={useSubmitted('notes', order.notes)} />
+ * ```
+ */
+export function useSubmitted(name: string | undefined, fallback: string): string;
+export function useSubmitted(name: string | undefined, fallback?: undefined): string | undefined;
+export function useSubmitted(name: string | undefined, fallback?: string): string | undefined {
+  const submitted = useContext(SubmittedContext);
+  if (!name || !submitted) return fallback;
+  const values = submitted[name];
+  /*
+   * Present-but-empty is meaningful and must win over the fallback: a field seeded from the session
+   * that somebody cleared on purpose has to come back cleared, not refilled with the stale seed.
+   */
+  return values ? (values[0] ?? '') : fallback;
+}
+
+/** Whether one checkbox or radio out of a group sharing a name was ticked. */
+export function useSubmittedChecked(
+  name: string | undefined,
+  value: string,
+  fallback: boolean,
+): boolean {
+  const submitted = useContext(SubmittedContext);
+  if (!name || !submitted) return fallback;
+  // An unticked box submits nothing, so an absent name means deliberately cleared, not unknown.
+  return (submitted[name] ?? []).includes(value);
+}
+
 export function ActionForm({
   action,
   state,
@@ -181,8 +242,10 @@ export function ActionForm({
   }, [state]);
 
   return (
-    <form ref={formRef} action={action} {...rest}>
-      {children}
-    </form>
+    <SubmittedContext.Provider value={submittedFrom(state)}>
+      <form ref={formRef} action={action} {...rest}>
+        {children}
+      </form>
+    </SubmittedContext.Provider>
   );
 }

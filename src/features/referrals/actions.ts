@@ -9,6 +9,7 @@ import { REFERRAL_COOKIE_NAME } from '@/lib/constants';
 import { fail, fromFieldErrors, ok, type ActionResult } from '@/lib/result';
 import { getCurrentUser } from '@/features/auth/queries';
 import { claimReferralCodeSchema } from '@/features/referrals/schemas';
+import { keepSubmitted } from '@/lib/keep-submitted';
 
 /**
  * docs/17 §1, §6 — naming a referrer during the grace window.
@@ -42,7 +43,7 @@ const OUTCOMES: Record<string, ReferralErrorKey> = {
   grace_closed: 'account.referrals.errors.graceClosed',
 };
 
-export async function claimReferralCode(
+async function claimReferralCodeImpl(
   _prevState: ClaimFormState,
   formData: FormData,
 ): Promise<ClaimFormState> {
@@ -98,3 +99,5 @@ export async function claimReferralCode(
   revalidatePath('/account');
   return ok<ClaimData>({ message: 'account.referrals.claimed' });
 }
+
+export const claimReferralCode = keepSubmitted(claimReferralCodeImpl);

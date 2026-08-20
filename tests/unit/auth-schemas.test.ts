@@ -202,7 +202,14 @@ describe('magicLinkSchema', () => {
   it('never creates an account, and never says whether one exists', () => {
     const source = readFileSync('src/features/auth/actions.ts', 'utf8');
     const action = source.slice(source.indexOf('export const sendMagicLink'));
-    const body = action.slice(0, action.indexOf('\n};'));
+    /*
+     * `});` because the action is wrapped in `keepSubmitted` (docs/13 §AW). Asserted rather than
+     * assumed: `indexOf` returns -1 when the terminator moves, and `slice(0, -1)` would quietly hand
+     * the rest of the *file* to the checks below, which then pass or fail for unrelated reasons.
+     */
+    const end = action.indexOf('\n});');
+    expect(end).toBeGreaterThan(0);
+    const body = action.slice(0, end);
 
     expect(body).toContain('shouldCreateUser: false');
     expect(body).toContain("limitByIp('magicLink'");

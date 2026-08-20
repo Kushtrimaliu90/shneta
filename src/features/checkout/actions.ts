@@ -21,6 +21,7 @@ import { findActiveCart } from '@/features/cart/queries';
 import { placeOrderSchema } from '@/features/cart/schemas';
 import { mapCheckoutError, type CheckoutErrorKey } from '@/features/cart/types';
 import { sendOrderConfirmation } from '@/features/checkout/email';
+import { keepSubmitted } from '@/lib/keep-submitted';
 
 /**
  * docs/07 §4 — the checkout flow.
@@ -39,7 +40,7 @@ function checkoutFail(error: CheckoutErrorKey, sku?: string): CheckoutState {
   return sku ? { ok: false, error, sku } : { ok: false, error };
 }
 
-export async function placeOrder(
+async function placeOrderImpl(
   _previous: CheckoutState,
   formData: FormData,
 ): Promise<CheckoutState> {
@@ -183,6 +184,8 @@ export async function placeOrder(
   // Outside the try: redirect() signals by throwing and must not be caught.
   redirect(localizePath(redirectTo, await getLocale()));
 }
+
+export const placeOrder = keepSubmitted(placeOrderImpl);
 
 /**
  * docs/05 §12 — `previewCoupon` shows the projected discount before the order is placed.

@@ -189,7 +189,9 @@ export async function resumeSubscription(
 }
 
 const frequencySchema = idSchema.extend({
-  frequencyDays: z.coerce.number().refine((value) => (FREQUENCIES as readonly number[]).includes(value)),
+  frequencyDays: z.coerce
+    .number()
+    .refine((value) => (FREQUENCIES as readonly number[]).includes(value)),
 });
 
 export async function changeFrequency(

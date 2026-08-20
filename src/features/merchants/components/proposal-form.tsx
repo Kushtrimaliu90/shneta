@@ -3,7 +3,7 @@
 import { useActionState, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Alert } from '@/components/ui/alert';
-import { ActionForm } from '@/components/ui/action-form';
+import { ActionForm, useSubmitted } from '@/components/ui/action-form';
 import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { SubmitButton } from '@/components/ui/submit-button';
@@ -37,6 +37,8 @@ function leaf(error: string): Leaf {
 export function ProposalForm({ merchantId }: { merchantId: string }) {
   const t = useTranslations('merchant.proposals');
   const [images, setImages] = useState<UploadedImage[]>([]);
+
+  const submittedNote = useSubmitted('note');
 
   const [state, action] = useActionState<ProposalState, FormData>(async (previous, formData) => {
     const result = await submitProposal(previous, formData);
@@ -144,6 +146,7 @@ export function ProposalForm({ merchantId }: { merchantId: string }) {
           <textarea
             {...field}
             name="note"
+            defaultValue={submittedNote}
             rows={3}
             minLength={10}
             className="rounded-sm border border-line-strong bg-surface p-2.5 text-sm"

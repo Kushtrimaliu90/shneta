@@ -14,16 +14,14 @@ import { getMyMerchant } from '@/features/merchants/queries';
 import { sendProposalDecided } from '@/features/merchants/email';
 import { promoteProposal } from '@/features/merchants/proposal-promote';
 import { createOfferFromProposal } from '@/features/merchants/proposal-offer';
-import {
-  sweepApprovedProposals,
-  sweepProposalOffers,
-} from '@/features/merchants/proposal-sweep';
+import { sweepApprovedProposals, sweepProposalOffers } from '@/features/merchants/proposal-sweep';
 import {
   classifySkips,
   dedupeIds,
   type BulkProposalDecision,
 } from '@/features/merchants/decisions';
 import type { Json } from '@/lib/supabase/database.types';
+import { keepSubmitted } from '@/lib/keep-submitted';
 
 /**
  * docs/16 §4 — a merchant asking for a product BioCode does not list.
@@ -74,7 +72,7 @@ const decisionSchema = z.object({
  * catalogue legitimately submits several in an afternoon — but a cap on how many can be *waiting*, so a
  * merchant cannot make the review queue unusable for everybody else by pasting its whole spreadsheet in.
  */
-export async function submitProposal(
+async function submitProposalImpl(
   _previous: ProposalState,
   formData: FormData,
 ): Promise<ProposalState> {
@@ -181,6 +179,8 @@ export async function submitProposal(
     return no('merchant.proposals.errors.generic');
   }
 }
+
+export const submitProposal = keepSubmitted(submitProposalImpl);
 
 /**
  * Decides a proposal.

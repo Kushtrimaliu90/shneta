@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl';
 import { BadgeCheck, Star, ThumbsUp } from 'lucide-react';
 import { Link } from '@/i18n/routing';
 import { Alert } from '@/components/ui/alert';
-import { ActionForm } from '@/components/ui/action-form';
+import { ActionForm, useSubmitted } from '@/components/ui/action-form';
 import { buttonVariants } from '@/components/ui/button';
 import { SubmitButton } from '@/components/ui/submit-button';
 import { ReviewSummaryPanel } from '@/features/reviews/components/review-summary';
@@ -313,6 +313,8 @@ function ReviewForm({ productId, onDone }: { productId: string; onDone: () => vo
    */
   const tRoot = useTranslations();
   const [state, formAction] = useActionState<ReviewState, FormData>(createReview, null);
+  const submittedTitle = useSubmitted('title');
+  const submittedBody = useSubmitted('body');
   const [rating, setRating] = useState(0);
 
   if (state?.ok) {
@@ -366,6 +368,7 @@ function ReviewForm({ productId, onDone }: { productId: string; onDone: () => vo
         <input
           id="review-title"
           name="title"
+          defaultValue={submittedTitle}
           maxLength={120}
           className="mt-1 h-11 w-full rounded-sm border border-line-strong bg-surface px-3 text-sm"
         />
@@ -378,6 +381,7 @@ function ReviewForm({ productId, onDone }: { productId: string; onDone: () => vo
         <textarea
           id="review-body"
           name="body"
+          defaultValue={submittedBody}
           rows={4}
           maxLength={4000}
           className="mt-1 w-full rounded-sm border border-line-strong bg-surface px-3 py-2 text-sm"
