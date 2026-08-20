@@ -335,6 +335,82 @@
   color: var(--color-ink-600);
 }
 
+/* ==========================================================================
+   Trust-strip marquee — docs/04 §8 carve-out, requested explicitly.
+   ==========================================================================
+
+   §8 says "no continuous ambient animation", and this is the one exception on the
+   site. It is confined to this component and it carries the controls that a
+   permanently moving element needs to stay usable:
+
+     * **A pause control**, because WCAG 2.2.2 (Level A) requires a mechanism for
+       anything that moves automatically, lasts over five seconds and sits beside
+       other content. All three apply. The strip's items are plain text, not links,
+       so `:focus-within` never fires and hover-pause alone would leave keyboard and
+       touch users with no way to stop it — which is why there is a real toggle.
+     * **`prefers-reduced-motion`**, which stops it dead rather than slowing it: the
+       animation is only ever declared inside `no-preference`, so a reduced-motion
+       visitor gets a static row and the global 0.01ms animation override never has a
+       chance to freeze the track mid-slide at a half-scrolled offset.
+     * **Hover and focus pause**, so reading a promise does not become a chase.
+
+   The translate distance is `-25%` against four identical copies, which is exactly
+   one copy's width, so the loop has no seam and no drift. Copies are equal-width by
+   construction — same markup, same classes, spacing from padding rather than `gap`,
+   because a `gap` between copies is not included in a percentage translate and shows
+   up as a jump once per cycle. */
+
+@keyframes trust-marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-25%);
+  }
+}
+
+@utility marquee-viewport {
+  overflow: hidden;
+
+  /* Items fade at the edges instead of popping at the container's padding line. */
+  @media (prefers-reduced-motion: no-preference) {
+    mask-image: linear-gradient(
+      to right,
+      transparent,
+      black 2.5rem,
+      black calc(100% - 2.5rem),
+      transparent
+    );
+  }
+}
+
+@utility marquee-track {
+  @media (prefers-reduced-motion: no-preference) {
+    animation: trust-marquee var(--marquee-duration, 40s) linear infinite;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .marquee-region:hover .marquee-track,
+  .marquee-region:focus-within .marquee-track,
+  .marquee-region:has(.marquee-pause:checked) .marquee-track {
+    animation-play-state: paused;
+  }
+}
+
+/*
+ * The ring has to sit on the label: the checkbox is clipped by `sr-only`, so the
+ * global `:focus-visible` box-shadow would be painted somewhere nobody can see.
+ * Same three-layer composition as `:focus-visible` above.
+ */
+.marquee-toggle:has(.marquee-pause:focus-visible) {
+  border-radius: var(--radius-sm);
+  box-shadow:
+    0 0 0 2px var(--color-background),
+    0 0 0 4px var(--color-focus),
+    0 0 0 6px var(--color-lime-400);
+}
+
 /**
  * A rail that scrolls without drawing a scrollbar.
  *
