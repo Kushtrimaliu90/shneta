@@ -51,7 +51,16 @@ function stripLocale(route: string): string {
 }
 
 describe.skipIf(!existsSync(MANIFEST))('the build honours its own cache tiers', () => {
-  const manifest = JSON.parse(readFileSync(MANIFEST, 'utf8')) as Manifest;
+  /*
+   * Guarded again inside the body, not only in the `skipIf`: vitest still EXECUTES a skipped
+   * describe's callback to collect its tests, so an unconditional `readFileSync` here crashed
+   * the whole suite on any machine without a build — exactly the buildless CI Quality job the
+   * skip exists for. The skip decides whether the tests run; this guard decides whether
+   * collection survives. Both read the same condition, so they cannot disagree.
+   */
+  const manifest: Manifest = existsSync(MANIFEST)
+    ? (JSON.parse(readFileSync(MANIFEST, 'utf8')) as Manifest)
+    : { routes: {} };
   const routes = Object.entries(manifest.routes ?? {});
 
   it('found a manifest with routes in it', () => {
