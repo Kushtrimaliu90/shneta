@@ -70,7 +70,7 @@ export function BatchReview({ batch }: { batch: BatchWithRows }) {
           </p>
           {batch.note && <p className="mt-1 text-sm text-ink-900">{batch.note}</p>}
         </div>
-        <span className="bg-ink-100 rounded-sm px-1.5 py-0.5 font-ui text-[11px] font-semibold text-ink-900">
+        <span className="rounded-sm bg-forest-100 px-1.5 py-0.5 font-ui text-[11px] font-semibold text-forest-900">
           {batch.status}
         </span>
       </header>

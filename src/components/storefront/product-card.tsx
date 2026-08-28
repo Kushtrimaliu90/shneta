@@ -7,6 +7,7 @@ import { RatingStars } from '@/components/storefront/rating-stars';
 import { ProductImage } from '@/components/storefront/product-image';
 import { WishlistButton } from '@/features/wishlist/components/wishlist-button';
 import { CompareButton } from '@/features/compare/components/compare-button';
+import { QuickAdd, QuickAddLink } from '@/features/cart/components/quick-add';
 import type { ProductListItem } from '@/features/catalog/types';
 import { percentOff } from '@/lib/money';
 import { cn } from '@/lib/utils';
@@ -17,7 +18,8 @@ import { cn } from '@/lib/utils';
  *
  * The whole card is one link with the product name as its accessible label, rather than
  * several competing links to the same place: a keyboard user should reach a product once,
- * not four times (docs/04 §10). Add-to-cart lands in M4 as a separate control outside it.
+ * not four times (docs/04 §10). Add-to-cart is the quick-add control on the tile — a separate
+ * `z-10` control outside the stretched link, like the wishlist stack (see `quick-add.tsx`).
  *
  * ── The redesign, and what it is built on ──
  *
@@ -154,11 +156,14 @@ export function ProductCard({
 
           aria-hidden because PriceTag still renders the struck-through original with its screen-reader
           'was' prefix, so the saving is already announced once.
+
+          forest-800 on white, which is where docs/04 §6 puts the "-20%" badge — lime is the one
+          accent per viewport and it belongs to "New", not to every discounted tile in a grid.
         */}
         {product.inStock && discount !== null && (
           <span
             aria-hidden="true"
-            className="absolute top-3 left-3 rounded-full bg-lime-500 px-2.5 py-1 font-ui text-[11px] font-bold tracking-wide text-lime-950 shadow-sm"
+            className="absolute top-3 left-3 rounded-full bg-forest-800 px-2.5 py-1 font-ui text-[11px] font-bold tracking-wide text-white shadow-sm"
           >
             −{discount}%
           </span>
@@ -197,6 +202,20 @@ export function ProductCard({
           />
           <CompareButton productId={product.id} productName={name} />
         </div>
+
+        {/*
+          docs/04 §6 — quick add, only while buyable: the out-of-stock band owns the tile's
+          bottom edge otherwise, and an unavailable product must not offer an add. Exactly one
+          active variant makes the add unambiguous, so the card posts the real add-to-cart
+          action; several variants — or an unknown count — link to the PDP instead, because
+          silently defaulting a variant is a recorded bug (docs/13), not a convenience.
+        */}
+        {product.inStock &&
+          (product.variantCount === 1 ? (
+            <QuickAdd variantId={product.variantId} productName={name} />
+          ) : (
+            <QuickAddLink slug={product.slug} productName={name} />
+          ))}
       </div>
 
       <div className="flex flex-1 flex-col gap-1.5 p-4 pt-3.5">

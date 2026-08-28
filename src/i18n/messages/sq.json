@@ -24,7 +24,13 @@
     "brands": "Markat",
     "knowledge": "Njohuri",
     "offers": "Oferta",
-    "biohack": "BioHack"
+    "biohack": "BioHack",
+    "shopMenu": "Kategoritë e dyqanit",
+    "mega": {
+      "promoTitle": "Ofertat e momentit",
+      "promoBody": "Pako dhe ulje që ndryshojnë gjatë muajit.",
+      "promoCta": "Shiko ofertat"
+    }
   },
   "locale": {
     "label": "Gjuha",
@@ -68,9 +74,12 @@
     "sections": {
       "goals": "Bli sipas qëllimit",
       "bestsellers": "Më të shiturat",
+      "bestsellersEyebrow": "Të zgjedhura",
       "categories": "Kategoritë",
       "subscribe": "Abonohu dhe kurse",
       "knowledge": "Nga Qendra e Njohurive",
+      "knowledgeEyebrow": "Lexo dhe mëso",
+      "allArticles": "Shiko të gjithë artikujt",
       "brands": "Markat që mbajmë",
       "allProducts": "Shiko të gjitha produktet",
       "allCategories": "Të gjitha",
@@ -231,6 +240,9 @@
     },
     "overview": {
       "noOrdersYet": "Ende nuk ke porosi.",
+      "latestOrder": "Porosia e fundit",
+      "viewAllOrders": "Shiko të gjitha porositë",
+      "nextDelivery": "Abonimi yt: dërgesa e radhës më {date}.",
       "quickLinks": "Lidhje të shpejta"
     },
     "loyalty": {
@@ -502,7 +514,13 @@
     "ratingSummary": "{rating} ({count})",
     "soldByBiocode": "Shitur dhe dërguar nga BioCode",
     "soldByMerchant": "Shitur nga BioCode, dërguar nga {merchant}",
-    "handlingDays": "përgatitet për {days} ditë"
+    "handlingDays": "përgatitet për {days} ditë",
+    "galleryImageLabel": "Foto {n} nga {total}",
+    "moreInCategoryEyebrow": "Produkte të ngjashme",
+    "moreInCategory": "Më shumë nga {category}",
+    "moreInCategoryCta": "Shiko gjithë kategorinë",
+    "chooseOptions": "Zgjidh opsionet",
+    "chooseOptionsFor": "Zgjidh opsionet për {name}"
   },
   "brands": {
     "title": "Markat",
@@ -548,6 +566,7 @@
   "cart": {
     "title": "Shporta",
     "addToCart": "Shto në shportë",
+    "addToCartNamed": "Shto {name} në shportë",
     "adding": "Duke shtuar…",
     "added": "U shtua në shportë.",
     "remove": "Hiq",
@@ -645,7 +664,8 @@
     "delivery": "Dërgesa",
     "statusLabel": "Statusi",
     "codHeading": "Pagesa në dorëzim",
-    "codBody": "Përgatit {amount} në para të gatshme për korrierin.",
+    "codAmountLabel": "Shuma për të përgatitur",
+    "codSupport": "Mbaje gati në para të gatshme për korrierin.",
     "trackNote": "Mund ta gjurmosh porosinë kurdo me numrin e porosisë dhe email-in.",
     "continueShopping": "Vazhdo blerjen",
     "status": {
@@ -835,6 +855,7 @@
     "empty": "Ende asgjë e publikuar.",
     "emptyHint": "Kthehu së shpejti; po shkruajmë.",
     "readingTime": "{count} min lexim",
+    "latest": "Më e reja",
     "all": "Të gjitha",
     "types": {
       "guide": "Udhëzues",

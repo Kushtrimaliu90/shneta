@@ -80,66 +80,67 @@ export default async function IngredientPage({ params }: Props) {
         </ol>
       </nav>
 
-      <div className="grid gap-12 lg:grid-cols-3">
-        <div className="lg:col-span-2">
-          <div className="flex flex-wrap items-center gap-3">
-            <h1 className="font-display text-3xl font-semibold text-forest-900 lg:text-4xl">
-              {name}
-            </h1>
-            <EvidenceBadge evidence={ingredient.evidence} />
-          </div>
-
-          {ingredient.otherNames.length > 0 && (
-            <p className="mt-2 text-sm text-ink-500">
-              {t('ingredients.alsoKnownAs')}: {ingredient.otherNames.join(', ')}
-            </p>
-          )}
-
-          {pickLocale(ingredient.summary, locale) && (
-            <p className="mt-6 leading-relaxed text-ink-600">
-              {pickLocale(ingredient.summary, locale)}
-            </p>
-          )}
-
-          {pickLocale(ingredient.benefits, locale) && (
-            <section className="mt-10">
-              <h2 className="font-display text-xl font-semibold text-forest-900">
-                {t('ingredients.benefits')}
-              </h2>
-              <p className="mt-3 leading-relaxed text-ink-600">
-                {pickLocale(ingredient.benefits, locale)}
-              </p>
-            </section>
-          )}
-
-          {pickLocale(ingredient.dosageNotes, locale) && (
-            <section className="mt-10">
-              <h2 className="font-display text-xl font-semibold text-forest-900">
-                {t('ingredients.dosage')}
-              </h2>
-              <p className="mt-3 leading-relaxed text-ink-600">
-                {pickLocale(ingredient.dosageNotes, locale)}
-              </p>
-            </section>
-          )}
-
-          {/* docs/05 §6 — safety notes always visible, as a distinct callout. */}
-          {safety && (
-            <section className="mt-10">
-              <div className="flex gap-3 rounded-lg border border-warning/40 bg-warning/5 p-4">
-                <ShieldAlert className="mt-0.5 size-5 shrink-0 text-warning" aria-hidden="true" />
-                <div>
-                  <h2 className="font-medium text-ink-900">{t('ingredients.safety')}</h2>
-                  <p className="mt-1 text-sm leading-relaxed text-ink-600">{safety}</p>
-                </div>
-              </div>
-            </section>
-          )}
+      {/*
+        The prose tier. This ran at `lg:col-span-2` of a three-column grid — ~95 characters a
+        line — while the third column held a three-line disclaimer and then air. The educational
+        copy is reading text, so it caps at `--spacing-text` like an article body, and the
+        disclaimer goes to the page foot, which is where the ingredients index already puts it
+        (docs/08 §7.3 asks for its presence, not for a dedicated column).
+      */}
+      <div className="max-w-text">
+        <div className="flex flex-wrap items-center gap-3">
+          <h1 className="font-display text-3xl font-semibold text-forest-900 lg:text-display-md">
+            {name}
+          </h1>
+          <EvidenceBadge evidence={ingredient.evidence} />
         </div>
 
-        <aside>
-          <p className="text-xs leading-relaxed text-ink-500">{t('ingredients.disclaimer')}</p>
-        </aside>
+        {ingredient.otherNames.length > 0 && (
+          <p className="mt-2 text-sm text-ink-500">
+            {t('ingredients.alsoKnownAs')}: {ingredient.otherNames.join(', ')}
+          </p>
+        )}
+
+        {pickLocale(ingredient.summary, locale) && (
+          <p className="mt-6 leading-relaxed text-ink-900">
+            {pickLocale(ingredient.summary, locale)}
+          </p>
+        )}
+
+        {pickLocale(ingredient.benefits, locale) && (
+          <section className="mt-10">
+            <h2 className="font-display text-xl font-semibold text-forest-900">
+              {t('ingredients.benefits')}
+            </h2>
+            <p className="mt-3 leading-relaxed text-ink-900">
+              {pickLocale(ingredient.benefits, locale)}
+            </p>
+          </section>
+        )}
+
+        {pickLocale(ingredient.dosageNotes, locale) && (
+          <section className="mt-10">
+            <h2 className="font-display text-xl font-semibold text-forest-900">
+              {t('ingredients.dosage')}
+            </h2>
+            <p className="mt-3 leading-relaxed text-ink-900">
+              {pickLocale(ingredient.dosageNotes, locale)}
+            </p>
+          </section>
+        )}
+
+        {/* docs/05 §6 — safety notes always visible, as a distinct callout. */}
+        {safety && (
+          <section className="mt-10">
+            <div className="flex gap-3 rounded-lg border border-warning/40 bg-warning/5 p-4">
+              <ShieldAlert className="mt-0.5 size-5 shrink-0 text-warning" aria-hidden="true" />
+              <div>
+                <h2 className="font-medium text-ink-900">{t('ingredients.safety')}</h2>
+                <p className="mt-1 text-sm leading-relaxed text-ink-600">{safety}</p>
+              </div>
+            </div>
+          </section>
+        )}
       </div>
 
       <section className="mt-16">
@@ -159,6 +160,11 @@ export default async function IngredientPage({ params }: Props) {
           </ol>
         )}
       </section>
+
+      {/* docs/08 §7.3 — mandatory on ingredient surfaces; at the foot, as on the index. */}
+      <p className="mt-12 max-w-3xl border-t border-line pt-6 text-xs leading-relaxed text-ink-500">
+        {t('ingredients.disclaimer')}
+      </p>
     </div>
   );
 }

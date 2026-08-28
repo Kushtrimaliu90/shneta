@@ -118,7 +118,7 @@ export default async function SearchPage({ params, searchParams }: Props) {
 
   return (
     <div className="container-wide py-8 lg:py-12">
-      <h1 className="font-display text-3xl font-semibold text-forest-900">
+      <h1 className="font-display text-3xl font-semibold text-forest-900 lg:text-display-md">
         {t('resultsFor', { query: q })}
       </h1>
 
@@ -165,7 +165,7 @@ export default async function SearchPage({ params, searchParams }: Props) {
 
           {popular.length > 0 && (
             <section className="mt-12">
-              <h2 className="font-display text-xl font-semibold text-forest-900">
+              <h2 className="font-display text-2xl font-semibold text-forest-900 lg:text-3xl">
                 {t('popularTitle')}
               </h2>
               <p className="mt-1 text-sm text-ink-600">{t('popularBody')}</p>
@@ -189,7 +189,7 @@ export default async function SearchPage({ params, searchParams }: Props) {
         <div className="mt-6 flex flex-col gap-10">
           {products.items.length > 0 && (
             <section>
-              <h2 className="font-display text-xl font-semibold text-forest-900">
+              <h2 className="font-display text-2xl font-semibold text-forest-900 lg:text-3xl">
                 {t('tabs.products')}{' '}
                 <span className="font-ui text-sm font-normal text-ink-500" data-numeric>
                   {products.total}
@@ -228,7 +228,7 @@ export default async function SearchPage({ params, searchParams }: Props) {
 
           {ingredients.length > 0 && (
             <section>
-              <h2 className="font-display text-xl font-semibold text-forest-900">
+              <h2 className="font-display text-2xl font-semibold text-forest-900 lg:text-3xl">
                 {t('tabs.ingredients')}{' '}
                 <span className="font-ui text-sm font-normal text-ink-500" data-numeric>
                   {ingredients.length}

@@ -77,7 +77,7 @@ export default async function KnowledgePage({ params, searchParams }: Props) {
   return (
     <div className="container-wide py-8 lg:py-12">
       <header className="mb-8">
-        <h1 className="font-display text-3xl font-semibold text-forest-900 lg:text-4xl">
+        <h1 className="font-display text-3xl font-semibold text-forest-900 lg:text-display-md">
           {t('title')}
         </h1>
         <p className="mt-2 max-w-2xl text-ink-600">{t('intro')}</p>
@@ -156,7 +156,7 @@ export default async function KnowledgePage({ params, searchParams }: Props) {
              * which reads as a duplicate rather than as emphasis.
              */
             <div className="mt-8">
-              <ArticleCardTile article={featured} className="lg:flex-row lg:items-stretch" />
+              <ArticleCardTile article={featured} featured />
             </div>
           )}
 

@@ -51,7 +51,7 @@ export function ProposalReview({ proposal }: { proposal: Proposal }) {
           </p>
         </div>
 
-        <span className="bg-ink-100 rounded-sm px-1.5 py-0.5 font-ui text-[11px] font-semibold text-ink-900">
+        <span className="rounded-sm bg-forest-100 px-1.5 py-0.5 font-ui text-[11px] font-semibold text-forest-900">
           {proposal.status.replace('_', ' ')}
         </span>
       </header>

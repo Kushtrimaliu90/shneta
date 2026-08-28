@@ -38,8 +38,14 @@ export function CouponCard({ coupon }: { coupon: PublicCoupon }) {
         : t('fixedOff', { amount: formatPrice(coupon.value, locale) });
 
   return (
-    <li className="flex flex-col gap-3 rounded-lg border border-line bg-surface p-4">
-      <p className="font-display text-xl font-semibold text-forest-900">{headline}</p>
+    /*
+     * Grounded on forest-50 with a forest-100 hairline rather than a generic white box — a
+     * discount is the promotional content of the offers page, and it was wearing less weight
+     * than an FAQ entry. The dashed forest-800 code row below stays exactly as it is: the dash
+     * is what says "tear-off voucher", and it anchors the card whatever sits behind it.
+     */
+    <li className="flex flex-col gap-3 rounded-lg border border-forest-100 bg-forest-50 p-4">
+      <p className="font-display text-2xl font-semibold text-forest-900">{headline}</p>
 
       <div className="flex flex-col gap-0.5 text-sm text-ink-600">
         {coupon.minSubtotalCents !== null && coupon.minSubtotalCents > 0 && (
@@ -47,7 +53,11 @@ export function CouponCard({ coupon }: { coupon: PublicCoupon }) {
             {t('minSpend', { amount: formatPrice(coupon.minSubtotalCents, locale) })}
           </p>
         )}
-        {coupon.endsAt && <p data-numeric>{t('endsOn', { date: coupon.endsAt.slice(0, 10) })}</p>}
+        {coupon.endsAt && (
+          <p data-numeric>
+            {t('endsOn', { date: new Date(coupon.endsAt).toLocaleDateString(locale) })}
+          </p>
+        )}
       </div>
 
       <div className="mt-auto flex items-center gap-2">
@@ -62,7 +72,8 @@ export function CouponCard({ coupon }: { coupon: PublicCoupon }) {
           onClick={copy}
           aria-label={`${t('copyCode')}: ${coupon.code}`}
           className={cn(
-            'inline-flex size-10 shrink-0 items-center justify-center rounded-sm border border-line-strong transition-colors hover:bg-forest-50',
+            // Hover is forest-100: the card ground is forest-50 now, so a forest-50 hover paints nothing.
+            'inline-flex size-10 shrink-0 items-center justify-center rounded-sm border border-line-strong transition-colors hover:bg-forest-100',
             copied && 'border-success text-success',
           )}
         >

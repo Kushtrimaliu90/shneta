@@ -45,7 +45,7 @@ export default async function IngredientsPage({ params }: Props) {
 
   return (
     <div className="container-wide py-8 lg:py-12">
-      <h1 className="font-display text-3xl font-semibold text-forest-900 lg:text-4xl">
+      <h1 className="font-display text-3xl font-semibold text-forest-900 lg:text-display-md">
         {t('title')}
       </h1>
       <p className="mt-3 max-w-2xl text-ink-600">{t('intro')}</p>
@@ -67,7 +67,8 @@ export default async function IngredientsPage({ params }: Props) {
                   <li key={ingredient.slug}>
                     <Link
                       href={`/ingredients/${ingredient.slug}`}
-                      className="flex flex-col gap-1.5 rounded-lg border border-line bg-surface p-4 transition-colors hover:border-forest-500"
+                      /* `card-interactive` — the shared ring-and-lift recipe (globals.css). */
+                      className="flex h-full card-interactive flex-col gap-1.5 rounded-lg p-4"
                     >
                       <span className="flex flex-wrap items-center gap-2">
                         <span className="font-medium text-ink-900">

@@ -122,10 +122,7 @@ export default async function AdminOrderDetailPage({ params }: Props) {
         {/* ── Main ─────────────────────────────────────────────────────────── */}
         <div className="min-w-0">
           <section aria-labelledby="items-heading">
-            <h2
-              id="items-heading"
-              className="font-ui text-xs font-semibold tracking-[0.08em] text-ink-500 uppercase"
-            >
+            <h2 id="items-heading" className="eyebrow">
               Items
             </h2>
             <div className="mt-3 overflow-x-auto rounded-lg border border-line bg-surface">
@@ -221,10 +218,7 @@ export default async function AdminOrderDetailPage({ params }: Props) {
 
           {order.customerNote && (
             <section aria-labelledby="note-heading" className="mt-8">
-              <h2
-                id="note-heading"
-                className="font-ui text-xs font-semibold tracking-[0.08em] text-ink-500 uppercase"
-              >
+              <h2 id="note-heading" className="eyebrow">
                 Customer note
               </h2>
               <p className="mt-2 rounded-md bg-forest-50 p-3 text-sm text-ink-900">
@@ -242,10 +236,7 @@ export default async function AdminOrderDetailPage({ params }: Props) {
           */}
           {fulfilments.some((entry) => entry.fulfillerKind === 'merchant') && (
             <section aria-labelledby="fulfilments-heading" className="mt-8">
-              <h2
-                id="fulfilments-heading"
-                className="font-ui text-xs font-semibold tracking-[0.08em] text-ink-500 uppercase"
-              >
+              <h2 id="fulfilments-heading" className="eyebrow">
                 Fulfilment
               </h2>
 
@@ -260,7 +251,7 @@ export default async function AdminOrderDetailPage({ params }: Props) {
                         ? 'BioCode'
                         : (entry.merchantName ?? 'Merchant')}
                     </span>
-                    <span className="rounded-sm bg-ink-100 px-1.5 py-0.5 font-ui text-[11px] font-semibold text-ink-900">
+                    <span className="rounded-sm bg-forest-100 px-1.5 py-0.5 font-ui text-[11px] font-semibold text-forest-900">
                       {entry.status.replace('_', ' ')}
                     </span>
                     <span className="text-ink-600" data-numeric>
@@ -420,9 +411,7 @@ export default async function AdminOrderDetailPage({ params }: Props) {
 function Card({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="rounded-lg border border-line bg-surface p-4">
-      <h2 className="font-ui text-xs font-semibold tracking-[0.08em] text-ink-500 uppercase">
-        {title}
-      </h2>
+      <h2 className="eyebrow">{title}</h2>
       <div className="mt-2">{children}</div>
     </section>
   );

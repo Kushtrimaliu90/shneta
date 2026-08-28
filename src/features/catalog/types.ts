@@ -52,6 +52,16 @@ export interface ProductListItem {
   compareAtPriceCents: number | null;
   imagePath: string | null;
   inStock: boolean;
+  /**
+   * How many active variants the product has, or `null` when the caller did not count them.
+   *
+   * Drives the card's quick add (docs/04 §6): exactly **1** means `variantId` is the only thing
+   * the customer could choose, so the card may post add-to-cart itself; anything else — several
+   * variants, or unknown — renders a "choose options" link to the PDP instead. `null` rather
+   * than a defaulted `1`, deliberately: docs/13 records a live bug born of silently assuming a
+   * default variant, and an *unknown* count must degrade to the safe control, never to an add.
+   */
+  variantCount: number | null;
 }
 
 export interface ProductVariantDetail {

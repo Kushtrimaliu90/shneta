@@ -189,9 +189,8 @@ export function AdminTopbar({
           <nav aria-label="Admin sections" className="flex-1 overflow-y-auto px-3 py-4">
             {sections.map((section) => (
               <div key={section.heading} className="mb-5">
-                <h2 className="px-2 pb-1.5 font-ui text-[11px] font-semibold tracking-[0.08em] text-ink-500 uppercase">
-                  {section.heading}
-                </h2>
+                {/* `eyebrow` at 11px, matching the sidebar's group labels. */}
+                <h2 className="px-2 pb-1.5 eyebrow text-[11px]">{section.heading}</h2>
                 <ul className="flex flex-col gap-0.5">
                   {section.items.map((item) => {
                     const active =

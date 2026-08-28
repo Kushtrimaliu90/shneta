@@ -37,10 +37,7 @@ export function OrderTimeline({ orderId, events }: { orderId: string; events: Or
 
   return (
     <section aria-labelledby="timeline-heading">
-      <h2
-        id="timeline-heading"
-        className="font-ui text-xs font-semibold tracking-[0.08em] text-ink-500 uppercase"
-      >
+      <h2 id="timeline-heading" className="eyebrow">
         Timeline
       </h2>
 

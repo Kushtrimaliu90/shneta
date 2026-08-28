@@ -5186,3 +5186,91 @@ Next runtime — so none of this was testable where it was.
 
 End to end, a signed-out person typing `/en/admin` now goes `/en/admin` → `/admin` →
 `/en/auth/sign-in?next=%2Fadmin` → 200.
+
+## AY. The docs/14 deferral covered one strip, and both were skipped
+
+docs/05 §3 closes the PDP with two recommendation strips: "Frequently bought together"
+(`product_relations`) and "Similar products" (same primary category). docs/14 defers "a
+recommendations strip built on an empty table" — a reason that is true of the relations strip and
+only of it. `product_relations` is unpopulated; a product's primary category is not, it is on every
+published product and already fetched by `getProduct`. The deferral had quietly been read as
+covering both, so the PDP ended with the disclaimer and no next step at all.
+
+The category strip is now built: the same cached `listProducts` the category pages use, filtered to
+the primary category, sorted by rating, current slug excluded, rendered as a `bg-forest-50` band in
+the home page's bestsellers voice. Nothing renders when the category holds no other product. The
+relations strip stays deferred, for docs/14's original reason — that one really is waiting on seed
+data.
+
+## AZ. The Shop mega menu ships with a static promo card, and without Framer
+
+docs/04 §6 specs the MegaMenu (Shop) as "4 columns of category links with small icons + a promo
+card (banner-driven)", and §8 lists its fade-scale among the Framer variants in `lib/motion.ts`.
+Built in `desktop-nav.tsx`, with two deliberate deviations:
+
+1. **The promo card is static localized copy pointing at `/offers`, not banner-driven.** No
+   `banners` placement exists for the menu, so "banner-driven" would have meant a new placement
+   value, an admin surface to fill it, and a seed row — for a 16rem tile whose only sensible
+   destination is `/offers`, which is where the static card points anyway. The copy lives under
+   `nav.mega.*` in both locales. If a scheduled campaign ever needs to own that tile,
+   `listBanners(placement)` already does the reading and the card is one `<Link>` to swap.
+
+2. **The fade/translate is CSS (`@starting-style`), not the Framer variant.** §E moved Framer off
+   the critical path and named the mega menu as a client-only widget that could keep it — but the
+   menu mounts in the header, which is on **every** route's critical path, so importing Framer
+   there would undo exactly what §E did. A 200 ms fade needs no library; the reduced-motion
+   fallback is the global CSS rule, as everywhere else.
+
+Data note: the menu's category tiles are the homepage row's reader (`readCategoryTiles`) behind a
+separate `getNavCategoryTiles` wrapper on the **long** cache tier, because the navbar renders in the
+shared layout and a route's cache life is the shortest cache used while rendering it — the rule §AH
+records and the budget test guards. An hourly read here would have quietly re-capped ~170 pages at an hour.
+
+## BA. The brand index becomes a logo grid, and drops the alphabet until it earns its keep
+
+docs/05 §4 specs the brand index as an "alphabet-grouped logo grid + search-as-you-type filter".
+What shipped was the grouping without the logos: `listBrands` selected `logo_path` from day one and
+the storefront rendered it nowhere — not on the index, not on the brand page — so the marketplace's
+brand identity consisted of eight text rows and a country code. Meanwhile the alphabet grouping was
+structure without population: eight brands produced eight letter sections of one or two tiles each,
+with the headings outnumbering some sections' contents.
+
+Two changes, one of them a stated deviation:
+
+1. **The logos render.** Each index tile is now the logo on a plain white pad (`object-contain` —
+   trademark artwork is never cropped or tinted), with a forest-50 monogram panel when `logo_path`
+   is null, which is every seeded brand until the marks are licensed — the same
+   deliberate-surface-not-missing-image argument as the article card's no-cover fallback. The brand
+   detail page gets its identity through new header slots on `ProductListingPage`
+   (`eyebrow`/`media`/`banner`), rather than a parallel header: the logo as a ringed tile beside
+   the h1, and `banner_path` as a full-width band above it under the placement banner's height
+   discipline (`lg:max-h-[12.5rem]` — §"a band, not a billboard"). Goals reuse the same slots for
+   their tagline and image, which is why the slots live on the shared PLP and not on the brand page.
+
+2. **The alphabet grouping is gated behind 20 brands** (`GROUPING_THRESHOLD` in `brands/page.tsx`).
+   Below that the index is one flat grid a visitor scans in a glance; the grouped code path is kept
+   intact and takes over at the threshold, which is roughly where "jump to S" starts beating "read
+   them all". This is a deviation from the spec's unconditional grouping, in the same spirit as the
+   already-recorded omission of its search-as-you-type filter: with eight brands, both are
+   machinery for a catalogue this index does not yet hold.
+
+## BB. The submit spinner is the real ring, and it keeps its label
+
+docs/04 §6 says a submitting button "swaps label for vitality spinner", and §2 names the loading
+spinner as a permitted use of the ring while forbidding "close enough" copies. What shipped was a
+lucide `Loader2` — a hand-me-down ring in the signature device's one sanctioned loading slot — so
+the site's most frequent live signal never showed the device at all. `SubmitButton` now renders the
+real `<VitalityRing>` at a quarter arc, spun by `motion-safe:animate-spin`.
+
+Two deliberate deviations from §6's literal wording:
+
+1. **The label stays beside the spinner rather than being swapped out.** Under
+   `prefers-reduced-motion` the spin is withheld entirely (`motion-safe:`), which leaves a static
+   quarter ring — legible as "busy" only because the (loading) label and `aria-busy` still say so.
+   A spinner-only button would tell a reduced-motion visitor nothing.
+
+2. **The ring gains a `tone` prop** (`brand` default, unchanged everywhere else) because one
+   stroke pair cannot read on both button grounds: on `forest-800` the brand track vanishes into
+   the fill (track becomes white/25, arc lime-400), and on light secondary buttons an 18px
+   lime-500 arc measures under 1.5:1 (arc becomes forest-700) — the same contrast-in-forest,
+   brand-in-lime trade the focus ring makes (§C).

@@ -106,7 +106,7 @@ export default async function AccountReviewsPage({ params }: Props) {
                         className={cn(
                           'size-3.5',
                           star <= review.rating
-                            ? 'fill-lime-500 text-lime-500'
+                            ? 'fill-forest-500 text-forest-500'
                             : 'text-line-strong',
                         )}
                       />

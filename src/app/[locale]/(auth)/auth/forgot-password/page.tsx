@@ -19,9 +19,9 @@ export default async function ForgotPasswordPage({ params }: Props) {
   const t = await getTranslations('auth.forgotPassword');
 
   return (
-    <Card>
+    <Card className="shadow-md">
       <CardHeader>
-        <CardTitle>{t('title')}</CardTitle>
+        <CardTitle className="text-2xl">{t('title')}</CardTitle>
         <CardDescription>{t('subtitle')}</CardDescription>
       </CardHeader>
       <CardContent>

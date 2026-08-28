@@ -47,7 +47,13 @@ export async function IntentBand({ locale }: { locale: Locale }) {
   if (tiles.length === 0) return null;
 
   return (
-    <section aria-labelledby="intent-heading" className="pt-9 pb-11 lg:pt-10 lg:pb-12">
+    /*
+      Below the fold, so it breathes at the spec's section rhythm rather than the fold-budget
+      tightness of the bands at the top of the page. Slightly heavier below than above: the band
+      sits between the white knowledge band and the dark footer, and the larger bottom gap is what
+      keeps it reading as the page's coda rather than the footer's header.
+    */
+    <section aria-labelledby="intent-heading" className="pt-14 pb-16 lg:pt-20 lg:pb-24">
       <div className="container-wide">
         <h2 id="intent-heading" className="sr-only">
           {t('heading')}
@@ -72,11 +78,29 @@ export async function IntentBand({ locale }: { locale: Locale }) {
                 and reads better besides: on a narrow screen a list scans faster than a column of
                 cards, and the tile is still one tap target either way.
               */}
+                {/*
+                  `card-interactive` (globals.css) rather than the bespoke border-swap, so these
+                  tiles answer the cursor in the same voice as every other content tile. The faint
+                  wash it used to swap to is kept on top of the recipe — it composes with the
+                  forest ring — though it now switches without its own easing, since the utility's
+                  transition list carries translate and shadow only.
+                */}
                 <Link
                   href={tile.href}
-                  className="group flex w-full items-center gap-3 rounded-lg border border-line bg-surface p-4 transition-colors hover:border-forest-500 hover:bg-forest-50/40 sm:flex-col sm:items-start sm:gap-2 sm:p-5"
+                  className="group flex w-full card-interactive items-center gap-3 rounded-lg p-4 hover:bg-forest-50/40 sm:flex-col sm:items-start sm:gap-3 sm:p-5"
                 >
-                  <Icon className="size-5 shrink-0 text-forest-500" aria-hidden="true" />
+                  {/*
+                    The icon sits in a tinted disc rather than floating naked on the white card —
+                    a bare 20px glyph had no anchor at card scale. The disc darkens with the tile's
+                    existing colour transition; in the phone's horizontal row the disc's size-10
+                    centres against the two text lines via the row's `items-center`.
+                  */}
+                  <span
+                    className="flex size-10 shrink-0 items-center justify-center rounded-full bg-forest-50 transition-colors group-hover:bg-forest-100"
+                    aria-hidden="true"
+                  >
+                    <Icon className="size-5 text-forest-700" aria-hidden="true" />
+                  </span>
                   <span className="min-w-0">
                     <span className="block font-medium text-ink-900">
                       {pickLocale(tile.title, locale)}

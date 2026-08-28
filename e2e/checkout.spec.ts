@@ -97,6 +97,21 @@ function uniqueEmail(label: string): string {
   return `e2e-${label}-w${process.env.TEST_PARALLEL_INDEX ?? '0'}@biocode.test`;
 }
 
+/**
+ * The COD amount is stated plainly on the success page, and it must be the real total.
+ *
+ * The amount sits on its own line inside the COD panel rather than embedded in a sentence, so
+ * this scopes to the panel — the innermost element that carries the courier sentence — instead
+ * of matching the amount anywhere on the page, where the order summary repeats the same figure.
+ */
+async function expectCodAmount(page: Page, amount: string) {
+  const panel = page
+    .locator('div')
+    .filter({ has: page.getByText('Have it ready in cash for the courier.') })
+    .last();
+  await expect(panel).toContainText(amount);
+}
+
 test.describe('journey 1 — guest buys with cash on delivery', () => {
   test('add to cart, check out, and land on a gated success page', async ({ page }) => {
     const email = uniqueEmail('j1');
@@ -108,8 +123,11 @@ test.describe('journey 1 — guest buys with cash on delivery', () => {
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('Cart');
     await expect(page.getByText(`€${CHEAP_PRICE.toFixed(2)}`).first()).toBeVisible();
 
-    // docs/07 §2 — €30 threshold, so a €9.90 cart is €20.10 short.
-    await expect(page.getByText('Add €20.10 for free delivery.')).toBeVisible();
+    // docs/07 §2 — €30 threshold, so a €9.90 cart is €20.10 short. The nudge renders twice
+    // (above the lines on mobile, in the aside on desktop) with exactly one visible per viewport.
+    await expect(
+      page.getByText('Add €20.10 for free delivery.').filter({ visible: true }),
+    ).toBeVisible();
 
     await page.getByRole('link', { name: 'Continue to payment' }).click();
     await expect(page).toHaveURL(/\/en\/checkout$/);
@@ -129,7 +147,7 @@ test.describe('journey 1 — guest buys with cash on delivery', () => {
     expect(orderNumber).toMatch(ORDER_NUMBER);
 
     // docs/05 §12 — the COD amount is stated plainly, and it is the real total.
-    await expect(page.getByText('Please have €11.90 in cash ready for the courier.')).toBeVisible();
+    await expectCodAmount(page, '€11.90');
 
     // The order summary reflects what was bought, not a generic receipt.
     await expect(page.getByText('NOW-D3-120')).toBeVisible();
@@ -208,7 +226,7 @@ test.describe('journey 3 — a coupon changes the total', () => {
      */
     await expect(page.getByText('WELCOME10')).toBeVisible();
     await expect(page.getByText('−€2.49')).toBeVisible();
-    await expect(page.getByText('Please have €24.41 in cash ready for the courier.')).toBeVisible();
+    await expectCodAmount(page, '€24.41');
   });
 
   test('an expired coupon is refused and the order is not placed', async ({ page }) => {
@@ -222,7 +240,9 @@ test.describe('journey 3 — a coupon changes the total', () => {
     await page.locator('input[name="couponCode"]').fill('EXPIRED5');
     await page.getByRole('button', { name: 'Place order' }).click();
 
-    await expect(page.getByText("That coupon isn't valid.")).toBeVisible({
+    // `.first()` — the message renders twice on failure: the role="alert" Alert at the top of
+    // the form, and a compact echo beside the submit button so the tap does not look dead.
+    await expect(page.getByText("That coupon isn't valid.").first()).toBeVisible({
       timeout: ACTION_TIMEOUT,
     });
     // Still on checkout, cart intact, nothing charged.
@@ -241,7 +261,8 @@ test.describe('journey 3 — a coupon changes the total', () => {
     await page.getByRole('button', { name: 'Place order' }).click();
 
     // Lower-case on purpose: `coupons.code` is citext, so case must not matter.
-    await expect(page.getByText('That coupon needs a higher order total.')).toBeVisible({
+    // `.first()` for the same Alert-plus-echo reason as the expired-coupon test above.
+    await expect(page.getByText('That coupon needs a higher order total.').first()).toBeVisible({
       timeout: ACTION_TIMEOUT,
     });
   });
@@ -387,7 +408,7 @@ test.describe('variant selection', () => {
     });
     // €15.90 + €2.00 delivery — and the SKU proves it was the right variant.
     await expect(page.getByText('NOW-D3-240')).toBeVisible();
-    await expect(page.getByText('Please have €17.90 in cash ready for the courier.')).toBeVisible();
+    await expectCodAmount(page, '€17.90');
   });
 
   test('double-clicking add to cart adds one item, not two', async ({ page }) => {

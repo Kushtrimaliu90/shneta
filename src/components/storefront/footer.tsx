@@ -97,9 +97,8 @@ export async function Footer() {
             <p className="mt-3 text-sm text-white/70">{t('footer.tagline')}</p>
 
             <form action="/api/newsletter" method="post" className="mt-6">
-              <p className="font-ui text-xs font-semibold tracking-[0.08em] text-white/60 uppercase">
-                {t('footer.newsletter.title')}
-              </p>
+              {/* `eyebrow` sets ink-600 for light grounds; the later class re-inks it for this one. */}
+              <p className="eyebrow text-white/60">{t('footer.newsletter.title')}</p>
               <label htmlFor="footer-newsletter-email" className="mt-2 block text-sm text-white/70">
                 {t('footer.newsletter.body')}
               </label>
@@ -137,9 +136,7 @@ export async function Footer() {
 
           {columns.map((column) => (
             <nav key={column.heading} aria-label={column.heading}>
-              <h2 className="font-ui text-xs font-semibold tracking-[0.08em] text-white/60 uppercase">
-                {column.heading}
-              </h2>
+              <h2 className="eyebrow text-white/60">{column.heading}</h2>
               <ul className="mt-4 space-y-2.5">
                 {column.links.map((link) => (
                   <li key={link.href}>
@@ -157,9 +154,7 @@ export async function Footer() {
         </div>
 
         <div className="mt-12 flex flex-wrap items-center gap-x-6 gap-y-3 border-t border-white/15 pt-8">
-          <span className="font-ui text-xs font-semibold tracking-[0.08em] text-white/50 uppercase">
-            {t('footer.payments')}
-          </span>
+          <span className="eyebrow text-white/50">{t('footer.payments')}</span>
           <span className="inline-flex items-center gap-2 rounded-sm border border-white/20 px-3 py-1.5 text-xs text-white/80">
             <Truck className="size-4" aria-hidden="true" />
             {t('footer.codBadge')}

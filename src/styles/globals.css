@@ -335,6 +335,48 @@
   color: var(--color-ink-600);
 }
 
+/**
+ * The product card's surface treatment, packaged for text and content tiles.
+ *
+ * `product-card.tsx` arrived at this the measured way: a full-strength `border-line` box around
+ * every tile made a grid read as a table of boxes, so the card sits on the cream page behind a
+ * 60% hairline ring and a barely-there shadow, and the weight arrives on hover, where it means
+ * something. Any tile that behaves like that card — a knowledge tile, a category tile, a panel
+ * that is one big link — should say so in the same voice, which is why the recipe lives here
+ * instead of being re-derived (and re-drifted) per component.
+ *
+ * The ring is a box-shadow layer, not a border, so a tile's inner box does not change size
+ * because its surface got a treatment. `:focus-within` gets the full hover response because the
+ * tiles this is for wrap a link, and a keyboard user deserves the same answer a pointer gets.
+ * The lift is -2px, half the product card's: these tiles are mostly text, and type that jumps
+ * 4px reads as a glitch where a packshot reads as a response. It is declared only under
+ * `no-preference` — for everyone else the ring and shadow carry the state change alone.
+ * Radius stays at the call site; a tile's shape belongs to its context.
+ */
+@utility card-interactive {
+  background-color: var(--color-surface);
+  box-shadow:
+    0 0 0 1px color-mix(in oklab, var(--color-line) 60%, transparent),
+    0 1px 2px rgb(0 0 0 / 0.04);
+  transition:
+    translate var(--duration-ui) var(--ease-biocode),
+    box-shadow var(--duration-ui) var(--ease-biocode);
+
+  &:hover,
+  &:focus-within {
+    box-shadow:
+      0 0 0 1px color-mix(in oklab, var(--color-forest-500) 40%, transparent),
+      0 16px 32px -16px rgb(15 42 31 / 0.28);
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    &:hover,
+    &:focus-within {
+      translate: 0 -2px;
+    }
+  }
+}
+
 /* ==========================================================================
    Trust-strip marquee — docs/04 §8 carve-out, requested explicitly.
    ==========================================================================
@@ -427,6 +469,28 @@
   &::-webkit-scrollbar {
     display: none;
   }
+}
+
+/**
+ * A trailing-edge fade for a horizontal rail that can overflow (the PLP sort row).
+ *
+ * `no-scrollbar` hides the indicator, which leaves a hard clip as the only sign there is more —
+ * an option cut mid-glyph reads as broken, not as scrollable. Same mask idea as
+ * `marquee-viewport`, tightened to 1.5rem because a toolbar row has less width to give away.
+ *
+ * **Right ramp only.** The symmetric version erased resting content: the rail's first child sits
+ * at x=0, where a leading ramp's alpha is 0 — so the active sort chip (below `sm`) and the first
+ * glyphs of the rail's label rendered half-transparent at scroll 0, permanently, an AA failure
+ * dressed as polish. Overflow at rest only ever appears on the right; content scrolled out on
+ * the LEFT hard-clips at the container edge instead, which is the same "half-visible item
+ * signals more" affordance `no-scrollbar` already relies on. Give the rail interior tail padding
+ * (`pe-6`) so the last option can scroll clear of the ramp at full scroll.
+ *
+ * Static — the mask does not move, so unlike the marquee it needs no reduced-motion guard.
+ * Keyboard reach is untouched — focus still scrolls the next option into view natively.
+ */
+@utility rail-fade-x {
+  mask-image: linear-gradient(to right, black, black calc(100% - 1.5rem), transparent);
 }
 
 /** docs/04 §10 — the skip link is the first tab stop, visible only when focused. */

@@ -1,7 +1,7 @@
 import 'server-only';
 import { cache } from 'react';
 import { unstable_cache } from 'next/cache';
-import { CACHE_TAGS, ISR_REVALIDATE_SECONDS } from '@/lib/constants';
+import { CACHE_TAGS, ISR_REVALIDATE_SECONDS, STATIC_REVALIDATE_SECONDS } from '@/lib/constants';
 import { createPublicClient } from '@/lib/supabase/public';
 import { asLocalizedField, type LocalizedField } from '@/lib/i18n';
 import { logger } from '@/lib/logger';
@@ -99,7 +99,47 @@ export function mapProductRow(row: Record<string, unknown>): ProductListItem {
       row.compare_at_price_cents == null ? null : Number(row.compare_at_price_cents),
     imagePath: row.image_path == null ? null : String(row.image_path),
     inStock: Boolean(row.in_stock),
+    /*
+     * Unknown here: `search_products` returns one representative variant per product and no
+     * count. `fetchProducts` fills this in with a follow-up read; a caller that maps rows
+     * directly (the BioHack finder) leaves it null and the card falls back to its PDP link.
+     */
+    variantCount: null,
   };
+}
+
+/**
+ * Fills `variantCount` in from `product_variants`, one query for the whole page of rows.
+ *
+ * A second round trip rather than a change to `search_products`: the RPC lives in a migration
+ * and variants are already queryable, so counting them here costs one indexed read per *cached*
+ * listing — it runs inside the same `unstable_cache` entry as the rows themselves. On any
+ * failure the counts stay null, which the card treats as "don't quick-add", the safe direction.
+ */
+async function withVariantCounts(items: ProductListItem[]): Promise<ProductListItem[]> {
+  if (items.length === 0) return items;
+
+  const supabase = createPublicClient();
+  const { data, error } = await supabase
+    .from('product_variants')
+    .select('product_id')
+    .in(
+      'product_id',
+      items.map((item) => item.id),
+    )
+    .eq('is_active', true);
+
+  if (error) {
+    logger.error('variant counts failed', { cause: error.message });
+    return items;
+  }
+
+  const counts = new Map<string, number>();
+  for (const row of (data ?? []) as { product_id: string }[]) {
+    counts.set(row.product_id, (counts.get(row.product_id) ?? 0) + 1);
+  }
+
+  return items.map((item) => ({ ...item, variantCount: counts.get(item.id) ?? null }));
 }
 
 const fetchProducts = cache(
@@ -139,7 +179,7 @@ const fetchProducts = cache(
     // `total_count` rides along as a window function, so the count costs no second query.
     const total = Number(rows[0]?.total_count ?? 0);
 
-    const items: ProductListItem[] = rows.map(mapProductRow);
+    const items: ProductListItem[] = await withVariantCounts(rows.map(mapProductRow));
 
     return {
       items,
@@ -577,7 +617,7 @@ const readGoalBySlug = async (slug: string) => {
   const supabase = createPublicClient();
   const { data } = await supabase
     .from('health_goals')
-    .select('slug, name, tagline, description, icon')
+    .select('slug, name, tagline, description, icon, image_path')
     .eq('slug', slug)
     .maybeSingle();
 
@@ -588,6 +628,7 @@ const readGoalBySlug = async (slug: string) => {
     tagline: unknown;
     description: unknown;
     icon: string | null;
+    image_path: string | null;
   };
 
   return {
@@ -596,6 +637,8 @@ const readGoalBySlug = async (slug: string) => {
     tagline: asLocalizedField(goal.tagline),
     description: asLocalizedField(goal.description),
     icon: goal.icon,
+    /* Set from /admin/goals; the lander's header renders it as compact media (docs/05 §5). */
+    imagePath: goal.image_path,
   };
 };
 
@@ -764,6 +807,14 @@ export interface CategoryTile {
   name: LocalizedField;
   productCount: number;
   imagePath: string | null;
+  /*
+   * Which BUCKET `imagePath` lives in. The view coalesces a curated `categories.image_path`
+   * (uploaded by /admin/categories into `brand-assets`) with a representative product photo
+   * (which lives in `product-images`) into ONE path column — so without this flag a renderer
+   * has to guess the bucket, and guessing `product-images` 404s every curated upload the
+   * moment an admin makes one. The flag is the view's own answer.
+   */
+  imageIsCurated: boolean;
   imageAlt: LocalizedField;
 }
 
@@ -780,7 +831,7 @@ async function readCategoryTiles(limit: number): Promise<CategoryTile[]> {
    */
   const { data, error } = await supabase
     .from('v_category_tiles')
-    .select('slug, name, product_count, image_path, image_alt')
+    .select('slug, name, product_count, image_path, image_is_curated, image_alt')
     .order('product_count', { ascending: false })
     .limit(limit);
 
@@ -795,6 +846,7 @@ async function readCategoryTiles(limit: number): Promise<CategoryTile[]> {
       name: unknown;
       product_count: number;
       image_path: string | null;
+      image_is_curated: boolean | null;
       image_alt: unknown;
     }[]
   ).map((row) => ({
@@ -802,6 +854,7 @@ async function readCategoryTiles(limit: number): Promise<CategoryTile[]> {
     name: asLocalizedField(row.name),
     productCount: row.product_count,
     imagePath: row.image_path,
+    imageIsCurated: row.image_is_curated === true,
     imageAlt: asLocalizedField(row.image_alt),
   }));
 }
@@ -811,3 +864,23 @@ export const getCategoryTiles = taxonomyCache(
   CACHE_TAGS.categories,
   (limit: number) => readCategoryTiles(limit),
 );
+
+/**
+ * The same tiles for the Shop mega menu (docs/04 §6), on the **long** tier.
+ *
+ * Not `getCategoryTiles`, and the difference is the revalidate number, not the data. The menu is
+ * rendered by `Navbar`, which the shared storefront layout mounts on every page — and a route's
+ * cache life is the *shortest* cache used while rendering it (docs/13, `build-cache-budget.test.ts`).
+ * The hourly tier that is right for the homepage's category row would quietly cap every legal page,
+ * article and taxonomy page at an hour when their tier asks for a day.
+ *
+ * Nothing here depends on the clock: a category edit purges `CACHE_TAGS.categories`, which is
+ * immediate. The day-long timer only bounds how stale a *product* change (a new photograph, a count)
+ * can leave the menu's decoration, and a thumbnail a day old is not a defect.
+ */
+export const getNavCategoryTiles = cache(async (limit: number): Promise<CategoryTile[]> => {
+  return unstable_cache(() => readCategoryTiles(limit), ['nav-category-tiles', String(limit)], {
+    tags: [CACHE_TAGS.categories],
+    revalidate: STATIC_REVALIDATE_SECONDS,
+  })();
+});

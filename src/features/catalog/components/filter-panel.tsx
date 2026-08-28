@@ -85,7 +85,7 @@ export async function FilterPanel({
    */
 
   const group = 'border-line border-b pb-5';
-  const heading = 'font-ui text-xs font-semibold tracking-[0.08em] text-ink-500 uppercase';
+  const heading = 'eyebrow';
   const option = (active: boolean) =>
     cn(
       'flex min-h-9 items-center gap-2 rounded-sm px-2 text-sm transition-colors',
@@ -96,7 +96,6 @@ export async function FilterPanel({
    * Split so an *active* brand is never hidden behind the disclosure — a filter you cannot see is a
    * filter you cannot turn off, and the chips above the grid are the other half of that promise.
    */
-
 
   return (
     <aside

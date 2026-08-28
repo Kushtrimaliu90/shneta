@@ -317,7 +317,12 @@ export function HeroSlideView({
           both instead of stacking them. Free on any viewport where `min-h` governs.
         */}
         <div className="lg:pb-20 short:lg:pb-12">
-          {eyebrow && <p className={cn('eyebrow', light && 'text-lime-400')}>{eyebrow}</p>}
+          {/*
+            cream/70 on a light slide, not lime. The primary CTA below is already the slide's lime
+            element, and docs/04 §1 allows one accent per viewport — a lime eyebrow made it two.
+            cream at 70% measures ~8.2:1 on forest-950, comfortably AA for 13px semibold caps.
+          */}
+          {eyebrow && <p className={cn('eyebrow', light && 'text-cream/70')}>{eyebrow}</p>}
 
           <Headline
             className={cn(

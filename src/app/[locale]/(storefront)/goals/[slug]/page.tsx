@@ -1,9 +1,11 @@
+import Image from 'next/image';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { Link } from '@/i18n/routing';
 import { resolveLocale } from '@/i18n/locale';
 import { pickLocale } from '@/lib/i18n';
+import { storageUrl } from '@/lib/storage';
 import { ProductListingPage } from '@/features/catalog/components/plp';
 import { parseFilters, type RawSearchParams } from '@/features/catalog/filters';
 import { getGoalBySlug, listGoals } from '@/features/catalog/queries';
@@ -76,14 +78,32 @@ export default async function GoalPage({ params, searchParams }: Props) {
         </ol>
       </nav>
 
-      <section className="container-wide pt-6">
-        <p className="eyebrow">{pickLocale(goal.tagline, locale)}</p>
-      </section>
-
       <ProductListingPage
         filters={filters}
         basePath={`/goals/${slug}`}
         title={name}
+        /*
+          docs/05 §5 — "hero (name, tagline, image)", through the PLP's header slots. The tagline
+          used to be an orphan section of its own, an eyebrow floating 32–48px above the h1 it
+          belonged to; as the header's eyebrow it sits directly on the title. The image the goals
+          index already renders joins it as compact media — these are the highest-value SEO
+          landing pages and they carried none of their own identity.
+        */
+        eyebrow={pickLocale(goal.tagline, locale) || undefined}
+        media={
+          goal.imagePath ? (
+            <span className="relative block size-14 shrink-0 overflow-hidden rounded-lg ring-1 ring-line/60 lg:size-16">
+              <Image
+                src={storageUrl('brand-assets', goal.imagePath)}
+                /* Decorative: the h1 beside it is the goal's name. */
+                alt=""
+                fill
+                sizes="64px"
+                className="object-cover"
+              />
+            </span>
+          ) : undefined
+        }
         // Suppress the placeholder rather than print "[CONTENT: replace]" at a customer.
         intro={isPlaceholder ? undefined : goal.description}
       />

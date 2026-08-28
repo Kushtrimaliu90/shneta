@@ -32,7 +32,7 @@ export default async function ContactPage({ params }: Props) {
   return (
     <div className="container-page py-8 lg:py-12">
       <header className="mb-8">
-        <h1 className="font-display text-3xl font-semibold text-forest-900 lg:text-4xl">
+        <h1 className="font-display text-3xl font-semibold text-forest-900 lg:text-display-md">
           {t('title')}
         </h1>
         <p className="mt-2 max-w-2xl text-ink-600">{t('intro')}</p>
@@ -44,9 +44,7 @@ export default async function ContactPage({ params }: Props) {
         </div>
 
         <aside>
-          <h2 className="font-ui text-xs font-semibold tracking-[0.08em] text-ink-500 uppercase">
-            {t('otherWays')}
-          </h2>
+          <h2 className="eyebrow">{t('otherWays')}</h2>
           <ul className="mt-3 flex flex-col gap-3 text-sm">
             {store.email && (
               <li className="flex items-center gap-2">

@@ -71,7 +71,7 @@ export function ModerationCard({
               key={star}
               className={cn(
                 'size-3.5',
-                star <= review.rating ? 'fill-lime-500 text-lime-500' : 'text-line-strong',
+                star <= review.rating ? 'fill-forest-500 text-forest-500' : 'text-line-strong',
               )}
             />
           ))}

@@ -37,7 +37,7 @@ export default async function GoalsPage({ params }: Props) {
 
   return (
     <div className="container-wide py-8 lg:py-12">
-      <h1 className="font-display text-3xl font-semibold text-forest-900 lg:text-4xl">
+      <h1 className="font-display text-3xl font-semibold text-forest-900 lg:text-display-md">
         {t('title')}
       </h1>
       <p className="mt-3 max-w-2xl text-ink-600">{t('intro')}</p>
@@ -50,7 +50,8 @@ export default async function GoalsPage({ params }: Props) {
             <li key={goal.slug}>
               <Link
                 href={`/goals/${goal.slug}`}
-                className="group flex h-full flex-col overflow-hidden rounded-lg border border-line bg-surface transition-all hover:-translate-y-0.5 hover:border-forest-500 hover:shadow-md"
+                /* `card-interactive` — the shared ring-and-lift recipe (globals.css), not a bespoke one. */
+                className="group flex h-full card-interactive flex-col overflow-hidden rounded-lg"
               >
                 {/*
                   The picture an admin set, or a tinted panel. Same rule as the homepage category row: a
@@ -69,7 +70,7 @@ export default async function GoalsPage({ params }: Props) {
                       alt={pickLocale(goal.name, locale)}
                       fill
                       sizes="(min-width: 1024px) 16rem, (min-width: 640px) 30vw, 45vw"
-                      className="object-cover transition-transform duration-300 group-hover:scale-105"
+                      className="object-cover transition-transform duration-300 group-hover:scale-105 motion-reduce:transition-none motion-reduce:group-hover:scale-100"
                     />
                   )}
                 </div>

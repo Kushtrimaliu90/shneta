@@ -51,6 +51,17 @@ export default async function AccountLoyaltyPage({ params }: Props) {
             <p className="mt-1 text-sm text-ink-600" data-numeric>
               {t('balance', { count: loyalty.balance })}
             </p>
+            {/*
+              The same how-close-am-I sentence the overview card shows under its ring — the
+              destination page must answer at least what the teaser did. The ring itself stays
+              on the overview: docs/04 §2's permitted-use list does not include this page.
+              `ink-600`, not `ink-500`: this card is a forest-50 tint (docs/13 §C).
+            */}
+            <p className="mt-1 text-sm text-ink-600">
+              {loyalty.balance >= loyalty.minRedeemPoints
+                ? t('readyToRedeem')
+                : t('toNextReward', { count: loyalty.minRedeemPoints - loyalty.balance })}
+            </p>
           </div>
 
           {loyalty.entries.length === 0 ? (
@@ -61,7 +72,10 @@ export default async function AccountLoyaltyPage({ params }: Props) {
                 <caption className="sr-only">{t('ledgerTitle')}</caption>
                 <thead>
                   <tr className="border-b border-line bg-forest-50 text-left">
-                    <th scope="col" className="px-3 py-2 font-ui text-xs font-semibold text-ink-600 uppercase">
+                    <th
+                      scope="col"
+                      className="px-3 py-2 font-ui text-xs font-semibold text-ink-600 uppercase"
+                    >
                       {t('ledgerActivity')}
                     </th>
                     <th
@@ -79,7 +93,7 @@ export default async function AccountLoyaltyPage({ params }: Props) {
                         <span className="block text-ink-900">{t(`reason.${entry.reason}`)}</span>
                         <span className="block text-xs text-ink-500">
                           <time dateTime={entry.createdAt} data-numeric>
-                            {entry.createdAt.slice(0, 10)}
+                            {new Date(entry.createdAt).toLocaleDateString(locale)}
                           </time>
                           {entry.orderNumber && (
                             <>

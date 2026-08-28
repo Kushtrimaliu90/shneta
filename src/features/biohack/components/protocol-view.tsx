@@ -12,7 +12,14 @@ import { Button, buttonVariants } from '@/components/ui/button';
 import { Alert } from '@/components/ui/alert';
 import { EvidenceBadge } from '@/components/storefront/evidence-badge';
 import { ProductImage } from '@/components/storefront/product-image';
-import { DAY_PARTS, SLOT_DAY_PART, type DayPart, type ProtocolItem, type ProtocolResult, type TimingSlot } from '@/features/biohack/types';
+import {
+  DAY_PARTS,
+  SLOT_DAY_PART,
+  type DayPart,
+  type ProtocolItem,
+  type ProtocolResult,
+  type TimingSlot,
+} from '@/features/biohack/types';
 import { ProtocolTrace } from '@/features/biohack/components/protocol-trace';
 import { ProtocolActions } from '@/features/biohack/components/protocol-actions';
 
@@ -120,10 +127,8 @@ export function ProtocolView({
   return (
     <div className="flex flex-col gap-8 pb-28">
       <header>
-        <p className="font-ui text-xs font-semibold tracking-wider text-forest-700 uppercase">
-          {t('eyebrow')}
-        </p>
-        <h1 className="mt-2 font-display text-3xl font-semibold text-forest-900 sm:text-4xl">
+        <p className="eyebrow text-forest-700">{t('eyebrow')}</p>
+        <h1 className="mt-2 font-display text-3xl font-semibold text-forest-900 lg:text-display-md">
           {goalLabel ? t('resultFor', { goals: goalLabel }) : t('resultTitle')}
         </h1>
 

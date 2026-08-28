@@ -26,9 +26,9 @@ export default async function SignInPage({ params, searchParams }: Props) {
   const t = await getTranslations('auth.signIn');
 
   return (
-    <Card>
+    <Card className="shadow-md">
       <CardHeader>
-        <CardTitle>{t('title')}</CardTitle>
+        <CardTitle className="text-2xl">{t('title')}</CardTitle>
         <CardDescription>{t('subtitle')}</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-5">

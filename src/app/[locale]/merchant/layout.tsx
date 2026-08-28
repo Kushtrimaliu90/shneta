@@ -74,7 +74,7 @@ export default async function MerchantPortalLayout({
         <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
           <div>
             <p className="eyebrow">{t('eyebrow')}</p>
-            <h1 className="mt-1 font-display text-3xl font-semibold text-forest-900">
+            <h1 className="mt-1 font-display text-3xl font-semibold text-forest-900 lg:text-display-md">
               {merchant.displayName}
             </h1>
           </div>

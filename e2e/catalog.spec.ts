@@ -62,7 +62,6 @@ test.describe('product listing', () => {
       .toBeGreaterThanOrEqual(minimum);
   }
 
-
   test('lists the catalogue in both locales', async ({ page }) => {
     await page.goto('/shop');
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('Dyqani');
@@ -297,7 +296,9 @@ test.describe('product detail', () => {
 });
 
 test.describe('taxonomy pages', () => {
-  test('the brand index groups alphabetically and links to a scoped listing', async ({ page }) => {
+  // The alphabet grouping is gated behind 20 brands (docs/13 §BA), so with the seeded eight this
+  // exercises the flat logo grid; the grouped path shares the same tile and the same links.
+  test('the brand index links each brand to a scoped listing', async ({ page }) => {
     await page.goto('/en/brands');
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('Brands');
 

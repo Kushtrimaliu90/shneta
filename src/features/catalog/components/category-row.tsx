@@ -65,7 +65,8 @@ export async function CategoryRow({ tiles, locale }: { tiles: CategoryTile[]; lo
     /*
      * Tighter above than below. This sits directly under the trust strip and has to clear the fold,
      * so its top padding is the last of the budget described above; the full rhythm returns
-     * underneath, where the gap separates the strip from the intent band rather than from the fold.
+     * underneath, where the gap separates the strip from the bestsellers band rather than from the
+     * fold.
      */
     <section aria-labelledby="categories-heading" className="pt-6 pb-9 lg:pt-7 lg:pb-11">
       <div className="container-wide">
@@ -84,7 +85,13 @@ export async function CategoryRow({ tiles, locale }: { tiles: CategoryTile[]; lo
         */}
         <ul className="-mx-5 no-scrollbar flex snap-x snap-mandatory gap-2.5 overflow-x-auto px-5 sm:mx-0 sm:px-0 lg:gap-3">
           {tiles.map((tile) => {
-            const image = tile.imagePath ? storageUrl('product-images', tile.imagePath) : null;
+            /*
+             * The bucket follows the flag: a curated upload lives in `brand-assets`, a borrowed
+             * product photo in `product-images`. See `CategoryTile.imageIsCurated`.
+             */
+            const image = tile.imagePath
+              ? storageUrl(tile.imageIsCurated ? 'brand-assets' : 'product-images', tile.imagePath)
+              : null;
 
             return (
               <li key={tile.slug} className="shrink-0 snap-start">

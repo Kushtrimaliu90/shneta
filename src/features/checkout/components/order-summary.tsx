@@ -71,9 +71,12 @@ export async function OrderSummary({ order }: { order: OrderSummaryData }) {
                 : formatPrice(order.shippingCents, locale)}
             </dd>
           </div>
-          <div className="flex justify-between border-t border-line pt-2 text-base font-semibold">
+          {/* text-xl — docs/04 §4 prices band, matching the checkout form's total so the two agree. */}
+          <div className="flex items-baseline justify-between border-t border-line pt-2 text-base font-semibold">
             <dt>{t('checkout.total')}</dt>
-            <dd data-numeric>{formatPrice(order.totalCents, locale)}</dd>
+            <dd className="text-xl" data-numeric>
+              {formatPrice(order.totalCents, locale)}
+            </dd>
           </div>
         </dl>
         {/* docs/07 §5 — VAT shown informationally, because pricing is VAT-inclusive. */}

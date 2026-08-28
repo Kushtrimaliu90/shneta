@@ -11,6 +11,7 @@ import { ProductGrid } from '@/features/catalog/components/product-grid';
 import { listProducts } from '@/features/catalog/queries';
 import { listBanners, listPublicCoupons } from '@/features/content/queries';
 import { CouponCard } from '@/features/content/components/coupon-card';
+import { cn } from '@/lib/utils';
 
 type Props = { params: Promise<{ locale: string }> };
 
@@ -57,24 +58,35 @@ export default async function OffersPage({ params }: Props) {
   return (
     <div className="container-wide py-8 lg:py-12">
       <header className="mb-8">
-        <h1 className="font-display text-3xl font-semibold text-forest-900 lg:text-4xl">
+        <h1 className="font-display text-3xl font-semibold text-forest-900 lg:text-display-md">
           {t('title')}
         </h1>
         <p className="mt-2 max-w-2xl text-ink-600">{t('intro')}</p>
       </header>
 
+      {/*
+        The campaign banner is a filled band, not an info box. It used to wear the forest-50
+        outline recipe the FAQ and account notices wear, which made the excitement page quieter
+        than the help page. `bg-forest-900 text-cream` is the announcement bar's register
+        (announcement-bar.tsx), and the CTA carries this page's single lime accent — legitimate
+        since the product cards' sale badges went forest-on-white, and the same
+        lime-on-dark-only rule the hero applies (hero-slide.tsx).
+      */}
       {banner && (
-        <div className="mb-8 rounded-xl border border-forest-800 bg-forest-50 p-5 lg:p-6">
-          <p className="font-display text-xl font-semibold text-forest-900">
+        <div className="mb-8 rounded-xl bg-forest-900 p-6 text-cream lg:p-8">
+          <p className="font-display text-2xl font-semibold lg:text-3xl">
             {pickLocale(banner.title, locale)}
           </p>
           {pickLocale(banner.subtitle, locale) && (
-            <p className="mt-1 text-ink-600">{pickLocale(banner.subtitle, locale)}</p>
+            <p className="mt-1 text-cream/80">{pickLocale(banner.subtitle, locale)}</p>
           )}
           {banner.ctaHref && pickLocale(banner.ctaLabel, locale) && (
             <Link
               href={banner.ctaHref}
-              className={buttonVariants({ size: 'sm', className: 'mt-4' })}
+              className={cn(
+                buttonVariants({ size: 'sm' }),
+                'mt-4 bg-lime-500 text-lime-950 hover:bg-lime-400',
+              )}
             >
               {pickLocale(banner.ctaLabel, locale)}
             </Link>
@@ -97,7 +109,7 @@ export default async function OffersPage({ params }: Props) {
         <div className="flex flex-col gap-12">
           {coupons.length > 0 && (
             <section>
-              <h2 className="font-display text-2xl font-semibold text-forest-900">
+              <h2 className="font-display text-2xl font-semibold text-forest-900 lg:text-3xl">
                 {t('couponsTitle')}
               </h2>
               <ul className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 3xl:grid-cols-4">
@@ -110,7 +122,7 @@ export default async function OffersPage({ params }: Props) {
 
           {onSale.items.length > 0 && (
             <section>
-              <h2 className="font-display text-2xl font-semibold text-forest-900">
+              <h2 className="font-display text-2xl font-semibold text-forest-900 lg:text-3xl">
                 {t('onSaleTitle')}{' '}
                 <span className="font-ui text-sm font-normal text-ink-500" data-numeric>
                   {onSale.total}

@@ -1,19 +1,28 @@
 'use client';
 
 import { useActionState, useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useLocale, useTranslations } from 'next-intl';
 import { ShoppingBag } from 'lucide-react';
 import { pickLocale } from '@/lib/i18n';
 import type { Locale } from '@/lib/constants';
+import { cn } from '@/lib/utils';
 import { Alert } from '@/components/ui/alert';
 import { ActionForm } from '@/components/ui/action-form';
 import { notifyCartChanged } from '@/features/cart/cart-events';
 import { PriceTag } from '@/components/storefront/price-tag';
 import { SellerLine } from '@/components/storefront/seller-line';
 import { SubmitButton } from '@/components/ui/submit-button';
-import { addToCart, type CartResult } from '@/features/cart/actions';
+import { addToCartAction, type CartResult } from '@/features/cart/actions';
 import { SubscribeToggle } from '@/features/subscriptions/components/subscribe-toggle';
 import type { ProductVariantDetail } from '@/features/catalog/types';
+
+/**
+ * The purchase form's DOM id — what lets the sticky mobile bar's button submit it from outside
+ * the form element (`form` attribute), and what the IntersectionObserver looks up. One BuyBox
+ * per page (the PDP), so a fixed id is safe.
+ */
+const BUY_FORM_ID = 'buy-box-form';
 
 /**
  * docs/05 §3 — the PDP purchase panel: price, variant choice, stock line, add to cart.
@@ -38,16 +47,21 @@ import type { ProductVariantDetail } from '@/features/catalog/types';
  */
 export function BuyBox({
   variants,
+  productName,
   subscriptionDiscountPct = 0,
 }: {
   variants: ProductVariantDetail[];
+  /** Names the sticky bar's submit apart from the form's own — see `MobileBuyBar`. */
+  productName: string;
   /** docs/07 §8.1 — 0 hides the subscribe option entirely, which is the off switch. */
   subscriptionDiscountPct?: number;
 }) {
-  const [state, formAction] = useActionState<CartResult | null, FormData>(
-    async (_previous, formData) => addToCart(formData),
-    null,
-  );
+  /*
+   * The server-action reference, not a client closure around `addToCart`: only a reference gets
+   * the progressive-enhancement wiring into the server HTML, and "without JavaScript the radios
+   * still post" (above) is only true with it. See `addToCartAction`'s comment.
+   */
+  const [state, formAction] = useActionState<CartResult | null, FormData>(addToCartAction, null);
 
   // Tells the navbar badge to refetch — see `CartBadge` and docs/13 §M1.
   useEffect(() => {
@@ -55,6 +69,44 @@ export function BuyBox({
   }, [state]);
   const t = useTranslations();
   const locale = useLocale() as Locale;
+
+  /*
+   * docs/05 §3 — the sticky mobile buy bar shows only while the real purchase form is off
+   * screen. Observed by id rather than by ref because `ActionForm` owns its form element;
+   * `true` until the observer reports, so the bar cannot flash over a form that is on screen
+   * at load.
+   */
+  const [formVisible, setFormVisible] = useState(true);
+  useEffect(() => {
+    const form = document.getElementById(BUY_FORM_ID);
+    if (!form) return;
+    const observer = new IntersectionObserver(([entry]) => {
+      setFormVisible(entry ? entry.isIntersecting : true);
+    });
+    observer.observe(form);
+    return () => observer.disconnect();
+  }, []);
+
+  /*
+   * The bar also stands down while the site footer is on screen. The footer's last row — the
+   * legal links and the copyright line — sits inside the bar's ~65px, and the document reserves
+   * no scroll space for a fixed overlay, so at maximum scroll those links could NEVER be
+   * scrolled clear of it: a permanent tap-and-focus shadow over interactive content (WCAG
+   * 2.4.11 territory). A shopper reading the footer is not mid-purchase; the bar returns the
+   * moment they scroll back up. `false` until the observer reports: the footer starts
+   * off-screen on any page tall enough to show the bar at all.
+   */
+  const [footerVisible, setFooterVisible] = useState(false);
+  useEffect(() => {
+    /* The storefront layout renders exactly one <footer> landmark. */
+    const footer = document.querySelector('footer');
+    if (!footer) return;
+    const observer = new IntersectionObserver(([entry]) => {
+      setFooterVisible(entry ? entry.isIntersecting : false);
+    });
+    observer.observe(footer);
+    return () => observer.disconnect();
+  }, []);
 
   /*
    * Opening selection: the default variant, unless it is out of stock and something else is
@@ -75,7 +127,7 @@ export function BuyBox({
   const soldOut = selected.stockStatus === 'out_of_stock';
 
   return (
-    <ActionForm action={formAction} state={state} className="flex flex-col gap-6">
+    <ActionForm id={BUY_FORM_ID} action={formAction} state={state} className="flex flex-col gap-6">
       <div>
         <PriceTag
           priceCents={selected.priceCents}
@@ -92,9 +144,7 @@ export function BuyBox({
          * as one control. `<fieldset>`/`<legend>` gives it its name without any ARIA.
          */
         <fieldset>
-          <legend className="font-ui text-xs font-semibold tracking-[0.08em] text-ink-500 uppercase">
-            {t('product.options')}
-          </legend>
+          <legend className="eyebrow">{t('product.options')}</legend>
           <ul className="mt-3 flex flex-wrap gap-2">
             {variants.map((option) => {
               const unavailable = option.stockStatus === 'out_of_stock';
@@ -175,6 +225,107 @@ export function BuyBox({
         )}
         {state && !state.ok && <Alert tone="error">{t(state.error)}</Alert>}
       </div>
+
+      {/*
+        Inside the ActionForm on purpose, even though its DOM lands in the layout's bottom
+        stack: `useFormStatus` in the bar's SubmitButton reads the form's status through the
+        React tree, and a portal keeps that tree while moving the DOM.
+      */}
+      <MobileBuyBar
+        show={!formVisible && !footerVisible && !soldOut}
+        variant={selected}
+        productName={productName}
+      />
     </ActionForm>
+  );
+}
+
+/**
+ * docs/05 §3 — the sticky mobile bar: selected-variant price plus the add-to-cart action,
+ * pinned to the bottom edge while the purchase form is scrolled away.
+ *
+ * It is **the same form**, not a second one: the button carries `form={BUY_FORM_ID}`, so the
+ * browser submits the real purchase form with whatever variant and subscribe choice is selected
+ * up there — no duplicated action wiring, and `useFormStatus` disables both buttons during the
+ * one round trip.
+ *
+ * Rendered into the layout's `#bottom-stack-slot` rather than fixing itself — two elements
+ * pinned to the same edge always end with one swallowing the other's clicks (docs/13 §N8), and
+ * the stack exists so the consent banner and this bar negotiate by stacking. Same pattern as
+ * `protocol-actions.tsx`. Opaque surface, not translucent: a pinned bar cannot promise AA
+ * contrast against a background it does not control (docs/13 §T5).
+ *
+ * Enter/exit is a translate inside `motion-safe` — `starting:translate-y-full` slides it in on
+ * mount, the `show` flag slides it out, and unmount trails by a timer slightly past
+ * `--duration-ui` so the exit is visible without leaving a hidden bar holding stack height.
+ */
+function MobileBuyBar({
+  show,
+  variant,
+  productName,
+}: {
+  show: boolean;
+  variant: ProductVariantDetail;
+  productName: string;
+}) {
+  const t = useTranslations();
+
+  /** The layout's bottom stack. Resolved after mount, like `protocol-actions.tsx`. */
+  const [slot, setSlot] = useState<HTMLElement | null>(null);
+  useEffect(() => setSlot(document.getElementById('bottom-stack-slot')), []);
+
+  /*
+   * A timer rather than `transitionend`: under `prefers-reduced-motion` the transition never
+   * runs, so waiting on its end event would leave the translated-away bar mounted forever —
+   * invisible, but still intercepting taps meant for the consent banner beneath it.
+   */
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    if (show) {
+      setMounted(true);
+      return;
+    }
+    const timer = setTimeout(() => setMounted(false), 300);
+    return () => clearTimeout(timer);
+  }, [show]);
+
+  if (!slot || !mounted) return null;
+
+  return createPortal(
+    <div
+      className={cn(
+        'border-t border-line bg-surface shadow-lg lg:hidden',
+        'motion-safe:transition-transform motion-safe:duration-[var(--duration-ui)] motion-safe:ease-[var(--ease-biocode)]',
+        'motion-safe:starting:translate-y-full',
+        /*
+          While sliding out, the bar hangs translated over whatever sits under it in the
+          bottom stack — `pointer-events-none` keeps those 300ms from eating a tap meant
+          for the consent banner.
+        */
+        show ? 'translate-y-0' : 'pointer-events-none translate-y-full',
+      )}
+    >
+      <div className="flex items-center justify-between gap-3 px-4 py-2.5 sm:px-6">
+        <PriceTag
+          priceCents={variant.priceCents}
+          compareAtPriceCents={variant.compareAtPriceCents}
+        />
+        {/*
+          The named label keeps this button's accessible name distinct from the form's own
+          "Add to cart" submit — the two are briefly in the tree together, and an unscoped
+          getByRole('button', { name: 'Add to cart' }) (seven e2e call sites) must keep
+          resolving to exactly one element. Same treatment quick-add.tsx gives its buttons.
+        */}
+        <SubmitButton
+          form={BUY_FORM_ID}
+          loadingLabel={t('cart.adding')}
+          aria-label={t('cart.addToCartNamed', { name: productName })}
+        >
+          <ShoppingBag className="size-5" aria-hidden="true" />
+          {t('cart.addToCart')}
+        </SubmitButton>
+      </div>
+    </div>,
+    slot,
   );
 }

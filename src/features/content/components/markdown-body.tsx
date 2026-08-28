@@ -63,22 +63,29 @@ export function MarkdownBody({ markdown, className }: { markdown: string; classN
       className={cn(
         // docs/04 §5 — prose styling lives here rather than in a plugin, so the rhythm matches
         // the rest of the site instead of Tailwind Typography's own scale.
+        /*
+         * The body inherits the wrapper's `ink-900`. Paragraphs, lists and table cells used to
+         * override it to `ink-600`, which put entire articles — the thing the page exists for —
+         * in the secondary-text token, with `strong` bolted back to `ink-900` to compensate.
+         * `ink-600` is for text that supports a primary element (the blockquote keeps it, as an
+         * aside by definition); an article's own sentences ARE the primary element.
+         */
         'flex flex-col gap-4 text-ink-900',
         '[&_h2]:mt-8 [&_h2]:font-display [&_h2]:text-2xl [&_h2]:font-semibold [&_h2]:text-forest-900',
         '[&_h3]:mt-6 [&_h3]:font-display [&_h3]:text-xl [&_h3]:font-semibold [&_h3]:text-forest-900',
         '[&_h4]:mt-4 [&_h4]:font-medium [&_h4]:text-forest-900',
-        '[&_p]:leading-relaxed [&_p]:text-ink-600',
-        '[&_ul]:flex [&_ul]:list-disc [&_ul]:flex-col [&_ul]:gap-1.5 [&_ul]:pl-5 [&_ul]:text-ink-600',
-        '[&_ol]:flex [&_ol]:list-decimal [&_ol]:flex-col [&_ol]:gap-1.5 [&_ol]:pl-5 [&_ol]:text-ink-600',
+        '[&_p]:leading-relaxed',
+        '[&_ul]:flex [&_ul]:list-disc [&_ul]:flex-col [&_ul]:gap-1.5 [&_ul]:pl-5',
+        '[&_ol]:flex [&_ol]:list-decimal [&_ol]:flex-col [&_ol]:gap-1.5 [&_ol]:pl-5',
         '[&_a]:rounded-sm [&_a]:text-forest-800 [&_a]:underline [&_a]:underline-offset-4',
-        '[&_strong]:font-semibold [&_strong]:text-ink-900',
+        '[&_strong]:font-semibold',
         '[&_blockquote]:border-l-2 [&_blockquote]:border-forest-800 [&_blockquote]:bg-forest-50 [&_blockquote]:px-4 [&_blockquote]:py-3 [&_blockquote]:text-ink-600',
         '[&_hr]:border-line',
         '[&_img]:rounded-lg [&_img]:border [&_img]:border-line',
         // Tables scroll rather than overflow the page on a 360 px screen (docs/04 §8).
         '[&_table]:block [&_table]:w-full [&_table]:border-collapse [&_table]:overflow-x-auto [&_table]:text-sm',
-        '[&_th]:border-b [&_th]:border-line-strong [&_th]:px-3 [&_th]:py-2 [&_th]:text-left [&_th]:font-semibold [&_th]:text-ink-900',
-        '[&_td]:border-b [&_td]:border-line [&_td]:px-3 [&_td]:py-2 [&_td]:text-ink-600',
+        '[&_th]:border-b [&_th]:border-line-strong [&_th]:px-3 [&_th]:py-2 [&_th]:text-left [&_th]:font-semibold',
+        '[&_td]:border-b [&_td]:border-line [&_td]:px-3 [&_td]:py-2',
         className,
       )}
     >

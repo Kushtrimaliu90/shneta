@@ -33,12 +33,17 @@ export function RatingStars({
   return (
     <p className={cn('flex items-center gap-1.5', className)}>
       <span className="flex" aria-hidden="true">
+        {/*
+          Forest, not lime. docs/04 §3 scopes lime-500 to the CTA hover ring, the vitality ring and
+          the New/In-stock badges — one accent per viewport — and a reviewed catalogue would repeat
+          a lime star row on every card in the grid.
+        */}
         {[1, 2, 3, 4, 5].map((star) => (
           <Star
             key={star}
             className={cn(
               starSize,
-              star <= rounded ? 'fill-lime-500 text-lime-500' : 'text-line-strong',
+              star <= rounded ? 'fill-forest-500 text-forest-500' : 'text-line-strong',
             )}
           />
         ))}

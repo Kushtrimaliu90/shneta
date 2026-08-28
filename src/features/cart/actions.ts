@@ -178,6 +178,24 @@ export async function addToCart(formData: FormData): Promise<CartResult> {
   }
 }
 
+/**
+ * `addToCart` in the `(previousState, formData)` shape `useActionState` calls.
+ *
+ * The shape is not the point — the **reference** is. React only emits the progressive-enhancement
+ * form wiring (a real POST action plus the $ACTION_ID inputs) when the function handed to
+ * `useActionState` is a server reference; wrapping `addToCart` in an inline client closure left
+ * the server-rendered form with React's inert placeholder action, so a submit before hydration
+ * posted nothing at all. BuyBox and QuickAdd both promise "works before JavaScript"
+ * (commits e3b2309/ab83cc1 are the same contract on the auth forms); this export is what makes
+ * that promise true. The previous state is deliberately unused — the action is stateless.
+ */
+export async function addToCartAction(
+  _previous: CartResult | null,
+  formData: FormData,
+): Promise<CartResult> {
+  return addToCart(formData);
+}
+
 export async function updateCartQuantity(formData: FormData): Promise<CartResult> {
   const parsed = updateQuantitySchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return cartFail('cart.errors.generic');

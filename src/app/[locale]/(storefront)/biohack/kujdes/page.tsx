@@ -30,7 +30,8 @@ export default async function GatedPage({ params }: Props) {
   const t = await getTranslations({ locale, namespace: 'biohack' });
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-16 sm:px-6 lg:py-24">
+    /* Prose tier (docs/04 §1) — a reading page, so it sets the site's reading measure and gutters. */
+    <div className="container-text py-16 lg:py-24">
       <span className="flex size-12 items-center justify-center rounded-full bg-forest-50 text-forest-700">
         <ShieldCheck className="size-6" aria-hidden="true" />
       </span>
@@ -44,10 +45,7 @@ export default async function GatedPage({ params }: Props) {
         <Link href="/knowledge" className={buttonVariants({ size: 'lg' })}>
           {t('gatedKnowledge')}
         </Link>
-        <Link
-          href="/biohack"
-          className={buttonVariants({ variant: 'secondary', size: 'lg' })}
-        >
+        <Link href="/biohack" className={buttonVariants({ variant: 'secondary', size: 'lg' })}>
           {t('gatedBack')}
         </Link>
       </div>

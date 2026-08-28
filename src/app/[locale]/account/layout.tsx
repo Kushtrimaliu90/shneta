@@ -46,7 +46,7 @@ export default async function AccountLayout({
         <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
           <div>
             <p className="eyebrow">{t('account.title')}</p>
-            <h1 className="mt-1 font-display text-3xl font-semibold text-forest-900">
+            <h1 className="mt-1 font-display text-3xl font-semibold text-forest-900 lg:text-display-md">
               {t('account.greeting', { name: profile.fullName || profile.email })}
             </h1>
           </div>

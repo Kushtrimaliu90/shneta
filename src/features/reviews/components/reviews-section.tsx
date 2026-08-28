@@ -1,7 +1,7 @@
 'use client';
 
 import { useActionState, useEffect, useState, useTransition } from 'react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { BadgeCheck, Star, ThumbsUp } from 'lucide-react';
 import { Link } from '@/i18n/routing';
 import { Alert } from '@/components/ui/alert';
@@ -153,6 +153,7 @@ function ReviewCard({
   onVoted: (voted: boolean) => void;
 }) {
   const t = useTranslations('review');
+  const locale = useLocale();
   const [pending, startTransition] = useTransition();
   const [count, setCount] = useState(review.helpfulCount);
 
@@ -184,7 +185,8 @@ function ReviewCard({
               key={star}
               className={cn(
                 'size-3.5',
-                star <= review.rating ? 'fill-lime-500 text-lime-500' : 'text-line-strong',
+                /* Forest, not lime: the panel above holds the block's one accent (docs/04 §3). */
+                star <= review.rating ? 'fill-forest-500 text-forest-500' : 'text-line-strong',
               )}
             />
           ))}
@@ -201,7 +203,7 @@ function ReviewCard({
         )}
 
         <time dateTime={review.createdAt} className="ml-auto text-xs text-ink-500" data-numeric>
-          {new Date(review.createdAt).toISOString().slice(0, 10)}
+          {new Date(review.createdAt).toLocaleDateString(locale)}
         </time>
       </div>
 
@@ -353,7 +355,7 @@ function ReviewForm({ productId, onDone }: { productId: string; onDone: () => vo
               <Star
                 className={cn(
                   'size-7',
-                  star <= rating ? 'fill-lime-500 text-lime-500' : 'text-line-strong',
+                  star <= rating ? 'fill-forest-500 text-forest-500' : 'text-line-strong',
                 )}
               />
             </button>

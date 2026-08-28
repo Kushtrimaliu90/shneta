@@ -226,9 +226,7 @@ export default async function AdminCustomerPage({ params }: Props) {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="mt-8">
-      <h2 className="font-ui text-xs font-semibold tracking-[0.08em] text-ink-500 uppercase">
-        {title}
-      </h2>
+      <h2 className="eyebrow">{title}</h2>
       <div className="mt-2">{children}</div>
     </section>
   );

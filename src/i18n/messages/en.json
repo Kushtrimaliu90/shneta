@@ -24,7 +24,13 @@
     "brands": "Brands",
     "knowledge": "Knowledge",
     "offers": "Offers",
-    "biohack": "BioHack"
+    "biohack": "BioHack",
+    "shopMenu": "Shop categories",
+    "mega": {
+      "promoTitle": "Current offers",
+      "promoBody": "Bundles and reductions that change through the month.",
+      "promoCta": "See the offers"
+    }
   },
   "locale": {
     "label": "Language",
@@ -68,9 +74,12 @@
     "sections": {
       "goals": "Shop by goal",
       "bestsellers": "Bestsellers",
+      "bestsellersEyebrow": "Curated picks",
       "categories": "Categories",
       "subscribe": "Subscribe and save",
       "knowledge": "From the Knowledge Center",
+      "knowledgeEyebrow": "Read and learn",
+      "allArticles": "See all articles",
       "brands": "Brands we carry",
       "allProducts": "See all products",
       "allCategories": "See all",
@@ -231,6 +240,9 @@
     },
     "overview": {
       "noOrdersYet": "You haven't ordered anything yet.",
+      "latestOrder": "Latest order",
+      "viewAllOrders": "View all orders",
+      "nextDelivery": "Your subscription: next delivery on {date}.",
       "quickLinks": "Quick links"
     },
     "loyalty": {
@@ -502,7 +514,13 @@
     "ratingSummary": "{rating} ({count})",
     "soldByBiocode": "Sold and shipped by BioCode",
     "soldByMerchant": "Sold by BioCode, shipped by {merchant}",
-    "handlingDays": "ships in {days} day(s)"
+    "handlingDays": "ships in {days} day(s)",
+    "galleryImageLabel": "Image {n} of {total}",
+    "moreInCategoryEyebrow": "Similar products",
+    "moreInCategory": "More in {category}",
+    "moreInCategoryCta": "Browse the whole category",
+    "chooseOptions": "Choose options",
+    "chooseOptionsFor": "Choose options for {name}"
   },
   "brands": {
     "title": "Brands",
@@ -548,6 +566,7 @@
   "cart": {
     "title": "Cart",
     "addToCart": "Add to cart",
+    "addToCartNamed": "Add {name} to cart",
     "adding": "Adding…",
     "added": "Added to your cart.",
     "remove": "Remove",
@@ -645,7 +664,8 @@
     "delivery": "Delivery",
     "statusLabel": "Status",
     "codHeading": "Cash on delivery",
-    "codBody": "Please have {amount} in cash ready for the courier.",
+    "codAmountLabel": "Amount to prepare",
+    "codSupport": "Have it ready in cash for the courier.",
     "trackNote": "You can track this order any time with the order number and your email.",
     "continueShopping": "Continue shopping",
     "status": {
@@ -835,6 +855,7 @@
     "empty": "Nothing published yet.",
     "emptyHint": "Come back shortly; we are writing.",
     "readingTime": "{count} min read",
+    "latest": "Latest",
     "all": "All",
     "types": {
       "guide": "Guides",

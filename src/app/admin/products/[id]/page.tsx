@@ -105,9 +105,7 @@ export default async function AdminProductEditorPage({ params }: Props) {
       */}
       {product.status !== 'published' && (
         <div className="mt-6 rounded-lg border border-line bg-surface p-4">
-          <h2 className="font-ui text-xs font-semibold tracking-[0.08em] text-ink-500 uppercase">
-            Before this can be published
-          </h2>
+          <h2 className="eyebrow">Before this can be published</h2>
           {product.publishBlockers.length === 0 ? (
             <p className="mt-2 text-sm text-success">
               Everything is in place.{' '}
@@ -157,9 +155,7 @@ export default async function AdminProductEditorPage({ params }: Props) {
           collapse the separation the review workflow exists to create.
         */
         <div className="mt-8 max-w-3xl">
-          <h2 className="font-ui text-xs font-semibold tracking-[0.08em] text-ink-500 uppercase">
-            Claim-bearing fields
-          </h2>
+          <h2 className="eyebrow">Claim-bearing fields</h2>
           <dl className="mt-3 flex flex-col gap-4 rounded-lg border border-line bg-surface p-4 text-sm">
             {(
               [

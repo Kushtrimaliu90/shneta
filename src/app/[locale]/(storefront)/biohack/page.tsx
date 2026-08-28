@@ -57,9 +57,7 @@ export default async function BioHackPage({ params, searchParams }: Props) {
   const t = await getTranslations('biohack');
   const goals = await getProtocolGoals();
 
-  const selected = readGoals(raw.goals).filter((slug) =>
-    goals.some((goal) => goal.slug === slug),
-  );
+  const selected = readGoals(raw.goals).filter((slug) => goals.some((goal) => goal.slug === slug));
 
   /*
    * Three question steps now, not two (docs/15 §9).
@@ -117,60 +115,61 @@ export default async function BioHackPage({ params, searchParams }: Props) {
   const budgetTiers = config?.settings.budgetTiers ?? [2000, 4000];
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-10 sm:px-6 lg:py-14">
-      <p className="font-ui text-xs font-semibold tracking-wider text-forest-700 uppercase">
-        {t('eyebrow')}
-      </p>
-      <h1 className="mt-2 font-display text-3xl font-semibold text-forest-900 sm:text-4xl">
-        {t('title')}
-      </h1>
-      <p className="mt-3 max-w-2xl text-ink-600">{t('intro')}</p>
+    /* Width tier (docs/04 §1) — the site grid's gutters, with the form column capped inside it. */
+    <div className="container-page py-8 lg:py-12">
+      <div className="mx-auto max-w-4xl">
+        <p className="eyebrow text-forest-700">{t('eyebrow')}</p>
+        <h1 className="mt-2 font-display text-3xl font-semibold text-forest-900 lg:text-display-md">
+          {t('title')}
+        </h1>
+        <p className="mt-3 max-w-2xl text-ink-600">{t('intro')}</p>
 
-      <p className="mt-6 font-ui text-sm text-ink-500" data-numeric>
-        {t('step', { current: step, total: 4 })}
-      </p>
-
-      {errorMessage && (
-        <Alert tone="error" className="mt-4">
-          {errorMessage}
-        </Alert>
-      )}
-
-      <section className="mt-6">
-        <h2 className="font-display text-xl font-semibold text-forest-900">
-          {step === 1 ? t('goalsTitle') : step === 2 ? t('aboutYouTitle') : t('refineTitle')}
-        </h2>
-        <p className="mt-1 mb-6 text-sm text-ink-600">
-          {step === 1 ? t('goalsHint') : step === 2 ? t('aboutYouHint') : t('refineHint')}
+        <p className="mt-6 font-ui text-sm text-ink-500" data-numeric>
+          {t('step', { current: step, total: 4 })}
         </p>
 
-        {step === 1 && <GoalPicker goals={goals} selected={selected} action={basePath} />}
-
-        {step === 2 && (
-          <AboutYouForm
-            goals={selected}
-            answers={answers}
-            action={basePath}
-            backHref={`${basePath}?${goalsQuery(selected)}`}
-          />
+        {errorMessage && (
+          <Alert tone="error" className="mt-4">
+            {errorMessage}
+          </Alert>
         )}
 
-        {step === 3 && (
-          <RefineForm
-            goals={selected}
-            answers={answers}
-            locale={locale}
-            budgetTiers={budgetTiers}
-            /*
-             * Back to step 2 with the bands still in the URL, so returning does not silently
-             * discard five answers — the property the whole query-string design exists for.
-             */
-            backHref={`${basePath}?step=2&${answersToParams(answers).toString()}`}
-          />
-        )}
-      </section>
+        <section className="mt-6">
+          <h2 className="font-display text-xl font-semibold text-forest-900">
+            {step === 1 ? t('goalsTitle') : step === 2 ? t('aboutYouTitle') : t('refineTitle')}
+          </h2>
+          <p className="mt-1 mb-6 text-sm text-ink-600">
+            {step === 1 ? t('goalsHint') : step === 2 ? t('aboutYouHint') : t('refineHint')}
+          </p>
 
-      <p className="mt-10 border-t border-line pt-6 text-xs text-ink-500">{t('disclaimer')}</p>
+          {step === 1 && <GoalPicker goals={goals} selected={selected} action={basePath} />}
+
+          {step === 2 && (
+            <AboutYouForm
+              goals={selected}
+              answers={answers}
+              action={basePath}
+              backHref={`${basePath}?${goalsQuery(selected)}`}
+            />
+          )}
+
+          {step === 3 && (
+            <RefineForm
+              goals={selected}
+              answers={answers}
+              locale={locale}
+              budgetTiers={budgetTiers}
+              /*
+               * Back to step 2 with the bands still in the URL, so returning does not silently
+               * discard five answers — the property the whole query-string design exists for.
+               */
+              backHref={`${basePath}?step=2&${answersToParams(answers).toString()}`}
+            />
+          )}
+        </section>
+
+        <p className="mt-10 border-t border-line pt-6 text-xs text-ink-500">{t('disclaimer')}</p>
+      </div>
     </div>
   );
 }

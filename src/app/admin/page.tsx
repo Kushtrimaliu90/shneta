@@ -78,10 +78,7 @@ export default async function AdminDashboardPage() {
         permanently-lit amber pill in the sidebar would not.
       */}
       <section aria-labelledby="attention-heading" className="mt-6">
-        <h2
-          id="attention-heading"
-          className="flex items-center gap-1.5 font-ui text-xs font-semibold tracking-[0.08em] text-ink-500 uppercase"
-        >
+        <h2 id="attention-heading" className="flex items-center gap-1.5 eyebrow">
           <AlertTriangle className="size-3.5" aria-hidden="true" />
           Needs attention
         </h2>
@@ -99,7 +96,7 @@ export default async function AdminDashboardPage() {
           </p>
         ) : (
           <>
-            <ul className="mt-3 divide-y divide-line overflow-hidden rounded-lg border border-line border-l-4 border-l-warning bg-surface">
+            <ul className="mt-3 divide-y divide-line overflow-hidden rounded-lg border border-l-4 border-line border-l-warning bg-surface">
               {pending.map((queue) => (
                 <li key={queue.href}>
                   {/*
@@ -160,8 +157,11 @@ export default async function AdminDashboardPage() {
             {formatPrice(liability.unpostedCents, 'en')}
           </p>
           <p className="mt-1 text-xs text-ink-600">
-            {liability.unpostedPoints} referral points earned and not yet in a customer&apos;s wallet.
-            Posted on the 1st. <Link href="/admin/referrals" className="underline">Referrals</Link>
+            {liability.unpostedPoints} referral points earned and not yet in a customer&apos;s
+            wallet. Posted on the 1st.{' '}
+            <Link href="/admin/referrals" className="underline">
+              Referrals
+            </Link>
           </p>
         </div>
       )}
@@ -171,10 +171,7 @@ export default async function AdminDashboardPage() {
           {/* ── Revenue by day ─────────────────────────────────────────────── */}
           {showRevenue && (
             <section aria-labelledby="revenue-heading">
-              <h2
-                id="revenue-heading"
-                className="font-ui text-xs font-semibold tracking-[0.08em] text-ink-500 uppercase"
-              >
+              <h2 id="revenue-heading" className="eyebrow">
                 Revenue by day
               </h2>
 
@@ -265,10 +262,7 @@ export default async function AdminDashboardPage() {
           {showOrders && (
             <section aria-labelledby="queue-heading">
               <div className="flex items-center justify-between gap-3">
-                <h2
-                  id="queue-heading"
-                  className="flex items-center gap-1.5 font-ui text-xs font-semibold tracking-[0.08em] text-ink-500 uppercase"
-                >
+                <h2 id="queue-heading" className="flex items-center gap-1.5 eyebrow">
                   <Clock className="size-3.5" aria-hidden="true" />
                   Awaiting confirmation
                 </h2>
@@ -324,10 +318,7 @@ export default async function AdminDashboardPage() {
         <div className="flex min-w-0 flex-col gap-8">
           {showOrders && (
             <section aria-labelledby="status-heading">
-              <h2
-                id="status-heading"
-                className="font-ui text-xs font-semibold tracking-[0.08em] text-ink-500 uppercase"
-              >
+              <h2 id="status-heading" className="eyebrow">
                 Orders by status
               </h2>
               <ul className="mt-3 divide-y divide-line rounded-lg border border-line bg-surface text-sm">
@@ -355,10 +346,7 @@ export default async function AdminDashboardPage() {
 
           {showStock && (
             <section aria-labelledby="stock-heading">
-              <h2
-                id="stock-heading"
-                className="flex items-center gap-1.5 font-ui text-xs font-semibold tracking-[0.08em] text-ink-500 uppercase"
-              >
+              <h2 id="stock-heading" className="flex items-center gap-1.5 eyebrow">
                 <AlertTriangle className="size-3.5" aria-hidden="true" />
                 Low stock
               </h2>
@@ -409,9 +397,7 @@ function Kpi({
 }) {
   return (
     <div className="rounded-lg border border-line bg-surface p-4">
-      <p className="font-ui text-xs font-semibold tracking-[0.08em] text-ink-500 uppercase">
-        {label}
-      </p>
+      <p className="eyebrow">{label}</p>
       <p className="mt-2 font-display text-2xl font-semibold text-forest-900" data-numeric>
         {showRevenue ? formatPrice(data.revenueCents, 'en') : data.orders}
       </p>

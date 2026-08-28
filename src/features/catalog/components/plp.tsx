@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { getLocale, getTranslations } from 'next-intl/server';
 import { Link } from '@/i18n/routing';
 import { pickLocale, type LocalizedField } from '@/lib/i18n';
@@ -27,6 +28,9 @@ export async function ProductListingPage({
   filters,
   basePath,
   title,
+  eyebrow,
+  media,
+  banner,
   intro,
   placementCategorySlug,
   placementBrandSlug,
@@ -35,6 +39,18 @@ export async function ProductListingPage({
   filters: ProductFilters;
   basePath: string;
   title: string;
+  /**
+   * The identity slot (docs/05 §4–§5): brand and goal pages are the PLP scoped to one thing,
+   * and that thing has a face — a tagline, a logo, sometimes a banner. Slots on the shared
+   * header rather than a parallel header per page, so the h1, count and intro keep one layout
+   * and a scoped page only supplies what it has.
+   */
+  /** One line of context directly above the h1 — a goal's tagline, rendered as an eyebrow. */
+  eyebrow?: string;
+  /** A compact visual beside the h1 — a brand's logo tile, a goal's image. Sized by the caller. */
+  media?: ReactNode;
+  /** A full-width band above the header — a brand's banner. Height discipline is the caller's. */
+  banner?: ReactNode;
   intro?: LocalizedField;
   /**
    * The category carried by the URL **path** rather than the query, on `/shop/[category]`.
@@ -93,9 +109,22 @@ export async function ProductListingPage({
    */
   return (
     <div className="container-wide py-8 lg:py-12">
+      {banner && <div className="mb-6 lg:mb-8">{banner}</div>}
+
       <header className="mb-8">
-        <h1 className="font-display text-3xl font-semibold text-forest-900 lg:text-4xl">{title}</h1>
-        <p className="mt-2 text-sm text-ink-500" data-numeric>
+        {eyebrow && <p className="mb-2 eyebrow">{eyebrow}</p>}
+        <div className={cn(media && 'flex items-center gap-4 lg:gap-5')}>
+          {media}
+          <h1 className="font-display text-3xl font-semibold text-forest-900 lg:text-display-md">
+            {title}
+          </h1>
+        </div>
+        {/*
+          Phone-only. From `sm` up the count sits at the right end of the toolbar row below, where
+          it reads as a property of the controls that change it; a phone's toolbar is already full
+          with the sort rail, so there the count keeps its old spot under the h1.
+        */}
+        <p className="mt-2 text-sm text-ink-500 sm:hidden" data-numeric>
           {t('shop.productCount', { count: result.total })}
         </p>
         {introText && <p className="mt-4 max-w-2xl text-ink-600">{introText}</p>}
@@ -137,16 +166,28 @@ export async function ProductListingPage({
             three lines on a 390 px screen, which is the same problem in miniature. A single row that
             scrolls keeps the vertical budget for products.
 
+            The rail hides its scrollbar (`no-scrollbar`, same budget argument as `category-row.tsx`)
+            and fades at its trailing edge instead (`rail-fade-x`), so an option that continues past
+            the fold dissolves rather than being cut mid-glyph. `flex-1` makes the rail claim the
+            whole slack between itself and the count, so the fade sits at the column edge — over
+            empty space when everything fits, over the overflowing option when it does not.
+
+            The result count closes the row on the right from `sm` up (phones keep it under the h1),
+            so the toolbar has both ends: controls left, consequence right.
+
             The Filters trigger is not here — it lives inside `FilterShell`, which is the flex
             container's first child and therefore sits directly above this row on mobile. Hoisting it
             into the toolbar would mean a portal or context to reach across the two columns, for one
             row of vertical space.
           */}
           <div className="mb-4 flex items-center gap-2 border-b border-line pb-4">
-            <div className="flex min-w-0 flex-nowrap items-center gap-2 overflow-x-auto">
-              <span className="hidden shrink-0 font-ui text-xs font-semibold tracking-[0.08em] text-ink-500 uppercase sm:inline">
-                {t('shop.sortBy')}
-              </span>
+            {/*
+              Outside the masked scroller: a label is not an option, and inside the rail its
+              first glyphs sat in the mask's ramp (see `rail-fade-x` in globals.css). Out here
+              it is always fully opaque and never scrolls away.
+            */}
+            <span className="hidden shrink-0 eyebrow sm:inline">{t('shop.sortBy')}</span>
+            <div className="no-scrollbar flex min-w-0 flex-1 flex-nowrap items-center gap-2 overflow-x-auto rail-fade-x pe-6">
               {SORT_OPTIONS.map((sort) => (
                 <Link
                   key={sort}
@@ -178,6 +219,10 @@ export async function ProductListingPage({
                 </Link>
               ))}
             </div>
+
+            <p className="ml-auto hidden shrink-0 text-sm text-ink-500 sm:block" data-numeric>
+              {t('shop.productCount', { count: result.total })}
+            </p>
           </div>
 
           <ActiveFilters
@@ -228,12 +273,22 @@ export async function ProductListingPage({
 
             `flex-wrap` stays as the safety net, since these are words rather than arrows.
           */}
+          {/*
+            Both slots render on every page. When they were conditional, "Tjetra" stood first on
+            page 1 and second from page 2 on — the button a shopper is mid-way through paging with
+            teleported under their pointer — and the last page trailed off with nothing where the
+            forward control had been. At an edge the slot is a non-interactive span in the
+            decorative/disabled tokens (`border-line`, `ink-400` — docs/13 §C keeps `ink-400` for
+            exactly this), `aria-hidden` because the counter beside it already tells a screen
+            reader where they are; announcing a dead "Tjetra" would only invite a press that does
+            nothing. Centred under the grid: anchored left it read as part of the facet column.
+          */}
           {result.pageCount > 1 && (
             <nav
               aria-label={t('shop.pagination')}
-              className="mt-10 flex flex-wrap items-center gap-2"
+              className="mt-10 flex flex-wrap items-center justify-center gap-2"
             >
-              {result.page > 1 && (
+              {result.page > 1 ? (
                 <Link
                   href={pageHref(result.page - 1)}
                   rel="prev"
@@ -241,11 +296,18 @@ export async function ProductListingPage({
                 >
                   {t('shop.previous')}
                 </Link>
+              ) : (
+                <span
+                  aria-hidden="true"
+                  className="rounded-md border border-line px-3.5 py-2 text-sm text-ink-400"
+                >
+                  {t('shop.previous')}
+                </span>
               )}
               <span className="text-sm text-ink-600" data-numeric>
                 {t('shop.pageOf', { page: result.page, total: result.pageCount })}
               </span>
-              {result.page < result.pageCount && (
+              {result.page < result.pageCount ? (
                 <Link
                   href={pageHref(result.page + 1)}
                   rel="next"
@@ -253,6 +315,13 @@ export async function ProductListingPage({
                 >
                   {t('shop.next')}
                 </Link>
+              ) : (
+                <span
+                  aria-hidden="true"
+                  className="rounded-md border border-line px-3.5 py-2 text-sm text-ink-400"
+                >
+                  {t('shop.next')}
+                </span>
               )}
             </nav>
           )}

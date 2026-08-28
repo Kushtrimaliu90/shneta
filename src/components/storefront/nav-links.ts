@@ -18,3 +18,14 @@ export const PRIMARY_NAV: readonly NavLink[] = [
   { key: 'knowledge', href: '/knowledge' },
   { key: 'offers', href: '/offers' },
 ] as const;
+
+/**
+ * Whether `href` is the section the visitor is in, matched on the **first path segment** so
+ * `/shop/vitamins` lights Shop and `/knowledge/some-guide` lights Knowledge (docs/04 §3 —
+ * `forest-700` is "links, active nav"). One definition, shared by the desktop bar and the
+ * mobile sheet, so the two cannot disagree about where the visitor is. Pathnames come from the
+ * locale-aware `usePathname` in `@/i18n/routing`, which strips the locale prefix.
+ */
+export function isActiveNavPath(pathname: string, href: string): boolean {
+  return (pathname.split('/')[1] ?? '') === (href.split('/')[1] ?? '');
+}

@@ -1,5 +1,25 @@
 import { cn } from '@/lib/utils';
 
+type VitalityRingTone = 'brand' | 'on-dark' | 'on-light';
+
+/**
+ * The stroke pairs per ground. `brand` is the device as docs/04 §2 draws it and stays the
+ * default everywhere. The other two exist for the submit-button spinner (docs/04 §6), which
+ * has to read on both button fills: on forest-800 the brand track disappears into the fill,
+ * so the track is white at 25% and the arc steps down to lime-400; on light secondary
+ * buttons an 18px lime arc measures under 1.5:1 against the surface, so the arc is
+ * forest-700 — the same "contrast in forest, brand in lime" trade the focus ring makes
+ * (docs/13 §C).
+ */
+const TONES: Record<VitalityRingTone, { track: string; arc: string }> = {
+  brand: { track: 'var(--color-forest-100)', arc: 'var(--color-lime-500)' },
+  'on-dark': {
+    track: 'color-mix(in oklab, white 25%, transparent)',
+    arc: 'var(--color-lime-400)',
+  },
+  'on-light': { track: 'var(--color-forest-100)', arc: 'var(--color-forest-700)' },
+};
+
 interface VitalityRingProps {
   /** 0–1. The arc fills proportionally. */
   value?: number;
@@ -13,6 +33,8 @@ interface VitalityRingProps {
   label?: string;
   /** Set false for the navbar mark and other places that must not animate (docs/04 §2). */
   animate?: boolean;
+  /** The ground the ring sits on. Default is the brand pair; see `TONES`. */
+  tone?: VitalityRingTone;
 }
 
 /**
@@ -34,6 +56,7 @@ export function VitalityRing({
   className,
   label,
   animate = true,
+  tone = 'brand',
 }: VitalityRingProps) {
   const clamped = Math.min(1, Math.max(0, value));
   const radius = (size - strokeWidth) / 2;
@@ -56,7 +79,7 @@ export function VitalityRing({
         cy={center}
         r={radius}
         fill="none"
-        stroke="var(--color-forest-100)"
+        stroke={TONES[tone].track}
         strokeWidth={strokeWidth}
       />
       <circle
@@ -64,7 +87,7 @@ export function VitalityRing({
         cy={center}
         r={radius}
         fill="none"
-        stroke="var(--color-lime-500)"
+        stroke={TONES[tone].arc}
         strokeWidth={strokeWidth}
         strokeLinecap="round"
         transform={`rotate(-90 ${center} ${center})`}

@@ -193,9 +193,7 @@ export function FaqsEditor({ faqs }: { faqs: FaqRow[] }) {
       ) : (
         categories.map((category) => (
           <section key={category} className="mt-6">
-            <h3 className="font-ui text-xs font-semibold tracking-[0.08em] text-ink-500 uppercase">
-              {category}
-            </h3>
+            <h3 className="eyebrow">{category}</h3>
             <ul className="mt-2 flex flex-col gap-2">
               {faqs
                 .filter((faq) => faq.category === category)
@@ -379,9 +377,7 @@ export function BannersEditor({ banners }: { banners: BannerRow[] }) {
       ) : (
         placements.map((placement) => (
           <section key={placement} className="mt-6">
-            <h3 className="font-ui text-xs font-semibold tracking-[0.08em] text-ink-500 uppercase">
-              {placement}
-            </h3>
+            <h3 className="eyebrow">{placement}</h3>
             <ul className="mt-2 flex flex-col gap-2">
               {banners
                 .filter((banner) => banner.placement === placement)

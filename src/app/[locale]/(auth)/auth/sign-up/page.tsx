@@ -31,9 +31,9 @@ export default async function SignUpPage({ params, searchParams }: Props) {
   const inviteCode = await getInviteCodeFromCookie();
 
   return (
-    <Card>
+    <Card className="shadow-md">
       <CardHeader>
-        <CardTitle>{t('title')}</CardTitle>
+        <CardTitle className="text-2xl">{t('title')}</CardTitle>
         <CardDescription>{t('subtitle')}</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-5">

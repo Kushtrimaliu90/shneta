@@ -1,10 +1,11 @@
 'use client';
 
-import { useActionState, useState } from 'react';
+import { useActionState, useEffect, useRef, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { formatPrice } from '@/lib/money';
 import { pickLocale } from '@/lib/i18n';
 import type { Locale } from '@/lib/constants';
+import { ProductImage } from '@/components/storefront/product-image';
 import { Field } from '@/components/ui/field';
 import { ActionForm, useSubmitted, useSubmittedChecked } from '@/components/ui/action-form';
 import { Input } from '@/components/ui/input';
@@ -76,6 +77,21 @@ export function CheckoutForm({
   );
 
   const fieldErrors = state && !state.ok ? state.fieldErrors : undefined;
+  // docs/07 §4.5 — OUT_OF_STOCK names the item so the message is actionable.
+  const errorMessage =
+    state && !state.ok ? (state.sku ? `${t(state.error)} (${state.sku})` : t(state.error)) : null;
+
+  /*
+   * The Alert lives at the top of the left column; on a phone the submit button is ~4 screens
+   * below it, so without this a failed order looks like a dead tap. Centre the message on every
+   * failure — keyed on the state object, because two consecutive failures are two objects.
+   * `scroll-behavior` comes from globals.css, which already downgrades smooth scrolling under
+   * `prefers-reduced-motion`, so no motion guard is needed here.
+   */
+  const errorRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (state && !state.ok) errorRef.current?.scrollIntoView({ block: 'center' });
+  }, [state]);
 
   return (
     <ActionForm
@@ -85,11 +101,10 @@ export function CheckoutForm({
       noValidate
     >
       <div className="flex flex-col gap-8">
-        {state && !state.ok && (
-          <Alert tone="error">
-            {/* docs/07 §4.5 — OUT_OF_STOCK names the item so the message is actionable. */}
-            {state.sku ? `${t(state.error)} (${state.sku})` : t(state.error)}
-          </Alert>
+        {errorMessage && (
+          <div ref={errorRef}>
+            <Alert tone="error">{errorMessage}</Alert>
+          </div>
         )}
 
         {/* 1 — Contact */}
@@ -205,12 +220,21 @@ export function CheckoutForm({
                     <label
                       htmlFor={`method-${method.id}`}
                       className={cn(
-                        'flex cursor-pointer items-start gap-3 rounded-md border p-3.5 transition-colors',
-                        method.id === methodId
-                          ? 'border-forest-800 bg-forest-50'
-                          : 'border-line-strong hover:bg-forest-50/50',
+                        'flex cursor-pointer items-start gap-3 rounded-md border border-line-strong p-3.5 transition-colors',
+                        /*
+                          `has-[:checked]`, not React state: the highlight follows the native
+                          checked state, so it is right before hydration too — the same
+                          progressive-enhancement contract as the rest of this form. `methodId`
+                          stays, but only to recompute the shipping cost in the summary.
+                        */
+                        'hover:bg-forest-50/50 has-[:checked]:border-forest-800 has-[:checked]:bg-forest-50',
                       )}
                     >
+                      {/*
+                        `accent-color` is what stops the checked mark rendering OS-blue — the only
+                        non-token hue this page had. size-4 with mt-0.5 centres the 16px control
+                        on the label's 20px first line.
+                      */}
                       <input
                         id={`method-${method.id}`}
                         type="radio"
@@ -218,7 +242,7 @@ export function CheckoutForm({
                         value={method.id}
                         checked={method.id === methodId}
                         onChange={() => setMethodId(method.id)}
-                        className="mt-1"
+                        className="mt-0.5 size-4 shrink-0 accent-forest-800"
                         required
                       />
                       <span className="min-w-0 flex-1">
@@ -258,7 +282,16 @@ export function CheckoutForm({
               <li key={provider}>
                 <label
                   htmlFor={`provider-${provider}`}
-                  className="flex cursor-pointer items-start gap-3 rounded-md border border-forest-800 bg-forest-50 p-3.5"
+                  className={cn(
+                    'flex cursor-pointer items-start gap-3 rounded-md border border-line-strong p-3.5 transition-colors',
+                    /*
+                      Every option used to hardcode the *selected* style, so with two providers
+                      both read as chosen and picking one changed nothing visibly. `has-[:checked]`
+                      styles whichever radio is actually checked — including the `defaultChecked`
+                      one before hydration — with no selection state of our own.
+                    */
+                    'hover:bg-forest-50/50 has-[:checked]:border-forest-800 has-[:checked]:bg-forest-50',
+                  )}
                 >
                   <input
                     id={`provider-${provider}`}
@@ -268,7 +301,7 @@ export function CheckoutForm({
                     defaultChecked={
                       submittedProvider ? submittedProvider === provider : provider === providers[0]
                     }
-                    className="mt-1"
+                    className="mt-0.5 size-4 shrink-0 accent-forest-800"
                     required
                   />
                   <span>
@@ -316,7 +349,7 @@ export function CheckoutForm({
                   defaultChecked={acceptedTerms}
                   required
                   aria-invalid={Boolean(fieldErrors?.terms)}
-                  className="mt-0.5 size-4 shrink-0 rounded-[3px] border border-line-strong"
+                  className="mt-0.5 size-4 shrink-0 rounded-[3px] border border-line-strong accent-forest-800"
                 />
                 <span className="text-ink-600">{t('checkout.acceptTerms')}</span>
               </label>
@@ -335,10 +368,21 @@ export function CheckoutForm({
             {t('cart.summary')}
           </h2>
 
-          <ul className="mt-4 flex flex-col gap-2 text-sm">
+          <ul className="mt-4 flex flex-col gap-2.5 text-sm">
             {cart.lines.map((line) => (
-              <li key={line.id} className="flex justify-between gap-3">
-                <span className="min-w-0 text-ink-600">
+              <li key={line.id} className="flex items-center gap-3">
+                {/*
+                  A thumbnail per line, so "am I buying the right thing?" is answered in the
+                  review step itself rather than by scrolling back to the cart. Same bordered
+                  cream tile as the cart lines, at receipt scale.
+                */}
+                <ProductImage
+                  path={line.imagePath}
+                  alt={pickLocale(line.productName, locale) || line.sku}
+                  sizes="40px"
+                  className="size-10 shrink-0 rounded-sm border border-line bg-cream p-1"
+                />
+                <span className="min-w-0 flex-1 text-ink-600">
                   {pickLocale(line.productName, locale) || line.sku}
                   <span className="text-ink-500"> × {line.quantity}</span>
                 </span>
@@ -360,9 +404,12 @@ export function CheckoutForm({
                 {shippingCents === 0 ? t('checkout.free') : formatPrice(shippingCents, locale)}
               </dd>
             </div>
-            <div className="flex justify-between border-t border-line pt-2 text-base font-semibold">
+            {/* text-xl — docs/04 §4 puts prices at 18–24px; the total is the biggest number on the page. */}
+            <div className="flex items-baseline justify-between border-t border-line pt-2 text-base font-semibold">
               <dt>{t('checkout.total')}</dt>
-              <dd data-numeric>{formatPrice(totalCents, locale)}</dd>
+              <dd className="text-xl" data-numeric>
+                {formatPrice(totalCents, locale)}
+              </dd>
             </div>
           </dl>
 
@@ -372,6 +419,17 @@ export function CheckoutForm({
               amount: formatPrice(taxCents, locale),
             })}
           </p>
+
+          {/*
+            A compact echo of the top Alert, because this button is where the customer is
+            looking when the failure lands. `aria-hidden` — the Alert already carries the
+            `role="alert"` announcement, and a second reading would be noise.
+          */}
+          {errorMessage && (
+            <p className="mt-4 text-sm text-error" aria-hidden="true">
+              {errorMessage}
+            </p>
+          )}
 
           {/*
             docs/05 §12 acceptance — double-submit safe. The button disables for the whole

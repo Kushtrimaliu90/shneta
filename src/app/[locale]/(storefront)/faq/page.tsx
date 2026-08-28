@@ -79,7 +79,7 @@ export default async function FaqPage({ params }: Props) {
       )}
 
       <header className="mb-8">
-        <h1 className="font-display text-3xl font-semibold text-forest-900 lg:text-4xl">
+        <h1 className="font-display text-3xl font-semibold text-forest-900 lg:text-display-md">
           {t('title')}
         </h1>
         <p className="mt-2 max-w-2xl text-ink-600">{t('intro')}</p>

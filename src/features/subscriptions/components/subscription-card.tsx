@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState, useState } from 'react';
+import { useActionState, useEffect, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { AlertTriangle, CalendarClock } from 'lucide-react';
 import { Link } from '@/i18n/routing';
@@ -8,6 +8,7 @@ import { Alert } from '@/components/ui/alert';
 import { ActionForm } from '@/components/ui/action-form';
 import { buttonVariants } from '@/components/ui/button';
 import { SubmitButton } from '@/components/ui/submit-button';
+import { VitalityRing } from '@/components/shared/vitality-ring';
 import { ProductImage } from '@/components/storefront/product-image';
 import { formatPrice } from '@/lib/money';
 import { pickLocale } from '@/lib/i18n';
@@ -70,7 +71,38 @@ export function SubscriptionCard({ subscription }: { subscription: SubscriptionV
 
   const isCancelled = subscription.status === 'cancelled';
   const isPaused = subscription.status === 'paused';
+  const isActive = subscription.status === 'active';
   const total = subscription.subtotalCents - subscription.discountCents;
+
+  /*
+   * docs/04 §2 assigns the ring's "routine completeness" use to this card: on an ACTIVE
+   * subscription the arc encodes how far the current cycle has run —
+   * 1 − daysUntilNextRun / frequencyDays.
+   *
+   * Computed in an effect, never in the render path: this client component is also
+   * server-rendered, and any `Date.now()` maths in render bakes a clock read into the SSR'd
+   * stroke offset — whenever the time to `next_run_at` crosses a whole-day multiple between
+   * the server render and hydration (day-granular rounding only narrows the window, it cannot
+   * close it), the two disagree and React logs a hydration mismatch. So the server and the
+   * first client render both draw the bare track (`value` 0), and the arc fills in the effect
+   * — one frame later, from the one clock that matters, the visitor's. Clamped so an overdue
+   * run (next_run_at in the past) reads as a full ring rather than overflowing, and guarded
+   * against a zero cadence. Paused and cancelled rows keep the muted icon — no lime on a
+   * routine that is not live. The date text below stays the information carrier; the ring is
+   * decoration.
+   */
+  const [cycleProgress, setCycleProgress] = useState(0);
+  useEffect(() => {
+    if (!isActive) return;
+    const daysUntilNextRun = Math.ceil(
+      (new Date(subscription.nextRunAt).getTime() - Date.now()) / 86_400_000,
+    );
+    setCycleProgress(
+      subscription.frequencyDays > 0
+        ? Math.min(1, Math.max(0, 1 - daysUntilNextRun / subscription.frequencyDays))
+        : 0,
+    );
+  }, [isActive, subscription.nextRunAt, subscription.frequencyDays]);
 
   return (
     <li
@@ -80,21 +112,24 @@ export function SubscriptionCard({ subscription }: { subscription: SubscriptionV
       )}
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <p className="flex items-center gap-2 font-display text-lg font-semibold text-forest-900">
-            <CalendarClock className="size-5 text-forest-800" aria-hidden="true" />
-            {t('everyDays', { count: subscription.frequencyDays })}
-          </p>
+        <div className={cn(isActive && 'flex items-center gap-3')}>
+          {isActive && <VitalityRing value={cycleProgress} size={48} strokeWidth={4} />}
+          <div>
+            <p className="flex items-center gap-2 font-display text-lg font-semibold text-forest-900">
+              {!isActive && <CalendarClock className="size-5 text-forest-800" aria-hidden="true" />}
+              {t('everyDays', { count: subscription.frequencyDays })}
+            </p>
 
-          <p className="mt-1 text-sm text-ink-600" data-numeric>
-            {isCancelled
-              ? t('cancelledOn', { date: (subscription.cancelledAt ?? '').slice(0, 10) })
-              : isPaused
-                ? subscription.pausedUntil
-                  ? t('pausedUntil', { date: subscription.pausedUntil.slice(0, 10) })
-                  : t('pausedIndefinitely')
-                : t('nextDelivery', { date: subscription.nextRunAt.slice(0, 10) })}
-          </p>
+            <p className="mt-1 text-sm text-ink-600" data-numeric>
+              {isCancelled
+                ? t('cancelledOn', { date: formatDate(subscription.cancelledAt, locale) })
+                : isPaused
+                  ? subscription.pausedUntil
+                    ? t('pausedUntil', { date: formatDate(subscription.pausedUntil, locale) })
+                    : t('pausedIndefinitely')
+                  : t('nextDelivery', { date: formatDate(subscription.nextRunAt, locale) })}
+            </p>
+          </div>
         </div>
 
         <span
@@ -124,9 +159,7 @@ export function SubscriptionCard({ subscription }: { subscription: SubscriptionV
         </Alert>
       )}
 
-      <h3 className="mt-4 font-ui text-xs font-semibold tracking-[0.08em] text-ink-500 uppercase">
-        {t('itemsHeading')}
-      </h3>
+      <h3 className="mt-4 eyebrow">{t('itemsHeading')}</h3>
 
       <ul className="mt-2 flex flex-col gap-2">
         {subscription.items.map((item) => {
@@ -362,7 +395,7 @@ export function SubscriptionCard({ subscription }: { subscription: SubscriptionV
                   {order.orderNumber}
                 </Link>
                 <span className="text-ink-600" data-numeric>
-                  {order.placedAt.slice(0, 10)} · {formatPrice(order.totalCents, locale)}
+                  {formatDate(order.placedAt, locale)} · {formatPrice(order.totalCents, locale)}
                 </span>
               </li>
             ))}
@@ -377,6 +410,15 @@ export function SubscriptionCard({ subscription }: { subscription: SubscriptionV
       )}
     </li>
   );
+}
+
+/**
+ * Locale-aware date, same shape the order pages use. The raw values are ISO strings from the
+ * database; rendering them with `.slice(0, 10)` handed the customer `2026-08-27`, which reads
+ * as a database leak rather than a delivery date. Nullable because `cancelledAt` is.
+ */
+function formatDate(iso: string | null, locale: Locale): string {
+  return iso ? new Date(iso).toLocaleDateString(locale) : '';
 }
 
 /** Quantity for one line: change it, or set it to zero to remove. */

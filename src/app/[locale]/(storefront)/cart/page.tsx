@@ -37,7 +37,7 @@ export default async function CartPage({ params }: Props) {
 
   return (
     <div className="container-page py-8 lg:py-12">
-      <h1 className="font-display text-3xl font-semibold text-forest-900 lg:text-4xl">
+      <h1 className="font-display text-3xl font-semibold text-forest-900 lg:text-display-md">
         {t('cart.title')}
       </h1>
 
@@ -61,51 +61,68 @@ export default async function CartPage({ params }: Props) {
           }
         />
       ) : (
-        <div className="mt-8 grid gap-10 lg:grid-cols-[1.6fr_1fr] lg:gap-16">
-          <section aria-label={t('cart.linesLabel')}>
-            <CartLines lines={cart.lines} />
-          </section>
+        <>
+          {/*
+            On a phone the aside renders below every line item, which put the nudge —
+            the one thing that changes what people add — off screen. This instance keeps
+            it above the fold; the aside copy below is `hidden lg:block`, so exactly one
+            is visible per viewport and the lime bar stays the viewport's only accent
+            (docs/04 §1).
+          */}
+          <div className="mt-6 lg:hidden">
+            <FreeShippingProgress
+              subtotalCents={cart.subtotalCents}
+              thresholdCents={cart.freeShippingThresholdCents}
+            />
+          </div>
 
-          {/* docs/05 §12 — persistent order summary on the right at desktop widths. */}
-          <aside className="lg:sticky lg:top-24 lg:self-start">
-            <div className="rounded-lg border border-line bg-surface p-5">
-              <h2 className="font-display text-lg font-semibold text-forest-900">
-                {t('cart.summary')}
-              </h2>
+          <div className="mt-8 grid gap-10 lg:grid-cols-[1.6fr_1fr] lg:gap-16">
+            <section aria-label={t('cart.linesLabel')}>
+              <CartLines lines={cart.lines} />
+            </section>
 
-              <dl className="mt-4 flex flex-col gap-2 text-sm">
-                <div className="flex justify-between">
-                  <dt className="text-ink-600">{t('cart.subtotal')}</dt>
-                  <dd className="font-medium text-ink-900" data-numeric>
-                    {formatPrice(cart.subtotalCents, locale)}
-                  </dd>
+            {/* docs/05 §12 — persistent order summary on the right at desktop widths. */}
+            <aside className="lg:sticky lg:top-24 lg:self-start">
+              <div className="rounded-lg border border-line bg-surface p-5">
+                <h2 className="font-display text-lg font-semibold text-forest-900">
+                  {t('cart.summary')}
+                </h2>
+
+                <dl className="mt-4 flex flex-col gap-2 text-sm">
+                  <div className="flex justify-between">
+                    <dt className="text-ink-600">{t('cart.subtotal')}</dt>
+                    <dd className="font-medium text-ink-900" data-numeric>
+                      {formatPrice(cart.subtotalCents, locale)}
+                    </dd>
+                  </div>
+                  <div className="flex justify-between">
+                    <dt className="text-ink-600">{t('cart.shipping')}</dt>
+                    {/* Shipping depends on the method chosen at checkout, so it is honest to
+                        say "calculated next" rather than guess a number here. */}
+                    <dd className="text-ink-500">{t('cart.shippingAtCheckout')}</dd>
+                  </div>
+                </dl>
+
+                {/* The desktop half of the nudge pair above — never both at once. */}
+                <div className="mt-4 hidden border-t border-line pt-4 lg:block">
+                  <FreeShippingProgress
+                    subtotalCents={cart.subtotalCents}
+                    thresholdCents={cart.freeShippingThresholdCents}
+                  />
                 </div>
-                <div className="flex justify-between">
-                  <dt className="text-ink-600">{t('cart.shipping')}</dt>
-                  {/* Shipping depends on the method chosen at checkout, so it is honest to
-                      say "calculated next" rather than guess a number here. */}
-                  <dd className="text-ink-500">{t('cart.shippingAtCheckout')}</dd>
-                </div>
-              </dl>
 
-              <div className="mt-4 border-t border-line pt-4">
-                <FreeShippingProgress
-                  subtotalCents={cart.subtotalCents}
-                  thresholdCents={cart.freeShippingThresholdCents}
-                />
+                <Link
+                  href="/checkout"
+                  className={cn(buttonVariants({ size: 'lg', block: true }), 'mt-5')}
+                >
+                  {t('cart.checkout')}
+                </Link>
+
+                <p className="mt-3 text-center text-xs text-ink-500">{t('cart.codNote')}</p>
               </div>
-
-              <Link
-                href="/checkout"
-                className={cn(buttonVariants({ size: 'lg', block: true }), 'mt-5')}
-              >
-                {t('cart.checkout')}
-              </Link>
-
-              <p className="mt-3 text-center text-xs text-ink-500">{t('cart.codNote')}</p>
-            </div>
-          </aside>
-        </div>
+            </aside>
+          </div>
+        </>
       )}
     </div>
   );

@@ -2,10 +2,12 @@ import { getTranslations } from 'next-intl/server';
 import { User } from 'lucide-react';
 import { Link } from '@/i18n/routing';
 import { BrandMark } from '@/components/storefront/brand-mark';
+import { DesktopNav } from '@/components/storefront/desktop-nav';
 import { MobileNav } from '@/components/storefront/mobile-nav';
 import { PRIMARY_NAV } from '@/components/storefront/nav-links';
 import { LocaleSwitcher } from '@/components/shared/locale-switcher';
 import { CartBadge } from '@/features/cart/components/cart-badge';
+import { getNavCategoryTiles } from '@/features/catalog/queries';
 import { HeaderSearch } from '@/features/search/components/header-search';
 import { getSearchPlaceholders } from '@/features/search/queries';
 import { getLocale } from 'next-intl/server';
@@ -57,7 +59,16 @@ const HEADER_NAV = PRIMARY_NAV.map((link) =>
 export async function Navbar() {
   const t = await getTranslations();
   const locale = (await getLocale()) as Locale;
-  const placeholders = await getSearchPlaceholders(locale);
+  /*
+   * Both are anonymous, cached, tag-purged reads — nothing request-scoped, per the contract
+   * above — and both sit on the LONG cache tier, because a short-lived read awaited here would
+   * cap the cache life of every page in the storefront (see `getSearchPlaceholders` and
+   * `getNavCategoryTiles` for the number's reasoning). The tiles feed the Shop mega menu.
+   */
+  const [placeholders, categoryTiles] = await Promise.all([
+    getSearchPlaceholders(locale),
+    getNavCategoryTiles(8),
+  ]);
 
   /*
    * ── No `backdrop-blur` on this header, and that is correctness rather than taste ──
@@ -82,6 +93,10 @@ export async function Navbar() {
    * `perspective`, `will-change`, `contain: paint` — breaks both overlays the same way and in a way that
    * looks like a z-index problem. `e2e/shell.spec.ts` asserts the panel fills the viewport, so it fails
    * rather than ships.
+   *
+   * The Shop mega menu panel is the one overlay that is *meant* to resolve against the header: it is
+   * `absolute inset-x-0 top-full` inside `DesktopNav`, anchored to the sticky header on purpose, so it
+   * spans the header's width and rides with it. Only the `fixed` overlays are at risk from the trap.
    */
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-cream">
@@ -103,19 +118,14 @@ export async function Navbar() {
           <BrandMark />
         </Link>
 
+        {/*
+          The link list itself is a client island: active-link state needs the client router's
+          pathname and the Shop mega menu needs open/closed state — neither of which is
+          request-scoped on the server, so the static-rendering contract above is untouched.
+          See `desktop-nav.tsx`.
+        */}
         <nav aria-label={t('nav.primary')} className="hidden lg:block">
-          <ul className="flex items-center gap-1">
-            {HEADER_NAV.map((link) => (
-              <li key={link.key}>
-                <Link
-                  href={link.href}
-                  className="inline-flex h-11 items-center rounded-md px-3 text-[15px] font-medium text-ink-900 transition-colors hover:bg-forest-50 hover:text-forest-800"
-                >
-                  {t(`nav.${link.key}`)}
-                </Link>
-              </li>
-            ))}
-          </ul>
+          <DesktopNav links={HEADER_NAV} categories={categoryTiles} />
         </nav>
 
         {/*

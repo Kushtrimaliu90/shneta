@@ -51,15 +51,18 @@ export default async function ProtocolPage({ params }: Props) {
   );
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-10 sm:px-6 lg:py-14">
-      <ProtocolView
-        {...props}
-        result={stored.result}
-        shareCode={stored.shareCode}
-        shareUrl={shareUrl}
-        canSave={Boolean(user) && (stored.isOwn || stored.claimable)}
-        signInHref={`/auth/sign-in?next=${encodeURIComponent(path)}`}
-      />
+    /* Width tier (docs/04 §1) — the site grid's gutters, with the protocol column capped inside it. */
+    <div className="container-page py-8 lg:py-12">
+      <div className="mx-auto max-w-4xl">
+        <ProtocolView
+          {...props}
+          result={stored.result}
+          shareCode={stored.shareCode}
+          shareUrl={shareUrl}
+          canSave={Boolean(user) && (stored.isOwn || stored.claimable)}
+          signInHref={`/auth/sign-in?next=${encodeURIComponent(path)}`}
+        />
+      </div>
     </div>
   );
 }

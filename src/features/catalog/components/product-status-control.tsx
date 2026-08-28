@@ -77,9 +77,7 @@ export function ProductStatusControl({
 
   return (
     <div className="rounded-lg border border-line bg-surface p-4">
-      <h2 className="font-ui text-xs font-semibold tracking-[0.08em] text-ink-500 uppercase">
-        Status
-      </h2>
+      <h2 className="eyebrow">Status</h2>
 
       <div className="mt-3 flex flex-wrap items-center gap-3">
         {mayEdit && status === 'draft' && (

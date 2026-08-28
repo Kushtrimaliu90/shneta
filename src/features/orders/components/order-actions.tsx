@@ -367,9 +367,7 @@ export function OrderDangerZone({
 
   return (
     <div className="mt-8 border-t border-line pt-6">
-      <h2 className="font-ui text-xs font-semibold tracking-[0.08em] text-ink-500 uppercase">
-        Cancel and refund
-      </h2>
+      <h2 className="eyebrow">Cancel and refund</h2>
       <div className="mt-3 flex flex-col gap-4">
         {cancellable && <CancelOrderForm orderId={orderId} />}
         {refundable && (

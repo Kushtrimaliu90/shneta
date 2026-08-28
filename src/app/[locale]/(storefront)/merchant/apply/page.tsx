@@ -55,23 +55,24 @@ export default async function MerchantApplyPage({ params }: Props) {
     typeof value.default_commission_pct === 'number' ? value.default_commission_pct : 15;
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6 lg:py-14">
-      <p className="font-ui text-xs font-semibold tracking-wider text-forest-700 uppercase">
-        {t('eyebrow')}
-      </p>
-      <h1 className="mt-2 font-display text-3xl font-semibold text-forest-900 sm:text-4xl">
-        {t('title')}
-      </h1>
-      <p className="mt-3 text-ink-600">{t('intro')}</p>
+    /* Width tier (docs/04 §1) — the site grid's gutters, with the form column capped inside it. */
+    <div className="container-page py-8 lg:py-12">
+      <div className="mx-auto max-w-3xl">
+        <p className="eyebrow text-forest-700">{t('eyebrow')}</p>
+        <h1 className="mt-2 font-display text-3xl font-semibold text-forest-900 lg:text-display-md">
+          {t('title')}
+        </h1>
+        <p className="mt-3 text-ink-600">{t('intro')}</p>
 
-      <ul className="mt-6 flex flex-col gap-2 rounded-lg border border-line bg-surface p-5 text-sm text-ink-900">
-        <li>{t('point1')}</li>
-        <li>{t('point2')}</li>
-        <li>{t('point3')}</li>
-      </ul>
+        <ul className="mt-6 flex flex-col gap-2 rounded-lg border border-line bg-surface p-5 text-sm text-ink-900">
+          <li>{t('point1')}</li>
+          <li>{t('point2')}</li>
+          <li>{t('point3')}</li>
+        </ul>
 
-      <div className="mt-10">
-        <MerchantApplyForm commissionDefault={commissionDefault} />
+        <div className="mt-10">
+          <MerchantApplyForm commissionDefault={commissionDefault} />
+        </div>
       </div>
     </div>
   );

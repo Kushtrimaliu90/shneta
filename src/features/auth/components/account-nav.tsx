@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useRef } from 'react';
 import { useTranslations } from 'next-intl';
 import {
   Gift,
@@ -56,10 +57,34 @@ const ITEMS: readonly AccountNavItem[] = [
 export function AccountNav() {
   const pathname = usePathname();
   const t = useTranslations('account.nav');
+  const listRef = useRef<HTMLUListElement>(null);
+  const activeRef = useRef<HTMLAnchorElement>(null);
+
+  /*
+   * The mobile tab row scrolls, but on its own it never scrolls the `aria-current` pill into
+   * view — deep-landing on a late tab (settings, referrals) showed a row of exclusively
+   * inactive tabs. Centre the active link once, on mount, and only when the row actually
+   * overflows: on desktop the list is a vertical column with nothing to scroll, and calling
+   * `scrollIntoView` there could still nudge the page. Mount-only rather than per-navigation —
+   * a tab the visitor just tapped is already in view, and shifting the row under their finger
+   * after every click is motion nobody asked for. Instant (no `behavior: 'smooth'`), because
+   * this is initial placement, not animation.
+   */
+  useEffect(() => {
+    const list = listRef.current;
+    const active = activeRef.current;
+    if (!list || !active) return;
+    if (list.scrollWidth <= list.clientWidth) return;
+    active.scrollIntoView({ inline: 'center', block: 'nearest' });
+  }, []);
 
   return (
     <nav aria-label={t('label')} className="lg:w-56 lg:shrink-0">
-      <ul className="-mx-5 flex gap-1 overflow-x-auto border-b border-line px-5 pb-3 lg:mx-0 lg:flex-col lg:border-0 lg:px-0 lg:pb-0">
+      {/* `scroll-px-5` mirrors the -mx-5/px-5 gutter so a centred pill respects the same edge. */}
+      <ul
+        ref={listRef}
+        className="-mx-5 flex scroll-px-5 gap-1 overflow-x-auto border-b border-line px-5 pb-3 lg:mx-0 lg:flex-col lg:border-0 lg:px-0 lg:pb-0"
+      >
         {ITEMS.map((item) => {
           const isActive = pathname === item.href;
           const label = t(item.key);
@@ -85,6 +110,7 @@ export function AccountNav() {
           return (
             <li key={item.key}>
               <Link
+                ref={isActive ? activeRef : undefined}
                 href={item.href}
                 aria-current={isActive ? 'page' : undefined}
                 className={cn(

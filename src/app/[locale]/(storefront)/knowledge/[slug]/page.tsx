@@ -1,5 +1,6 @@
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
+import Image from 'next/image';
 import type { Metadata } from 'next';
 import { ArrowLeft, Info } from 'lucide-react';
 import { Link } from '@/i18n/routing';
@@ -85,8 +86,9 @@ export default async function ArticlePage({ params }: Props) {
     ? `${clientEnv.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/content/${article.coverPath}`
     : null;
 
+  // Human-formatted for the byline; the machine-readable ISO stays on the <time> element.
   const published = article.publishedAt
-    ? new Date(article.publishedAt).toISOString().slice(0, 10)
+    ? new Date(article.publishedAt).toLocaleDateString(locale)
     : null;
 
   return (
@@ -116,7 +118,16 @@ export default async function ArticlePage({ params }: Props) {
           {t('knowledge.backToKnowledge')}
         </Link>
 
-        <div className="mt-6 grid gap-10 lg:grid-cols-[minmax(0,1fr)_18rem] lg:gap-14">
+        {/*
+          The prose tier, applied to the column and not just the text. `container-page` is 1240px
+          and the article used to take everything the 18rem sidebar left — ~848px, ~105 characters
+          a line, when the `--spacing-text` token this site defines says a reading measure is
+          ~62ch and "does not get wider because the monitor did". So the article track is capped
+          at the token, the sidebar sits directly beside it instead of at the far edge, and the
+          pair centres in the container so the slack becomes margin on both sides rather than a
+          void on the right.
+        */}
+        <div className="mt-6 grid gap-10 lg:grid-cols-[minmax(0,var(--spacing-text))_18rem] lg:justify-center lg:gap-14">
           <article className="min-w-0">
             <p className="flex flex-wrap items-center gap-2 eyebrow">
               <span>{t(`knowledge.typeLabel.${article.type}`)}</span>
@@ -138,14 +149,26 @@ export default async function ArticlePage({ params }: Props) {
               )}
             </p>
 
-            <h1 className="mt-3 font-display text-3xl font-semibold text-forest-900 lg:text-4xl">
+            <h1 className="mt-3 font-display text-3xl font-semibold text-forest-900 lg:text-display-md">
               {title}
             </h1>
 
             {cover && (
-              <div className="mt-6 overflow-hidden rounded-xl border border-line">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={cover} alt="" className="w-full object-cover" />
+              /*
+                16:9 on the box, `fill` on the image — the same crop the hub card and the featured
+                hero use, so a cover reads identically wherever it appears, and the height is
+                settled before the file resolves. The column caps at `--spacing-text` (42rem =
+                672px), so 672px is all the image is ever asked to be; below `lg` the column is
+                the viewport.
+              */
+              <div className="relative mt-6 aspect-[16/9] overflow-hidden rounded-xl border border-line">
+                <Image
+                  src={cover}
+                  alt=""
+                  fill
+                  sizes="(min-width: 1024px) 672px, 100vw"
+                  className="object-cover"
+                />
               </div>
             )}
 
@@ -171,17 +194,26 @@ export default async function ArticlePage({ params }: Props) {
           <aside className="flex flex-col gap-8 lg:sticky lg:top-24 lg:self-start">
             {article.products.length > 0 && (
               <section>
-                <h2 className="font-display text-lg font-semibold text-forest-900">
-                  {t('knowledge.shopThisArticle')}
-                </h2>
+                {/*
+                  Both sidebar headings are eyebrows. One used to be display type while its twin
+                  below was an eyebrow — two voices for the same job, section labels on the same
+                  rail. The eyebrow is the quieter and the correct one: these are labels, not
+                  headlines, and the display face belongs to the article beside them.
+                */}
+                <h2 className="eyebrow">{t('knowledge.shopThisArticle')}</h2>
                 <ul className="mt-3 flex flex-col gap-3">
                   {article.products.map((product) => {
                     const name = pickLocale(product.name, locale);
                     return (
                       <li key={product.slug}>
+                        {/*
+                          Deliberately NOT `card-interactive`: these small rows sit beside prose,
+                          and four of them lifting and glowing would out-shout the article. A
+                          hairline and a tint on hover is the whole response.
+                        */}
                         <Link
                           href={`/product/${product.slug}`}
-                          className="flex items-center gap-3 rounded-lg border border-line bg-surface p-2.5 transition-shadow hover:shadow-md"
+                          className="flex items-center gap-3 rounded-lg border border-line bg-surface p-2.5 transition-colors hover:bg-forest-50/60"
                         >
                           <div className="size-14 shrink-0 overflow-hidden rounded-sm bg-cream">
                             <ProductImage
@@ -210,9 +242,7 @@ export default async function ArticlePage({ params }: Props) {
 
             {article.ingredients.length > 0 && (
               <section>
-                <h2 className="font-ui text-xs font-semibold tracking-[0.08em] text-ink-500 uppercase">
-                  {t('knowledge.relatedIngredients')}
-                </h2>
+                <h2 className="eyebrow">{t('knowledge.relatedIngredients')}</h2>
                 <ul className="mt-3 flex flex-wrap gap-1.5">
                   {article.ingredients.map((ingredient) => (
                     <li key={ingredient.slug}>
@@ -232,7 +262,7 @@ export default async function ArticlePage({ params }: Props) {
 
         {related.length > 0 && (
           <section className="mt-16 border-t border-line pt-10">
-            <h2 className="font-display text-2xl font-semibold text-forest-900">
+            <h2 className="font-display text-2xl font-semibold text-forest-900 lg:text-3xl">
               {t('knowledge.relatedArticles')}
             </h2>
             <ol className="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">

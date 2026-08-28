@@ -129,10 +129,16 @@ export async function ActiveFilters({
           rel="nofollow"
           // The accessible name says what tapping does; the visible text is just the value.
           aria-label={ts('removeFilter', { name: chip.label })}
-          className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-line-strong bg-surface py-1 pr-2 pl-3 text-sm text-ink-900"
+          /*
+           * Selected-state tint, not a neutral outline. A chip here *is* a filter that is on, and
+           * everything else that says "on" — the panel's highlighted rows, the active sort pill,
+           * docs/04 §6 — says it in forest-100/forest-900. The outlined white pill these replaced
+           * read as one more unpressed control.
+           */
+          className="inline-flex min-h-9 items-center gap-1.5 rounded-full bg-forest-100 py-1 pr-2 pl-3 text-sm text-forest-900"
         >
           {chip.label}
-          <X className="size-3.5 text-ink-500" aria-hidden="true" />
+          <X className="size-3.5 text-forest-700" aria-hidden="true" />
         </Link>
       ))}
 

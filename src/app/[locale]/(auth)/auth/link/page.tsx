@@ -37,9 +37,9 @@ export default async function MagicLinkPage({ params, searchParams }: Props) {
   const t = await getTranslations('auth.magicLink');
 
   return (
-    <Card>
+    <Card className="shadow-md">
       <CardHeader>
-        <CardTitle>{t('title')}</CardTitle>
+        <CardTitle className="text-2xl">{t('title')}</CardTitle>
         <CardDescription>{t('subtitle')}</CardDescription>
       </CardHeader>
       <CardContent>

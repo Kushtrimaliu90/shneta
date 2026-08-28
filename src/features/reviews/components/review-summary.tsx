@@ -2,6 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 import { Star } from 'lucide-react';
+import { VitalityRing } from '@/components/shared/vitality-ring';
 import type { ReviewSummary as Summary } from '@/features/reviews/types';
 import { cn } from '@/lib/utils';
 
@@ -32,9 +33,27 @@ export function ReviewSummaryPanel({
   return (
     <div className="flex flex-col gap-5 rounded-lg border border-line bg-surface p-5 sm:flex-row sm:items-center sm:gap-8">
       <div className="shrink-0 text-center sm:text-left">
-        <p className="font-display text-4xl font-semibold text-forest-900" data-numeric>
-          {summary.average.toFixed(1)}
-        </p>
+        {/*
+          docs/04 §2 — the PDP rating arc, one of the Vitality Ring's four sanctioned uses and
+          the only lime in this panel. Decorative (no label): the figure inside it and the count
+          under it carry the value as text, so the arc repeats rather than states. 76px, not the
+          component's 48 default — the text-4xl figure needs a 61px chord to sit inside the
+          stroke without touching it.
+        */}
+        <div className="relative mx-auto size-[76px] sm:mx-0">
+          <VitalityRing value={summary.average / 5} size={76} strokeWidth={5} />
+          <p
+            className="absolute inset-0 flex items-center justify-center font-display text-4xl font-semibold text-forest-900"
+            data-numeric
+          >
+            {summary.average.toFixed(1)}
+          </p>
+        </div>
+        {/*
+          Forest for the stars and the bars, matching `rating-stars.tsx`: the ring above is this
+          panel's one lime accent (docs/04 §3), and six more lime fills beside it would make the
+          accent a wash.
+        */}
         <span className="mt-1 flex justify-center sm:justify-start" aria-hidden="true">
           {[1, 2, 3, 4, 5].map((star) => (
             <Star
@@ -42,7 +61,7 @@ export function ReviewSummaryPanel({
               className={cn(
                 'size-4',
                 star <= Math.round(summary.average)
-                  ? 'fill-lime-500 text-lime-500'
+                  ? 'fill-forest-500 text-forest-500'
                   : 'text-line-strong',
               )}
             />
@@ -80,7 +99,7 @@ export function ReviewSummaryPanel({
                   className="h-2 flex-1 overflow-hidden rounded-full bg-forest-50"
                 >
                   <span
-                    className="block h-full rounded-full bg-lime-500"
+                    className="block h-full rounded-full bg-forest-500"
                     style={{ width: `${percent}%` }}
                   />
                 </span>

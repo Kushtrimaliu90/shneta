@@ -25,17 +25,17 @@ export default async function AddressesPage({ params }: Props) {
   const [{ locale }, user] = await Promise.all([params, getCurrentUser()]);
   if (!user) redirect(locale === 'sq' ? '/auth/sign-in' : `/${locale}/auth/sign-in`);
 
-  const [t, addresses] = await Promise.all([
-    getTranslations('account.addresses'),
-    listAddresses(),
-  ]);
+  const [t, addresses] = await Promise.all([getTranslations('account.addresses'), listAddresses()]);
 
   return (
     <div>
-      <h2 className="font-display text-xl font-semibold text-forest-900">{t('title')}</h2>
-      <p className="mt-1 mb-5 text-sm text-ink-600">{t('intro')}</p>
+      {/* The sibling account pages' heading pattern: 2xl title, mt-1 intro, content at mt-6. */}
+      <h2 className="font-display text-2xl font-semibold text-forest-900">{t('title')}</h2>
+      <p className="mt-1 text-sm text-ink-600">{t('intro')}</p>
 
-      <AddressBook addresses={addresses} />
+      <div className="mt-6">
+        <AddressBook addresses={addresses} />
+      </div>
     </div>
   );
 }
