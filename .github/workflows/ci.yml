@@ -73,7 +73,11 @@ jobs:
 
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
+          # The version the repo itself pins in devDependencies — `latest` let the CI CLI
+          # drift ahead of the config.toml this repo was developed against, which is the
+          # usual way `supabase start` breaks on a runner while working locally. Keep the
+          # two in lockstep: bump this together with the `supabase` devDependency.
+          version: 2.110.0
 
       - name: Start Supabase
         # Skips until the M1 migrations land, so M0 can go green on its own.
