@@ -140,8 +140,8 @@ export function ProductBulkBar({
             action, so a mixed selection partly succeeds — and knowing that in advance is the difference
             between a surprising result and an expected one.
           */}
-          Nothing is deleted — removed products keep their web address and can be restored. Anything live
-          on the site is skipped and reported.
+          Nothing is deleted — removed products keep their web address and can be restored. Anything
+          live on the site is skipped and reported.
         </p>
       )}
 

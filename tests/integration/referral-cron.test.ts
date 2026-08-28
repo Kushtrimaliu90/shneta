@@ -91,7 +91,11 @@ async function earning(linkId: string, points: number, reason = 'delivered'): Pr
 }
 
 async function balanceOf(userId: string): Promise<number> {
-  const { data } = await service.from('profiles').select('loyalty_points').eq('id', userId).single();
+  const { data } = await service
+    .from('profiles')
+    .select('loyalty_points')
+    .eq('id', userId)
+    .single();
   return (data as { loyalty_points: number }).loyalty_points;
 }
 
@@ -102,7 +106,12 @@ async function referralLedger(userId: string) {
     .eq('user_id', userId)
     .in('reason', ['referral', 'referral_clawback'])
     .order('created_at');
-  return (data ?? []) as { points: number; reason: string; note: string; order_id: string | null }[];
+  return (data ?? []) as {
+    points: number;
+    reason: string;
+    note: string;
+    order_id: string | null;
+  }[];
 }
 
 async function statusOf(linkId: string): Promise<string> {
@@ -303,7 +312,10 @@ describe('auto-approve (docs/17 §1)', () => {
     if (error || !data) throw new Error(`order insert failed: ${error?.message}`);
 
     for (const status of ['confirmed', 'processing', 'shipped', 'delivered']) {
-      await service.from('orders').update({ status }).eq('id', (data as { id: string }).id);
+      await service
+        .from('orders')
+        .update({ status })
+        .eq('id', (data as { id: string }).id);
     }
     return id;
   }
@@ -336,8 +348,13 @@ describe('auto-approve (docs/17 §1)', () => {
    */
   it('never auto-approves a flagged link', async () => {
     await withSetting({ auto_approve: true }, async () => {
-      const flagged = await link(await bareUser(), await refereeWhoOrdered(), { status: 'pending' });
-      await service.from('referral_links').update({ risk_flags: ['same_address'] }).eq('id', flagged);
+      const flagged = await link(await bareUser(), await refereeWhoOrdered(), {
+        status: 'pending',
+      });
+      await service
+        .from('referral_links')
+        .update({ risk_flags: ['same_address'] })
+        .eq('id', flagged);
 
       await service.rpc('auto_approve_referral_links');
       expect(await statusOf(flagged)).toBe('pending');
@@ -346,7 +363,9 @@ describe('auto-approve (docs/17 §1)', () => {
 
   it('does nothing while the whole programme is off', async () => {
     await withSetting({ enabled: false, auto_approve: true }, async () => {
-      const pending = await link(await bareUser(), await refereeWhoOrdered(), { status: 'pending' });
+      const pending = await link(await bareUser(), await refereeWhoOrdered(), {
+        status: 'pending',
+      });
       const { data } = await service.rpc('auto_approve_referral_links');
       expect(data).toBe(0);
       expect(await statusOf(pending)).toBe('pending');

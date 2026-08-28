@@ -1470,5 +1470,4 @@ test.describe('hero announcement panel (docs/06)', () => {
     await expect(page.locator('#ann-en')).toHaveValue('15% off your first order');
     await expect(page.locator('#ann-link-label')).toHaveValue('BioPartner');
   });
-
 });

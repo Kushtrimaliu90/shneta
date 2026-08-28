@@ -103,10 +103,18 @@ export const heroSlideSchema = z
      * with the upload means the ask arrives while the person can still see what they just chose.
      */
     if (has(value.imageDesktopPath) && !has(value.imageDesktopAltSq)) {
-      ctx.addIssue({ code: 'custom', path: ['imageDesktopAltSq'], message: 'Alt text is required.' });
+      ctx.addIssue({
+        code: 'custom',
+        path: ['imageDesktopAltSq'],
+        message: 'Alt text is required.',
+      });
     }
     if (has(value.imageMobilePath) && !has(value.imageMobileAltSq)) {
-      ctx.addIssue({ code: 'custom', path: ['imageMobileAltSq'], message: 'Alt text is required.' });
+      ctx.addIssue({
+        code: 'custom',
+        path: ['imageMobileAltSq'],
+        message: 'Alt text is required.',
+      });
     }
 
     if (has(value.startAt) && has(value.endAt)) {
@@ -193,7 +201,16 @@ export const announcementSchema = z.object({
  * as a band rather than a list; zero would leave the homepage with no route in below the hero, which is
  * the thing this band exists to provide.
  */
-export const INTENT_ICONS = ['target', 'star', 'tag', 'sparkles', 'flask', 'leaf', 'truck', 'badge'] as const;
+export const INTENT_ICONS = [
+  'target',
+  'star',
+  'tag',
+  'sparkles',
+  'flask',
+  'leaf',
+  'truck',
+  'badge',
+] as const;
 
 export const intentBandSchema = z.object({
   items: z

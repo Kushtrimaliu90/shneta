@@ -70,7 +70,8 @@ export default async function MerchantStatementPage({ params }: Props) {
             {statement.payout.periodStart} – {statement.payout.periodEnd}
           </h2>
           <p className="mt-1 text-sm text-ink-600">
-            {statement.merchant.legalName} · {t('commissionAt', {
+            {statement.merchant.legalName} ·{' '}
+            {t('commissionAt', {
               pct: statement.merchant.commissionPct,
             })}
           </p>
@@ -113,9 +114,7 @@ export default async function MerchantStatementPage({ params }: Props) {
             {t('paidTo')}
           </dt>
           <dd className="mt-0.5 text-ink-900">
-            {statement.merchant.ibanLast4
-              ? `•••• ${statement.merchant.ibanLast4}`
-              : t('noIban')}
+            {statement.merchant.ibanLast4 ? `•••• ${statement.merchant.ibanLast4}` : t('noIban')}
           </dd>
         </div>
       </dl>
@@ -153,7 +152,9 @@ export default async function MerchantStatementPage({ params }: Props) {
                   </td>
                   <td className="px-3 py-2.5">
                     <span className="text-ink-900">{t(`kinds.${kindKey(line.kind)}`)}</span>
-                    {line.note && <span className="block text-[13px] text-ink-500">{line.note}</span>}
+                    {line.note && (
+                      <span className="block text-[13px] text-ink-500">{line.note}</span>
+                    )}
                   </td>
                   <td
                     className={cn(

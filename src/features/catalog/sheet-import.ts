@@ -162,12 +162,19 @@ export async function importProducts(
       ((goalRows ?? []) as { id: string; slug: string }[]).map((row) => [row.slug, row.id]),
     );
 
-    const plan: ImportPlan = { products: [], variants: [], problems: [], unchanged: 0, applied: false };
+    const plan: ImportPlan = {
+      products: [],
+      variants: [],
+      problems: [],
+      unchanged: 0,
+      applied: false,
+    };
     const has = presence(read.products);
 
     /** Accumulated writes, so a preview computes them and only an apply sends them. */
     const productWrites: { id: string; patch: ProductPatch; changes: FieldChange[] }[] = [];
-    const categoryWrites: { id: string; links: { category_id: string; is_primary: boolean }[] }[] = [];
+    const categoryWrites: { id: string; links: { category_id: string; is_primary: boolean }[] }[] =
+      [];
     const goalWrites: { id: string; goalIds: string[] }[] = [];
     /** Rows already claimed, so a copied row cannot quietly overwrite the one above it. */
     const seenProducts = new Set<string>();
@@ -210,11 +217,15 @@ export async function importProducts(
          * variant with a unique SKU before it is anything. That is the create form's job, and doing it
          * here would mean a typo in the id column silently minting duplicates of the catalogue.
          */
-        refuse('No id. This file only updates existing products — add new ones on the Products page.');
+        refuse(
+          'No id. This file only updates existing products — add new ones on the Products page.',
+        );
         return;
       }
       if (!existing) {
-        refuse('That id is not in the catalogue. It may have been removed since the file was downloaded.');
+        refuse(
+          'That id is not in the catalogue. It may have been removed since the file was downloaded.',
+        );
         return;
       }
       /*
@@ -227,7 +238,9 @@ export async function importProducts(
        * first occurrence proceeds.
        */
       if (seenProducts.has(id)) {
-        refuse('This product is already on an earlier row. Keep one row per product and delete the copy.');
+        refuse(
+          'This product is already on an earlier row. Keep one row per product and delete the copy.',
+        );
         return;
       }
       seenProducts.add(id);
@@ -310,7 +323,9 @@ export async function importProducts(
         const nextEn = has.has(enColumn) ? (row[enColumn] ?? '').trim() : currentEn;
 
         if (field === 'name' && nextSq.length === 0) {
-          refuse('A product must have an Albanian name. Leave the cell filled or delete the column.');
+          refuse(
+            'A product must have an Albanian name. Leave the cell filled or delete the column.',
+          );
           return;
         }
         if (nextSq === currentSq && nextEn === currentEn) return;
@@ -319,15 +334,23 @@ export async function importProducts(
         if (nextSq) value.sq = nextSq;
         if (nextEn) value.en = nextEn;
 
-        if (nextSq !== currentSq) changes.push({ field: `${field} (sq)`, from: currentSq, to: nextSq });
-        if (nextEn !== currentEn) changes.push({ field: `${field} (en)`, from: currentEn, to: nextEn });
+        if (nextSq !== currentSq)
+          changes.push({ field: `${field} (sq)`, from: currentSq, to: nextSq });
+        if (nextEn !== currentEn)
+          changes.push({ field: `${field} (en)`, from: currentEn, to: nextEn });
         (patch as Record<string, Json>)[dbColumn] = value as unknown as Json;
       };
 
       bilingual('name', 'name', 'name', existing.nameSq, existing.nameEn);
       if (plan.problems.some((problem) => problem.row === excelRow)) return;
       bilingual('subtitle', 'subtitle', 'subtitle', existing.subtitleSq, existing.subtitleEn);
-      bilingual('description', 'description', 'description', existing.descriptionSq, existing.descriptionEn);
+      bilingual(
+        'description',
+        'description',
+        'description',
+        existing.descriptionSq,
+        existing.descriptionEn,
+      );
       bilingual('how to use', 'how_to_use', 'how_to_use', existing.howToUseSq, existing.howToUseEn);
       bilingual('warnings', 'warnings', 'warnings', existing.warningsSq, existing.warningsEn);
 
@@ -344,9 +367,15 @@ export async function importProducts(
         }
       }
 
-      set('serving size', 'serving_size', existing.servingSize, (row.serving_size ?? '').trim(), () => {
-        patch.serving_size = (row.serving_size ?? '').trim() || null;
-      });
+      set(
+        'serving size',
+        'serving_size',
+        existing.servingSize,
+        (row.serving_size ?? '').trim(),
+        () => {
+          patch.serving_size = (row.serving_size ?? '').trim() || null;
+        },
+      );
 
       // ── dietary tags ──
       if (has.has('dietary_tags')) {
@@ -389,8 +418,8 @@ export async function importProducts(
        * subset of the four.
        */
       if (
-        ['seo_title_sq', 'seo_title_en', 'seo_description_sq', 'seo_description_en'].some((column) =>
-          has.has(column),
+        ['seo_title_sq', 'seo_title_en', 'seo_description_sq', 'seo_description_en'].some(
+          (column) => has.has(column),
         )
       ) {
         const pick = (column: string, fallback: string) =>
@@ -443,10 +472,7 @@ export async function importProducts(
         }
 
         const beforeSlugs = readList(existing.categorySlugs);
-        if (
-          slugs.join(',') !== beforeSlugs.join(',') ||
-          primary !== existing.primaryCategorySlug
-        ) {
+        if (slugs.join(',') !== beforeSlugs.join(',') || primary !== existing.primaryCategorySlug) {
           changes.push({
             field: 'categories',
             from: `${beforeSlugs.join(', ')}${existing.primaryCategorySlug ? ` (primary ${existing.primaryCategorySlug})` : ''}`,
@@ -622,7 +648,9 @@ export async function importProducts(
       }
       // Same reason as the products sheet: a copied row must not silently outrank the row above it.
       if (seenVariants.has(variantKey(productSlug, sku))) {
-        refuse('This variant is already on an earlier row. Keep one row per variant and delete the copy.');
+        refuse(
+          'This variant is already on an earlier row. Keep one row per variant and delete the copy.',
+        );
         return;
       }
       seenVariants.add(variantKey(productSlug, sku));
@@ -807,7 +835,10 @@ export async function importProducts(
     }
 
     for (const write of goalWrites) {
-      const removed = await supabase.from('product_health_goals').delete().eq('product_id', write.id);
+      const removed = await supabase
+        .from('product_health_goals')
+        .delete()
+        .eq('product_id', write.id);
       const added =
         write.goalIds.length > 0
           ? await supabase
@@ -893,7 +924,11 @@ export async function importProducts(
         .map((write) => ({
           entityId: write.id,
           before: null,
-          after: { changes: write.changes, sheet_import: true, import_id: importId } as unknown as Json,
+          after: {
+            changes: write.changes,
+            sheet_import: true,
+            import_id: importId,
+          } as unknown as Json,
         })),
     );
 

@@ -160,14 +160,24 @@ export function AdminSimulator({
           </div>
         </fieldset>
 
-        <Choice label="Diet" value={diet} onChange={(v) => v !== '' && setDiet(v)} options={DIETS} />
+        <Choice
+          label="Diet"
+          value={diet}
+          onChange={(v) => v !== '' && setDiet(v)}
+          options={DIETS}
+        />
         <Choice
           label="Caffeine"
           value={caffeine}
           onChange={(v) => v !== '' && setCaffeine(v)}
           options={CAFFEINE}
         />
-        <Choice label="Level" value={level} onChange={(v) => v !== '' && setLevel(v)} options={LEVELS} />
+        <Choice
+          label="Level"
+          value={level}
+          onChange={(v) => v !== '' && setLevel(v)}
+          options={LEVELS}
+        />
 
         {/*
           The profile, with `unset` as a real option on every dimension. Leaving one blank is how a
@@ -176,9 +186,27 @@ export function AdminSimulator({
         */}
         <Choice label="Age" value={ageBand} onChange={setAgeBand} options={AGE_BANDS} unset />
         <Choice label="Sex" value={sex} onChange={setSex} options={SEX_BANDS} unset />
-        <Choice label="Weight" value={weightBand} onChange={setWeightBand} options={WEIGHT_BANDS} unset />
-        <Choice label="Height" value={heightBand} onChange={setHeightBand} options={HEIGHT_BANDS} unset />
-        <Choice label="Activity" value={activity} onChange={setActivity} options={ACTIVITY_BANDS} unset />
+        <Choice
+          label="Weight"
+          value={weightBand}
+          onChange={setWeightBand}
+          options={WEIGHT_BANDS}
+          unset
+        />
+        <Choice
+          label="Height"
+          value={heightBand}
+          onChange={setHeightBand}
+          options={HEIGHT_BANDS}
+          unset
+        />
+        <Choice
+          label="Activity"
+          value={activity}
+          onChange={setActivity}
+          options={ACTIVITY_BANDS}
+          unset
+        />
 
         <label className="flex items-center gap-2 text-sm text-ink-900">
           <input

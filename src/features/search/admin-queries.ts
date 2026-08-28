@@ -113,7 +113,9 @@ export async function listSearchRules(): Promise<SearchRuleRow[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from('search_rules')
-    .select('id, action, product_id, query, match_type, pin_position, weight, is_active, note, products(name, slug)')
+    .select(
+      'id, action, product_id, query, match_type, pin_position, weight, is_active, note, products(name, slug)',
+    )
     .order('query', { nullsFirst: false })
     .order('action');
 

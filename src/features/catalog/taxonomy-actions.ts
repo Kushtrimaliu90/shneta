@@ -433,7 +433,6 @@ export async function removeTaxonomy(
    */
   const table = kind === 'brand' ? ('brands' as const) : ('categories' as const);
 
-
   const blocked = (verdict: { reason: string; instead?: string }): TaxonomyState => ({
     ok: false,
     error: 'admin.catalog.errors.removeBlocked',
@@ -536,7 +535,6 @@ export async function restoreTaxonomy(
    * `kind` narrows it to the two that do.
    */
   const table = kind === 'brand' ? ('brands' as const) : ('categories' as const);
-
 
   try {
     const supabase = await createClient();
@@ -880,9 +878,15 @@ export async function purgeTaxonomy(
     if (!verdict.allowed) return blocked(verdict);
 
     // Audited before the delete: afterwards there is nothing left to read.
-    await audit(`${kind}.purged`, entity.table, id, { slug: row.slug, name: row.name } as unknown as Json, {
-      attached,
-    } as unknown as Json);
+    await audit(
+      `${kind}.purged`,
+      entity.table,
+      id,
+      { slug: row.slug, name: row.name } as unknown as Json,
+      {
+        attached,
+      } as unknown as Json,
+    );
 
     const { error } = await supabase
       .from(table)

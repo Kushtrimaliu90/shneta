@@ -164,6 +164,8 @@ async function main(): Promise<void> {
 }
 
 main().catch((error: unknown) => {
-  console.error(`\nfix:image-cache failed: ${error instanceof Error ? error.message : String(error)}`);
+  console.error(
+    `\nfix:image-cache failed: ${error instanceof Error ? error.message : String(error)}`,
+  );
   process.exit(1);
 });

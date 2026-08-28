@@ -56,31 +56,31 @@ Legend: ✅ done and verified · 🟡 partial · ⬜ not started · ➖ not appl
 
 ## 1 · Infrastructure and pipeline
 
-| Item                                                  | State | Evidence                                                                                                          |
-| ----------------------------------------------------- | ----- | ----------------------------------------------------------------------------------------------------------------- |
-| Next.js app builds for production                     | ✅    | `pnpm build`, 86 routes, no warnings                                                                              |
-| First Load JS within the 170 kB budget (`docs/09 §3`) | ✅    | 120–138 kB per route, enforced by `check:bundle`                                                                  |
-| Database schema applied                               | ✅    | **62** migrations on `rszbpdgfvyofvmuishmn`, Postgres 17.6                                                        |
-| RLS enabled on every public table (`docs/10 §4`)      | ✅    | `tables_without_rls()` → `[]`                                                                                     |
-| Integration suite against a real database             | ✅    | **478/478** — includes the docs/09 §5 attack suite and the M13 referral suites                                     |
-| Unit suite                                            | ✅    | **351/351**                                                                                                       |
-| E2E + axe on both locales                             | ✅    | **530/530**, repeatable; zero serious/critical violations on any asserted surface                                 |
-| Generated DB types match the live schema              | ✅    | `db:types:linked` → 5111 lines, `pnpm verify` green                                                              |
-| CI pipeline (quality · integration+E2E · audit)       | ✅    | `.github/workflows/ci.yml`                                                                                        |
-| Security headers (`docs/10 §5`)                       | 🟡    | asserted by an E2E test. **CSP is report-only in production** — `CSP_ENFORCE` is unset (§20)                       |
-| `/api/health` for uptime monitoring (`docs/10 §6`)    | ✅    | returns `{status:"ok",database:"ok",commit}` — the commit is how you tell which build answered                     |
-| Sitemap + robots with hreflang (`docs/08 §4`)         | ✅    | Reciprocal sq/en alternates on every URL, and no doubled slash — both asserted (§20)                               |
+| Item                                                  | State | Evidence                                                                                                                 |
+| ----------------------------------------------------- | ----- | ------------------------------------------------------------------------------------------------------------------------ |
+| Next.js app builds for production                     | ✅    | `pnpm build`, 86 routes, no warnings                                                                                     |
+| First Load JS within the 170 kB budget (`docs/09 §3`) | ✅    | 120–138 kB per route, enforced by `check:bundle`                                                                         |
+| Database schema applied                               | ✅    | **62** migrations on `rszbpdgfvyofvmuishmn`, Postgres 17.6                                                               |
+| RLS enabled on every public table (`docs/10 §4`)      | ✅    | `tables_without_rls()` → `[]`                                                                                            |
+| Integration suite against a real database             | ✅    | **478/478** — includes the docs/09 §5 attack suite and the M13 referral suites                                           |
+| Unit suite                                            | ✅    | **351/351**                                                                                                              |
+| E2E + axe on both locales                             | ✅    | **530/530**, repeatable; zero serious/critical violations on any asserted surface                                        |
+| Generated DB types match the live schema              | ✅    | `db:types:linked` → 5111 lines, `pnpm verify` green                                                                      |
+| CI pipeline (quality · integration+E2E · audit)       | ✅    | `.github/workflows/ci.yml`                                                                                               |
+| Security headers (`docs/10 §5`)                       | 🟡    | asserted by an E2E test. **CSP is report-only in production** — `CSP_ENFORCE` is unset (§20)                             |
+| `/api/health` for uptime monitoring (`docs/10 §6`)    | ✅    | returns `{status:"ok",database:"ok",commit}` — the commit is how you tell which build answered                           |
+| Sitemap + robots with hreflang (`docs/08 §4`)         | ✅    | Reciprocal sq/en alternates on every URL, and no doubled slash — both asserted (§20)                                     |
 | Four crons, `CRON_SECRET`-guarded                     | ✅    | housekeeping 03:30, payouts 04:15, referrals 04:45, subscription renewals 05:00; all 401 unauthenticated, 200 with token |
-| On-demand ISR purge, secret-guarded                   | ✅    | rejects unknown tags, 401 unauthenticated                                                                         |
-| Sentry server + edge                                  | ✅    | inert without a DSN; client SDK lazy-loaded                                                                       |
-| `vercel.json` — region `fra1`, crons                  | ✅    |                                                                                                                   |
-| Vercel project + domain + DNS + HTTPS                 | ✅    | **live**: `https://www.shtrejt.com/api/health` answers 200 with the deployed commit                              |
-| Resend domain verified (SPF/DKIM/DMARC)               | 🟡    | `shtrejt.com` verified; `RESEND_API_KEY` and `EMAIL_FROM` are set locally. **Unverified in Vercel** — see §20    |
-| Supabase staging + production projects                | ➖    | **owner decision (§7)** — one project serves all three roles                                                      |
-| PITR / backups on production                          | ⬜    | **owner task**, `docs/10 §4`. More urgent under §7: no second database to fall back on                            |
-| Destructive suites gated on `SUPABASE_TEST_PROJECT`   | ✅    | integration, E2E and the purge all refuse an undeclared target (§7)                                               |
-| Uptime monitor pointed at `/api/health`               | ⬜    | **owner task**                                                                                                    |
-| Restore drill                                         | ⬜    | **owner task** — `runbooks/restore.md` is written; the drill needs a scratch project (`docs/10 §7`)               |
+| On-demand ISR purge, secret-guarded                   | ✅    | rejects unknown tags, 401 unauthenticated                                                                                |
+| Sentry server + edge                                  | ✅    | inert without a DSN; client SDK lazy-loaded                                                                              |
+| `vercel.json` — region `fra1`, crons                  | ✅    |                                                                                                                          |
+| Vercel project + domain + DNS + HTTPS                 | ✅    | **live**: `https://www.shtrejt.com/api/health` answers 200 with the deployed commit                                      |
+| Resend domain verified (SPF/DKIM/DMARC)               | 🟡    | `shtrejt.com` verified; `RESEND_API_KEY` and `EMAIL_FROM` are set locally. **Unverified in Vercel** — see §20            |
+| Supabase staging + production projects                | ➖    | **owner decision (§7)** — one project serves all three roles                                                             |
+| PITR / backups on production                          | ⬜    | **owner task**, `docs/10 §4`. More urgent under §7: no second database to fall back on                                   |
+| Destructive suites gated on `SUPABASE_TEST_PROJECT`   | ✅    | integration, E2E and the purge all refuse an undeclared target (§7)                                                      |
+| Uptime monitor pointed at `/api/health`               | ⬜    | **owner task**                                                                                                           |
+| Restore drill                                         | ⬜    | **owner task** — `runbooks/restore.md` is written; the drill needs a scratch project (`docs/10 §7`)                      |
 
 ## 2 · Product — selling, fulfilling and stocking all work; the shop floor is still fixtures
 
@@ -437,12 +437,12 @@ evidence, or with the reason it cannot be ticked from a laptop.
 
 ### Blocked on content
 
-| Item                  | State                                                                                                                                                               |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Item                  | State                                                                                                                                                                                                                                                                                                                                                                    |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Legal pages final     | **Drafted, not reviewed.** Terms, privacy and shipping/returns are written (`supabase/seeds/06-static-pages.sql`) and live. They are accurate about what the software does, and they are not a lawyer’s work — checkout still makes customers accept them. The trader identification block carries a `[BIZNESI: plotëso]` marker, because only the owner has those facts |
-| Real catalogue loaded | 24 demo fixtures. `pnpm purge:demo` cannot run until real products exist (§7 step 2)                                                                                |
-| Health-goal intros    | ✅ All 16 written in both locales, 161–198 words each, claim-linted against `src/lib/claims.ts` (`supabase/seeds/05-goal-content.sql`)                              |
-| Brand assets          | Real brand names with placeholder logos — replace with authorised assets (docs/11 §5)                                                                               |
+| Real catalogue loaded | 24 demo fixtures. `pnpm purge:demo` cannot run until real products exist (§7 step 2)                                                                                                                                                                                                                                                                                     |
+| Health-goal intros    | ✅ All 16 written in both locales, 161–198 words each, claim-linted against `src/lib/claims.ts` (`supabase/seeds/05-goal-content.sql`)                                                                                                                                                                                                                                   |
+| Brand assets          | Real brand names with placeholder logos — replace with authorised assets (docs/11 §5)                                                                                                                                                                                                                                                                                    |
 
 ### The one that is neither
 
@@ -522,24 +522,24 @@ recommendation rather than a listing, which changes what "shipped" has to mean f
 
 ### What is live
 
-| Piece                    | State                                                                                                                                  |
-| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------- |
-| Schema                   | Migrations 21 and 22 applied. 4 tables, 2 enums, 3 columns, 1 security-definer RPC, RLS on all four                                    |
-| Engine                   | `features/biohack/engine.ts` — pure, deterministic, 44 unit tests, three of them mutation-verified (docs/13 §T3)                       |
-| Ruleset v1               | 51 blocks across all 16 goals, ≥3 per goal each with a core, 2 conflict rules, metric templates for all 16                             |
-| Customer flow            | `/biohack` steps 1–2, `/biohack/[code]` result, `/biohack/kujdes` gate, `/p/[code]` share. 17 E2E specs, axe clean on all three screens |
-| Admin                    | `/admin/biohack` — simulator, matrix, conflicts, settings, versions, analytics. axe clean on all six tabs                              |
-| Approval                 | draft → pending_review → approved, one approved version enforced by a partial unique index, storefront cache purged on approval        |
-| `/finder`                | 308 → `/biohack`; route, feature and its 21 unit tests deleted (docs/05 §10)                                                           |
+| Piece         | State                                                                                                                                   |
+| ------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| Schema        | Migrations 21 and 22 applied. 4 tables, 2 enums, 3 columns, 1 security-definer RPC, RLS on all four                                     |
+| Engine        | `features/biohack/engine.ts` — pure, deterministic, 44 unit tests, three of them mutation-verified (docs/13 §T3)                        |
+| Ruleset v1    | 51 blocks across all 16 goals, ≥3 per goal each with a core, 2 conflict rules, metric templates for all 16                              |
+| Customer flow | `/biohack` steps 1–2, `/biohack/[code]` result, `/biohack/kujdes` gate, `/p/[code]` share. 17 E2E specs, axe clean on all three screens |
+| Admin         | `/admin/biohack` — simulator, matrix, conflicts, settings, versions, analytics. axe clean on all six tabs                               |
+| Approval      | draft → pending_review → approved, one approved version enforced by a partial unique index, storefront cache purged on approval         |
+| `/finder`     | 308 → `/biohack`; route, feature and its 21 unit tests deleted (docs/05 §10)                                                            |
 
 ### What it deliberately does not do
 
-| Item                                | Why                                                                                                                                                                                                       | When                     |
-| ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------ |
-| Caffeine × sleep rule               | docs/15 §5 asks for a caffeine + L-theanine pairing and the conflict that goes with it. **The catalogue stocks neither ingredient.** The flags, the question and the engine's handling all exist and are unit tested; they filter nothing until such a product is stocked. An ingredient row with no product behind it would make the generator recommend something unbuyable | When the catalogue is real |
-| Add-all conversion, most-swapped    | Neither is recorded. Swaps are client state by design (docs/13 §T6) and a cart carries no reference to the protocol that filled it. Both need an event to exist first — the analytics card says so on its face rather than showing a zero | Needs an events table    |
-| Drag-to-reorder in the matrix       | Weight is not a rank — it *sums across goals*, which is the whole synergy mechanism. A drag handle expresses the order of one list and says nothing about the number that produced it                     | Not planned              |
-| A diff view for compliance          | docs/15 §4 asks compliance to review "a diff of all copy + rules". They currently review the draft itself in the matrix and conflicts tabs. A real diff needs a per-field comparison against the approved version | Before a second version ships |
+| Item                             | Why                                                                                                                                                                                                                                                                                                                                                                           | When                          |
+| -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------- |
+| Caffeine × sleep rule            | docs/15 §5 asks for a caffeine + L-theanine pairing and the conflict that goes with it. **The catalogue stocks neither ingredient.** The flags, the question and the engine's handling all exist and are unit tested; they filter nothing until such a product is stocked. An ingredient row with no product behind it would make the generator recommend something unbuyable | When the catalogue is real    |
+| Add-all conversion, most-swapped | Neither is recorded. Swaps are client state by design (docs/13 §T6) and a cart carries no reference to the protocol that filled it. Both need an event to exist first — the analytics card says so on its face rather than showing a zero                                                                                                                                     | Needs an events table         |
+| Drag-to-reorder in the matrix    | Weight is not a rank — it _sums across goals_, which is the whole synergy mechanism. A drag handle expresses the order of one list and says nothing about the number that produced it                                                                                                                                                                                         | Not planned                   |
+| A diff view for compliance       | docs/15 §4 asks compliance to review "a diff of all copy + rules". They currently review the draft itself in the matrix and conflicts tabs. A real diff needs a per-field comparison against the approved version                                                                                                                                                             | Before a second version ships |
 
 ### What it adds to the launch checklist
 
@@ -558,8 +558,8 @@ Everything in §14's "blocked on content" row that engineering could actually wr
 ### Done
 
 | Item                 | State                                                                                                                                                                   |
-| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Health-goal intros   | All 16, both locales, 161–198 words each. Every one is checked against the banned-verb list in `src/lib/claims.ts` — the same list the BioHack editor hard-blocks on     |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Health-goal intros   | All 16, both locales, 161–198 words each. Every one is checked against the banned-verb list in `src/lib/claims.ts` — the same list the BioHack editor hard-blocks on    |
 | `/about`             | Written, both locales                                                                                                                                                   |
 | Terms of use         | Written. Prices, VAT, the 20-unit cap, cash-on-delivery and the card method being off are all read off the implementation rather than assumed                           |
 | Privacy policy       | Written. The "what we collect" section is an inventory of what the code actually stores, processor by processor, including the BioHack answers                          |
@@ -576,7 +576,7 @@ Everything in §14's "blocked on content" row that engineering could actually wr
    seller is legally required to identify itself; inventing those would be worse than the gap.
 3. **A real phone number** in `/admin/settings`, and the socials if they exist. A shop selling
    cash-on-delivery with no phone number is a real friction point.
-4. **`info@shtrejt.com` must actually receive mail.** Resend is configured to *send* from the
+4. **`info@shtrejt.com` must actually receive mail.** Resend is configured to _send_ from the
    domain; receiving needs MX records. Every legal page tells customers to write to that address.
 
 ### One workflow trap found while applying it
@@ -660,7 +660,7 @@ Every step of that is covered by tests: **308 unit, 354 integration, 484 E2E**, 
    data-protection law. The trader identification block still carries `[BIZNESI: plotëso]`.
 
    **Clause 14 most of all.** It is the newest and the one with the most legal weight per word: the seller
-   grants BioCode a licence to use the photographs it uploads, and *warrants* that it holds the rights in
+   grants BioCode a licence to use the photographs it uploads, and _warrants_ that it holds the rights in
    them and that they depict the real product. Approving a proposal publishes those images under BioCode's
    name on a BioCode product page — so if that warranty does not hold up, the exposure is BioCode's.
 
@@ -669,6 +669,7 @@ Every step of that is covered by tests: **308 unit, 354 integration, 484 E2E**, 
    agreement that did not mention images. Two ways to close it, and it is a business decision which:
    serve the 30-day notice clause 1.1 provides for, or gate the portal on re-acceptance. Until one
    happens, **clause 14 binds only merchants onboarded after the bump.**
+
 2. **Decide the default commission** in `settings.marketplace.default_commission_pct`. It is 15 and
    nobody has agreed to that number — it is a placeholder that the approve form prefills.
 3. **Decide `shipping_cost_cents`**, currently €2.00, which is what a merchant bearing shipping is
@@ -687,30 +688,29 @@ manual and recorded with a bank reference on `/admin/payouts`.
 
 ---
 
-
 ## 19b · The referral programme (M13)
 
 Built after the marketplace, in the order docs/17 §8 lays out. What it does: a customer has a permanent
 `BIO-XXXXX` code; somebody who registers with it is linked to them for ever, and for twelve months the
 referrer earns **1% of that customer's eligible spend, paid in loyalty points**.
 
-| Item | State | Evidence |
-| --- | --- | --- |
-| Codes on every profile, generated at signup | ✅ | `generate_referral_code()`, alphabet with no O/0/I/1/S/5 |
-| Entry by three routes | ✅ | sign-up field, `/r/{CODE}` + 30-day httpOnly cookie, account until the first order |
-| One referrer per customer, for ever | ✅ | `unique (referee_id)`; self, cycle and shared-phone all refused |
-| Accrual on delivery, with clawback | ✅ | 21 integration tests; €100 → exactly 100 points; partial refunds converge |
-| `/account/referrals` | ✅ | share tools, WhatsApp/Viber, server-rendered QR, masked list, axe clean |
-| `/admin/referrals` | ✅ | queue with signup gaps, links, manual link, earnings + CSV, fraud panel; 21 tests |
-| `/api/cron/referrals` | ✅ | expire · auto-approve · monthly true-up · expiry notices · event emails; 33 tests |
-| Seven bilingual emails | ✅ | logged through `email_log`; copy privacy asserted by a unit test |
-| `/legal/referral-terms` | 🟡 | written and live, **not reviewed by a lawyer** — see §7 item 6 |
-| Referrer cannot learn what a referral spent | ✅ | no referrer policy on `referral_links`, no customer policy at all on `referral_earnings`, asserted in both directions |
+| Item                                        | State | Evidence                                                                                                              |
+| ------------------------------------------- | ----- | --------------------------------------------------------------------------------------------------------------------- |
+| Codes on every profile, generated at signup | ✅    | `generate_referral_code()`, alphabet with no O/0/I/1/S/5                                                              |
+| Entry by three routes                       | ✅    | sign-up field, `/r/{CODE}` + 30-day httpOnly cookie, account until the first order                                    |
+| One referrer per customer, for ever         | ✅    | `unique (referee_id)`; self, cycle and shared-phone all refused                                                       |
+| Accrual on delivery, with clawback          | ✅    | 21 integration tests; €100 → exactly 100 points; partial refunds converge                                             |
+| `/account/referrals`                        | ✅    | share tools, WhatsApp/Viber, server-rendered QR, masked list, axe clean                                               |
+| `/admin/referrals`                          | ✅    | queue with signup gaps, links, manual link, earnings + CSV, fraud panel; 21 tests                                     |
+| `/api/cron/referrals`                       | ✅    | expire · auto-approve · monthly true-up · expiry notices · event emails; 33 tests                                     |
+| Seven bilingual emails                      | ✅    | logged through `email_log`; copy privacy asserted by a unit test                                                      |
+| `/legal/referral-terms`                     | 🟡    | written and live, **not reviewed by a lawyer** — see §7 item 6                                                        |
+| Referrer cannot learn what a referral spent | ✅    | no referrer policy on `referral_links`, no customer policy at all on `referral_earnings`, asserted in both directions |
 
 **The privacy design is the substance of this milestone**, and it is worth stating what it cost. docs/17
 §0.2 admits a limit that cannot be engineered away: a referrer with exactly one active referral can
 divide their own points by the rate and read that person's spend. Everything else exists to stop the
-*shape* of the data making it worse — and "everything else" is a set of **absences**, which is precisely
+_shape_ of the data making it worse — and "everything else" is a set of **absences**, which is precisely
 what nobody notices breaking. So they are asserted directly: the RPC's payload keys, the missing
 policies, the null `order_id` on a referral ledger row, and an allowlist of the placeholders the email
 templates may use.
@@ -724,7 +724,6 @@ templates may use.
    which is what keeps the fraud panel from becoming decorative.
 
 ---
-
 
 ## 20 · What is actually left, as of the audit on 2026-08-04
 
@@ -765,66 +764,58 @@ site and the live database on the day.
    correct and nothing enforces it. Flip it after watching the report endpoint for a few days.
 
 2b. **`SEO_INDEXING=on` — the switch that makes the shop visible to Google.** Added 8 Aug 2026 after the
-   project paused itself on a spend limit (docs/13 §AC). It defaults to **off**, so until it is set in
-   Vercel, `robots.txt` is `Disallow: /` and every response carries `X-Robots-Tag: noindex, nofollow`.
-   Nothing is indexed and no crawler spend accrues.
+project paused itself on a spend limit (docs/13 §AC). It defaults to **off**, so until it is set in
+Vercel, `robots.txt` is `Disallow: /` and every response carries `X-Robots-Tag: noindex, nofollow`.
+Nothing is indexed and no crawler spend accrues.
 
-   Do not flip it before the photography (item 8) and the `[BIZNESI: plotëso]` blocks (item 6) are done.
-   The whole point of the default is that it stops you paying to have placeholder art and an unfinished
-   trader notice indexed. Flipping it is a redeploy, and the rollback is unsetting it.
-3. **`SENTRY_DSN` / `NEXT_PUBLIC_SENTRY_DSN`.** Both unset, so the SDK is inert and nothing reports.
-4. **Separate the test project from production (§7).** This moved from "risky" to "actively visible" during
-   the audit: a report of *test-related names in the category list* turned out to be E2E fixtures — `Emri
+Do not flip it before the photography (item 8) and the `[BIZNESI: plotëso]` blocks (item 6) are done.
+The whole point of the default is that it stops you paying to have placeholder art and an unfinished
+trader notice indexed. Flipping it is a redeploy, and the rollback is unsetting it. 3. **`SENTRY_DSN` / `NEXT_PUBLIC_SENTRY_DSN`.** Both unset, so the SDK is inert and nothing reports. 4. **Separate the test project from production (§7).** This moved from "risky" to "actively visible" during
+the audit: a report of _test-related names in the category list_ turned out to be E2E fixtures — `Emri
    Provë`, `Kategori e Zënë`, `Prindi` — rendering in the shop's category sidebar **while the suite ran**,
-   for the twenty-five minutes it takes. The purge removes them afterwards, the tests are correct to create
-   them, and nothing is broken. It is the shared project that is wrong (docs/13 §X17).
+for the twenty-five minutes it takes. The purge removes them afterwards, the tests are correct to create
+them, and nothing is broken. It is the shared project that is wrong (docs/13 §X17).
 
-   Until there are two projects: delete `SUPABASE_TEST_PROJECT` from `.env.local` before real customers
-   arrive and never set it in Vercel, and do not run the suites while anyone is shopping.
-5. **PITR / backups, an uptime monitor on `/api/health`, and a restore drill.** All three unchanged.
-6. **Legal review of all three terms documents**, clause 14 most of all, and the `[BIZNESI: plotëso]` trader
-   block. Terms are at `1.1` with no re-acceptance flow (§19).
+Until there are two projects: delete `SUPABASE_TEST_PROJECT` from `.env.local` before real customers
+arrive and never set it in Vercel, and do not run the suites while anyone is shopping. 5. **PITR / backups, an uptime monitor on `/api/health`, and a restore drill.** All three unchanged. 6. **Legal review of all three terms documents**, clause 14 most of all, and the `[BIZNESI: plotëso]` trader
+block. Terms are at `1.1` with no re-acceptance flow (§19).
 
-   The third is **`/legal/referral-terms`**, added with M13 step 3 (`supabase/seeds/15-referral-terms.sql`).
-   Same status as the others: written by engineering, accurate about what the software does, not reviewed.
-   Two things about it need a second pair of eyes specifically. Clause 6 is a **promise about what one
-   customer can learn about another**, and it is the customer-facing statement of docs/17 §0.2 — it should
-   be read against what the RPC actually returns before anybody relies on it. And clauses 4 and 5 write out
-   `1%`, `100 points = €1`, `€10` and `20,000 points` as numbers, because a customer cannot read a settings
-   table; if `settings.referral` or `settings.loyalty` is ever changed, **this page is wrong until it is
-   edited**. Its clause 9 carries the same `[BIZNESI: plotëso]` contact marker as the others.
-7. **The commercial numbers nobody has agreed to**: 15 % default commission, €2.00 shipping deduction, and
-   now the loyalty redemption rate.
+The third is **`/legal/referral-terms`**, added with M13 step 3 (`supabase/seeds/15-referral-terms.sql`).
+Same status as the others: written by engineering, accurate about what the software does, not reviewed.
+Two things about it need a second pair of eyes specifically. Clause 6 is a **promise about what one
+customer can learn about another**, and it is the customer-facing statement of docs/17 §0.2 — it should
+be read against what the RPC actually returns before anybody relies on it. And clauses 4 and 5 write out
+`1%`, `100 points = €1`, `€10` and `20,000 points` as numbers, because a customer cannot read a settings
+table; if `settings.referral` or `settings.loyalty` is ever changed, **this page is wrong until it is
+edited**. Its clause 9 carries the same `[BIZNESI: plotëso]` contact marker as the others. 7. **The commercial numbers nobody has agreed to**: 15 % default commission, €2.00 shipping deduction, and
+now the loyalty redemption rate.
 
-   docs/17 §0.1 replaced `redeem_points` + `redeem_value_cents` — a conversion rate encoded in two numbers
-   that could disagree — with a single `point_value_cents`, set to **1**. That is arithmetic, but it has a
-   commercial consequence nobody has signed off: the old pair said 100 points redeemed for €5, so a customer
-   earning 1 point per euro was getting **5 % back**; at one point = €0.01 they get **1 %**. 1 % is the rate
-   the referral programme is built around and the rate the seeded settings and both terms pages now state.
-   If 5 % was intended, `settings.loyalty.point_value_cents` is the one number to change — and
-   `/legal/referral-terms` and the loyalty terms in `messages/{sq,en}.json` have to change with it.
-8. **Photography — done.** Counted against the live database on 13 Aug 2026: **65 published products, 0 of
-   them without an image.** This item read "72 of 91 products still have none" for weeks after it stopped
-   being true, and `robots.ts` quoted the same stale figure as a reason indexing was off — so a finished job
-   went on looking unfinished, and the one remaining reason to keep the shop invisible was buried under a
-   reason that had expired. Migration 14 makes an image a precondition of publishing, which is what keeps
-   this closed: nothing new can reach `published` without one.
+docs/17 §0.1 replaced `redeem_points` + `redeem_value_cents` — a conversion rate encoded in two numbers
+that could disagree — with a single `point_value_cents`, set to **1**. That is arithmetic, but it has a
+commercial consequence nobody has signed off: the old pair said 100 points redeemed for €5, so a customer
+earning 1 point per euro was getting **5 % back**; at one point = €0.01 they get **1 %**. 1 % is the rate
+the referral programme is built around and the rate the seeded settings and both terms pages now state.
+If 5 % was intended, `settings.loyalty.point_value_cents` is the one number to change — and
+`/legal/referral-terms` and the loyalty terms in `messages/{sq,en}.json` have to change with it. 8. **Photography — done.** Counted against the live database on 13 Aug 2026: **65 published products, 0 of
+them without an image.** This item read "72 of 91 products still have none" for weeks after it stopped
+being true, and `robots.ts` quoted the same stale figure as a reason indexing was off — so a finished job
+went on looking unfinished, and the one remaining reason to keep the shop invisible was buried under a
+reason that had expired. Migration 14 makes an image a precondition of publishing, which is what keeps
+this closed: nothing new can reach `published` without one.
 
-   `pnpm seed:images ./photos` uploads a folder named after product slugs and is idempotent; `Pictures/`
-   holds a byte-for-byte mirror of the bucket so `--replace` can rebuild it. Still **not** a job to be done
-   by copying another retailer's photographs: those are theirs, and the pages that would carry them are the
-   pages that earn the money.
+`pnpm seed:images ./photos` uploads a folder named after product slugs and is idempotent; `Pictures/`
+holds a byte-for-byte mirror of the bucket so `--replace` can rebuild it. Still **not** a job to be done
+by copying another retailer's photographs: those are theirs, and the pages that would carry them are the
+pages that earn the money.
 
-   The lesson worth keeping is about the checklist rather than the photographs: **an item whose evidence is a
-   count must be re-counted before it is repeated.** This one was restated three times, by me, without being
-   measured once.
-9. **Reprice against real invoices.** The seeded prices are benchmarked to typical European online retail,
-   which is a starting point and not a margin: nobody has costed a delivery to Prishtinë or agreed a landed
-   cost with a distributor.
-10. **Confirm which brands you can actually supply.** Fourteen are listed, all real manufacturers with
-    European distribution, but listing a brand is not the same as having an agreement with it. Deactivate
-    the ones you cannot get — `is_active = false` on the brand **and** unpublish its products, because they
-    are filtered separately.
+The lesson worth keeping is about the checklist rather than the photographs: **an item whose evidence is a
+count must be re-counted before it is repeated.** This one was restated three times, by me, without being
+measured once. 9. **Reprice against real invoices.** The seeded prices are benchmarked to typical European online retail,
+which is a starting point and not a margin: nobody has costed a delivery to Prishtinë or agreed a landed
+cost with a distributor. 10. **Confirm which brands you can actually supply.** Fourteen are listed, all real manufacturers with
+European distribution, but listing a brand is not the same as having an agreement with it. Deactivate
+the ones you cannot get — `is_active = false` on the brand **and** unpublish its products, because they
+are filtered separately.
 
 ### Known and deliberate, not defects
 
@@ -857,7 +848,7 @@ doubled-slash incident in §20 was on `shtrejt.com`, and rewriting that would ma
   by `supabase/seeds/14-domain-biocode-fit.sql`; the source seeds were edited too so a fresh `db reset`
   produces the new domain.
 
-  That seed had to exist as a *new file* because a changed seed is not re-run — the push output said
+  That seed had to exist as a _new file_ because a changed seed is not re-run — the push output said
   `Updating seed hash to supabase/seeds/06-static-pages.sql...` and skipped the statements, which is
   docs/13 §U1 demonstrating itself.
 
@@ -867,7 +858,7 @@ Three of these break the live site if done in the wrong order, which is why the 
 than a list here:
 
 1. Own `biocode.fit`, add it to Vercel with `www` redirecting to the apex, point DNS at Vercel.
-2. **Supabase → Auth → URL Configuration** *before* step 4: add the new site URL to the redirect
+2. **Supabase → Auth → URL Configuration** _before_ step 4: add the new site URL to the redirect
    allowlist, or every password-reset link in flight dies the moment the variable flips.
 3. **Resend → verify `biocode.fit`**, then move `EMAIL_FROM` to `porosite@biocode.fit`. Not before:
    sending from an unverified domain is accepted and then filed as spam, so `email_log` says `sent` and

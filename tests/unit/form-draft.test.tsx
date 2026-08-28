@@ -25,17 +25,14 @@ function Editor({
 }) {
   const draft = useFormDraft();
 
-  const [state, action] = useActionState<string | null, FormData>(
-    async (_previous, formData) => {
-      if (useDraft) draft.capture(formData);
-      if (!reject) {
-        if (useDraft) draft.clear();
-        return 'ok';
-      }
-      return `rejected:${String(formData.get('slug'))}`;
-    },
-    null,
-  );
+  const [state, action] = useActionState<string | null, FormData>(async (_previous, formData) => {
+    if (useDraft) draft.capture(formData);
+    if (!reject) {
+      if (useDraft) draft.clear();
+      return 'ok';
+    }
+    return `rejected:${String(formData.get('slug'))}`;
+  }, null);
 
   return (
     <form action={action} key={useDraft ? draft.attempt : undefined}>
@@ -52,7 +49,9 @@ function Editor({
           name="tags"
           value={tag}
           defaultChecked={
-            useDraft ? draft.selected('tags', tag, savedTags.includes(tag)) : savedTags.includes(tag)
+            useDraft
+              ? draft.selected('tags', tag, savedTags.includes(tag))
+              : savedTags.includes(tag)
           }
         />
       ))}

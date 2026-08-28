@@ -20,7 +20,6 @@ import { COPY } from '@/features/referrals/email-copy';
  * run that triggered it, or a mail outage would stop points being posted.
  */
 
-
 function copyFor(locale: Locale) {
   return COPY[locale] ?? COPY[DEFAULT_LOCALE];
 }
@@ -58,10 +57,11 @@ export async function sendReferralMonthlySummary(target: {
   const copy = copyFor(target.locale);
   const url = referralsUrl(target.locale);
 
-  const intro = fill(
-    target.points < 0 ? copy.monthlyNegativeIntro : copy.monthlyIntro,
-    { points: target.points, period: target.period, value: target.valueLabel },
-  );
+  const intro = fill(target.points < 0 ? copy.monthlyNegativeIntro : copy.monthlyIntro, {
+    points: target.points,
+    period: target.period,
+    value: target.valueLabel,
+  });
 
   try {
     await sendEmail({
@@ -200,10 +200,7 @@ export async function sendReferralApproved(target: {
  * not being taken away (docs/17 §1). The admin's reason is **not** included — it is an internal note
  * written for an audit row, in English, by somebody who did not expect a customer to read it.
  */
-export async function sendReferralRevoked(target: {
-  to: string;
-  locale: Locale;
-}): Promise<void> {
+export async function sendReferralRevoked(target: { to: string; locale: Locale }): Promise<void> {
   const copy = copyFor(target.locale);
 
   await deliver({

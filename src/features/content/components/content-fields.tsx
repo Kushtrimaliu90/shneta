@@ -121,7 +121,13 @@ export function BilingualField({
             English <span className="font-normal normal-case">(optional)</span>
           </label>
           {multiline ? (
-            <textarea id={enName} name={enName} rows={rows} defaultValue={en} className={areaClass} />
+            <textarea
+              id={enName}
+              name={enName}
+              rows={rows}
+              defaultValue={en}
+              className={areaClass}
+            />
           ) : (
             <input id={enName} name={enName} defaultValue={en} className={inputClass} />
           )}

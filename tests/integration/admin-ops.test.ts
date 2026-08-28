@@ -315,9 +315,7 @@ describe('GDPR erasure (docs/06 §9)', () => {
       p_user_id: colleague.id,
     });
 
-    expect(error?.message, 'it would orphan their audit trail').toContain(
-      'CANNOT_ANONYMISE_STAFF',
-    );
+    expect(error?.message, 'it would orphan their audit trail').toContain('CANNOT_ANONYMISE_STAFF');
   });
 
   it('is closed to support — erasure is admin only', async () => {
@@ -362,6 +360,8 @@ describe('the admin views respect RLS', () => {
 
     const { data } = await customer.client.from('v_admin_inventory').select('variant_id');
 
-    expect(data ?? [], 'inventory_levels is staff-only, and the view inherits that').toHaveLength(0);
+    expect(data ?? [], 'inventory_levels is staff-only, and the view inherits that').toHaveLength(
+      0,
+    );
   });
 });

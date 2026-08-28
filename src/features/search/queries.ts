@@ -1,7 +1,12 @@
 import 'server-only';
 import { cache } from 'react';
 import { unstable_cache } from 'next/cache';
-import { CACHE_TAGS, ISR_REVALIDATE_SECONDS, type Locale, STATIC_REVALIDATE_SECONDS } from '@/lib/constants';
+import {
+  CACHE_TAGS,
+  ISR_REVALIDATE_SECONDS,
+  type Locale,
+  STATIC_REVALIDATE_SECONDS,
+} from '@/lib/constants';
 import { createPublicClient } from '@/lib/supabase/public';
 import { logger } from '@/lib/logger';
 import { normalizeQuery, type SearchRedirect } from '@/features/search/redirects';

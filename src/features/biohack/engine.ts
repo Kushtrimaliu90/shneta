@@ -137,10 +137,16 @@ export function generateProtocol(
     // The earliest phase wins: an ingredient that is foundational for one goal is not deferred
     // because it is optional for another.
     existing.phase = Math.min(existing.phase, block.phase) as 1 | 2;
-    for (const slot of block.timing) if (!existing.timing.includes(slot)) existing.timing.push(slot);
+    for (const slot of block.timing)
+      if (!existing.timing.includes(slot)) existing.timing.push(slot);
 
     trace.push({ kind: 'candidate', subject: key, object: block.goalSlug, score: block.weight });
-    trace.push({ kind: 'synergy', subject: key, score: existing.score, detail: existing.goalSlugs.join('+') });
+    trace.push({
+      kind: 'synergy',
+      subject: key,
+      score: existing.score,
+      detail: existing.goalSlugs.join('+'),
+    });
   }
 
   let candidates = [...byKey.values()];
@@ -187,7 +193,11 @@ export function generateProtocol(
       if (!candidate.blocks.some((b) => b.containsCaffeine)) continue;
       const morning = candidate.timing.filter((slot) => SLOT_DAY_PART[slot] === 'mengjes');
       candidate.timing = morning.length > 0 ? morning : ['mengjes'];
-      trace.push({ kind: 'timing_constrained', subject: candidate.key, detail: 'caffeine_morning_only' });
+      trace.push({
+        kind: 'timing_constrained',
+        subject: candidate.key,
+        detail: 'caffeine_morning_only',
+      });
     }
   }
 
@@ -446,7 +456,12 @@ function applyConflicts(
       });
     } else if (conflict.bGoalSlug && goals.includes(conflict.bGoalSlug)) {
       dropped.add(a.key);
-      trace.push({ kind: 'excluded_conflict', subject: a.key, object: conflict.bGoalSlug, detail: 'exclude' });
+      trace.push({
+        kind: 'excluded_conflict',
+        subject: a.key,
+        object: conflict.bGoalSlug,
+        detail: 'exclude',
+      });
     }
   }
 
@@ -534,9 +549,7 @@ function select(
 
   if (config.settings.perGoalCoreGuarantee) {
     for (const goal of goals) {
-      const core = ranked.find(
-        (c) => !taken.has(c.key) && c.goalSlugs.includes(goal) && c.isCore,
-      );
+      const core = ranked.find((c) => !taken.has(c.key) && c.goalSlugs.includes(goal) && c.isCore);
       const fallback = ranked.find((c) => !taken.has(c.key) && c.goalSlugs.includes(goal));
       const pick = core ?? fallback;
       if (!pick) continue;
@@ -680,7 +693,12 @@ function applyBudget(
     if (orphaned.length > 0) {
       kept.push(item);
       total += price;
-      trace.push({ kind: 'core_guaranteed', subject: item.key, object: orphaned.join('+'), detail: 'over_budget' });
+      trace.push({
+        kind: 'core_guaranteed',
+        subject: item.key,
+        object: orphaned.join('+'),
+        detail: 'over_budget',
+      });
       continue;
     }
 

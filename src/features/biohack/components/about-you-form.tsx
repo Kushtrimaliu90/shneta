@@ -193,7 +193,7 @@ function Bands({
           return (
             <label
               key={option.value}
-              className="flex cursor-pointer flex-col gap-0.5 rounded-md border border-line bg-surface px-3.5 py-2.5 text-sm transition-colors duration-150 ease-[var(--ease-biocode)] hover:border-line-strong focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-forest-700 has-checked:border-forest-700 has-checked:bg-forest-50"
+              className="flex cursor-pointer flex-col gap-0.5 rounded-md border border-line bg-surface px-3.5 py-2.5 text-sm transition-colors duration-150 ease-[var(--ease-biocode)] focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-forest-700 hover:border-line-strong has-checked:border-forest-700 has-checked:bg-forest-50"
             >
               <span className="flex items-center gap-2">
                 <input

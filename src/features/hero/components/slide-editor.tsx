@@ -61,7 +61,10 @@ export function SlideEditor({
   const [state, action] = useActionState(
     async (previous: Awaited<ReturnType<typeof saveHeroSlide>>, formData: FormData) => {
       const submitted = Object.fromEntries(
-        [...formData.entries()].map(([key, value]) => [key, typeof value === 'string' ? value : '']),
+        [...formData.entries()].map(([key, value]) => [
+          key,
+          typeof value === 'string' ? value : '',
+        ]),
       );
 
       const result = await saveHeroSlide(previous, formData);
@@ -273,7 +276,10 @@ export function SlideEditor({
               name="textVariant"
               defaultValue={val('textVariant', slide?.textVariant ?? 'dark')}
               onChange={(event) =>
-                setPreview((p) => ({ ...p, variant: event.target.value === 'light' ? 'light' : 'dark' }))
+                setPreview((p) => ({
+                  ...p,
+                  variant: event.target.value === 'light' ? 'light' : 'dark',
+                }))
               }
               className="h-11 w-full rounded-md border border-line bg-surface px-3 text-sm"
             >
@@ -540,19 +546,40 @@ function Preview({
   preview,
   desktopSrc,
 }: {
-  preview: { eyebrow: string; headline: string; subhead: string; cta: string; variant: 'light' | 'dark' };
+  preview: {
+    eyebrow: string;
+    headline: string;
+    subhead: string;
+    cta: string;
+    variant: 'light' | 'dark';
+  };
   desktopSrc: string | null;
 }) {
   const light = preview.variant === 'light';
 
   const body = (
-    <div className={cn('flex h-full flex-col justify-center gap-2 p-4', light ? 'bg-forest-950' : 'bg-cream')}>
+    <div
+      className={cn(
+        'flex h-full flex-col justify-center gap-2 p-4',
+        light ? 'bg-forest-950' : 'bg-cream',
+      )}
+    >
       {preview.eyebrow && (
-        <p className={cn('text-[10px] font-semibold uppercase tracking-wide', light ? 'text-lime-400' : 'text-forest-700')}>
+        <p
+          className={cn(
+            'text-[10px] font-semibold tracking-wide uppercase',
+            light ? 'text-lime-400' : 'text-forest-700',
+          )}
+        >
           {preview.eyebrow}
         </p>
       )}
-      <p className={cn('font-display text-lg leading-tight font-semibold', light ? 'text-cream' : 'text-forest-900')}>
+      <p
+        className={cn(
+          'font-display text-lg leading-tight font-semibold',
+          light ? 'text-cream' : 'text-forest-900',
+        )}
+      >
         {preview.headline || 'Headline'}
       </p>
       {preview.subhead && (
@@ -685,7 +712,8 @@ function ErrorSummary({
       <ul className="mt-2 list-disc pl-5">
         {named.map(([field, messages]) => (
           <li key={field}>
-            <span className="font-medium">{FIELD_LABELS[field] ?? field}</span> — {messages.join(' ')}
+            <span className="font-medium">{FIELD_LABELS[field] ?? field}</span> —{' '}
+            {messages.join(' ')}
           </li>
         ))}
       </ul>

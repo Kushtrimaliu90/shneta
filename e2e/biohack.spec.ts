@@ -72,7 +72,9 @@ async function generate(
    * clicks straight through, which is also the case worth exercising: the flow must work for
    * somebody who declines all five.
    */
-  await expect(page.getByRole('group', { name: 'Age', exact: true })).toBeVisible({ timeout: ACTION_TIMEOUT });
+  await expect(page.getByRole('group', { name: 'Age', exact: true })).toBeVisible({
+    timeout: ACTION_TIMEOUT,
+  });
   if (options.profile) {
     for (const [group, label] of Object.entries(options.profile)) {
       await page
@@ -83,8 +85,11 @@ async function generate(
   }
   await page.getByRole('button', { name: 'Continue' }).click();
 
-  await expect(page.getByRole('group', { name: 'Diet', exact: true })).toBeVisible({ timeout: ACTION_TIMEOUT });
-  if (options.vegan !== false) await page.getByRole('radio', { name: 'Vegan', exact: true }).check();
+  await expect(page.getByRole('group', { name: 'Diet', exact: true })).toBeVisible({
+    timeout: ACTION_TIMEOUT,
+  });
+  if (options.vegan !== false)
+    await page.getByRole('radio', { name: 'Vegan', exact: true }).check();
   await page
     .getByRole('group', { name: 'Caffeine', exact: true })
     .getByRole('radio', { name: options.caffeine ?? 'No', exact: true })
@@ -99,7 +104,9 @@ async function generate(
    */
   const lifeStage = page.getByRole('group', { name: /pregnant/ });
   if ((await lifeStage.count()) > 0) {
-    await lifeStage.getByRole('radio', { name: options.pregnant ? 'Yes' : 'No', exact: true }).check();
+    await lifeStage
+      .getByRole('radio', { name: options.pregnant ? 'Yes' : 'No', exact: true })
+      .check();
   }
 
   await page.getByRole('button', { name: 'Build my protocol' }).click();
@@ -154,9 +161,7 @@ test.describe('the three steps (docs/15 §1)', () => {
     await generate(page, { pregnant: true });
 
     await expect(page).toHaveURL(/\/en\/biohack\/kujdes$/);
-    await expect(page.getByRole('heading', { level: 1 })).toContainText(
-      'healthcare professional',
-    );
+    await expect(page.getByRole('heading', { level: 1 })).toContainText('healthcare professional');
     // docs/15 §6 — nothing purchasable anywhere on the page.
     await expect(page.getByRole('article')).toHaveCount(0);
     await expect(page.getByRole('button', { name: /Add everything/ })).toHaveCount(0);
@@ -441,9 +446,7 @@ test.describe('the admin ruleset editor (docs/15 §4)', () => {
     await expect(page.getByRole('button', { name: 'Add block' })).toHaveCount(0);
 
     await page.goto('/admin/biohack?tab=versions');
-    await expect(
-      page.getByRole('button', { name: /Start a new draft/ }),
-    ).toBeVisible();
+    await expect(page.getByRole('button', { name: /Start a new draft/ })).toBeVisible();
   });
 
   test('compliance can reach the screen but cannot edit the ruleset', async ({ page }) => {

@@ -173,11 +173,13 @@ test.describe('journey 9 — subscribe, manage, renew (docs/09 §1)', () => {
     expect(error, 'subscription fixture must insert').toBeNull();
     const subscriptionId = (created as { id: string }).id;
 
-    const { error: itemError } = await db().from('subscription_items').insert({
-      subscription_id: subscriptionId,
-      variant_id: (variant as { id: string }).id,
-      quantity: 1,
-    });
+    const { error: itemError } = await db()
+      .from('subscription_items')
+      .insert({
+        subscription_id: subscriptionId,
+        variant_id: (variant as { id: string }).id,
+        quantity: 1,
+      });
     expect(itemError, 'subscription item fixture must insert').toBeNull();
 
     // ── Invoke the cron twice ────────────────────────────────────────────────
@@ -282,9 +284,7 @@ test.describe('journey 9 — subscribe, manage, renew (docs/09 §1)', () => {
      */
     const stranger = await browser.newContext();
     const strangerPage = await stranger.newPage();
-    await strangerPage.goto(
-      `/en/subscriptions/action?token=${(token as { token: string }).token}`,
-    );
+    await strangerPage.goto(`/en/subscriptions/action?token=${(token as { token: string }).token}`);
 
     await expect(strangerPage.getByRole('heading', { name: 'Delivery skipped' })).toBeVisible({
       timeout: ACTION_TIMEOUT,

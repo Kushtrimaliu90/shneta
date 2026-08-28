@@ -52,7 +52,9 @@ export async function GET() {
      * and sent back — and the second is that somebody finds three of them in Downloads. Europe/Belgrade,
      * matching every other date the panel shows.
      */
-    const stamp = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Belgrade' }).format(new Date());
+    const stamp = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Belgrade' }).format(
+      new Date(),
+    );
 
     return new NextResponse(workbook, {
       headers: {
@@ -143,7 +145,8 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           ok: false,
-          error: 'That is not an .xlsx file. Download the catalogue, edit that copy, and upload it back.',
+          error:
+            'That is not an .xlsx file. Download the catalogue, edit that copy, and upload it back.',
         },
         { status: 415 },
       );

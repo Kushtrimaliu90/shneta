@@ -74,8 +74,8 @@ export default async function AdminBioHackPage({ searchParams }: Props) {
       <section>
         <h1 className="font-display text-2xl font-semibold text-forest-900">BioHack</h1>
         <p className="mt-4 rounded-md border border-warning/40 bg-warning/5 p-4 text-sm text-ink-900">
-          No protocol config exists. The generator returns nothing until one is approved — apply
-          the migration that seeds v1 (<code>20260802000310_protocol_config_v1.sql</code>).
+          No protocol config exists. The generator returns nothing until one is approved — apply the
+          migration that seeds v1 (<code>20260802000310_protocol_config_v1.sql</code>).
         </p>
       </section>
     );
@@ -98,7 +98,10 @@ export default async function AdminBioHackPage({ searchParams }: Props) {
         </div>
       </header>
 
-      <nav aria-label="BioHack sections" className="flex flex-wrap gap-1.5 border-b border-line pb-3">
+      <nav
+        aria-label="BioHack sections"
+        className="flex flex-wrap gap-1.5 border-b border-line pb-3"
+      >
         {TABS.map((entry) => (
           <Link
             key={entry}
@@ -117,9 +120,7 @@ export default async function AdminBioHackPage({ searchParams }: Props) {
       </nav>
 
       {tab === 'simulator' && <SimulatorTab configId={configId} isDraft={Boolean(isDraft)} />}
-      {tab === 'matrix' && (
-        <MatrixTab configId={configId} editable={canEditThis} params={params} />
-      )}
+      {tab === 'matrix' && <MatrixTab configId={configId} editable={canEditThis} params={params} />}
       {tab === 'profile' && <ProfileTab configId={configId} editable={canEditThis} />}
       {tab === 'conflicts' && <ConflictsTab configId={configId} editable={canEditThis} />}
       {tab === 'settings' && <SettingsTab configId={configId} editable={editable} />}
@@ -242,7 +243,9 @@ async function SettingsTab({ configId, editable }: { configId: string; editable:
   const config = await readAdminConfig(configId);
   if (!config) return <p className="text-sm text-ink-600">Settings could not be loaded.</p>;
   if (!editable) {
-    return <p className="text-sm text-ink-600">Your role can view the ruleset but not change it.</p>;
+    return (
+      <p className="text-sm text-ink-600">Your role can view the ruleset but not change it.</p>
+    );
   }
 
   return <AdminEngineSettings settings={config.settings} />;
@@ -259,7 +262,9 @@ async function AnalyticsTab() {
         <Card
           label="From signed-in customers"
           value={stats.signedIn}
-          note={stats.total > 0 ? `${Math.round((stats.signedIn / stats.total) * 100)}%` : undefined}
+          note={
+            stats.total > 0 ? `${Math.round((stats.signedIn / stats.total) * 100)}%` : undefined
+          }
         />
       </div>
 

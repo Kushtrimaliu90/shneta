@@ -93,7 +93,7 @@ export function CollapsibleList<T>({
       */}
       <details
         open={activeHidden > 0}
-        className="[&_summary::-webkit-details-marker]:hidden [&_summary]:list-none"
+        className="[&_summary]:list-none [&_summary::-webkit-details-marker]:hidden"
       >
         <summary className="mt-0.5 flex min-h-9 cursor-pointer items-center gap-1.5 rounded-sm px-2 text-sm text-forest-700 hover:bg-forest-50">
           {/*

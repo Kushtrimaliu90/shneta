@@ -85,7 +85,12 @@ const readCatalog = async (): Promise<CatalogProduct[]> => {
     is_featured: boolean;
     serving_size: string | null;
     product_ingredients: { ingredients: { slug: string } | null }[];
-    product_variants: { id: string; price_cents: number; is_default: boolean; is_active: boolean }[];
+    product_variants: {
+      id: string;
+      price_cents: number;
+      is_default: boolean;
+      is_active: boolean;
+    }[];
   };
 
   return ((data ?? []) as unknown as Raw[]).flatMap((row) => {

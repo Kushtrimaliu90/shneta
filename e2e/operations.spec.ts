@@ -82,9 +82,8 @@ test.describe('inventory operations (docs/06 §8)', () => {
     // Put the stock back so the fixture catalogue is unchanged for other specs.
     await db().rpc('apply_stock_movement', {
       p_variant_id: variantId,
-      p_warehouse_id: (
-        await db().from('warehouses').select('id').eq('is_default', true).single()
-      ).data?.id,
+      p_warehouse_id: (await db().from('warehouses').select('id').eq('is_default', true).single())
+        .data?.id,
       p_type: 'adjustment',
       p_quantity: -7,
       p_note: 'E2E cleanup',
@@ -267,7 +266,6 @@ test.describe('settings (docs/06 §15)', () => {
  * `e2e/biohack.spec.ts` along with the feature that replaced them.
  */
 test.describe('accessibility on the M10 surface (docs/09 §1 journey 12)', () => {
-
   const ADMIN = [
     '/admin/inventory',
     '/admin/movements',

@@ -259,13 +259,15 @@ export async function listLedger(limit = 50): Promise<LedgerEntry[]> {
     return [];
   }
 
-  return ((data ?? []) as {
-    id: string;
-    kind: string;
-    amount_cents: number;
-    note: string | null;
-    created_at: string;
-  }[]).map((row) => ({
+  return (
+    (data ?? []) as {
+      id: string;
+      kind: string;
+      amount_cents: number;
+      note: string | null;
+      created_at: string;
+    }[]
+  ).map((row) => ({
     id: row.id,
     kind: row.kind,
     amountCents: row.amount_cents,

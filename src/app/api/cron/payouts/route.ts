@@ -67,7 +67,10 @@ export async function GET(request: NextRequest) {
   });
 
   if (error) {
-    logger.error('payout run failed', { period: `${period.start}..${period.end}`, cause: error.message });
+    logger.error('payout run failed', {
+      period: `${period.start}..${period.end}`,
+      cause: error.message,
+    });
     return NextResponse.json({ error: 'RUN_FAILED', period }, { status: 500 });
   }
 

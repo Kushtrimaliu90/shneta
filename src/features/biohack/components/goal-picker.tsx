@@ -109,7 +109,9 @@ export function GoalPicker({
                     aria-hidden="true"
                     className={cn(
                       'flex size-5 shrink-0 items-center justify-center rounded-sm border',
-                      isChosen ? 'border-forest-700 bg-forest-700 text-white' : 'border-line-strong',
+                      isChosen
+                        ? 'border-forest-700 bg-forest-700 text-white'
+                        : 'border-line-strong',
                     )}
                   >
                     {isChosen && <Check className="size-3.5" strokeWidth={3} />}
@@ -127,12 +129,7 @@ export function GoalPicker({
          * The counter is the live region, so the announcement is the count itself rather than a
          * separate "selected" message duplicating what the checkbox already said.
          */}
-        <p
-          id={counterId}
-          aria-live="polite"
-          className="font-ui text-sm text-ink-600"
-          data-numeric
-        >
+        <p id={counterId} aria-live="polite" className="font-ui text-sm text-ink-600" data-numeric>
           {t('goalsCounter', { count: chosen.length, max: MAX_GOALS })}
           {atLimit && <span className="ml-2 text-ink-500">{t('goalsMax')}</span>}
         </p>

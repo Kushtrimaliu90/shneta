@@ -44,7 +44,11 @@ export const searchRuleSchema = z
     const hasQuery = Boolean(value.query?.trim());
 
     if (value.matchType === 'any' && hasQuery) {
-      ctx.addIssue({ code: 'custom', path: ['query'], message: 'Leave the query empty for “any”.' });
+      ctx.addIssue({
+        code: 'custom',
+        path: ['query'],
+        message: 'Leave the query empty for “any”.',
+      });
     }
     if (value.matchType !== 'any' && !hasQuery) {
       ctx.addIssue({ code: 'custom', path: ['query'], message: 'A query is required.' });
@@ -53,10 +57,18 @@ export const searchRuleSchema = z
       ctx.addIssue({ code: 'custom', path: ['pinPosition'], message: 'A pin needs a position.' });
     }
     if (value.action === 'boost' && !(value.weight && value.weight > 0)) {
-      ctx.addIssue({ code: 'custom', path: ['weight'], message: 'A boost needs a positive weight.' });
+      ctx.addIssue({
+        code: 'custom',
+        path: ['weight'],
+        message: 'A boost needs a positive weight.',
+      });
     }
     if (value.action === 'bury' && !(value.weight && value.weight < 0)) {
-      ctx.addIssue({ code: 'custom', path: ['weight'], message: 'A bury needs a negative weight.' });
+      ctx.addIssue({
+        code: 'custom',
+        path: ['weight'],
+        message: 'A bury needs a negative weight.',
+      });
     }
   });
 

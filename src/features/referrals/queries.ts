@@ -69,13 +69,17 @@ export async function getCodeEntryState(): Promise<CodeEntryState> {
 
   const supabase = await createClient();
 
-  const [{ data: sourceRow, error: sourceError }, { count, error: orderError }, enabled, cookieCode] =
-    await Promise.all([
-      supabase.rpc('my_referral_source'),
-      supabase.from('orders').select('id', { count: 'exact', head: true }),
-      isReferralProgrammeEnabled(),
-      getInviteCodeFromCookie(),
-    ]);
+  const [
+    { data: sourceRow, error: sourceError },
+    { count, error: orderError },
+    enabled,
+    cookieCode,
+  ] = await Promise.all([
+    supabase.rpc('my_referral_source'),
+    supabase.from('orders').select('id', { count: 'exact', head: true }),
+    isReferralProgrammeEnabled(),
+    getInviteCodeFromCookie(),
+  ]);
 
   if (sourceError) logger.error('my_referral_source failed', { cause: sourceError.message });
   if (orderError) logger.error('referral grace order count failed', { cause: orderError.message });
@@ -194,7 +198,12 @@ export async function getReferralOverview(): Promise<ReferralOverview | null> {
   const raw = data as {
     code?: string | null;
     stats?: Record<string, number>;
-    referrals?: { masked_name?: string; joined_month?: string; status?: string; days_left?: number | null }[];
+    referrals?: {
+      masked_name?: string;
+      joined_month?: string;
+      status?: string;
+      days_left?: number | null;
+    }[];
   } | null;
 
   if (!raw?.code) return null;

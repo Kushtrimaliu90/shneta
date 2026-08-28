@@ -319,10 +319,7 @@ test.describe('sponsored placement slot', () => {
      * with the slot present and absent — rather than the implementation.
      */
     await page.goto('/shop?sort=price_asc');
-    const first = await page
-      .getByRole('article')
-      .first()
-      .innerText();
+    const first = await page.getByRole('article').first().innerText();
 
     await page.goto('/shop/vitamina?sort=price_asc').catch(() => undefined);
     await page.goto('/shop?sort=price_asc');

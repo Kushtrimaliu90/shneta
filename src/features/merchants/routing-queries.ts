@@ -38,20 +38,22 @@ export async function routingQueue(includeAssigned = false): Promise<RoutingQueu
     return [];
   }
 
-  return ((data ?? []) as {
-    fulfilment_id: string;
-    order_id: string;
-    order_number: string;
-    placed_at: string;
-    status: string;
-    proposed_merchant_id: string | null;
-    proposed_merchant_name: string | null;
-    items_subtotal_cents: number;
-    line_count: number;
-    unit_count: number;
-    waiting_hours: number;
-    is_cod: boolean;
-  }[]).map((row) => ({
+  return (
+    (data ?? []) as {
+      fulfilment_id: string;
+      order_id: string;
+      order_number: string;
+      placed_at: string;
+      status: string;
+      proposed_merchant_id: string | null;
+      proposed_merchant_name: string | null;
+      items_subtotal_cents: number;
+      line_count: number;
+      unit_count: number;
+      waiting_hours: number;
+      is_cod: boolean;
+    }[]
+  ).map((row) => ({
     fulfilmentId: row.fulfilment_id,
     orderId: row.order_id,
     orderNumber: row.order_number,
@@ -93,17 +95,19 @@ export async function fulfilmentCandidates(fulfilmentId: string): Promise<Candid
     return [];
   }
 
-  return ((data ?? []) as {
-    merchant_id: string;
-    merchant_name: string;
-    merchant_slug: string;
-    rating_avg: number;
-    asking_total_cents: number;
-    merchant_due_cents: number;
-    commission_pct: number;
-    max_handling_days: number;
-    is_current: boolean;
-  }[]).map((row) => ({
+  return (
+    (data ?? []) as {
+      merchant_id: string;
+      merchant_name: string;
+      merchant_slug: string;
+      rating_avg: number;
+      asking_total_cents: number;
+      merchant_due_cents: number;
+      commission_pct: number;
+      max_handling_days: number;
+      is_current: boolean;
+    }[]
+  ).map((row) => ({
     merchantId: row.merchant_id,
     merchantName: row.merchant_name,
     merchantSlug: row.merchant_slug,
@@ -137,15 +141,17 @@ export async function fulfilmentLines(fulfilmentId: string): Promise<FulfilmentL
     return [];
   }
 
-  return ((data ?? []) as {
-    item_id: string;
-    sku: string;
-    name_snapshot: string;
-    quantity: number;
-    unit_price_cents: number;
-    total_cents: number;
-    offer_id: string | null;
-  }[]).map((row) => ({
+  return (
+    (data ?? []) as {
+      item_id: string;
+      sku: string;
+      name_snapshot: string;
+      quantity: number;
+      unit_price_cents: number;
+      total_cents: number;
+      offer_id: string | null;
+    }[]
+  ).map((row) => ({
     itemId: row.item_id,
     sku: row.sku,
     name: row.name_snapshot,
@@ -190,21 +196,23 @@ export async function orderFulfilments(orderId: string): Promise<OrderFulfilment
     return [];
   }
 
-  return ((data ?? []) as unknown as {
-    id: string;
-    fulfiller_kind: 'biocode' | 'merchant';
-    merchant_id: string | null;
-    status: string;
-    items_subtotal_cents: number;
-    commission_cents: number;
-    merchant_due_cents: number;
-    carrier: string | null;
-    tracking_code: string | null;
-    assigned_at: string | null;
-    shipped_at: string | null;
-    cancel_reason: string | null;
-    merchants: { display_name: string } | null;
-  }[]).map((row) => ({
+  return (
+    (data ?? []) as unknown as {
+      id: string;
+      fulfiller_kind: 'biocode' | 'merchant';
+      merchant_id: string | null;
+      status: string;
+      items_subtotal_cents: number;
+      commission_cents: number;
+      merchant_due_cents: number;
+      carrier: string | null;
+      tracking_code: string | null;
+      assigned_at: string | null;
+      shipped_at: string | null;
+      cancel_reason: string | null;
+      merchants: { display_name: string } | null;
+    }[]
+  ).map((row) => ({
     id: row.id,
     fulfillerKind: row.fulfiller_kind,
     merchantId: row.merchant_id,

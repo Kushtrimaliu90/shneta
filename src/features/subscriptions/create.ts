@@ -114,9 +114,7 @@ export async function createSubscriptionsFromCart(input: CreateInput): Promise<v
          * these items — shipping them again immediately is the single most obvious way to make
          * a subscription feel like a trap.
          */
-        const nextRunAt = new Date(
-          Date.now() + frequencyDays * 24 * 60 * 60 * 1000,
-        ).toISOString();
+        const nextRunAt = new Date(Date.now() + frequencyDays * 24 * 60 * 60 * 1000).toISOString();
 
         const { data: created, error: createError } = await supabase
           .from('subscriptions')

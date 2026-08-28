@@ -54,8 +54,8 @@ export default async function AdminSearchPage() {
       <h1 className="font-display text-2xl font-semibold text-forest-900">Search</h1>
       <p className="mt-1 max-w-3xl text-sm text-ink-600">
         What people search for, what they found, and what they clicked — plus the three levers that
-        change it. Synonyms fix recall (“kolagjen” finding the collagen peptides), merchandising rules
-        fix ranking, and redirects catch the queries that were never about a product.
+        change it. Synonyms fix recall (“kolagjen” finding the collagen peptides), merchandising
+        rules fix ranking, and redirects catch the queries that were never about a product.
       </p>
 
       <SearchAdmin

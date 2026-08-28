@@ -56,9 +56,9 @@ export default async function AdminRoutingPage({ searchParams }: Props) {
       <header>
         <h1 className="font-display text-2xl font-semibold text-forest-900">Routing</h1>
         <p className="mt-1 text-sm text-ink-600">
-          Merchant-sourced fulfilments waiting for a decision. The buy box already proposed a merchant
-          and reserved its stock at checkout; confirming changes nothing, re-routing moves the
-          reservation and recomputes the commission.
+          Merchant-sourced fulfilments waiting for a decision. The buy box already proposed a
+          merchant and reserved its stock at checkout; confirming changes nothing, re-routing moves
+          the reservation and recomputes the commission.
         </p>
       </header>
 
@@ -70,7 +70,12 @@ export default async function AdminRoutingPage({ searchParams }: Props) {
       )}
 
       <nav aria-label="Filter the queue" className="flex flex-wrap gap-1.5">
-        <Tab href="/admin/routing" active={!showAssigned} label="Awaiting routing" count={waiting} />
+        <Tab
+          href="/admin/routing"
+          active={!showAssigned}
+          label="Awaiting routing"
+          count={waiting}
+        />
         <Tab
           href="/admin/routing?view=assigned"
           active={showAssigned}

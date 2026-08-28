@@ -355,14 +355,14 @@ Built in the order §8 prescribes. Recorded in `docs/13 §T` and `docs/14 §17`.
 
 ### Where the build departed from this document, and why
 
-| Spec asked for                    | Built instead                                                                                                                                                                    | Reason                                                                                                              |
-| --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| Goal tiles as `aria-pressed` toggle buttons | A checkbox group in a `GET` form                                                                                                                                        | Native semantics for "choose several", announces itself without an ARIA attribute to get wrong, and step 1 works with JavaScript off — docs/01 §4's target device is a mid-range Android on mobile data |
-| Step 3 as the third screen of one route | A stored protocol at `/biohack/[code]`                                                                                                                                     | A result has to survive a reload, a bookmark, a sign-in round trip and being sent to someone (docs/13 §T6). It also made the §6 guest round trip disappear (§T7) |
-| Result page regenerates from the answers | Renders the stored snapshot                                                                                                                                               | Otherwise reopening a link after a catalogue change silently returns a different protocol, and "compliance can point at the version that produced it" becomes false |
-| Drag-to-reorder = weight          | A weight number field                                                                                                                                                            | Weight sums across goals — that is the synergy mechanism. A drag handle orders one list and cannot express the number |
-| Banned-verb linter "warn on save" | Hard block, both locales, shared with the config's integration test                                                                                                              | The reviewer who would catch it does not exist for this copy: it is recombined and generated at a customer, never read as a page (docs/13 §T10) |
-| Per-item "next-ranked alternative" | Six ranked alternates shipped in the payload, swapped client-side                                                                                                               | Most alternates serve more than one chosen goal, so per-item lists would ship the same object repeatedly. A flat pool also makes swap and remove pure client state, which is what keeps a shared link stable |
+| Spec asked for                              | Built instead                                                       | Reason                                                                                                                                                                                                       |
+| ------------------------------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Goal tiles as `aria-pressed` toggle buttons | A checkbox group in a `GET` form                                    | Native semantics for "choose several", announces itself without an ARIA attribute to get wrong, and step 1 works with JavaScript off — docs/01 §4's target device is a mid-range Android on mobile data      |
+| Step 3 as the third screen of one route     | A stored protocol at `/biohack/[code]`                              | A result has to survive a reload, a bookmark, a sign-in round trip and being sent to someone (docs/13 §T6). It also made the §6 guest round trip disappear (§T7)                                             |
+| Result page regenerates from the answers    | Renders the stored snapshot                                         | Otherwise reopening a link after a catalogue change silently returns a different protocol, and "compliance can point at the version that produced it" becomes false                                          |
+| Drag-to-reorder = weight                    | A weight number field                                               | Weight sums across goals — that is the synergy mechanism. A drag handle orders one list and cannot express the number                                                                                        |
+| Banned-verb linter "warn on save"           | Hard block, both locales, shared with the config's integration test | The reviewer who would catch it does not exist for this copy: it is recombined and generated at a customer, never read as a page (docs/13 §T10)                                                              |
+| Per-item "next-ranked alternative"          | Six ranked alternates shipped in the payload, swapped client-side   | Most alternates serve more than one chosen goal, so per-item lists would ship the same object repeatedly. A flat pool also makes swap and remove pure client state, which is what keeps a shared link stable |
 
 ### Definition of done, line by line
 
@@ -384,7 +384,7 @@ All asserted, split across three suites:
   a chip on the result page.
 - **No `shneta` string** — one deliberate historical note in `scripts/seed-users.ts`, unchanged.
 
-One clause is **not** met, and knowingly: *kafeinë is absent* passes trivially, because the
+One clause is **not** met, and knowingly: _kafeinë is absent_ passes trivially, because the
 catalogue has no caffeinated product to exclude. See docs/14 §17.
 
 ---
@@ -396,13 +396,13 @@ are, and a mechanism turns those into a different protocol.
 
 ### The five answers
 
-| Answer      | Bands                                                        | Why it is asked                                                     |
-| ----------- | ------------------------------------------------------------ | ------------------------------------------------------------------- |
-| Age         | `nen_18` `18_29` `30_39` `40_49` `50_64` `65_plus`           | B12 absorption, bone maintenance, muscle mass — and the hard gate    |
-| Sex         | `femer` `mashkull` `pa_percaktuar`                           | Iron losses, folate, bone density after menopause, zinc              |
-| Weight      | `nen_60` `60_74` `75_89` `90_104` `105_plus`                 | Protein and creatine intake track body mass                          |
-| Height      | `nen_160` `160_169` `170_179` `180_189` `190_plus`           | Available as a rule condition; **no seeded rule uses it** — see below |
-| Activity    | `ulur` `i_lehte` `i_rregullt` `intensiv`                     | Protein, creatine, electrolytes, magnesium                           |
+| Answer   | Bands                                              | Why it is asked                                                       |
+| -------- | -------------------------------------------------- | --------------------------------------------------------------------- |
+| Age      | `nen_18` `18_29` `30_39` `40_49` `50_64` `65_plus` | B12 absorption, bone maintenance, muscle mass — and the hard gate     |
+| Sex      | `femer` `mashkull` `pa_percaktuar`                 | Iron losses, folate, bone density after menopause, zinc               |
+| Weight   | `nen_60` `60_74` `75_89` `90_104` `105_plus`       | Protein and creatine intake track body mass                           |
+| Height   | `nen_160` `160_169` `170_179` `180_189` `190_plus` | Available as a rule condition; **no seeded rule uses it** — see below |
+| Activity | `ulur` `i_lehte` `i_rregullt` `intensiv`           | Protein, creatine, electrolytes, magnesium                            |
 
 **Bands, never exact values**, for two reasons that happen to agree. A shop selling magnesium has
 no business holding "72.4 kg, born 12 March 1988"; and five taps beat five keyboards, which is
@@ -415,8 +415,8 @@ protocol rather than a validation error.
 ### The mechanism is a table
 
 `protocol_profile_rules`, versioned with the config that owns it, editable at
-`/admin/biohack?tab=profile`, and reported in the trace when it fires. One row reads: *for this
-kind of person, do this to this ingredient.*
+`/admin/biohack?tab=profile`, and reported in the trace when it fires. One row reads: _for this
+kind of person, do this to this ingredient._
 
 ```
 when_profile  {"age_bands":["50_64","65_plus"], "sexes":["femer"], "activity":["intensiv"], … }
@@ -474,7 +474,7 @@ requires it. The mapping lives in `SERVINGS_BY_WEIGHT` and is shown to the admin
 rather than any band. Diet is not one of the profile dimensions, so the rule cannot key on it, and
 the result is that a customer who skipped every question still sees one "PËR TY" line. Not ideal,
 and the honest options are a `diet` dimension or different copy; noted rather than hidden. It is
-also why `e2e/biohack.spec.ts` asserts *more* explanation for a fuller profile rather than none for
+also why `e2e/biohack.spec.ts` asserts _more_ explanation for a fuller profile rather than none for
 an empty one.
 
 ### Four steps, not three

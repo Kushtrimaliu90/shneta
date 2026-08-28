@@ -6,12 +6,7 @@ import { Alert } from '@/components/ui/alert';
 import { buttonVariants } from '@/components/ui/button';
 import { SubmitButton } from '@/components/ui/submit-button';
 import { useFormDraft, type FormDraft } from '@/components/ui/use-form-draft';
-import {
-  FieldError,
-  FormLevelErrors,
-  fieldProps,
-  invalidRing,
-} from '@/components/ui/field-error';
+import { FieldError, FormLevelErrors, fieldProps, invalidRing } from '@/components/ui/field-error';
 import { FORM_LEVEL } from '@/lib/field-errors';
 import { fromCents } from '@/lib/money';
 import { siteHost } from '@/lib/site';
@@ -289,15 +284,12 @@ function GeneralTab({
    */
   const draft = useFormDraft();
 
-  const [state, formAction] = useActionState<CatalogState, FormData>(
-    async (previous, formData) => {
-      draft.capture(formData);
-      const result = await saveProductGeneral(previous, formData);
-      if (result?.ok) draft.clear();
-      return result;
-    },
-    null,
-  );
+  const [state, formAction] = useActionState<CatalogState, FormData>(async (previous, formData) => {
+    draft.capture(formData);
+    const result = await saveProductGeneral(previous, formData);
+    if (result?.ok) draft.clear();
+    return result;
+  }, null);
 
   const errors = fieldErrorsOf(state);
   const locked = product.publishedAt !== null;
@@ -322,7 +314,11 @@ function GeneralTab({
              * requires the slug. Read-only keeps it in the payload where the database's own
              * guard can compare it and confirm nothing changed.
              */
-            className={cn(inputClass, locked && 'bg-cream text-ink-500', invalidRing('slug', errors))}
+            className={cn(
+              inputClass,
+              locked && 'bg-cream text-ink-500',
+              invalidRing('slug', errors),
+            )}
             {...fieldProps('slug', errors)}
           />
           <FieldError name="slug" errors={errors} />
@@ -444,7 +440,11 @@ function GeneralTab({
                  * several values under it — the `Object.fromEntries` capture the other editors in this
                  * codebase use would keep only the last and silently untick the rest on a rejected save.
                  */
-                defaultChecked={draft.selected('dietaryTags', tag, product.dietaryTags.includes(tag))}
+                defaultChecked={draft.selected(
+                  'dietaryTags',
+                  tag,
+                  product.dietaryTags.includes(tag),
+                )}
                 className="size-4 rounded-[3px] border border-line-strong"
               />
               {tag.replace(/_/g, ' ')}
@@ -522,7 +522,11 @@ function GeneralTab({
                 type="checkbox"
                 name="goalIds"
                 value={goal.id}
-                defaultChecked={draft.selected('goalIds', goal.id, product.goalIds.includes(goal.id))}
+                defaultChecked={draft.selected(
+                  'goalIds',
+                  goal.id,
+                  product.goalIds.includes(goal.id),
+                )}
                 className="size-4 rounded-[3px] border border-line-strong"
               />
               {pickLocale(goal.name, 'en')}
@@ -657,15 +661,12 @@ function VariantForm({
 }) {
   const draft = useFormDraft();
 
-  const [state, formAction] = useActionState<CatalogState, FormData>(
-    async (previous, formData) => {
-      draft.capture(formData);
-      const result = await saveVariant(previous, formData);
-      if (result?.ok) draft.clear();
-      return result;
-    },
-    null,
-  );
+  const [state, formAction] = useActionState<CatalogState, FormData>(async (previous, formData) => {
+    draft.capture(formData);
+    const result = await saveVariant(previous, formData);
+    if (result?.ok) draft.clear();
+    return result;
+  }, null);
   const [deactivateState, deactivateAction] = useActionState<CatalogState, FormData>(
     deactivateVariant,
     null,

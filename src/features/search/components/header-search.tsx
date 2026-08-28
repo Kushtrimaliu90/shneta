@@ -135,8 +135,7 @@ export function HeaderSearch({
       const target = event.target;
       if (
         target instanceof HTMLElement &&
-        (target.isContentEditable ||
-          ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName))
+        (target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName))
       ) {
         return;
       }
@@ -240,7 +239,12 @@ export function HeaderSearch({
        */
       const total = results?.productTotal ?? 0;
       void (async () => {
-        const eventId = await logSearch({ query: trimmed, locale, source: 'overlay', resultCount: total });
+        const eventId = await logSearch({
+          query: trimmed,
+          locale,
+          source: 'overlay',
+          resultCount: total,
+        });
         if (eventId) await logSearchClick(eventId, option.id, option.position);
       })();
     }
@@ -340,7 +344,9 @@ export function HeaderSearch({
              */
             className="h-full min-w-0 flex-1 bg-transparent text-base text-ink-900 placeholder:text-ink-500 focus:outline-none focus-visible:shadow-none focus-visible:outline-none lg:text-sm"
           />
-          {pending && <Loader2 className="size-4 shrink-0 animate-spin text-ink-500" aria-hidden="true" />}
+          {pending && (
+            <Loader2 className="size-4 shrink-0 animate-spin text-ink-500" aria-hidden="true" />
+          )}
           {query && !pending && (
             <button
               type="button"
@@ -556,7 +562,10 @@ function GroupLabel({ children }: { children: React.ReactNode }) {
 
 function Note({ children, tone }: { children: React.ReactNode; tone?: 'error' }) {
   return (
-    <li role="presentation" className={cn('px-3 py-2 text-sm', tone === 'error' ? 'text-error' : 'text-ink-600')}>
+    <li
+      role="presentation"
+      className={cn('px-3 py-2 text-sm', tone === 'error' ? 'text-error' : 'text-ink-600')}
+    >
       {children}
     </li>
   );

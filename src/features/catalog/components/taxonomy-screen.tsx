@@ -33,8 +33,7 @@ export async function TaxonomyScreen({
    * Only brands and categories have a bin — the other two kinds have no `deleted_at` column, so there is
    * nothing to read. An empty array keeps the JSX below free of a second condition.
    */
-  const removed =
-    kind === 'brand' || kind === 'category' ? await listRemovedTaxonomy(kind) : [];
+  const removed = kind === 'brand' || kind === 'category' ? await listRemovedTaxonomy(kind) : [];
 
   const active = rows.filter((row) => row.isActive).length;
   const untranslated = config.bilingualName ? rows.filter((row) => !row.nameEn).length : 0;
@@ -93,8 +92,8 @@ export async function TaxonomyScreen({
             Removed ({removed.length})
           </summary>
           <p className="mt-2 text-xs text-ink-600">
-            Gone from the shop and from the list above. Nothing was deleted — each of these still holds
-            its web address, and Restore puts it back exactly as it was.
+            Gone from the shop and from the list above. Nothing was deleted — each of these still
+            holds its web address, and Restore puts it back exactly as it was.
           </p>
           <ul className="mt-3 divide-y divide-line">
             {removed.map((row) => (

@@ -185,7 +185,9 @@ export function proposalFollowUp(report: BulkProposalDecision, nightlyRate: numb
   if (report.promoted > 0) {
     lines.push(
       `${plural(report.promoted, 'draft product', 'draft products')} created${
-        report.offersMinted > 0 ? ` and ${plural(report.offersMinted, 'offer', 'offers')} minted` : ''
+        report.offersMinted > 0
+          ? ` and ${plural(report.offersMinted, 'offer', 'offers')} minted`
+          : ''
       }.`,
     );
   }

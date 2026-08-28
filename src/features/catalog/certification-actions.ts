@@ -92,7 +92,13 @@ export async function saveCertification(
         logger.error('saveCertification insert failed', { cause: error.message });
         return certFail('admin.errors.generic');
       }
-      await audit('certification.create', 'certification', (data as { id: string }).id, null, patch);
+      await audit(
+        'certification.create',
+        'certification',
+        (data as { id: string }).id,
+        null,
+        patch,
+      );
     }
 
     // Badges render on the PDP, so the catalogue tag goes.

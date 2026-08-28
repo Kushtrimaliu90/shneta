@@ -48,7 +48,7 @@ export default async function AdminHeroPage() {
         slides={slides}
         settings={settings}
         intentTiles={intentTiles}
-      trustItems={trustItems}
+        trustItems={trustItems}
         announcement={announcement}
       />
     </div>

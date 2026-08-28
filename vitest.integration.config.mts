@@ -54,7 +54,9 @@ export default defineConfig({
      * The unit config deliberately does **not** have this alias: nothing there touches the database, and
      * a unit test reaching for a server-only module is a sign the module boundary is wrong.
      */
-    alias: { 'server-only': new URL('./tests/integration/server-only-stub.ts', import.meta.url).pathname },
+    alias: {
+      'server-only': new URL('./tests/integration/server-only-stub.ts', import.meta.url).pathname,
+    },
   },
   test: {
     environment: 'node',

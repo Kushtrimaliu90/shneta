@@ -63,9 +63,7 @@ function keyForRpcError(message: string): ReferralAdminErrorKey {
 
 async function clientIp(): Promise<string | undefined> {
   const bag = await headers();
-  return (
-    bag.get('x-forwarded-for')?.split(',')[0]?.trim() ?? bag.get('x-real-ip') ?? undefined
-  );
+  return bag.get('x-forwarded-for')?.split(',')[0]?.trim() ?? bag.get('x-real-ip') ?? undefined;
 }
 
 /** Every mutation lands on the same screen, so they all revalidate the same one place. */

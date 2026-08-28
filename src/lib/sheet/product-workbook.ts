@@ -105,11 +105,29 @@ interface Column {
  * row at a different product.
  */
 export const PRODUCT_COLUMNS: Column[] = [
-  { header: 'id', width: 38, text: true, note: 'Identifies the product. Never change or delete this column.' },
-  { header: 'slug', width: 30, text: true, note: 'The web address. Editable while a draft; locked once published.' },
-  { header: 'status', width: 14, note: 'draft, pending_review or archived. Cannot be set to published here — that needs compliance.' },
+  {
+    header: 'id',
+    width: 38,
+    text: true,
+    note: 'Identifies the product. Never change or delete this column.',
+  },
+  {
+    header: 'slug',
+    width: 30,
+    text: true,
+    note: 'The web address. Editable while a draft; locked once published.',
+  },
+  {
+    header: 'status',
+    width: 14,
+    note: 'draft, pending_review or archived. Cannot be set to published here — that needs compliance.',
+  },
   { header: 'brand', width: 22, text: true, note: 'The brand slug. Must already exist.' },
-  { header: 'name_sq', width: 34, note: 'Required. A row with this empty is refused, not cleared.' },
+  {
+    header: 'name_sq',
+    width: 34,
+    note: 'Required. A row with this empty is refused, not cleared.',
+  },
   { header: 'name_en', width: 34, note: 'Optional. Blank falls back to Albanian on the shop.' },
   { header: 'subtitle_sq', width: 30, note: 'The pack spec shown on the product card.' },
   { header: 'subtitle_en', width: 30, note: '' },
@@ -117,13 +135,35 @@ export const PRODUCT_COLUMNS: Column[] = [
   { header: 'description_en', width: 50, note: '' },
   { header: 'how_to_use_sq', width: 34, note: '' },
   { header: 'how_to_use_en', width: 34, note: '' },
-  { header: 'warnings_sq', width: 34, note: 'Required by law for melatonin, iron and anything contraindicated in pregnancy.' },
+  {
+    header: 'warnings_sq',
+    width: 34,
+    note: 'Required by law for melatonin, iron and anything contraindicated in pregnancy.',
+  },
   { header: 'warnings_en', width: 34, note: '' },
-  { header: 'form', width: 14, note: 'capsule, tablet, softgel, powder, liquid, gummy, bar, spray, sachet, other.' },
+  {
+    header: 'form',
+    width: 14,
+    note: 'capsule, tablet, softgel, powder, liquid, gummy, bar, spray, sachet, other.',
+  },
   { header: 'serving_size', width: 18, note: 'Free text, e.g. 2 capsules daily.' },
-  { header: 'dietary_tags', width: 30, note: 'Comma separated: vegan, vegetarian, gluten_free, sugar_free, lactose_free, halal, non_gmo.' },
-  { header: 'categories', width: 34, text: true, note: 'Comma separated category slugs. Replaces whatever is there now.' },
-  { header: 'primary_category', width: 22, text: true, note: 'One of the above. Decides the breadcrumb; publishing needs it.' },
+  {
+    header: 'dietary_tags',
+    width: 30,
+    note: 'Comma separated: vegan, vegetarian, gluten_free, sugar_free, lactose_free, halal, non_gmo.',
+  },
+  {
+    header: 'categories',
+    width: 34,
+    text: true,
+    note: 'Comma separated category slugs. Replaces whatever is there now.',
+  },
+  {
+    header: 'primary_category',
+    width: 22,
+    text: true,
+    note: 'One of the above. Decides the breadcrumb; publishing needs it.',
+  },
   { header: 'goals', width: 34, text: true, note: 'Comma separated health goal slugs.' },
   { header: 'is_featured', width: 12, note: 'yes or no.' },
   { header: 'seo_title_sq', width: 30, note: 'Blank means the shop derives it from the name.' },
@@ -136,14 +176,42 @@ export const PRODUCT_COLUMNS: Column[] = [
 
 /** Variant columns. `product_slug` plus `sku` is the key, and both are text so Excel cannot mangle them. */
 export const VARIANT_COLUMNS: Column[] = [
-  { header: 'product_slug', width: 30, text: true, note: 'Which product this variant belongs to. Must match a row on the Products sheet.' },
-  { header: 'sku', width: 22, text: true, note: 'Identifies the variant within its product. Change it and you rename the SKU.' },
+  {
+    header: 'product_slug',
+    width: 30,
+    text: true,
+    note: 'Which product this variant belongs to. Must match a row on the Products sheet.',
+  },
+  {
+    header: 'sku',
+    width: 22,
+    text: true,
+    note: 'Identifies the variant within its product. Change it and you rename the SKU.',
+  },
   { header: 'name_sq', width: 26, note: 'The variant name, e.g. 120 capsules.' },
   { header: 'name_en', width: 26, note: '' },
-  { header: 'price', width: 12, number: true, note: 'In euro, VAT included. Type 9,90 or 9.90 — both work.' },
-  { header: 'compare_at_price', width: 18, number: true, note: 'Higher than the price, or blank. Shows a struck-through was-price.' },
-  { header: 'is_active', width: 12, note: 'yes or no. A published product needs at least one active variant.' },
-  { header: 'is_default', width: 12, note: 'yes or no. Exactly one per product — the one shown first.' },
+  {
+    header: 'price',
+    width: 12,
+    number: true,
+    note: 'In euro, VAT included. Type 9,90 or 9.90 — both work.',
+  },
+  {
+    header: 'compare_at_price',
+    width: 18,
+    number: true,
+    note: 'Higher than the price, or blank. Shows a struck-through was-price.',
+  },
+  {
+    header: 'is_active',
+    width: 12,
+    note: 'yes or no. A published product needs at least one active variant.',
+  },
+  {
+    header: 'is_default',
+    width: 12,
+    note: 'yes or no. Exactly one per product — the one shown first.',
+  },
 ];
 
 /**

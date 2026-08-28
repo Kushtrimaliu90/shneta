@@ -15,7 +15,5 @@ export type Failure<E extends string> = Extract<ActionResult<unknown, E>, { ok: 
 export function firstFailure<E extends string, T>(
   states: readonly (ActionResult<T, E> | null)[],
 ): Failure<E> | undefined {
-  return states.find(
-    (state): state is Failure<E> => state !== null && state.ok === false,
-  );
+  return states.find((state): state is Failure<E> => state !== null && state.ok === false);
 }

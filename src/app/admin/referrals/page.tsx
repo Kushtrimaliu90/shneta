@@ -52,8 +52,8 @@ export default async function AdminReferralsPage({ searchParams }: Props) {
       <h1 className="font-display text-2xl font-semibold text-forest-900">Referrals</h1>
       <p className="mt-1 max-w-3xl text-sm text-ink-600">
         Customers invite customers. A referred customer has one referrer for ever, and for twelve
-        months from approval the referrer earns {loyalty.earnRate === 1 ? '1' : loyalty.earnRate}% of
-        their eligible spend in points — {100 / loyalty.pointValueCents} points to the euro.{' '}
+        months from approval the referrer earns {loyalty.earnRate === 1 ? '1' : loyalty.earnRate}%
+        of their eligible spend in points — {100 / loyalty.pointValueCents} points to the euro.{' '}
         {canManage
           ? 'You can approve, stop, extend once, and link two accounts by hand.'
           : 'You can approve and stop links; extending and manual links are admin-only.'}
@@ -61,8 +61,8 @@ export default async function AdminReferralsPage({ searchParams }: Props) {
 
       {!enabled && (
         <Alert tone="warning" className="mt-4">
-          The programme is switched off in Settings → Referrals. Existing links keep their points and
-          nothing new accrues.
+          The programme is switched off in Settings → Referrals. Existing links keep their points
+          and nothing new accrues.
         </Alert>
       )}
 

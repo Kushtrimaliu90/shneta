@@ -300,7 +300,12 @@ export async function removeProduct(
       .maybeSingle();
 
     if (!before) return catalogFail('admin.catalog.errors.notFound');
-    const product = before as { slug: string; status: string; name: unknown; deleted_at: string | null };
+    const product = before as {
+      slug: string;
+      status: string;
+      name: unknown;
+      deleted_at: string | null;
+    };
 
     // Already gone. Not an error worth alarming anyone with — a double-submitted form, most likely.
     if (product.deleted_at !== null) return ok({ id: productId });
@@ -329,10 +334,16 @@ export async function removeProduct(
       return catalogFail(mapCatalogError(error.message));
     }
 
-    await audit('product.removed', 'product', productId, { status: product.status }, {
-      slug: product.slug,
-      name: product.name,
-    });
+    await audit(
+      'product.removed',
+      'product',
+      productId,
+      { status: product.status },
+      {
+        slug: product.slug,
+        name: product.name,
+      },
+    );
 
     revalidateProduct(product.slug);
     revalidatePath(`/admin/products/${productId}`);
@@ -871,7 +882,10 @@ export async function restoreProductsBulk(
     await auditMany(
       'product.restored',
       'product',
-      done.map((id) => ({ entityId: id, after: { bulk: true, bulk_id: bulkId } as unknown as Json })),
+      done.map((id) => ({
+        entityId: id,
+        after: { bulk: true, bulk_id: bulkId } as unknown as Json,
+      })),
     );
 
     if (done.length > 0) {

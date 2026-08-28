@@ -204,10 +204,7 @@ describe('absent columns versus empty cells', () => {
   });
 
   it('keeps an emptied cell as a present key with an empty value', async () => {
-    const buffer = await buildProductWorkbook(
-      [{ ...product, subtitleEn: '' }],
-      variants,
-    );
+    const buffer = await buildProductWorkbook([{ ...product, subtitleEn: '' }], variants);
     const read = await readProductWorkbook(buffer);
     expect(read.products.headers).toContain('subtitle_en');
     expect(read.products.rows[0]?.subtitle_en).toBe('');
@@ -285,7 +282,11 @@ describe('a workbook a person has edited', () => {
     // Not the string "[object Object]", and not '' either — '' in a present column means "clear this field".
     expect(read.products.rows[0]?.name_sq).toBe('');
     expect(read.products.badCells).toHaveLength(1);
-    expect(read.products.badCells[0]).toMatchObject({ index: 0, column: 'name_sq', detail: '#DIV/0!' });
+    expect(read.products.badCells[0]).toMatchObject({
+      index: 0,
+      column: 'name_sq',
+      detail: '#DIV/0!',
+    });
   });
 
   it('reads a formula that worked, since only the error case is unusable', async () => {
@@ -293,7 +294,10 @@ describe('a workbook a person has edited', () => {
       const sheet = workbook.addWorksheet('Products');
       sheet.getRow(1).values = ['id', 'name_sq'];
       sheet.getRow(2).getCell(1).value = 'abc';
-      sheet.getRow(2).getCell(2).value = { formula: 'CONCATENATE("Vitamina"," D")', result: 'Vitamina D' };
+      sheet.getRow(2).getCell(2).value = {
+        formula: 'CONCATENATE("Vitamina"," D")',
+        result: 'Vitamina D',
+      };
     });
 
     expect(read.products.rows[0]?.name_sq).toBe('Vitamina D');

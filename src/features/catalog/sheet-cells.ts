@@ -18,9 +18,7 @@ import type { Database } from '@/lib/supabase/database.types';
 
 /** `same` means the cell asks for nothing — not that it was empty. */
 export type CellVerdict<T> =
-  | { kind: 'same' }
-  | { kind: 'set'; value: T }
-  | { kind: 'refuse'; problem: string };
+  { kind: 'same' } | { kind: 'set'; value: T } | { kind: 'refuse'; problem: string };
 
 export type MoneyVerdict =
   | { kind: 'same' }
@@ -45,7 +43,14 @@ export function readBoolean(value: string): boolean | null {
 
 /** A comma list, trimmed and de-duplicated, order preserved. */
 export function readList(value: string): string[] {
-  return [...new Set(value.split(',').map((entry) => entry.trim()).filter(Boolean))];
+  return [
+    ...new Set(
+      value
+        .split(',')
+        .map((entry) => entry.trim())
+        .filter(Boolean),
+    ),
+  ];
 }
 
 /**
@@ -104,7 +109,10 @@ export function readStatusCell(raw: string, current: string): CellVerdict<SheetS
     };
   }
   if (!(SHEET_STATUSES as readonly string[]).includes(next)) {
-    return { kind: 'refuse', problem: `"${next}" is not a status. Use draft, pending_review or archived.` };
+    return {
+      kind: 'refuse',
+      problem: `"${next}" is not a status. Use draft, pending_review or archived.`,
+    };
   }
   // Narrowed by the allow-list above, which is also the message the operator sees.
   return { kind: 'set', value: next as SheetStatus };
@@ -138,7 +146,10 @@ export function readFormCell(raw: string, current: string): CellVerdict<ProductF
   const next = raw.trim().toLowerCase();
   if (next === current) return { kind: 'same' };
   if (next && !(PRODUCT_FORMS as readonly string[]).includes(next)) {
-    return { kind: 'refuse', problem: `"${next}" is not a form. Use one of: ${PRODUCT_FORMS.join(', ')}.` };
+    return {
+      kind: 'refuse',
+      problem: `"${next}" is not a form. Use one of: ${PRODUCT_FORMS.join(', ')}.`,
+    };
   }
   return { kind: 'set', value: (next || null) as ProductForm | null };
 }

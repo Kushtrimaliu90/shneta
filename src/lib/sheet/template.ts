@@ -43,23 +43,71 @@ interface Column {
 
 /** Albanian, because this is the merchant-facing default and the reader is in a hurry. */
 const OFFER_COLUMNS: Column[] = [
-  { header: 'sku', width: 22, text: true, example: 'BIO-D3-1000', note: 'Kodi i produktit te BioCode. Mos e ndrysho.' },
-  { header: 'produkti', width: 34, example: 'Vitamina D3 1000 IU', note: 'Vetem per orientim. Nuk lexohet.' },
-  { header: 'stok', width: 10, example: 12, note: 'Sa njesi ke tani. 0 e fsheh oferten nga dyqani.' },
-  { header: 'cmimi', width: 12, example: '9,90', note: 'Per nje njesi, ne euro. Shkruaje 9,90 ose 9.90.' },
-  { header: 'dite', width: 10, example: 1, note: 'Dite deri sa e nis pakon. 0-30. Bosh = pa ndryshim.' },
-  { header: 'kufi', width: 10, example: 3, note: 'Nen kete sasi te njoftojme. Bosh = pa ndryshim.' },
+  {
+    header: 'sku',
+    width: 22,
+    text: true,
+    example: 'BIO-D3-1000',
+    note: 'Kodi i produktit te BioCode. Mos e ndrysho.',
+  },
+  {
+    header: 'produkti',
+    width: 34,
+    example: 'Vitamina D3 1000 IU',
+    note: 'Vetem per orientim. Nuk lexohet.',
+  },
+  {
+    header: 'stok',
+    width: 10,
+    example: 12,
+    note: 'Sa njesi ke tani. 0 e fsheh oferten nga dyqani.',
+  },
+  {
+    header: 'cmimi',
+    width: 12,
+    example: '9,90',
+    note: 'Per nje njesi, ne euro. Shkruaje 9,90 ose 9.90.',
+  },
+  {
+    header: 'dite',
+    width: 10,
+    example: 1,
+    note: 'Dite deri sa e nis pakon. 0-30. Bosh = pa ndryshim.',
+  },
+  {
+    header: 'kufi',
+    width: 10,
+    example: 3,
+    note: 'Nen kete sasi te njoftojme. Bosh = pa ndryshim.',
+  },
 ];
 
 const PROPOSAL_COLUMNS: Column[] = [
-  { header: 'emri', width: 34, example: 'Magnesium Glycinate 120', note: 'Emri i produktit. I detyrueshem.' },
+  {
+    header: 'emri',
+    width: 34,
+    example: 'Magnesium Glycinate 120',
+    note: 'Emri i produktit. I detyrueshem.',
+  },
   { header: 'marka', width: 22, example: 'Alpha Labs', note: 'Prodhuesi. I detyrueshem.' },
   { header: 'cmimi', width: 12, example: '14,90', note: 'Sa kerkon per nje njesi. I detyrueshem.' },
   { header: 'stok', width: 10, example: 24, note: 'Sa njesi ke tani.' },
   { header: 'forma', width: 16, example: 'kapsula', note: 'Kapsula, pluhur, pika...' },
   { header: 'varianti', width: 20, example: '120 kapsula', note: 'Madhesia ose permbajtja.' },
-  { header: 'barkod', width: 18, text: true, example: '5099999999901', note: 'EAN ose UPC. Emri i fotografise duhet ta kete kete.' },
-  { header: 'kodi', width: 18, text: true, example: 'MG-120', note: 'Kodi yt i magazines. Perdoret per fotografite nese s ka barkod.' },
+  {
+    header: 'barkod',
+    width: 18,
+    text: true,
+    example: '5099999999901',
+    note: 'EAN ose UPC. Emri i fotografise duhet ta kete kete.',
+  },
+  {
+    header: 'kodi',
+    width: 18,
+    text: true,
+    example: 'MG-120',
+    note: 'Kodi yt i magazines. Perdoret per fotografite nese s ka barkod.',
+  },
   { header: 'linku', width: 34, example: 'https://', note: 'Faqja e prodhuesit, nese e ke.' },
 ];
 

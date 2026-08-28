@@ -101,7 +101,10 @@ function StatusChip({ status, label }: { status: FulfilmentStatus; label: string
 
   return (
     <span
-      className={cn('rounded-sm px-1.5 py-0.5 font-ui text-[11px] font-semibold whitespace-nowrap', tone)}
+      className={cn(
+        'rounded-sm px-1.5 py-0.5 font-ui text-[11px] font-semibold whitespace-nowrap',
+        tone,
+      )}
     >
       {label}
     </span>

@@ -155,7 +155,9 @@ export async function listBlocks(configId: string, goalSlug?: string): Promise<B
     // English throughout: the admin panel is English-only in v1 (docs/01 §3).
     goalName: pickLocale(asLocalizedField(row.health_goals?.name), 'en'),
     ingredientId: row.ingredient_id,
-    ingredientName: row.ingredients ? pickLocale(asLocalizedField(row.ingredients.name), 'en') : null,
+    ingredientName: row.ingredients
+      ? pickLocale(asLocalizedField(row.ingredients.name), 'en')
+      : null,
     habit: pair(row.habit_i18n),
     weight: row.weight,
     isCore: row.is_core,
@@ -252,7 +254,9 @@ export async function listProfileRules(configId: string): Promise<ProfileRuleRow
 
   const { data, error } = await supabase
     .from('protocol_profile_rules')
-    .select('id, when_profile, effect, reason_i18n, caution_i18n, active, sort_order, ingredients ( name )')
+    .select(
+      'id, when_profile, effect, reason_i18n, caution_i18n, active, sort_order, ingredients ( name )',
+    )
     .eq('config_id', configId)
     .order('sort_order');
 
@@ -274,7 +278,9 @@ export async function listProfileRules(configId: string): Promise<ProfileRuleRow
 
   return ((data ?? []) as unknown as Raw[]).map((row) => ({
     id: row.id,
-    ingredientName: row.ingredients ? pickLocale(asLocalizedField(row.ingredients.name), 'en') : null,
+    ingredientName: row.ingredients
+      ? pickLocale(asLocalizedField(row.ingredients.name), 'en')
+      : null,
     when: (row.when_profile ?? {}) as Record<string, unknown>,
     effect: (row.effect ?? {}) as Record<string, unknown>,
     reason: pair(row.reason_i18n),

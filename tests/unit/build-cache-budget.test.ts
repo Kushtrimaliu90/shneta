@@ -69,21 +69,27 @@ describe.skipIf(!existsSync(MANIFEST))('the build honours its own cache tiers', 
       perMinute.length,
       `${perMinute.length} routes rebuild every 60s. A short cache in a shared layout caps every page ` +
         `that renders through it — check unstable_cache revalidate values reachable from ` +
-        `(storefront)/layout.tsx. Examples: ${perMinute.slice(0, 5).map(([route]) => route).join(', ')}`,
+        `(storefront)/layout.tsx. Examples: ${perMinute
+          .slice(0, 5)
+          .map(([route]) => route)
+          .join(', ')}`,
     ).toBe(0);
   });
 
-  it.each(EXPECTED)('$prefix rebuilds no more often than its tier ($why)', ({ prefix, seconds }) => {
-    const matching = routes.filter(([route]) => stripLocale(route).startsWith(prefix));
-    // Not every prefix is prerendered in every build; an empty match is not a failure.
-    for (const [route, meta] of matching) {
-      if (meta.initialRevalidateSeconds === false) continue;
-      expect(
-        meta.initialRevalidateSeconds,
-        `${route} rebuilds every ${meta.initialRevalidateSeconds}s but its tier is ${seconds}s`,
-      ).toBeGreaterThanOrEqual(seconds);
-    }
-  });
+  it.each(EXPECTED)(
+    '$prefix rebuilds no more often than its tier ($why)',
+    ({ prefix, seconds }) => {
+      const matching = routes.filter(([route]) => stripLocale(route).startsWith(prefix));
+      // Not every prefix is prerendered in every build; an empty match is not a failure.
+      for (const [route, meta] of matching) {
+        if (meta.initialRevalidateSeconds === false) continue;
+        expect(
+          meta.initialRevalidateSeconds,
+          `${route} rebuilds every ${meta.initialRevalidateSeconds}s but its tier is ${seconds}s`,
+        ).toBeGreaterThanOrEqual(seconds);
+      }
+    },
+  );
 
   it('reports the spread, so a regression is legible in the output', () => {
     const spread = new Map<string, number>();

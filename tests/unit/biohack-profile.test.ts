@@ -114,8 +114,10 @@ const twoBlocks = (): ProtocolBlock[] => [
 ];
 
 const keys = (result: { items: { key: string }[] }): string[] => result.items.map((i) => i.key);
-const score = (result: { items: { key: string; score: number }[] }, key: string): number | undefined =>
-  result.items.find((i) => i.key === key)?.score;
+const score = (
+  result: { items: { key: string; score: number }[] },
+  key: string,
+): number | undefined => result.items.find((i) => i.key === key)?.score;
 
 // ── Matching ─────────────────────────────────────────────────────────────────
 
@@ -132,13 +134,20 @@ describe('which rules fire', () => {
     const c = config({
       blocks: [block({ goalSlug: 'gjumi', ingredientSlug: 'x' })],
       profileRules: [
-        rule({ when: when({ ageBands: ['50_64'], sexes: ['femer'] }), effect: { weightDelta: 10 } }),
+        rule({
+          when: when({ ageBands: ['50_64'], sexes: ['femer'] }),
+          effect: { weightDelta: 10 },
+        }),
       ],
     });
 
     // Age matches, sex does not.
-    expect(score(generateProtocol(c, [], answers({ ageBand: '50_64', sex: 'mashkull' })), 'x')).toBe(50);
-    expect(score(generateProtocol(c, [], answers({ ageBand: '50_64', sex: 'femer' })), 'x')).toBe(60);
+    expect(
+      score(generateProtocol(c, [], answers({ ageBand: '50_64', sex: 'mashkull' })), 'x'),
+    ).toBe(50);
+    expect(score(generateProtocol(c, [], answers({ ageBand: '50_64', sex: 'femer' })), 'x')).toBe(
+      60,
+    );
   });
 
   /**
@@ -172,7 +181,11 @@ describe('which rules fire', () => {
         block({ goalSlug: 'stresi', ingredientSlug: 'y' }),
       ],
       profileRules: [
-        rule({ ingredientSlug: 'x', when: when({ goals: ['energji'] }), effect: { weightDelta: 40 } }),
+        rule({
+          ingredientSlug: 'x',
+          when: when({ goals: ['energji'] }),
+          effect: { weightDelta: 40 },
+        }),
       ],
     });
     const result = generateProtocol(c, [], answers({ goals: ['gjumi', 'stresi'] }));
@@ -251,7 +264,10 @@ describe('what a rule does', () => {
     });
     const result = generateProtocol(c, [], answers());
 
-    expect(result.items.some((i) => i.key === 'high'), 'demoted, not excluded').toBe(true);
+    expect(
+      result.items.some((i) => i.key === 'high'),
+      'demoted, not excluded',
+    ).toBe(true);
     expect(score(result, 'high')).toBe(1);
     expect(keys(result)).toEqual(['low', 'high']);
   });
@@ -284,7 +300,9 @@ describe('what a rule does', () => {
     ];
     const settings = { ...SETTINGS, maxItems: 2 };
 
-    expect(keys(generateProtocol(config({ blocks, settings }), [], answers()))).not.toContain('tiny');
+    expect(keys(generateProtocol(config({ blocks, settings }), [], answers()))).not.toContain(
+      'tiny',
+    );
 
     const withRule = generateProtocol(
       config({
@@ -325,8 +343,12 @@ describe('the body-weight serving hint', () => {
   });
 
   it('reads the multiplier from the weight band', () => {
-    expect(generateProtocol(c, [], answers({ weightBand: '105_plus' })).items[0]?.servingsHint).toBe(3);
-    expect(generateProtocol(c, [], answers({ weightBand: 'nen_60' })).items[0]?.servingsHint).toBe(1);
+    expect(
+      generateProtocol(c, [], answers({ weightBand: '105_plus' })).items[0]?.servingsHint,
+    ).toBe(3);
+    expect(generateProtocol(c, [], answers({ weightBand: 'nen_60' })).items[0]?.servingsHint).toBe(
+      1,
+    );
   });
 
   /** A multiplier with nothing to multiply against is arithmetic dressed as advice. */
@@ -336,7 +358,9 @@ describe('the body-weight serving hint', () => {
 
   it('is null for an item no rule asked about', () => {
     const plain = config({ blocks: [block({ goalSlug: 'gjumi', ingredientSlug: 'x' })] });
-    expect(generateProtocol(plain, [], answers({ weightBand: '75_89' })).items[0]?.servingsHint).toBeNull();
+    expect(
+      generateProtocol(plain, [], answers({ weightBand: '75_89' })).items[0]?.servingsHint,
+    ).toBeNull();
   });
 });
 

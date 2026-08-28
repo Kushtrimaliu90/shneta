@@ -288,24 +288,24 @@ export const listRemovedTaxonomy = cache(
       return [];
     }
 
-    return ((data ?? []) as { id: string; slug: string; name: unknown; deleted_at: string | null }[]).map(
-      (row) => ({
-        id: row.id,
-        slug: row.slug,
-        /*
-         * A brand name is plain text and a category name is jsonb, which is why this is not
-         * `pickLocale` on both. The English key first, then Albanian, then the slug — the panel is
-         * English-only, and a slug is always better than an empty cell.
-         */
-        name:
-          typeof row.name === 'string'
-            ? row.name
-            : ((row.name as Record<string, string> | null)?.en ??
-              (row.name as Record<string, string> | null)?.sq ??
-              row.slug),
-        deletedAt: row.deleted_at,
-      }),
-    );
+    return (
+      (data ?? []) as { id: string; slug: string; name: unknown; deleted_at: string | null }[]
+    ).map((row) => ({
+      id: row.id,
+      slug: row.slug,
+      /*
+       * A brand name is plain text and a category name is jsonb, which is why this is not
+       * `pickLocale` on both. The English key first, then Albanian, then the slug — the panel is
+       * English-only, and a slug is always better than an empty cell.
+       */
+      name:
+        typeof row.name === 'string'
+          ? row.name
+          : ((row.name as Record<string, string> | null)?.en ??
+            (row.name as Record<string, string> | null)?.sq ??
+            row.slug),
+      deletedAt: row.deleted_at,
+    }));
   },
 );
 

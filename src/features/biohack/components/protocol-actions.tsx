@@ -126,20 +126,18 @@ export function ProtocolActions({
             </SubmitButton>
           </form>
 
-          {canSave ? (
-            shareCode && (
-              <form action={saveActionFn}>
-                <input type="hidden" name="code" value={shareCode} />
-                <SubmitButton variant="secondary">{t('save')}</SubmitButton>
-              </form>
-            )
-          ) : (
-            signInHref && (
-              <a href={signInHref} className={buttonVariants({ variant: 'secondary' })}>
-                {t('saveSignIn')}
-              </a>
-            )
-          )}
+          {canSave
+            ? shareCode && (
+                <form action={saveActionFn}>
+                  <input type="hidden" name="code" value={shareCode} />
+                  <SubmitButton variant="secondary">{t('save')}</SubmitButton>
+                </form>
+              )
+            : signInHref && (
+                <a href={signInHref} className={buttonVariants({ variant: 'secondary' })}>
+                  {t('saveSignIn')}
+                </a>
+              )}
 
           <form action={cartAction}>
             <input type="hidden" name="variantIds" value={ids} />

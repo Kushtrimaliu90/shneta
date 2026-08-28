@@ -46,10 +46,7 @@ export default async function AdminOffersPage({ searchParams }: Props) {
     ? (raw as OfferStatus)
     : 'pending_review';
 
-  const [offers, counts] = await Promise.all([
-    listOffersForReview(status),
-    offerCountsForReview(),
-  ]);
+  const [offers, counts] = await Promise.all([listOffersForReview(status), offerCountsForReview()]);
 
   return (
     <section className="flex flex-col gap-6">

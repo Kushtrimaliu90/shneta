@@ -22,7 +22,12 @@ const slugList = trimmed
   );
 
 export const PLACEMENT_IMAGE_MAX_BYTES = 4 * 1024 * 1024;
-export const PLACEMENT_IMAGE_TYPES = ['image/webp', 'image/jpeg', 'image/png', 'image/avif'] as const;
+export const PLACEMENT_IMAGE_TYPES = [
+  'image/webp',
+  'image/jpeg',
+  'image/png',
+  'image/avif',
+] as const;
 
 /**
  * Minimum creative dimensions.
@@ -69,7 +74,10 @@ export const placementSchema = z
     destinationUrl: trimmed
       .min(1, 'Required.')
       .max(500)
-      .regex(/^(https:\/\/[^\s]+|\/(?!\/)[\w\-/?=&.%#]*)$/, 'Must be an https:// URL or a site path.'),
+      .regex(
+        /^(https:\/\/[^\s]+|\/(?!\/)[\w\-/?=&.%#]*)$/,
+        'Must be an https:// URL or a site path.',
+      ),
     openInNewTab: z.coerce.boolean().default(false),
 
     imageDesktopPath: localized(300),
@@ -94,10 +102,18 @@ export const placementSchema = z
 
     // Alt text arrives with the image, not with approval — the same rule the hero follows.
     if (has(value.imageDesktopPath) && !has(value.imageDesktopAltSq)) {
-      ctx.addIssue({ code: 'custom', path: ['imageDesktopAltSq'], message: 'Alt text is required.' });
+      ctx.addIssue({
+        code: 'custom',
+        path: ['imageDesktopAltSq'],
+        message: 'Alt text is required.',
+      });
     }
     if (has(value.imageMobilePath) && !has(value.imageMobileAltSq)) {
-      ctx.addIssue({ code: 'custom', path: ['imageMobileAltSq'], message: 'Alt text is required.' });
+      ctx.addIssue({
+        code: 'custom',
+        path: ['imageMobileAltSq'],
+        message: 'Alt text is required.',
+      });
     }
 
     if (has(value.startAt) && has(value.endAt)) {

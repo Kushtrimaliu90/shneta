@@ -130,13 +130,7 @@ function StatusAction({
   );
 }
 
-function PlacementRow({
-  placement,
-  onEdit,
-}: {
-  placement: AdminPlacement;
-  onEdit: () => void;
-}) {
+function PlacementRow({ placement, onEdit }: { placement: AdminPlacement; onEdit: () => void }) {
   const [deleteState, deleteAction] = useActionState(deletePlacement, null);
   const target =
     placement.targetCategorySlugs.length === 0 && placement.targetBrandSlugs.length === 0
@@ -211,7 +205,12 @@ function PlacementRow({
 
         <form action={deleteAction} className="inline">
           <input type="hidden" name="id" value={placement.id} />
-          <SubmitButton variant="ghost" size="sm" aria-label="Delete" title="Delete, with its counts">
+          <SubmitButton
+            variant="ghost"
+            size="sm"
+            aria-label="Delete"
+            title="Delete, with its counts"
+          >
             <Trash2 className="size-4" aria-hidden="true" />
           </SubmitButton>
         </form>
@@ -230,7 +229,13 @@ function PlacementRow({
   );
 }
 
-function ReportPanel({ days, range }: { days: PlacementDay[]; range: { from: string; to: string } }) {
+function ReportPanel({
+  days,
+  range,
+}: {
+  days: PlacementDay[];
+  range: { from: string; to: string };
+}) {
   const totals = days.reduce(
     (acc, row) => ({
       impressions: acc.impressions + row.impressions,
@@ -278,7 +283,8 @@ function ReportPanel({ days, range }: { days: PlacementDay[]; range: { from: str
       </form>
 
       <p className="text-sm text-ink-600" data-numeric>
-        {totals.impressions.toLocaleString()} impressions · {totals.clicks.toLocaleString()} clicks ·{' '}
+        {totals.impressions.toLocaleString()} impressions · {totals.clicks.toLocaleString()} clicks
+        ·{' '}
         {totals.impressions > 0
           ? `${((totals.clicks / totals.impressions) * 100).toFixed(2)}% CTR`
           : 'no CTR yet'}
@@ -290,21 +296,37 @@ function ReportPanel({ days, range }: { days: PlacementDay[]; range: { from: str
         <div className="overflow-x-auto">
           <table className="w-full min-w-[36rem] text-sm">
             <thead>
-              <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-ink-500">
-                <th scope="col" className="py-2 pr-4 font-medium">Day</th>
-                <th scope="col" className="py-2 pr-4 font-medium">Advertiser</th>
-                <th scope="col" className="py-2 pr-4 text-right font-medium">Impressions</th>
-                <th scope="col" className="py-2 pr-4 text-right font-medium">Clicks</th>
-                <th scope="col" className="py-2 text-right font-medium">CTR</th>
+              <tr className="border-b border-line text-left text-xs tracking-wide text-ink-500 uppercase">
+                <th scope="col" className="py-2 pr-4 font-medium">
+                  Day
+                </th>
+                <th scope="col" className="py-2 pr-4 font-medium">
+                  Advertiser
+                </th>
+                <th scope="col" className="py-2 pr-4 text-right font-medium">
+                  Impressions
+                </th>
+                <th scope="col" className="py-2 pr-4 text-right font-medium">
+                  Clicks
+                </th>
+                <th scope="col" className="py-2 text-right font-medium">
+                  CTR
+                </th>
               </tr>
             </thead>
             <tbody>
               {days.map((row) => (
                 <tr key={`${row.placementId}-${row.day}`} className="border-b border-line/60">
-                  <td className="py-2 pr-4" data-numeric>{row.day}</td>
+                  <td className="py-2 pr-4" data-numeric>
+                    {row.day}
+                  </td>
                   <td className="py-2 pr-4 text-ink-900">{row.advertiserName}</td>
-                  <td className="py-2 pr-4 text-right" data-numeric>{row.impressions}</td>
-                  <td className="py-2 pr-4 text-right" data-numeric>{row.clicks}</td>
+                  <td className="py-2 pr-4 text-right" data-numeric>
+                    {row.impressions}
+                  </td>
+                  <td className="py-2 pr-4 text-right" data-numeric>
+                    {row.clicks}
+                  </td>
                   <td className="py-2 text-right" data-numeric>
                     {row.impressions > 0
                       ? `${((row.clicks / row.impressions) * 100).toFixed(2)}%`

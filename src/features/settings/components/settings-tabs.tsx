@@ -21,10 +21,14 @@ export function SettingsTabs() {
   const pathname = usePathname();
 
   return (
-    <nav aria-label="Settings sections" className="mt-5 flex flex-wrap gap-1.5 border-b border-line pb-3">
+    <nav
+      aria-label="Settings sections"
+      className="mt-5 flex flex-wrap gap-1.5 border-b border-line pb-3"
+    >
       {TABS.map((tab) => {
         // Exact match for the index, prefix for the rest — otherwise "Shop" is active everywhere.
-        const active = tab.href === '/admin/settings' ? pathname === tab.href : pathname.startsWith(tab.href);
+        const active =
+          tab.href === '/admin/settings' ? pathname === tab.href : pathname.startsWith(tab.href);
         return (
           <Link
             key={tab.href}

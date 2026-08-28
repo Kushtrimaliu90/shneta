@@ -42,9 +42,9 @@ describe('synonymGroupSchema', () => {
   });
 
   it('rejects duplicate terms', () => {
-    expect(
-      synonymGroupSchema.safeParse({ label: 'Dupe', terms: 'magnez\nmagnez' }).success,
-    ).toBe(false);
+    expect(synonymGroupSchema.safeParse({ label: 'Dupe', terms: 'magnez\nmagnez' }).success).toBe(
+      false,
+    );
   });
 
   it('drops blank lines rather than turning them into empty terms', () => {

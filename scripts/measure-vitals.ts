@@ -87,7 +87,11 @@ async function measure(browser: Browser, url: string, viewport: (typeof VIEWPORT
     }
     const h1 = document.querySelector('h1');
     return h1
-      ? { selector: 'h1', bottom: Math.round(h1.getBoundingClientRect().bottom), viewport: window.innerHeight }
+      ? {
+          selector: 'h1',
+          bottom: Math.round(h1.getBoundingClientRect().bottom),
+          viewport: window.innerHeight,
+        }
       : null;
   });
 

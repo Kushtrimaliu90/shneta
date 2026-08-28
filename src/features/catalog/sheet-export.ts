@@ -211,9 +211,7 @@ export async function productExportRows(): Promise<{
         nameEn: name.en,
         price: fromCents(variant.price_cents),
         compareAtPrice:
-          variant.compare_at_price_cents == null
-            ? ''
-            : fromCents(variant.compare_at_price_cents),
+          variant.compare_at_price_cents == null ? '' : fromCents(variant.compare_at_price_cents),
         isActive: variant.is_active,
         isDefault: variant.is_default,
       };

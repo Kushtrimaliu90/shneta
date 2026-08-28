@@ -17,13 +17,13 @@ as the security boundary, sq/en, everything audited.
 
 ### 0.1 · One point value — and it cuts the loyalty rate by 5×
 
-The pack defined loyalty as *earn 1 point per €1, redeem 100 points = €5*. The referral spec assumed
-*100 points = €1*. One wallet cannot hold two point values, so **1 point = €0.01 everywhere**:
+The pack defined loyalty as _earn 1 point per €1, redeem 100 points = €5_. The referral spec assumed
+_100 points = €1_. One wallet cannot hold two point values, so **1 point = €0.01 everywhere**:
 
-| | Own purchases | Referral | Redemption |
-| --- | --- | --- | --- |
-| Rule | 1 point per €1 | 1 point per €1 of referee spend | 100 points = €1, minimum 500 |
-| Effect | 1% back | 1% of their spend | — |
+|        | Own purchases  | Referral                        | Redemption                   |
+| ------ | -------------- | ------------------------------- | ---------------------------- |
+| Rule   | 1 point per €1 | 1 point per €1 of referee spend | 100 points = €1, minimum 500 |
+| Effect | 1% back        | 1% of their spend               | —                            |
 
 **The consequence worth stating out loud, because the spec does not:** the old rule paid €5 for 100
 points on €100 of spend — **5% back**. The new rule pays €1 — **1% back**. This is not a rename; it
@@ -34,9 +34,9 @@ rather than a technical one. Recorded here so nobody later finds it by arithmeti
 
 **Settings keys are renamed, not just revalued**, because the existing names encode the old model:
 
-| Before | After |
-| --- | --- |
-| `earn_rate_points_per_eur: 1` | `earn_points_per_eur: 1` |
+| Before                                           | After                                             |
+| ------------------------------------------------ | ------------------------------------------------- |
+| `earn_rate_points_per_eur: 1`                    | `earn_points_per_eur: 1`                          |
 | `redeem_points: 100` + `redeem_value_cents: 500` | `point_value_cents: 1` + `min_redeem_points: 500` |
 
 **Redemption becomes variable.** Today it mints a fixed €5 coupon for exactly 100 points. "Minimum
@@ -78,7 +78,7 @@ spend. No UI hides arithmetic. All four mitigations are mandatory:
   VAT-inclusive prices are the base, matching loyalty). Counted only at `delivered`, and only if
   `delivered_at ≤ expires_at`.
 - **Rate.** `rate_pct` (default 1.00). `points = floor(base_cents × rate_pct / 100 /
-  point_value_cents)` → €100 eligible spend = 100 points = €1.
+point_value_cents)` → €100 eligible spend = 100 points = €1.
 - **Clawback.** A refund or return on a counted order writes a negative earning and negative points,
   floored so a balance never goes below zero; the shortfall is recorded and netted against future
   accrual.
@@ -99,10 +99,17 @@ earnings is the accrual idempotency.
 Settings key `referral`:
 
 ```json
-{ "enabled": true, "rate_pct": 1.00, "duration_months": 12, "auto_approve": false,
-  "accrual_mode": "monthly", "min_order_cents_to_count": 1000,
-  "max_points_per_link_per_year": 20000, "max_referrals_per_customer": null,
-  "grace": "until_first_order" }
+{
+  "enabled": true,
+  "rate_pct": 1.0,
+  "duration_months": 12,
+  "auto_approve": false,
+  "accrual_mode": "monthly",
+  "min_order_cents_to_count": 1000,
+  "max_points_per_link_per_year": 20000,
+  "max_referrals_per_customer": null,
+  "grace": "until_first_order"
+}
 ```
 
 ## 3 · Accrual engine
@@ -127,7 +134,7 @@ than a mechanic:
   row back and never posts. Posting first and deleting on conflict is the same race with extra steps.
 - **One `refund` row per order, carrying the running total.** The unique constraint means a second
   partial refund cannot add a second row, so the row holds the cumulative clawback and only the
-  *difference* reaches the wallet. Written naively, refunding €50 of a €100 order twice would reclaim
+  _difference_ reaches the wallet. Written naively, refunding €50 of a €100 order twice would reclaim
   only the first half's points.
 - **Referral ledger rows carry no `order_id`.** An order id on the referrer's own ledger row would
   date a referred customer's shopping, which is exactly what §0.2 protects. The order lives on

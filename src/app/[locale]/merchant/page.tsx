@@ -168,9 +168,7 @@ export default async function MerchantDashboard({ params }: Props) {
         </dl>
       </section>
 
-      {scorecard && (
-        <ScorecardPanel scorecard={scorecard} ratingAvg={merchant.ratingAvg} />
-      )}
+      {scorecard && <ScorecardPanel scorecard={scorecard} ratingAvg={merchant.ratingAvg} />}
 
       <section aria-labelledby="terms" className="flex flex-col gap-3">
         <h2 id="terms" className="font-display text-lg font-semibold text-forest-900">

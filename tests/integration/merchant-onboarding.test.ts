@@ -1,9 +1,6 @@
 import { afterAll, describe, expect, it } from 'vitest';
 import { createUser, deleteUser, serviceClient } from './helpers';
-import {
-  merchantApplicationSchema,
-  slugFromName,
-} from '@/features/merchants/schemas';
+import { merchantApplicationSchema, slugFromName } from '@/features/merchants/schemas';
 
 /**
  * docs/16 §4 — onboarding and the admin decision.
@@ -85,8 +82,9 @@ describe('the application schema (docs/16 §4)', () => {
   });
 
   it('refuses a phone number in the IBAN field', () => {
-    expect(merchantApplicationSchema.safeParse(application({ iban: '+383 44 123 456' })).success)
-      .toBe(false);
+    expect(
+      merchantApplicationSchema.safeParse(application({ iban: '+383 44 123 456' })).success,
+    ).toBe(false);
   });
 
   it('lowercases the contact email, since it is the invite address', () => {
@@ -97,8 +95,9 @@ describe('the application schema (docs/16 §4)', () => {
   });
 
   it('refuses a business number that is obviously a phone number', () => {
-    expect(merchantApplicationSchema.safeParse(application({ businessNo: '+383 44 1' })).success)
-      .toBe(false);
+    expect(
+      merchantApplicationSchema.safeParse(application({ businessNo: '+383 44 1' })).success,
+    ).toBe(false);
   });
 });
 
@@ -271,7 +270,9 @@ describe('a pending merchant can do nothing (docs/16 §4)', () => {
     await db.from('merchant_users').insert({ merchant_id: merchantId, user_id: owner.id });
 
     const own = await owner.client.from('merchants').select('id, status');
-    expect(own.data ?? [], 'an applicant must be able to see their own application').toHaveLength(1);
+    expect(own.data ?? [], 'an applicant must be able to see their own application').toHaveLength(
+      1,
+    );
     expect((own.data as { status: string }[])[0]?.status).toBe('pending');
 
     // And still nothing belonging to anyone else.

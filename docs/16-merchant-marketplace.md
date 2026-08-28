@@ -35,16 +35,16 @@ an active merchant, tie-broken by merchant rating then oldest offer.
 Migrations 25–28. Eight new tables, five enums, one extra order status, two columns on
 `order_items`.
 
-| Table                | Holds                                                         |
-| -------------------- | ------------------------------------------------------------- |
+| Table                | Holds                                                          |
+| -------------------- | -------------------------------------------------------------- |
 | `merchants`          | Identity, ARBK number, bank, commission, status, terms version |
-| `merchant_users`     | Which profiles act for which merchant                         |
-| `merchant_documents` | KYB uploads; `storage_path` into a **private** bucket         |
+| `merchant_users`     | Which profiles act for which merchant                          |
+| `merchant_documents` | KYB uploads; `storage_path` into a **private** bucket          |
 | `merchant_offers`    | One per (merchant, variant): price, stock, handling, status    |
-| `product_proposals`  | A merchant asking for a new canonical product                 |
-| `order_fulfilments`  | An order splits into one row per fulfiller                    |
+| `product_proposals`  | A merchant asking for a new canonical product                  |
+| `order_fulfilments`  | An order splits into one row per fulfiller                     |
 | `merchant_ledger`    | Append-only, **signed**: `+` owed to the merchant, `−` by it   |
-| `merchant_payouts`   | Per-cycle statements                                          |
+| `merchant_payouts`   | Per-cycle statements                                           |
 
 Three schema decisions worth their own line:
 
@@ -54,7 +54,7 @@ Three schema decisions worth their own line:
   just the sum. No update or delete policy exists anywhere — a correction is another row, the same
   discipline as `stock_movements` (docs/13 §A7).
 - **`fulfilment_merchant_iff_merchant_kind`** — `(fulfiller_kind = 'merchant') = (merchant_id is not
-  null)`, both directions. It is what stops a BioCode fulfilment quietly carrying a merchant id that
+null)`, both directions. It is what stops a BioCode fulfilment quietly carrying a merchant id that
   a later query would believe.
 - **`order_items.fulfilment_id` is permanently nullable.** Every order placed before M12 has none,
   and back-filling would invent a fulfilment that never happened. Null reads as "pre-marketplace,
@@ -179,9 +179,7 @@ The actions themselves are not unit-tested: they are `'use server'` modules read
 Still to build: the portal shell itself (step 3), so an invited merchant currently has an account and
 nowhere to go but `/merchant/apply`.
 
-
 ---
-
 
 ## 8 · Money — settled decisions
 
@@ -203,14 +201,14 @@ Verified against the live function: 1000c at 10% returns `commission 100 / due 9
 commission is; a single global switch would treat the merchant who agreed to absorb shipping and the
 one who did not identically.
 
-| Option     | Ledger effect                          | Merchant due                          |
-| ---------- | -------------------------------------- | ------------------------------------- |
-| `biocode`  | none                                   | subtotal − commission                 |
-| `merchant` | a `shipping` row for −cost             | subtotal − commission − shipping      |
-| `customer` | none, recorded as customer-covered     | subtotal − commission                 |
+| Option     | Ledger effect                      | Merchant due                     |
+| ---------- | ---------------------------------- | -------------------------------- |
+| `biocode`  | none                               | subtotal − commission            |
+| `merchant` | a `shipping` row for −cost         | subtotal − commission − shipping |
+| `customer` | none, recorded as customer-covered | subtotal − commission            |
 
 **`customer` does not add a checkout surcharge, and cannot in v1.** The customer is charged one
-shipping fee before routing happens — admin picks the merchant *after* the order exists (§6) — so
+shipping fee before routing happens — admin picks the merchant _after_ the order exists (§6) — so
 there is no per-merchant shipping line to add at the moment money is taken. Charging one would mean
 routing before checkout or a second charge afterwards. `customer` therefore means "covered by the
 delivery fee already collected", and is a distinct value from `biocode` for attribution rather than
@@ -224,7 +222,7 @@ Computing them in separate places is how a statement stops reconciling.
 
 Written and live at `/legal/marketplace-terms`, ~1,340 words per locale, version `1.0` in
 `src/features/merchants/terms.ts`. Thirteen clauses covering the party structure (the sale is
-BioCode↔customer; the merchant is a supplier, which is *why* it never contacts the customer),
+BioCode↔customer; the merchant is a supplier, which is _why_ it never contacts the customer),
 the canonical-catalogue rule, authenticity and lawful import, prohibited health claims, commission
 with the worked example, all three shipping options, COD in both directions, the fortnightly cycle
 with a 14-day dispute window, the 24-hour acceptance SLA, return liability split by cause, the
@@ -241,6 +239,7 @@ Two things to know about it:
   Do not "fix" it by making the prohibition vague.
 
 ---
+
 ## 5 · Portal, offers and the buy box — done
 
 ### The pricing decision everything else follows from
@@ -511,7 +510,7 @@ photographs and says plainly that approving publishes them.
   2 MB each, four formats; the client mirrors the bucket's limits so nothing accepted here is refused there.
 - **The paths are verified, not trusted.** `submitProposal` reads them with `getAll` (`Object.fromEntries`
   keeps only the last of a repeated key, so the Zod schema cannot see them at all) and refuses any path
-  outside this merchant's own folder. The storage policy already stops the *upload*; nothing stops a
+  outside this merchant's own folder. The storage policy already stops the _upload_; nothing stops a
   crafted submission naming somebody else's object, and approval copies images onto a public page.
 - **The reviewer sees them through `/admin/merchants/proposal-image`**, which re-checks `offers.review`,
   constrains the path to the `proposals/` prefix, and redirects to a 5-minute signed URL. Signing every
@@ -538,18 +537,18 @@ A merchant onboarding two hundred products BioCode does not list had to submit t
 form at a time, against a cap of twenty open ones. The honest answer was "we cannot take your catalogue".
 
 **The cap is not the problem to remove.** It exists because one merchant must not be able to make the review
-queue unusable for everybody else. What changes is *what a reviewer decides*: a **batch** is one queue item
+queue unusable for everybody else. What changes is _what a reviewer decides_: a **batch** is one queue item
 with many rows. The merchant pastes a sheet, the reviewer reads a table, rejects the rows that are wrong, and
 approves the rest in one action.
 
 ### The caps, and why they moved
 
-| Path                 | Limit                                     |
-| -------------------- | ----------------------------------------- |
-| Individual proposals | 20 open — unchanged                       |
-| Batch rows           | **exempt** from that cap                  |
-| A batch              | 200 rows                                  |
-| Open batches         | 3 per merchant                            |
+| Path                 | Limit                    |
+| -------------------- | ------------------------ |
+| Individual proposals | 20 open — unchanged      |
+| Batch rows           | **exempt** from that cap |
+| A batch              | 200 rows                 |
+| Open batches         | 3 per merchant           |
 
 Batch rows are exempt because the queue cost of a batch is one table a reviewer scrolls, not 200 cards — so
 the thing being limited is the thing that actually costs review time. Counting them in the twenty as well
@@ -603,7 +602,7 @@ hundreds of round trips, well past what a request should hold open. So:
 3. the housekeeping cron drains `proposals_awaiting_promotion` at **15 a night**.
 
 The queue is a **view** — `status = 'approved' and created_product_id is null` — not a column. A row leaves
-by being *done* rather than by being marked, which makes overlapping drains harmless: two sweeps racing on
+by being _done_ rather than by being marked, which makes overlapping drains harmless: two sweeps racing on
 one row both call an idempotent function and the second gets `created: false`. There is no "claimed" flag to
 leak when a run dies halfway.
 
@@ -614,7 +613,7 @@ via `maxDuration` and inside Vercel's default even if that declaration is ever l
 worst case of about a minute against a cron budget of sixty seconds shared with eight other steps, all of
 which have already committed their work by the time the sweep runs.
 
-The failure mode each bound avoids is different. A request that dies at the platform's timeout *after*
+The failure mode each bound avoids is different. A request that dies at the platform's timeout _after_
 `decide_proposal_batch` has committed every decision reads as a broken feature even though nothing was lost.
 A cron that overruns loses only its summary — but a timeout logged every night is a signal nobody reads after
 the first week.
@@ -635,7 +634,7 @@ is), comma decimals, tabs, a BOM, CRLF, quoted fields and bilingual header alias
 sheet with no recognisable header rather than guessing column order, because guessing writes prices into
 stock levels silently.
 
-## 6.1 · Bulk offer *creation*
+## 6.1 · Bulk offer _creation_
 
 The same paste box also **creates** offers. A merchant onboarding a real catalogue had to add every offer
 by hand — about forty seconds each, so two hundred SKUs was an afternoon — because a row matching no
@@ -667,13 +666,13 @@ draft answers `unknown_sku`, the same as a code that does not exist.
 
 Every refusal has its own reason, because each needs a different thing from the merchant:
 
-| Reason            | What it means                                                     |
-| ----------------- | ----------------------------------------------------------------- |
-| `unknown_sku`     | no published variant carries that SKU or barcode                  |
-| `price_required`  | a new offer needs a price; there is no sensible default           |
-| `awaiting_review` | the merchant's offer on that variant is mid-review — wait         |
-| `offer_rejected`  | it was rejected: open the offer and read the note                 |
-| `no_matching_offer` | the row matched nothing and creation was not ticked             |
+| Reason              | What it means                                             |
+| ------------------- | --------------------------------------------------------- |
+| `unknown_sku`       | no published variant carries that SKU or barcode          |
+| `price_required`    | a new offer needs a price; there is no sensible default   |
+| `awaiting_review`   | the merchant's offer on that variant is mid-review — wait |
+| `offer_rejected`    | it was rejected: open the offer and read the note         |
+| `no_matching_offer` | the row matched nothing and creation was not ticked       |
 
 **The scorecard is observed, not entered.** `rating_avg` is a buy-box tie-break, so it decides which of
 two equally-priced merchants gets the sale — that makes it a number that has to be earned by something
@@ -708,7 +707,7 @@ whether BioCode has it in stock.
 products — that is what serves the shop — so a merchant can read every retail price by opening the
 storefront, or straight off the anon API. Verified against the live database rather than assumed.
 
-What was removed is the *convenience*: a sorted, machine-readable price list of the whole catalogue,
+What was removed is the _convenience_: a sorted, machine-readable price list of the whole catalogue,
 produced on request. Reading 91 prices off a website one at a time and downloading them as a spreadsheet
 are different activities, and only the second was something BioCode was doing for merchants.
 
@@ -724,7 +723,7 @@ merchant legitimately needs:
 
 Rival merchants' prices and stock were never exposed. `p_own_read on merchant_offers` scopes reads to
 `current_merchant_ids()`, so a merchant has only ever seen its own offers. `inventory_levels` is
-staff-only, so BioCode's stock *numbers* have never been readable by anyone else.
+staff-only, so BioCode's stock _numbers_ have never been readable by anyone else.
 
 ### A bug this fixed on the way
 
@@ -756,27 +755,25 @@ gives it, and each re-checked inside the SQL so a future cron cannot route aroun
 
 ## Testing, at the end of M12
 
-| Suite       | Count | What it is for                                                     |
-| ----------- | ----- | ------------------------------------------------------------------ |
+| Suite       | Count | What it is for                                                              |
+| ----------- | ----- | --------------------------------------------------------------------------- |
 | Unit        | 308   | Pure logic: money, both CSV parsers, filename keys, payout periods, schemas |
-| Integration | 354   | RLS, triggers, and every SQL function, against a real database             |
-| E2E         | 484   | The journeys and a11y, on desktop and a 390 px viewport                    |
+| Integration | 354   | RLS, triggers, and every SQL function, against a real database              |
+| E2E         | 484   | The journeys and a11y, on desktop and a 390 px viewport                     |
 
 Marketplace-specific: 42 isolation, 15 onboarding, 19 buy box, 24 offers, 29 routing, 29 ledger,
 44 scorecard/bulk/proposals, 24 batches, 17 emails/auto-routing; 58 E2E across two spec files.
 
-The proposal-images journey (§9) is the one worth reading for what it asserts *last*: the merchant's
+The proposal-images journey (§9) is the one worth reading for what it asserts _last_: the merchant's
 photograph is on the draft product, the reviewer could see it before approving — and the product's own URL
 answers **404** to a shopper. A feature whose whole point is "approved images appear on the site" needs the
-assertion that says *not until somebody publishes it*.
+assertion that says _not until somebody publishes it_.
 
 The isolation suite (§3) remains the definition of done for the security model, and it asserts in
 **both** directions — merchant A can read its own, and reads zero of merchant B's — which is what stops
 it passing vacuously.
 
 ---
-
-
 
 ## 12 · Build order
 
@@ -793,7 +790,7 @@ it passing vacuously.
 Added after M12 closed, because onboarding a real merchant needs both:
 
 10. ~~Photographs on a proposal; approving creates a draft product carrying them~~ — **done (§9)**
-11. ~~Bulk offer *creation* from the same paste, with a catalogue export~~ — **done (§6.1)**
+11. ~~Bulk offer _creation_ from the same paste, with a catalogue export~~ — **done (§6.1)**
 12. ~~Pasted catalogues as batches, photographs keyed by filename, promotion swept by cron~~ — **done (§9.1)**
 
 ---

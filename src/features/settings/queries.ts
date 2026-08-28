@@ -14,13 +14,7 @@ import type { Json } from '@/lib/supabase/database.types';
  */
 
 export type SettingsGroup =
-  | 'store'
-  | 'tax'
-  | 'loyalty'
-  | 'checkout'
-  | 'inventory'
-  | 'subscriptions'
-  | 'referral';
+  'store' | 'tax' | 'loyalty' | 'checkout' | 'inventory' | 'subscriptions' | 'referral';
 
 export interface StoreSettings {
   name: string;
@@ -130,7 +124,11 @@ export async function getAllSettings(): Promise<AllSettings> {
     },
     tax: { rate: num(tax, 'rate', 18) },
     loyalty: {
-      earnRatePointsPerEur: num(loyalty, 'earn_points_per_eur', num(loyalty, 'earn_rate_points_per_eur', 1)),
+      earnRatePointsPerEur: num(
+        loyalty,
+        'earn_points_per_eur',
+        num(loyalty, 'earn_rate_points_per_eur', 1),
+      ),
       pointValueCents: num(loyalty, 'point_value_cents', 1),
       minRedeemPoints: num(loyalty, 'min_redeem_points', 500),
     },
@@ -150,7 +148,11 @@ export async function getAllSettings(): Promise<AllSettings> {
     },
     subscriptions: {
       // `discount_pct` is the key the engine reads; `default_discount_pct` is the older name.
-      discountPct: num(subscriptions, 'discount_pct', num(subscriptions, 'default_discount_pct', 10)),
+      discountPct: num(
+        subscriptions,
+        'discount_pct',
+        num(subscriptions, 'default_discount_pct', 10),
+      ),
       noticeDays: num(subscriptions, 'notice_days', 3),
     },
   };

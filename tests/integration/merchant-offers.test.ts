@@ -1,5 +1,12 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { createProduct, createUser, deleteUser, serviceClient, type ProductFixture, type TestUser } from './helpers';
+import {
+  createProduct,
+  createUser,
+  deleteUser,
+  serviceClient,
+  type ProductFixture,
+  type TestUser,
+} from './helpers';
 
 /**
  * docs/16 §5 — what a merchant may do to its own offers, and what it may not.

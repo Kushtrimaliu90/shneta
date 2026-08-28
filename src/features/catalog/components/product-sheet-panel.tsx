@@ -50,8 +50,7 @@ export function ProductSheetPanel() {
         body,
       });
       const payload = (await response.json()) as
-        | { ok: true; plan: ImportPlan }
-        | { ok: false; error?: string };
+        { ok: true; plan: ImportPlan } | { ok: false; error?: string };
 
       if (!payload.ok) {
         setError(payload.error ?? 'That did not work.');
@@ -131,8 +130,8 @@ export function ProductSheetPanel() {
             </Button>
           </div>
           <p className="mt-1.5 text-xs text-ink-600">
-            Nothing is saved until you confirm. A column you delete from the file is left alone; a cell you
-            empty in a column you kept is cleared.
+            Nothing is saved until you confirm. A column you delete from the file is left alone; a
+            cell you empty in a column you kept is cleared.
           </p>
         </div>
 
@@ -176,7 +175,9 @@ export function ProductSheetPanel() {
               {plan.unchanged > 0 && (
                 <span className="font-normal text-ink-600">
                   {' '}
-                  {plan.unchanged === 1 ? '1 row already matches.' : `${plan.unchanged} rows already match.`}
+                  {plan.unchanged === 1
+                    ? '1 row already matches.'
+                    : `${plan.unchanged} rows already match.`}
                 </span>
               )}
             </p>
@@ -196,7 +197,9 @@ export function ProductSheetPanel() {
                       {row.changes.map((change) => (
                         <li key={change.field}>
                           {change.field}:{' '}
-                          <span className="text-error line-through">{change.from || '(empty)'}</span>{' '}
+                          <span className="text-error line-through">
+                            {change.from || '(empty)'}
+                          </span>{' '}
                           →{' '}
                           <span className="font-medium text-forest-800">
                             {change.to || '(empty)'}
@@ -218,7 +221,10 @@ export function ProductSheetPanel() {
                 </p>
                 <ul className="mt-1 flex flex-col gap-0.5 text-xs">
                   {plan.problems.map((problem) => (
-                    <li key={`${problem.sheet}-${problem.row}-${problem.label}`} className="text-ink-600">
+                    <li
+                      key={`${problem.sheet}-${problem.row}-${problem.label}`}
+                      className="text-ink-600"
+                    >
                       {/*
                         `row: 0` is the sentinel for a failure during the write, which has no line in the
                         file — the row was read fine, the database refused it. Printing "row 0" sends the
@@ -247,7 +253,8 @@ export function ProductSheetPanel() {
                 )}
                 {plan.applied && (
                   <p className="mt-1.5 text-xs text-ink-600">
-                    Fix these in the file, or on each product page, and upload again. Everything else is saved.
+                    Fix these in the file, or on each product page, and upload again. Everything
+                    else is saved.
                   </p>
                 )}
               </>
@@ -255,12 +262,7 @@ export function ProductSheetPanel() {
 
             {!plan.applied && changeCount > 0 && (
               <div className="mt-4 flex gap-2">
-                <Button
-                  type="button"
-                  size="sm"
-                  onClick={() => send(true)}
-                  disabled={busy !== null}
-                >
+                <Button type="button" size="sm" onClick={() => send(true)} disabled={busy !== null}>
                   {busy === 'apply'
                     ? 'Saving…'
                     : changeCount === 1

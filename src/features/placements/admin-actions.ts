@@ -121,11 +121,17 @@ export async function savePlacement(
       );
     }
 
-    await audit(v.id ? 'placement.update' : 'placement.create', 'ad_placement', v.id ?? null, null, {
-      advertiser: v.advertiserName,
-      status: v.status,
-      is_paid: v.isPaid,
-    });
+    await audit(
+      v.id ? 'placement.update' : 'placement.create',
+      'ad_placement',
+      v.id ?? null,
+      null,
+      {
+        advertiser: v.advertiserName,
+        status: v.status,
+        is_paid: v.isPaid,
+      },
+    );
 
     purge();
     return ok({ message: approving ? 'Approved and live.' : 'Saved.' });

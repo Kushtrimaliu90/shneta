@@ -50,9 +50,9 @@ describe('placement destinations', () => {
 
 describe('approval is the gate', () => {
   it('lets a draft be incomplete', () => {
-    expect(placement({ status: 'draft', imageDesktopPath: '', imageDesktopAltSq: '' }).success).toBe(
-      true,
-    );
+    expect(
+      placement({ status: 'draft', imageDesktopPath: '', imageDesktopAltSq: '' }).success,
+    ).toBe(true);
   });
 
   it('refuses approval with no creative', () => {

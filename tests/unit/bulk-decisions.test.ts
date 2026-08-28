@@ -35,9 +35,9 @@ describe('the schemas', () => {
      * `.in('id', [])` matches nothing and PostgREST reports that as zero rows — indistinguishable from
      * "every row had already moved", which would make the report lie. The schema stops it earlier.
      */
-    expect(
-      offerBulkDecisionSchema.safeParse({ offerIds: [], decision: 'approve' }).success,
-    ).toBe(false);
+    expect(offerBulkDecisionSchema.safeParse({ offerIds: [], decision: 'approve' }).success).toBe(
+      false,
+    );
   });
 
   it('refuse more than the cap', () => {
@@ -242,8 +242,8 @@ describe('proposalFollowUp', () => {
   });
 
   it('says nothing at all when there is nothing to add', () => {
-    expect(
-      proposalFollowUp({ ...base, promoted: 0, awaiting: 0, offersMinted: 0 }, 15),
-    ).toEqual([]);
+    expect(proposalFollowUp({ ...base, promoted: 0, awaiting: 0, offersMinted: 0 }, 15)).toEqual(
+      [],
+    );
   });
 });

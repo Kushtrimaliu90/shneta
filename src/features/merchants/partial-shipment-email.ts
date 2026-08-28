@@ -118,8 +118,12 @@ export async function sendPartialShipmentNotice(orderId: string): Promise<void> 
 
     if (live.length < 2) return;
 
-    const shipped = live.filter((entry) => entry.status === 'shipped' || entry.status === 'delivered');
-    const pending = live.filter((entry) => entry.status !== 'shipped' && entry.status !== 'delivered');
+    const shipped = live.filter(
+      (entry) => entry.status === 'shipped' || entry.status === 'delivered',
+    );
+    const pending = live.filter(
+      (entry) => entry.status !== 'shipped' && entry.status !== 'delivered',
+    );
 
     if (shipped.length === 0 || pending.length === 0) return;
 
@@ -185,7 +189,9 @@ export async function sendPartialShipmentNotice(orderId: string): Promise<void> 
       heading: copy.heading,
       intro: copy.intro,
       body:
-        factTable(facts.map(([label, value]) => factRow(escapeHtml(label), escapeHtml(value))).join('')) +
+        factTable(
+          facts.map(([label, value]) => factRow(escapeHtml(label), escapeHtml(value))).join(''),
+        ) +
         `<p style="margin:24px 0 0"><a href="${accountUrl}" style="display:inline-block;background:#1C4636;color:#ffffff;padding:12px 20px;border-radius:8px;text-decoration:none;font-weight:500">${escapeHtml(
           locale === 'sq' ? 'Shiko porosinë' : 'View your order',
         )}</a></p>`,

@@ -77,49 +77,52 @@ export function checkSettlementDetails(
   if ((value.settlementMethod ?? 'bank_transfer') !== 'bank_transfer') return;
 
   if (!iban) ctx.addIssue({ code: 'custom', path: ['iban'], message: 'required' });
-  if (bankName.length < 2) ctx.addIssue({ code: 'custom', path: ['bankName'], message: 'required' });
+  if (bankName.length < 2)
+    ctx.addIssue({ code: 'custom', path: ['bankName'], message: 'required' });
 }
 
 const phone = z.string().trim().min(6, 'tooShort').max(32, 'tooLong');
 
-export const merchantApplicationSchema = z.object({
-  legalName: z.string().trim().min(2, 'required').max(160),
-  displayName: z.string().trim().min(2, 'required').max(80),
-  businessNo,
-  vatNo: z.string().trim().max(32).optional().or(z.literal('')),
+export const merchantApplicationSchema = z
+  .object({
+    legalName: z.string().trim().min(2, 'required').max(160),
+    displayName: z.string().trim().min(2, 'required').max(80),
+    businessNo,
+    vatNo: z.string().trim().max(32).optional().or(z.literal('')),
 
-  contactName: z.string().trim().min(2, 'required').max(120),
-  contactEmail: z.string().trim().toLowerCase().email('invalid').max(160),
-  contactPhone: phone,
+    contactName: z.string().trim().min(2, 'required').max(120),
+    contactEmail: z.string().trim().toLowerCase().email('invalid').max(160),
+    contactPhone: phone,
 
-  addressLine: z.string().trim().min(3, 'required').max(200),
-  city: z.string().trim().min(2, 'required').max(80),
-  postalCode: z.string().trim().max(16).optional().or(z.literal('')),
+    addressLine: z.string().trim().min(3, 'required').max(200),
+    city: z.string().trim().min(2, 'required').max(80),
+    postalCode: z.string().trim().max(16).optional().or(z.literal('')),
 
-  /*
-   * Settlement. Bank details are conditionally required — see `checkSettlementDetails` on the
-   * `superRefine` below — because a merchant settling in cash has no account to give us and being
-   * asked for one is the form telling them they are the wrong sort of applicant.
-   */
-  settlementMethod,
-  bankName: z.string().trim().max(120).optional(),
-  iban: ibanInput,
+    /*
+     * Settlement. Bank details are conditionally required — see `checkSettlementDetails` on the
+     * `superRefine` below — because a merchant settling in cash has no account to give us and being
+     * asked for one is the form telling them they are the wrong sort of applicant.
+     */
+    settlementMethod,
+    bankName: z.string().trim().max(120).optional(),
+    iban: ibanInput,
 
-  /** Free text: which categories they intend to sell, and roughly how much. */
-  categories: z.string().trim().min(3, 'required').max(400),
-  catalogSize: z.string().trim().max(80).optional().or(z.literal('')),
+    /** Free text: which categories they intend to sell, and roughly how much. */
+    categories: z.string().trim().min(3, 'required').max(400),
+    catalogSize: z.string().trim().max(80).optional().or(z.literal('')),
 
-  /** True when the merchant imports rather than buying from a local distributor (docs/16 §4). */
-  imports: z.coerce.boolean().optional(),
+    /** True when the merchant imports rather than buying from a local distributor (docs/16 §4). */
+    imports: z.coerce.boolean().optional(),
 
-  /**
-   * Both are required to submit, and both are checkboxes — so an unchecked box is `undefined` and
-   * `z.literal(true)` is the only shape that refuses it. `coerce.boolean()` would turn `undefined`
-   * into `false` and pass, which is exactly the wrong direction for an acceptance.
-   */
-  acceptsTerms: z.literal('on', { message: 'required' }),
-  acceptsCommission: z.literal('on', { message: 'required' }),
-}).superRefine(checkSettlementDetails);
+    /**
+     * Both are required to submit, and both are checkboxes — so an unchecked box is `undefined` and
+     * `z.literal(true)` is the only shape that refuses it. `coerce.boolean()` would turn `undefined`
+     * into `false` and pass, which is exactly the wrong direction for an acceptance.
+     */
+    acceptsTerms: z.literal('on', { message: 'required' }),
+    acceptsCommission: z.literal('on', { message: 'required' }),
+  })
+  .superRefine(checkSettlementDetails);
 
 export type MerchantApplication = z.infer<typeof merchantApplicationSchema>;
 

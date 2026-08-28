@@ -14,7 +14,6 @@
  */
 import { parsePriceEuro } from '@/features/merchants/csv';
 
-
 export interface ProposalCsvRow {
   product_name: string;
   brand_name: string;

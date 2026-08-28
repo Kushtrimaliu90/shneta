@@ -170,7 +170,7 @@ export function RoutingCard({
                     </td>
                     <td
                       className={cn(
-                        'px-3 py-3 whitespace-nowrap font-medium',
+                        'px-3 py-3 font-medium whitespace-nowrap',
                         loses ? 'text-error' : 'text-forest-900',
                       )}
                       data-numeric

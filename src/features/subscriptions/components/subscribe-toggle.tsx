@@ -27,9 +27,7 @@ export function SubscribeToggle({ discountPct }: { discountPct: number }) {
 
   return (
     <div className="rounded-lg border border-line bg-surface p-3">
-      {subscribed && (
-        <input type="hidden" name="subscribeFrequencyDays" value={frequency} />
-      )}
+      {subscribed && <input type="hidden" name="subscribeFrequencyDays" value={frequency} />}
 
       <fieldset>
         <legend className="sr-only">{t('frequency')}</legend>

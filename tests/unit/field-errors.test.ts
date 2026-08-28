@@ -114,12 +114,14 @@ describe('fieldErrorsFrom', () => {
 
   it('keeps a hand-written refine message, but refuses a bare machine code', () => {
     // `.refine()` prose is the most specific text available and must survive.
-    expect(fieldErrorsFrom([{ path: ['a'], code: 'custom', message: 'Ends before it starts.' }]).a)
-      .toEqual(['Ends before it starts.']);
+    expect(
+      fieldErrorsFrom([{ path: ['a'], code: 'custom', message: 'Ends before it starts.' }]).a,
+    ).toEqual(['Ends before it starts.']);
 
     // A SCREAMING_SNAKE message on an unhandled code is a constant name, not a sentence.
-    expect(fieldErrorsFrom([{ path: ['a'], code: 'custom', message: 'DATE_ORDER' }]).a)
-      .toEqual(['Not valid.']);
+    expect(fieldErrorsFrom([{ path: ['a'], code: 'custom', message: 'DATE_ORDER' }]).a).toEqual([
+      'Not valid.',
+    ]);
   });
 
   it('survives a symbol path segment instead of throwing', () => {

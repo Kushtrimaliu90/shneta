@@ -293,16 +293,18 @@ const fetchIntentTiles = cache(async (): Promise<IntentTile[]> => {
   const items = (data as { value: { items?: unknown } } | null)?.value?.items;
   if (!Array.isArray(items)) return [];
 
-  return items
-    .filter((item): item is Record<string, unknown> => item != null && typeof item === 'object')
-    .map((item) => ({
-      icon: String(item.icon ?? 'target'),
-      href: String(item.href ?? '/shop'),
-      title: { sq: String(item.titleSq ?? ''), en: String(item.titleEn ?? '') },
-      body: { sq: String(item.bodySq ?? ''), en: String(item.bodyEn ?? '') },
-    }))
-    /* A tile with no Albanian title would render as an empty card on the default locale. */
-    .filter((item) => item.title.sq || item.title.en);
+  return (
+    items
+      .filter((item): item is Record<string, unknown> => item != null && typeof item === 'object')
+      .map((item) => ({
+        icon: String(item.icon ?? 'target'),
+        href: String(item.href ?? '/shop'),
+        title: { sq: String(item.titleSq ?? ''), en: String(item.titleEn ?? '') },
+        body: { sq: String(item.bodySq ?? ''), en: String(item.bodyEn ?? '') },
+      }))
+      /* A tile with no Albanian title would render as an empty card on the default locale. */
+      .filter((item) => item.title.sq || item.title.en)
+  );
 });
 
 export const getIntentTiles = cache(async (): Promise<IntentTile[]> => {

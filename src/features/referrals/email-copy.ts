@@ -47,8 +47,7 @@ export const COPY = {
 
     revokedSubject: 'Një ftesë u ndal',
     revokedHeading: 'Një ftesë u ndal',
-    revokedIntro:
-      'Ndalëm një nga ftesat e tua, ndaj nga ajo nuk fitohen më pikë të reja.',
+    revokedIntro: 'Ndalëm një nga ftesat e tua, ndaj nga ajo nuk fitohen më pikë të reja.',
     revokedTail:
       'Pikët që ke fituar deri tani mbeten të tuat. Nëse ky vendim nuk të duket i drejtë, shkruaji shërbimit të klientit.',
 

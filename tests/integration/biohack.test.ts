@@ -67,7 +67,12 @@ async function readCatalog(): Promise<CatalogProduct[]> {
     is_featured: boolean;
     serving_size: string | null;
     product_ingredients: { ingredients: { slug: string } | null }[];
-    product_variants: { id: string; price_cents: number; is_default: boolean; is_active: boolean }[];
+    product_variants: {
+      id: string;
+      price_cents: number;
+      is_default: boolean;
+      is_active: boolean;
+    }[];
   };
 
   return ((data ?? []) as unknown as Raw[]).flatMap((row) => {
@@ -112,14 +117,21 @@ describe('the shipped config is complete (docs/15 §5)', () => {
     for (const slug of slugs) {
       const forGoal = config.blocks.filter((b) => b.goalSlug === slug && b.active);
       expect(forGoal.length, `${slug} needs at least three blocks`).toBeGreaterThanOrEqual(3);
-      expect(forGoal.some((b) => b.isCore), `${slug} needs a core block`).toBe(true);
+      expect(
+        forGoal.some((b) => b.isCore),
+        `${slug} needs a core block`,
+      ).toBe(true);
     }
   });
 
   it('every block carries PSE copy in both locales', () => {
     for (const b of config.blocks) {
-      expect(b.why.sq.length, `${b.goalSlug}/${b.ingredientSlug ?? 'habit'} sq`).toBeGreaterThan(10);
-      expect(b.why.en.length, `${b.goalSlug}/${b.ingredientSlug ?? 'habit'} en`).toBeGreaterThan(10);
+      expect(b.why.sq.length, `${b.goalSlug}/${b.ingredientSlug ?? 'habit'} sq`).toBeGreaterThan(
+        10,
+      );
+      expect(b.why.en.length, `${b.goalSlug}/${b.ingredientSlug ?? 'habit'} en`).toBeGreaterThan(
+        10,
+      );
     }
   });
 
@@ -137,7 +149,10 @@ describe('the shipped config is complete (docs/15 §5)', () => {
      * the editor rejects, or the reverse.
      */
     for (const b of config.blocks) {
-      for (const [locale, text] of [['sq', b.why.sq], ['en', b.why.en]] as const) {
+      for (const [locale, text] of [
+        ['sq', b.why.sq],
+        ['en', b.why.en],
+      ] as const) {
         expect(
           findBannedClaims(text),
           `${b.goalSlug}/${b.ingredientSlug ?? 'habit'} ${locale}: "${text}"`,

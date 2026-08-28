@@ -54,7 +54,8 @@ export async function variantSupply(variantIds: string[]): Promise<Map<string, V
 
   for (const row of (data ?? []) as BuyBoxRow[]) {
     const source = row.source && SOURCES.has(row.source) ? row.source : 'none';
-    const status = row.stock_status && STATUSES.has(row.stock_status) ? row.stock_status : 'out_of_stock';
+    const status =
+      row.stock_status && STATUSES.has(row.stock_status) ? row.stock_status : 'out_of_stock';
 
     result.set(row.variant_id, {
       variantId: row.variant_id,

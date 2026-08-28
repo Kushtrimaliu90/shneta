@@ -20,10 +20,7 @@ import {
   toggleHeroSlide,
   type HeroState,
 } from '@/features/hero/admin-actions';
-import type {
-  AdminAnnouncement,
-  AdminHeroSlide,
-} from '@/features/hero/admin-queries';
+import type { AdminAnnouncement, AdminHeroSlide } from '@/features/hero/admin-queries';
 import type { HeroSettings, TrustItem } from '@/features/hero/types';
 import type { AdminIntentTile } from '@/features/hero/admin-queries';
 import { INTENT_ICONS } from '@/features/hero/admin-schemas';
@@ -102,7 +99,13 @@ const FIELD_LABELS: Record<string, string> = {
  * Falls back to the shared sentence when no field owns the failure — a permission refusal or a
  * database error has no input to attach itself to, and an empty list would be worse than a sentence.
  */
-function Summary({ state, fieldErrors }: { state: HeroState; fieldErrors: Record<string, string[]> }) {
+function Summary({
+  state,
+  fieldErrors,
+}: {
+  state: HeroState;
+  fieldErrors: Record<string, string[]>;
+}) {
   if (!state) return null;
   if (state.ok) return <Feedback state={state} />;
 
@@ -115,7 +118,8 @@ function Summary({ state, fieldErrors }: { state: HeroState; fieldErrors: Record
       <ul className="mt-2 list-disc pl-5">
         {named.map(([field, messages]) => (
           <li key={field}>
-            <span className="font-medium">{FIELD_LABELS[field] ?? field}</span> — {messages.join(' ')}
+            <span className="font-medium">{FIELD_LABELS[field] ?? field}</span> —{' '}
+            {messages.join(' ')}
           </li>
         ))}
       </ul>
@@ -213,7 +217,9 @@ function SlidesPanel({ slides }: { slides: AdminHeroSlide[] }) {
       </div>
 
       {slides.length === 0 && (
-        <Alert tone="info">No slides yet. The homepage hero is hidden until one is published.</Alert>
+        <Alert tone="info">
+          No slides yet. The homepage hero is hidden until one is published.
+        </Alert>
       )}
 
       <ul className="flex flex-col gap-3">
@@ -305,10 +311,7 @@ function SlidesPanel({ slides }: { slides: AdminHeroSlide[] }) {
       </ul>
 
       {editing && (
-        <SlideEditor
-          slide={editing === 'new' ? null : editing}
-          onDone={() => setEditing(null)}
-        />
+        <SlideEditor slide={editing === 'new' ? null : editing} onDone={() => setEditing(null)} />
       )}
     </div>
   );
@@ -349,7 +352,12 @@ function SettingsPanel({ settings }: { settings: HeroSettings }) {
 
           <label htmlFor="hero-transition" className="flex flex-col gap-1 text-sm">
             <span className="font-medium text-ink-900">Transition</span>
-            <select id="hero-transition" name="transition" defaultValue={val('transition', settings.transition)} className={SELECT}>
+            <select
+              id="hero-transition"
+              name="transition"
+              defaultValue={val('transition', settings.transition)}
+              className={SELECT}
+            >
               <option value="fade">Crossfade</option>
               <option value="slide">Slide</option>
             </select>
@@ -410,9 +418,9 @@ function TrustPanel({ items }: { items: TrustItem[] }) {
           completes a first order, and three of them being hidden at any moment defeats the purpose.
         </p>
         <p className="mt-2 text-sm text-ink-600">
-          Write <code>{'{threshold}'}</code> where the free-shipping amount should go and it is filled
-          in from the cheapest active shipping method, so changing that method updates the homepage
-          rather than leaving it advertising an old number.
+          Write <code>{'{threshold}'}</code> where the free-shipping amount should go and it is
+          filled in from the cheapest active shipping method, so changing that method updates the
+          homepage rather than leaving it advertising an old number.
         </p>
 
         <form action={formAction} key={attempt} className="mt-4 flex flex-col gap-4">
@@ -420,7 +428,12 @@ function TrustPanel({ items }: { items: TrustItem[] }) {
             <div key={index} className="grid gap-3 sm:grid-cols-[8rem_1fr_1fr]">
               <label htmlFor={`trust-icon-${index}`} className="flex flex-col gap-1 text-sm">
                 <span className="font-medium text-ink-900">Icon</span>
-                <select id={`trust-icon-${index}`} name={`icon-${index}`} defaultValue={row.icon} className={SELECT}>
+                <select
+                  id={`trust-icon-${index}`}
+                  name={`icon-${index}`}
+                  defaultValue={row.icon}
+                  className={SELECT}
+                >
                   {ICON_CHOICES.map((icon) => (
                     <option key={icon} value={icon}>
                       {icon}
@@ -536,7 +549,7 @@ function AnnouncementPanel({ announcement }: { announcement: AdminAnnouncement |
             <FieldError id="ann-href-error" messages={fieldErrors.href} />
           </label>
 
-          <div className="sm:col-span-2 flex items-center gap-4">
+          <div className="flex items-center gap-4 sm:col-span-2">
             <label className="flex items-center gap-2 text-sm text-ink-900">
               <input
                 type="checkbox"
@@ -572,7 +585,14 @@ function IntentPanel({ items }: { items: AdminIntentTile[] }) {
   const { state, formAction, attempt, fieldErrors, val } = useResilientForm(saveIntentBand);
   const rows = [0, 1, 2, 3, 4, 5].map(
     (index) =>
-      items[index] ?? { icon: 'target', href: '', titleSq: '', titleEn: '', bodySq: '', bodyEn: '' },
+      items[index] ?? {
+        icon: 'target',
+        href: '',
+        titleSq: '',
+        titleEn: '',
+        bodySq: '',
+        bodyEn: '',
+      },
   );
 
   return (
@@ -582,14 +602,13 @@ function IntentPanel({ items }: { items: AdminIntentTile[] }) {
       </CardHeader>
       <CardContent>
         <p className="text-sm text-ink-600">
-          The four cards under the trust strip. These are how somebody who ignored the hero finds their way
-          in, so they are the most valuable navigation on the site — and which four they are is a
-          merchandising decision, not a code change.
+          The four cards under the trust strip. These are how somebody who ignored the hero finds
+          their way in, so they are the most valuable navigation on the site — and which four they
+          are is a merchandising decision, not a code change.
         </p>
         <p className="mt-2 text-sm text-ink-600">
           Leave a row&apos;s titles empty to drop that tile. Links must start with a single{' '}
-          <code>/</code> —
-          they go straight into the page, so an outside address is refused.
+          <code>/</code> — they go straight into the page, so an outside address is refused.
         </p>
 
         <form action={formAction} key={attempt} className="mt-4 flex flex-col gap-5">
@@ -696,7 +715,11 @@ export function HeroAdmin({
 
   return (
     <div className="mt-6">
-      <div role="tablist" aria-label="Hero settings" className="flex flex-wrap gap-1 border-b border-line">
+      <div
+        role="tablist"
+        aria-label="Hero settings"
+        className="flex flex-wrap gap-1 border-b border-line"
+      >
         {TABS.map((name) => (
           <button
             key={name}

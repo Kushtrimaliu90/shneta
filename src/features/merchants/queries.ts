@@ -362,13 +362,15 @@ export async function listMyDocuments(): Promise<MyDocument[]> {
     return [];
   }
 
-  return ((data ?? []) as {
-    id: string;
-    kind: string;
-    storage_path: string;
-    uploaded_at: string;
-    verified: boolean;
-  }[]).map((row) => ({
+  return (
+    (data ?? []) as {
+      id: string;
+      kind: string;
+      storage_path: string;
+      uploaded_at: string;
+      verified: boolean;
+    }[]
+  ).map((row) => ({
     id: row.id,
     kind: toDocumentKind(row.kind),
     storagePath: row.storage_path,
@@ -459,15 +461,17 @@ export async function searchCatalogVariants(
     return { options: [], total: 0 };
   }
 
-  const options = ((data ?? []) as unknown as {
-    variant_id: string;
-    sku: string;
-    variant_name: unknown;
-    product_name: unknown;
-    product_slug: string;
-    brand_name: string;
-    price_cents: number;
-  }[]).map((row) => ({
+  const options = (
+    (data ?? []) as unknown as {
+      variant_id: string;
+      sku: string;
+      variant_name: unknown;
+      product_name: unknown;
+      product_slug: string;
+      brand_name: string;
+      price_cents: number;
+    }[]
+  ).map((row) => ({
     variantId: row.variant_id,
     sku: row.sku,
     variantName: asLocalizedField(row.variant_name),

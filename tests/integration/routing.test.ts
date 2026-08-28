@@ -750,7 +750,11 @@ describe('order status follows its fulfilments (docs/16 §7)', () => {
   });
 
   async function orderStatus(orderId: string): Promise<string> {
-    const { data } = await serviceClient().from('orders').select('status').eq('id', orderId).single();
+    const { data } = await serviceClient()
+      .from('orders')
+      .select('status')
+      .eq('id', orderId)
+      .single();
     return (data as { status: string }).status;
   }
 
@@ -877,10 +881,9 @@ describe('cancelling a marketplace order (docs/16 §6)', () => {
     await serviceClient().from('orders').update({ status: 'cancelled' }).eq('id', orderId);
 
     expect(await offerStock(offer), 'the merchant gets its stock back').toBe(10);
-    expect(
-      await biocodeStock(product.variantId),
-      'BioCode must not gain stock it never held',
-    ).toBe(biocodeBefore);
+    expect(await biocodeStock(product.variantId), 'BioCode must not gain stock it never held').toBe(
+      biocodeBefore,
+    );
 
     // No movement row was invented for a variant BioCode never stocked.
     const { data } = await serviceClient()

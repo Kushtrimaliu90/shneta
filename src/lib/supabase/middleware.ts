@@ -25,7 +25,9 @@ import type { Database } from '@/lib/supabase/database.types';
  * a much worse failure than the one this avoids.
  */
 function hasAuthCookie(request: NextRequest): boolean {
-  return request.cookies.getAll().some((c) => c.name.startsWith('sb-') && c.name.includes('auth-token'));
+  return request.cookies
+    .getAll()
+    .some((c) => c.name.startsWith('sb-') && c.name.includes('auth-token'));
 }
 
 export async function refreshSession(

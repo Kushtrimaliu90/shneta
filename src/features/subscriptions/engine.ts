@@ -50,7 +50,9 @@ export async function sendDueNotices(now: Date): Promise<number> {
 
   const { data, error } = await supabase
     .from('subscriptions')
-    .select('id, user_id, next_run_at, frequency_days, profiles ( email, full_name, preferred_locale )')
+    .select(
+      'id, user_id, next_run_at, frequency_days, profiles ( email, full_name, preferred_locale )',
+    )
     .eq('status', 'active')
     .gt('next_run_at', now.toISOString())
     .lte('next_run_at', horizon)
@@ -215,10 +217,7 @@ export async function runDueSubscriptions(now: Date): Promise<RunSummary> {
 }
 
 /** Builds one subscription order. Returns the order number, or null if the cycle was skipped. */
-async function buildOrder(
-  subscription: ClaimedSubscription,
-  now: Date,
-): Promise<string | null> {
+async function buildOrder(subscription: ClaimedSubscription, now: Date): Promise<string | null> {
   const supabase = createAdminClient();
 
   const { data: profile } = await supabase

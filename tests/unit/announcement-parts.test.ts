@@ -68,7 +68,9 @@ describe('announcement bar composition', () => {
 
   it('renders nothing at all without a message, however full the other fields are', () => {
     const empty = { sq: '', en: '' };
-    expect(announcementParts({ title: empty, linkLabel: 'BioPartner', href: '/x' }, 'sq')).toBeNull();
+    expect(
+      announcementParts({ title: empty, linkLabel: 'BioPartner', href: '/x' }, 'sq'),
+    ).toBeNull();
   });
 
   it('follows the locale', () => {

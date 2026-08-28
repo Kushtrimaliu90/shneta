@@ -59,7 +59,12 @@ describe('publishing a hero slide', () => {
 
   it('allows a draft to be incomplete', () => {
     // A draft is a work in progress. Blocking a save is how a half-written slide gets lost.
-    const result = slide({ status: 'draft', headlineEn: '', ctaPrimaryHref: '', imageDesktopPath: '' });
+    const result = slide({
+      status: 'draft',
+      headlineEn: '',
+      ctaPrimaryHref: '',
+      imageDesktopPath: '',
+    });
     expect(result.success).toBe(true);
   });
 

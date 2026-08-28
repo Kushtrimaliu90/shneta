@@ -90,9 +90,7 @@ export async function listAdminProducts(filters: ProductFilters): Promise<AdminP
    * which is the whole problem removal would otherwise create: a reversible action with no way to see
    * what you have done, and therefore no way to undo it.
    */
-  query = filters.removed
-    ? query.not('deleted_at', 'is', null)
-    : query.is('deleted_at', null);
+  query = filters.removed ? query.not('deleted_at', 'is', null) : query.is('deleted_at', null);
 
   if (filters.status) query = query.eq('status', filters.status);
 

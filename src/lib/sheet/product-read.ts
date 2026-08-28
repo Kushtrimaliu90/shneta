@@ -111,13 +111,23 @@ function readCell(value: ExcelJS.CellValue): Cell {
     }
     if ('result' in value && value.result !== undefined) {
       const result = value.result as ExcelJS.CellValue;
-      if (result && typeof result === 'object' && 'error' in result && typeof result.error === 'string') {
+      if (
+        result &&
+        typeof result === 'object' &&
+        'error' in result &&
+        typeof result.error === 'string'
+      ) {
         return { text: '', error: result.error };
       }
       return readCell(result);
     }
     if ('richText' in value && Array.isArray(value.richText)) {
-      return { text: value.richText.map((part) => part.text).join('').trim() };
+      return {
+        text: value.richText
+          .map((part) => part.text)
+          .join('')
+          .trim(),
+      };
     }
     if ('text' in value && typeof value.text === 'string') return { text: value.text.trim() };
     /*

@@ -128,10 +128,10 @@ async function manifest(db: SupabaseClient): Promise<void> {
     console.log(`${row.slug}.jpg,"${row.brands?.name ?? ''}","${product}",${row.status}`);
   }
 
+  console.log(`\n# ${missing.length} of ${rows.length} product(s) have no photograph.`);
   console.log(
-    `\n# ${missing.length} of ${rows.length} product(s) have no photograph.`,
+    '# Name each file after the slug in column one. A second shot of the same product is',
   );
-  console.log('# Name each file after the slug in column one. A second shot of the same product is');
   console.log('# <slug>-2.jpg, a third <slug>-3.jpg. Then: pnpm seed:images ./photos');
 }
 
@@ -185,7 +185,9 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
-  const bySlug = new Map(((products ?? []) as { id: string; slug: string }[]).map((p) => [p.slug, p.id]));
+  const bySlug = new Map(
+    ((products ?? []) as { id: string; slug: string }[]).map((p) => [p.slug, p.id]),
+  );
   const slugs = new Set(bySlug.keys());
 
   const files = readdirSync(folder).filter((file) => ACCEPTED.has(extname(file).toLowerCase()));
@@ -264,7 +266,9 @@ async function main(): Promise<void> {
     if (!productId) continue;
 
     if (candidate.position === 0 && !replace && alreadyHasImage.has(productId)) {
-      console.log(`  – ${candidate.file}: ${candidate.slug} already has an image (--replace to overwrite)`);
+      console.log(
+        `  – ${candidate.file}: ${candidate.slug} already has an image (--replace to overwrite)`,
+      );
       skippedExisting += 1;
       continue;
     }
@@ -349,7 +353,9 @@ async function main(): Promise<void> {
     .select('id', { count: 'exact', head: true })
     .eq('status', 'published');
 
-  console.log(`product_images rows now: ${withImages ?? 0} · published products: ${published ?? 0}`);
+  console.log(
+    `product_images rows now: ${withImages ?? 0} · published products: ${published ?? 0}`,
+  );
   console.log('\nRemember to purge the cache so the storefront picks them up:');
   console.log('  curl -X POST "$NEXT_PUBLIC_SITE_URL/api/revalidate" \\');
   console.log('    -H "x-revalidate-secret: $REVALIDATE_SECRET" -d \'{"tag":"products"}\'');

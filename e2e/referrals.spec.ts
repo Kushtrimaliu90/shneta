@@ -270,19 +270,24 @@ test.describe('the referrer page (docs/17 §4)', () => {
 
     // Named so the mask has something to shorten, then linked and approved directly: the queue is
     // step 6's surface and this test is about what the referrer is shown.
-    await db().from('profiles').update({ full_name: 'Arta Berisha' }).eq('id', await idFor(referee.email));
+    await db()
+      .from('profiles')
+      .update({ full_name: 'Arta Berisha' })
+      .eq('id', await idFor(referee.email));
     const now = new Date();
     const expires = new Date(now);
     expires.setMonth(expires.getMonth() + 12);
-    await db().from('referral_links').insert({
-      referrer_id: await idFor(referrer.email),
-      referee_id: await idFor(referee.email),
-      status: 'approved',
-      source: 'admin',
-      code_used: await codeFor(referrer.email),
-      linked_at: now.toISOString(),
-      expires_at: expires.toISOString(),
-    });
+    await db()
+      .from('referral_links')
+      .insert({
+        referrer_id: await idFor(referrer.email),
+        referee_id: await idFor(referee.email),
+        status: 'approved',
+        source: 'admin',
+        code_used: await codeFor(referrer.email),
+        linked_at: now.toISOString(),
+        expires_at: expires.toISOString(),
+      });
 
     await signIn(page, referrer.email, referrer.password);
     await page.goto('/en/account/referrals');
@@ -341,13 +346,15 @@ test.describe('the referral terms page', () => {
 test.describe('the admin panel (docs/17 §5)', () => {
   /** A pending link for the queue to work on, created directly — the queue is what is under test. */
   async function pendingLink(referrerEmail: string, refereeEmail: string): Promise<void> {
-    const { error } = await db().from('referral_links').insert({
-      referrer_id: await idFor(referrerEmail),
-      referee_id: await idFor(refereeEmail),
-      status: 'pending',
-      source: 'signup',
-      code_used: await codeFor(referrerEmail),
-    });
+    const { error } = await db()
+      .from('referral_links')
+      .insert({
+        referrer_id: await idFor(referrerEmail),
+        referee_id: await idFor(refereeEmail),
+        status: 'pending',
+        source: 'signup',
+        code_used: await codeFor(referrerEmail),
+      });
     if (error) throw new Error(`link insert failed: ${error.message}`);
   }
 
@@ -355,7 +362,10 @@ test.describe('the admin panel (docs/17 §5)', () => {
     const staff = await staffUser('support');
     const referrer = await staffUser('customer');
     const referee = await staffUser('customer');
-    await db().from('profiles').update({ full_name: 'Arta Berisha' }).eq('id', await idFor(referee.email));
+    await db()
+      .from('profiles')
+      .update({ full_name: 'Arta Berisha' })
+      .eq('id', await idFor(referee.email));
     await pendingLink(referrer.email, referee.email);
 
     await signIn(page, staff.email, staff.password);

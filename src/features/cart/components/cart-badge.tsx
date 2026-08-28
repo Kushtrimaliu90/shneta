@@ -57,8 +57,7 @@ export function CartBadge() {
     };
   }, [pathname]);
 
-  const label =
-    count === null ? t('cart') : `${t('cart')}, ${t('cartItems', { count })}`;
+  const label = count === null ? t('cart') : `${t('cart')}, ${t('cartItems', { count })}`;
 
   return (
     <Link

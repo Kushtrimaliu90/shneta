@@ -108,9 +108,8 @@ const COPY: Record<
     en: {
       subject: () => `${STORE} — you are approved`,
       heading: () => 'Your application is approved',
-      intro:
-        () =>
-          'You can now add offers against BioCode products. Your commission and shipping arrangement are below — the same figures are always in the portal.',
+      intro: () =>
+        'You can now add offers against BioCode products. Your commission and shipping arrangement are below — the same figures are always in the portal.',
       action: 'Add your first offer',
     },
   },
@@ -125,8 +124,7 @@ const COPY: Record<
     en: {
       subject: () => `${STORE} — your application was not approved`,
       heading: () => 'Your application was not approved',
-      intro: () =>
-        'The reason is below. You are welcome to apply again once it has been sorted.',
+      intro: () => 'The reason is below. You are welcome to apply again once it has been sorted.',
     },
   },
 
@@ -354,12 +352,16 @@ async function send(options: SendOptions): Promise<void> {
     if (options.facts?.length) {
       bodyParts.push(
         factTable(
-          options.facts.map(([label, value]) => factRow(escapeHtml(label), escapeHtml(value))).join(''),
+          options.facts
+            .map(([label, value]) => factRow(escapeHtml(label), escapeHtml(value)))
+            .join(''),
         ),
       );
     }
     if (options.callout) {
-      bodyParts.push(calloutBlock(escapeHtml(options.callout.title), escapeHtml(options.callout.body)));
+      bodyParts.push(
+        calloutBlock(escapeHtml(options.callout.title), escapeHtml(options.callout.body)),
+      );
     }
     if (options.actionPath && copy.action) {
       const url = portalUrl(options.actionPath);
@@ -465,10 +467,7 @@ export async function sendMerchantRejected(merchantId: string, reason: string): 
   });
 }
 
-export async function sendMerchantInfoRequested(
-  merchantId: string,
-  note: string,
-): Promise<void> {
+export async function sendMerchantInfoRequested(merchantId: string, note: string): Promise<void> {
   const target = await recipient(merchantId);
   const locale = target?.locale ?? DEFAULT_LOCALE;
 
@@ -495,9 +494,7 @@ export async function sendOfferDecided(
     merchantId,
     template: approved ? 'merchant_offer_approved' : 'merchant_offer_rejected',
     callout:
-      !approved && note
-        ? { title: locale === 'sq' ? 'Arsyeja' : 'Reason', body: note }
-        : undefined,
+      !approved && note ? { title: locale === 'sq' ? 'Arsyeja' : 'Reason', body: note } : undefined,
     actionPath: approved ? '/merchant/offers' : `/merchant/offers/${offerId}`,
   });
 }
@@ -532,9 +529,7 @@ export async function sendProposalDecided(
       [locale === 'sq' ? 'Produkti' : 'Product', productName],
       [locale === 'sq' ? 'Vendimi' : 'Decision', decisionLabel],
     ],
-    callout: note
-      ? { title: locale === 'sq' ? 'Shënim' : 'Note', body: note }
-      : undefined,
+    callout: note ? { title: locale === 'sq' ? 'Shënim' : 'Note', body: note } : undefined,
     actionPath: '/merchant/proposals',
   });
 }
@@ -585,9 +580,7 @@ export async function sendFulfilmentAssigned(
 
     await send({
       merchantId: row.merchant_id,
-      template: options?.reminder
-        ? 'merchant_fulfilment_reminder'
-        : 'merchant_fulfilment_assigned',
+      template: options?.reminder ? 'merchant_fulfilment_reminder' : 'merchant_fulfilment_assigned',
       context: { orderNumber },
       facts: [
         [locale === 'sq' ? 'Porosia' : 'Order', orderNumber],

@@ -79,10 +79,16 @@ export default async function MerchantFulfilmentPage({ params }: Props) {
             <caption className="sr-only">{t('linesCaption')}</caption>
             <thead>
               <tr className="border-b border-line bg-cream text-left">
-                <th scope="col" className="px-3 py-2.5 text-[11px] font-semibold tracking-wide text-ink-500 uppercase">
+                <th
+                  scope="col"
+                  className="px-3 py-2.5 text-[11px] font-semibold tracking-wide text-ink-500 uppercase"
+                >
                   {t('product')}
                 </th>
-                <th scope="col" className="px-3 py-2.5 text-[11px] font-semibold tracking-wide text-ink-500 uppercase">
+                <th
+                  scope="col"
+                  className="px-3 py-2.5 text-[11px] font-semibold tracking-wide text-ink-500 uppercase"
+                >
                   {t('quantity')}
                 </th>
               </tr>
@@ -109,10 +115,12 @@ export default async function MerchantFulfilmentPage({ params }: Props) {
           <h3 id="ship-to" className="font-display text-lg font-semibold text-forest-900">
             {t('shipTo')}
           </h3>
-          <address className="flex items-start gap-2 rounded-lg border border-line bg-surface p-4 text-sm not-italic text-ink-900">
+          <address className="flex items-start gap-2 rounded-lg border border-line bg-surface p-4 text-sm text-ink-900 not-italic">
             <MapPin className="mt-0.5 size-4 shrink-0 text-ink-500" aria-hidden="true" />
             <span>
-              {fulfilment.shipTo.name && <span className="block font-medium">{fulfilment.shipTo.name}</span>}
+              {fulfilment.shipTo.name && (
+                <span className="block font-medium">{fulfilment.shipTo.name}</span>
+              )}
               {addressLines.map((line) => (
                 <span key={line} className="block">
                   {line}

@@ -123,7 +123,7 @@ Images land at `<product_id>/<file>`, which is what the product editor signs and
 writes (docs/13 §X16). Migration 51 adds `unique (product_id, storage_path)` so running the import twice
 is an upsert rather than a duplication — and re-running it is the normal case, as photographs get re-shot.
 
-`alt` is left empty on purpose. It describes what is *in* the photograph, only a person looking at it can
+`alt` is left empty on purpose. It describes what is _in_ the photograph, only a person looking at it can
 write it, and the product editor has the field. A generated "Product name" alt passes the accessibility
 check while telling a screen-reader user nothing the heading had not already said.
 
@@ -139,12 +139,12 @@ asset portals for stockists) and a camera pointed at your own shelf. The script 
 Asked to pull official product photography from the manufacturers' sites, so it was tested rather than
 assumed:
 
-| Source                              | Result                                                        |
-| ----------------------------------- | ------------------------------------------------------------- |
-| `nowfoods.com`                      | **403 Forbidden** to any scripted request                     |
-| `solgar.com`                        | **403 Forbidden**                                             |
-| `iherb.com`                         | **403 Forbidden**                                             |
-| Open Food Facts (CC-BY-SA, open API) | Works — and returns what it has                              |
+| Source                               | Result                                    |
+| ------------------------------------ | ----------------------------------------- |
+| `nowfoods.com`                       | **403 Forbidden** to any scripted request |
+| `solgar.com`                         | **403 Forbidden**                         |
+| `iherb.com`                          | **403 Forbidden**                         |
+| Open Food Facts (CC-BY-SA, open API) | Works — and returns what it has           |
 
 The three 403s are the point rather than an obstacle: a manufacturer's product photography is a licensed
 asset library, and blocking bots is how it stays one. The images exist for stockists and are handed over

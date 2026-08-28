@@ -1,7 +1,17 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { Banknote, FileText, LayoutDashboard, Lightbulb, Package, Settings, Sheet, Truck, Upload } from 'lucide-react';
+import {
+  Banknote,
+  FileText,
+  LayoutDashboard,
+  Lightbulb,
+  Package,
+  Settings,
+  Sheet,
+  Truck,
+  Upload,
+} from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { Link, usePathname } from '@/i18n/routing';
 import { cn } from '@/lib/utils';

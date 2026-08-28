@@ -78,7 +78,11 @@ export const AGE_BANDS = [
   '65_plus',
 ] as const satisfies readonly AgeBand[];
 
-export const SEX_BANDS = ['femer', 'mashkull', 'pa_percaktuar'] as const satisfies readonly SexBand[];
+export const SEX_BANDS = [
+  'femer',
+  'mashkull',
+  'pa_percaktuar',
+] as const satisfies readonly SexBand[];
 
 export const WEIGHT_BANDS = [
   'nen_60',

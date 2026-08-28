@@ -361,8 +361,14 @@ describe('merchants cannot reach BioCode order data (docs/16 §3)', () => {
     const rows = (data ?? []) as { sku: string; fulfilment_id: string | null }[];
 
     expect(rows.every((row) => row.fulfilment_id === alpha.fulfilmentId)).toBe(true);
-    expect(rows.some((row) => row.sku === 'SKU-BC'), 'BioCode line leaked').toBe(false);
-    expect(rows.some((row) => row.sku === 'SKU-beta'), 'other merchant line leaked').toBe(false);
+    expect(
+      rows.some((row) => row.sku === 'SKU-BC'),
+      'BioCode line leaked',
+    ).toBe(false);
+    expect(
+      rows.some((row) => row.sku === 'SKU-beta'),
+      'other merchant line leaked',
+    ).toBe(false);
   });
 
   it('inventory_levels: BioCode stock is not a merchant’s business', async () => {
@@ -605,10 +611,7 @@ describe('merchant_fulfilment_view — the one read path (docs/16 §3)', () => {
     });
     expect((hidden as Record<string, unknown>).ship_to, 'no address before assignment').toBeNull();
 
-    await db
-      .from('order_fulfilments')
-      .update({ status: 'assigned' })
-      .eq('id', alpha.fulfilmentId);
+    await db.from('order_fulfilments').update({ status: 'assigned' }).eq('id', alpha.fulfilmentId);
 
     const { data: shown } = await alpha.owner.client.rpc('merchant_fulfilment_view', {
       p_fulfilment_id: alpha.fulfilmentId,
@@ -687,13 +690,19 @@ describe('a suspended merchant loses access but keeps its rows', () => {
     await db.from('merchants').update({ status: 'suspended' }).eq('id', beta.id);
 
     const ids = await beta.owner.client.rpc('current_merchant_ids');
-    expect(ids.data ?? [], 'suspension is enforced in the helper, so it applies everywhere').toHaveLength(0);
+    expect(
+      ids.data ?? [],
+      'suspension is enforced in the helper, so it applies everywhere',
+    ).toHaveLength(0);
 
     const after = await beta.owner.client.from('merchant_offers').select('id');
     expect(after.data ?? []).toHaveLength(0);
 
     // The rows are still there for staff — suspension is not deletion.
-    const staffView = await staff.client.from('merchant_offers').select('id').eq('id', beta.offerId);
+    const staffView = await staff.client
+      .from('merchant_offers')
+      .select('id')
+      .eq('id', beta.offerId);
     expect(staffView.data ?? []).toHaveLength(1);
 
     await db.from('merchants').update({ status: 'approved' }).eq('id', beta.id);

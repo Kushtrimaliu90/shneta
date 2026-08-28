@@ -19,10 +19,7 @@ import { PRODUCT_BULK_MAX } from '@/features/catalog/admin-schemas';
 import { NewProductForm } from '@/features/catalog/components/new-product-form';
 import { ProductSheetPanel } from '@/features/catalog/components/product-sheet-panel';
 import { RemoveControl, RestoreControl } from '@/components/ui/remove-control';
-import {
-  ProductBulkBar,
-  SelectBox,
-} from '@/features/catalog/components/product-bulk-bar';
+import { ProductBulkBar, SelectBox } from '@/features/catalog/components/product-bulk-bar';
 import { purgeProduct, restoreProduct } from '@/features/catalog/admin-actions';
 import { CATALOG_ERRORS } from '@/features/catalog/admin-copy';
 import { cn } from '@/lib/utils';
@@ -298,7 +295,7 @@ export default async function AdminProductsPage({ searchParams }: Props) {
                     key={row.id}
                     className="border-b border-line last:border-0 hover:bg-forest-50/60"
                   >
-                    <td className="pr-0 pl-4 py-3">
+                    <td className="py-3 pr-0 pl-4">
                       <SelectBox id={row.id} label={pickLocale(row.name, 'en') || row.slug} />
                     </td>
                     <td className="px-4 py-3">

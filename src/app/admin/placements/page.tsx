@@ -47,8 +47,8 @@ export default async function AdminPlacementsPage({ searchParams }: Props) {
         and none of it touches product ranking — paid placement buys the banner, not the grid.
       </p>
       <p className="mt-2 max-w-3xl text-sm text-ink-600">
-        Impressions count once per placement per page view, and only when the slot is actually in the
-        viewport. Counts are aggregated by day with nothing recorded about who saw them.
+        Impressions count once per placement per page view, and only when the slot is actually in
+        the viewport. Counts are aggregated by day with nothing recorded about who saw them.
       </p>
 
       <PlacementsAdmin placements={placements} days={days} range={range} />

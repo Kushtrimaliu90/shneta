@@ -98,7 +98,10 @@ export async function AnnouncementBarView({
           */}
           {label &&
             (pillIsLink && href ? (
-              <Link href={href} className={cn(PILL, TAP, 'hover:border-cream/60 hover:bg-cream/10')}>
+              <Link
+                href={href}
+                className={cn(PILL, TAP, 'hover:border-cream/60 hover:bg-cream/10')}
+              >
                 {label}
               </Link>
             ) : (

@@ -76,7 +76,10 @@ describe('assertNoRealOrders — the data guard', () => {
     try {
       await expect(assertNoRealOrders(url, key)).rejects.toThrow(/serving real customers/);
     } finally {
-      await db.from('orders').delete().eq('id', (order as { id: string }).id);
+      await db
+        .from('orders')
+        .delete()
+        .eq('id', (order as { id: string }).id);
     }
 
     // Clean again once it is gone — the guard is about the data, not a latch.

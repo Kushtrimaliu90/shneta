@@ -156,8 +156,7 @@ function detectDelimiter(headerLine: string): string {
  * Repeated separators are grouping — `1,250,000` cannot be a decimal.
  */
 export type PriceParse =
-  | { ok: true; cents: number }
-  | { ok: false; reason: 'bad_price' | 'ambiguous_price' };
+  { ok: true; cents: number } | { ok: false; reason: 'bad_price' | 'ambiguous_price' };
 
 export function parsePriceEuro(raw: string): PriceParse {
   // Currency, spaces and the non-breaking space Excel pastes out of a formatted cell.
@@ -332,7 +331,8 @@ export function parseOfferCsv(text: string): CsvParseResult {
       const raw = fields[thresholdColumn] ?? '';
       if (raw.trim().length > 0) {
         const threshold = parseStock(raw);
-        if (threshold === null || threshold < 0 || threshold > 100_000) problems.push('bad_threshold');
+        if (threshold === null || threshold < 0 || threshold > 100_000)
+          problems.push('bad_threshold');
         else row.low_stock_threshold = threshold;
       }
     }

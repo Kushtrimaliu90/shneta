@@ -26,11 +26,17 @@ describe('readMoneyCell', () => {
   });
 
   it('accepts a comma decimal, which is how a Kosovo keyboard types a price', () => {
-    expect(readMoneyCell('12,50', '10.00', { required: true })).toEqual({ kind: 'set', cents: 1250 });
+    expect(readMoneyCell('12,50', '10.00', { required: true })).toEqual({
+      kind: 'set',
+      cents: 1250,
+    });
   });
 
   it('accepts a dot decimal too', () => {
-    expect(readMoneyCell('12.50', '10.00', { required: true })).toEqual({ kind: 'set', cents: 1250 });
+    expect(readMoneyCell('12.50', '10.00', { required: true })).toEqual({
+      kind: 'set',
+      cents: 1250,
+    });
   });
 
   it('refuses a thousands separator instead of guessing which mark is the decimal', () => {
@@ -81,7 +87,10 @@ describe('readStatusCell', () => {
 
   it('allows the three statuses a file may set', () => {
     expect(readStatusCell('archived', 'draft')).toEqual({ kind: 'set', value: 'archived' });
-    expect(readStatusCell('pending_review', 'draft')).toEqual({ kind: 'set', value: 'pending_review' });
+    expect(readStatusCell('pending_review', 'draft')).toEqual({
+      kind: 'set',
+      value: 'pending_review',
+    });
     expect(readStatusCell('DRAFT', 'archived')).toEqual({ kind: 'set', value: 'draft' });
   });
 
@@ -110,7 +119,9 @@ describe('readSlugCell', () => {
   });
 
   it('is unbothered by a published product whose slug was not touched', () => {
-    expect(readSlugCell('old-address', 'old-address', { published: true })).toEqual({ kind: 'same' });
+    expect(readSlugCell('old-address', 'old-address', { published: true })).toEqual({
+      kind: 'same',
+    });
   });
 });
 

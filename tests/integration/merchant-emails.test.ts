@@ -102,9 +102,7 @@ async function stocked(stock: number, priceCents = 2000): Promise<ProductFixture
   return fixture;
 }
 
-async function placeOrder(
-  lines: { variantId: string; quantity: number }[],
-): Promise<string> {
+async function placeOrder(lines: { variantId: string; quantity: number }[]): Promise<string> {
   const cartId = await createCart(null, lines);
   const { data, error } = await serviceClient().rpc(
     'checkout_create_order',
@@ -337,9 +335,8 @@ describe('the partial-shipment notice (docs/16 §7)', () => {
    * missing, and opens a ticket — or a chargeback.
    */
   it('is sent for a half-shipped mixed order', async () => {
-    const { sendPartialShipmentNotice } = await import(
-      '@/features/merchants/partial-shipment-email'
-    );
+    const { sendPartialShipmentNotice } =
+      await import('@/features/merchants/partial-shipment-email');
 
     const own = await stocked(10, 3000);
     const theirs = await unstocked(2000);
@@ -379,9 +376,8 @@ describe('the partial-shipment notice (docs/16 §7)', () => {
 
   /** Once per order, ever: the second parcel must not re-send "part of your order has shipped". */
   it('is not sent twice', async () => {
-    const { sendPartialShipmentNotice } = await import(
-      '@/features/merchants/partial-shipment-email'
-    );
+    const { sendPartialShipmentNotice } =
+      await import('@/features/merchants/partial-shipment-email');
 
     const own = await stocked(10, 3000);
     const theirs = await unstocked(2000);
@@ -421,9 +417,8 @@ describe('the partial-shipment notice (docs/16 §7)', () => {
 
   /** A single-fulfilment order is not partial, and "part of your order" would be a lie about it. */
   it('is not sent for a fully shipped single-fulfilment order', async () => {
-    const { sendPartialShipmentNotice } = await import(
-      '@/features/merchants/partial-shipment-email'
-    );
+    const { sendPartialShipmentNotice } =
+      await import('@/features/merchants/partial-shipment-email');
 
     const product = await stocked(10);
     const orderId = await placeOrder([{ variantId: product.variantId, quantity: 1 }]);
@@ -451,9 +446,8 @@ describe('the partial-shipment notice (docs/16 §7)', () => {
   });
 
   it('the sweep finds a partially shipped order', async () => {
-    const { findPartiallyShippedOrders } = await import(
-      '@/features/merchants/partial-shipment-email'
-    );
+    const { findPartiallyShippedOrders } =
+      await import('@/features/merchants/partial-shipment-email');
 
     const own = await stocked(10, 3000);
     const theirs = await unstocked(2000);

@@ -144,7 +144,11 @@ async function earnings(orderId: string) {
 }
 
 async function balanceOf(userId: string): Promise<number> {
-  const { data } = await service.from('profiles').select('loyalty_points').eq('id', userId).single();
+  const { data } = await service
+    .from('profiles')
+    .select('loyalty_points')
+    .eq('id', userId)
+    .single();
   return (data as { loyalty_points: number }).loyalty_points;
 }
 

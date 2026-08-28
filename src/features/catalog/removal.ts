@@ -103,7 +103,8 @@ export function canRemoveCategory(childCount: number, productCount: number): Rem
     return {
       allowed: false,
       reason: `${productCount} product${productCount === 1 ? ' is' : 's are'} in this category.`,
-      instead: 'Move them to another category first, or deactivate this one to hide it from the shop.',
+      instead:
+        'Move them to another category first, or deactivate this one to hide it from the shop.',
     };
   }
   return { allowed: true };
@@ -138,7 +139,9 @@ export function impactLines(impact: RemovalImpact): string[] {
     );
   }
   if (impact.reviews) {
-    lines.push(`${impact.reviews} review${impact.reviews === 1 ? '' : 's'} will stop being visible.`);
+    lines.push(
+      `${impact.reviews} review${impact.reviews === 1 ? '' : 's'} will stop being visible.`,
+    );
   }
 
   return lines;
@@ -168,11 +171,7 @@ export function impactLines(impact: RemovalImpact): string[] {
  * It is the same rule products and articles follow, which is why it reads as a rule rather than as four
  * separate opinions.
  */
-export function canDeleteLive(
-  isLive: boolean,
-  noun: string,
-  instead: string,
-): RemovalVerdict {
+export function canDeleteLive(isLive: boolean, noun: string, instead: string): RemovalVerdict {
   if (!isLive) return { allowed: true };
   return { allowed: false, reason: `This ${noun} is live.`, instead };
 }

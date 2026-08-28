@@ -30,7 +30,10 @@ export type PayoutErrorKey =
   | 'payouts.errors.notPayable'
   | 'payouts.errors.nothingToSettle';
 
-export type PayoutState = ActionResult<{ built?: number; payoutId?: string }, PayoutErrorKey> | null;
+export type PayoutState = ActionResult<
+  { built?: number; payoutId?: string },
+  PayoutErrorKey
+> | null;
 
 function no(error: PayoutErrorKey): PayoutState {
   return fail<PayoutErrorKey, { built?: number; payoutId?: string }>(error);
@@ -38,8 +41,14 @@ function no(error: PayoutErrorKey): PayoutState {
 
 const runSchema = z.object({
   /** Both optional: absent means "the fortnight that just closed", which is the normal case. */
-  periodStart: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-  periodEnd: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  periodStart: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
+  periodEnd: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
 });
 
 const paySchema = z.object({
@@ -79,7 +88,9 @@ export async function buildPayoutRun(
 
     if (error) {
       logger.error('buildPayoutRun failed', { cause: error.message });
-      return no(error.message.includes('FORBIDDEN') ? 'admin.errors.forbidden' : 'payouts.errors.generic');
+      return no(
+        error.message.includes('FORBIDDEN') ? 'admin.errors.forbidden' : 'payouts.errors.generic',
+      );
     }
 
     const result = (data ?? {}) as { payouts?: { merchant_id: string; net_cents: number }[] };
@@ -139,7 +150,8 @@ export async function markPayoutPaid(
     });
 
     if (error) {
-      if (error.message.includes('REFERENCE_REQUIRED')) return no('payouts.errors.referenceRequired');
+      if (error.message.includes('REFERENCE_REQUIRED'))
+        return no('payouts.errors.referenceRequired');
       if (error.message.includes('PAYOUT_NOT_PAYABLE')) return no('payouts.errors.notPayable');
       if (error.message.includes('FORBIDDEN')) return no('admin.errors.forbidden');
       logger.error('markPayoutPaid failed', { cause: error.message });
@@ -182,7 +194,10 @@ export async function postAdjustment(
       .trim()
       .min(1, 'required')
       .transform((value) => Number(value.replace(',', '.')))
-      .refine((value) => Number.isFinite(value) && value !== 0 && Math.abs(value) <= 100_000, 'range')
+      .refine(
+        (value) => Number.isFinite(value) && value !== 0 && Math.abs(value) <= 100_000,
+        'range',
+      )
       .transform((euro) => Math.round(euro * 100)),
     note: z.string().trim().min(5, 'required').max(500),
   });

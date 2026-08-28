@@ -1,5 +1,18 @@
 import { describe, expect, it } from 'vitest';
-import { CURRENCY_NBSP as NB, amountToFreeShipping, computeTotals, discountCents, formatPrice, fromCents, percentOff, sameAmount, shippingCents, subtotalCents, taxCents, toCents } from '@/lib/money';
+import {
+  CURRENCY_NBSP as NB,
+  amountToFreeShipping,
+  computeTotals,
+  discountCents,
+  formatPrice,
+  fromCents,
+  percentOff,
+  sameAmount,
+  shippingCents,
+  subtotalCents,
+  taxCents,
+  toCents,
+} from '@/lib/money';
 
 describe('formatPrice', () => {
   it('renders the sq format from docs/04 §4', () => {

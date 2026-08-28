@@ -234,10 +234,7 @@ export async function exportCustomer(id: string): Promise<Record<string, unknown
     await Promise.all([
       supabase.from('profiles').select('*').eq('id', id).maybeSingle(),
       supabase.from('addresses').select('*').eq('user_id', id),
-      supabase
-        .from('orders')
-        .select('*, order_items ( * ), shipments ( * )')
-        .eq('user_id', id),
+      supabase.from('orders').select('*, order_items ( * ), shipments ( * )').eq('user_id', id),
       supabase.from('subscriptions').select('*, subscription_items ( * )').eq('user_id', id),
       supabase.from('loyalty_transactions').select('*').eq('user_id', id),
       supabase.from('reviews').select('*').eq('user_id', id),

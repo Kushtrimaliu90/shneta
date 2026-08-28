@@ -190,7 +190,7 @@ function RadioGroup({
         {options.map((option) => (
           <label
             key={option.value}
-            className="flex flex-1 cursor-pointer items-start gap-2.5 rounded-md border border-line bg-surface p-3.5 text-sm transition-colors duration-150 ease-[var(--ease-biocode)] hover:border-line-strong focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-forest-700 has-checked:border-forest-700 has-checked:bg-forest-50"
+            className="flex flex-1 cursor-pointer items-start gap-2.5 rounded-md border border-line bg-surface p-3.5 text-sm transition-colors duration-150 ease-[var(--ease-biocode)] focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-forest-700 hover:border-line-strong has-checked:border-forest-700 has-checked:bg-forest-50"
           >
             <input
               type="radio"

@@ -119,7 +119,7 @@ export function FilterShell({
         onClick={() => setOpen(true)}
         aria-expanded={open}
         aria-controls={panelId}
-        className="inline-flex min-h-11 shrink-0 self-start items-center gap-2 rounded-md border border-line-strong bg-surface px-3.5 font-ui text-sm font-medium text-ink-900 lg:hidden"
+        className="inline-flex min-h-11 shrink-0 items-center gap-2 self-start rounded-md border border-line-strong bg-surface px-3.5 font-ui text-sm font-medium text-ink-900 lg:hidden"
       >
         <SlidersHorizontal className="size-4" aria-hidden="true" />
         {t('filters')}
@@ -153,7 +153,7 @@ export function FilterShell({
           // Desktop: an ordinary sidebar, exactly as before.
           'lg:block lg:w-60 lg:shrink-0 lg:overflow-visible lg:bg-transparent lg:p-0',
           open
-            ? 'fixed inset-x-0 bottom-0 top-14 z-50 overflow-y-auto rounded-t-lg bg-surface p-5 pb-24 lg:static lg:inset-auto lg:rounded-none lg:pb-0'
+            ? 'fixed inset-x-0 top-14 bottom-0 z-50 overflow-y-auto rounded-t-lg bg-surface p-5 pb-24 lg:static lg:inset-auto lg:rounded-none lg:pb-0'
             : 'hidden',
         )}
       >

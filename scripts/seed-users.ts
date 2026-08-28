@@ -174,7 +174,8 @@ async function upsertUser(
   const { data: found, error: lookupError } = await db.auth.admin.getUserById(user.id);
   if (lookupError) {
     const missing =
-      (lookupError as { status?: number }).status === 404 || /not.?found/i.test(lookupError.message);
+      (lookupError as { status?: number }).status === 404 ||
+      /not.?found/i.test(lookupError.message);
     if (!missing) throw new Error(`${user.email} lookup: ${describeAuthError(lookupError)}`);
   }
 
@@ -336,9 +337,7 @@ async function main(): Promise<void> {
   }
 
   for (const outcome of outcomes) {
-    console.log(
-      `  ${outcome.email.padEnd(24)} ${outcome.role.padEnd(19)} ${describe(outcome)}`,
-    );
+    console.log(`  ${outcome.email.padEnd(24)} ${outcome.role.padEnd(19)} ${describe(outcome)}`);
   }
 
   if (outcomes.some((outcome) => outcome.membership === 'merchant missing')) {
@@ -368,7 +367,9 @@ async function main(): Promise<void> {
     );
     if (!all) {
       for (const outcome of withPassword) console.log(`      · ${outcome.email}`);
-      console.log('\n  The others kept the password they already had. Re-run with --reset-password');
+      console.log(
+        '\n  The others kept the password they already had. Re-run with --reset-password',
+      );
       console.log('  to put every account on one password.');
     } else {
       console.log('  Printed once and not stored anywhere. Save it now, or re-run with');

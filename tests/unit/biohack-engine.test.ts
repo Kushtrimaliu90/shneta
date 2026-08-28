@@ -96,8 +96,11 @@ const keys = (result: { items: { key: string }[] }): string[] => result.items.ma
 describe('the hard gate (docs/15 §1 step 2, §6)', () => {
   it('returns gated with no items for pregnancy, nursing or under 18', () => {
     const c = config({ blocks: [block({ goalSlug: 'gjumi', ingredientSlug: 'magnez' })] });
-    const result = generateProtocol(c, [product({ slug: 'm', ingredientSlugs: ['magnez'] })],
-      answers({ restrictedLifeStage: true }));
+    const result = generateProtocol(
+      c,
+      [product({ slug: 'm', ingredientSlugs: ['magnez'] })],
+      answers({ restrictedLifeStage: true }),
+    );
 
     expect(result.gated).toBe(true);
     expect(result.items).toHaveLength(0);
@@ -122,8 +125,11 @@ describe('synergy scoring (docs/15 §3.3)', () => {
         block({ goalSlug: 'stresi', ingredientSlug: 'magnez', weight: 75 }),
       ],
     });
-    const result = generateProtocol(c, [product({ slug: 'm', ingredientSlugs: ['magnez'] })],
-      answers({ goals: ['gjumi', 'stresi'] }));
+    const result = generateProtocol(
+      c,
+      [product({ slug: 'm', ingredientSlugs: ['magnez'] })],
+      answers({ goals: ['gjumi', 'stresi'] }),
+    );
 
     expect(result.items[0]?.score).toBe(165);
   });
@@ -135,8 +141,11 @@ describe('synergy scoring (docs/15 §3.3)', () => {
         block({ goalSlug: 'stresi', ingredientSlug: 'magnez', weight: 75 }),
       ],
     });
-    const result = generateProtocol(c, [product({ slug: 'm', ingredientSlugs: ['magnez'] })],
-      answers({ goals: ['gjumi', 'stresi'] }));
+    const result = generateProtocol(
+      c,
+      [product({ slug: 'm', ingredientSlugs: ['magnez'] })],
+      answers({ goals: ['gjumi', 'stresi'] }),
+    );
 
     expect(result.items[0]?.goalSlugs.sort()).toEqual(['gjumi', 'stresi']);
   });
@@ -168,8 +177,11 @@ describe('synergy scoring (docs/15 §3.3)', () => {
         block({ goalSlug: 'stresi', ingredientSlug: 'magnez', phase: 2 }),
       ],
     });
-    const result = generateProtocol(c, [product({ slug: 'm', ingredientSlugs: ['magnez'] })],
-      answers({ goals: ['gjumi', 'stresi'], level: 'fillestar' }));
+    const result = generateProtocol(
+      c,
+      [product({ slug: 'm', ingredientSlugs: ['magnez'] })],
+      answers({ goals: ['gjumi', 'stresi'], level: 'fillestar' }),
+    );
 
     expect(result.items[0]?.phase).toBe(1);
   });
@@ -181,7 +193,12 @@ describe('medication and caffeine filters (docs/15 §3.4)', () => {
   it('drops med_sensitive ingredients outright when the customer takes medication', () => {
     const c = config({
       blocks: [
-        block({ goalSlug: 'stresi', ingredientSlug: 'ashwagandha', medSensitive: true, weight: 90 }),
+        block({
+          goalSlug: 'stresi',
+          ingredientSlug: 'ashwagandha',
+          medSensitive: true,
+          weight: 90,
+        }),
         block({ goalSlug: 'stresi', ingredientSlug: 'magnez', weight: 70 }),
       ],
     });
@@ -200,8 +217,11 @@ describe('medication and caffeine filters (docs/15 §3.4)', () => {
 
   it('sets medicationCaution so the result page can carry a standing banner', () => {
     const c = config({ blocks: [block({ goalSlug: 'gjumi', ingredientSlug: 'magnez' })] });
-    const result = generateProtocol(c, [product({ slug: 'm', ingredientSlugs: ['magnez'] })],
-      answers({ medication: true }));
+    const result = generateProtocol(
+      c,
+      [product({ slug: 'm', ingredientSlugs: ['magnez'] })],
+      answers({ medication: true }),
+    );
 
     expect(result.medicationCaution).toBe(true);
   });
@@ -236,8 +256,11 @@ describe('medication and caffeine filters (docs/15 §3.4)', () => {
         }),
       ],
     });
-    const result = generateProtocol(c, [product({ slug: 'k', ingredientSlugs: ['kafeine'] })],
-      answers({ goals: ['truri'], caffeine: 'vetem_mengjes' }));
+    const result = generateProtocol(
+      c,
+      [product({ slug: 'k', ingredientSlugs: ['kafeine'] })],
+      answers({ goals: ['truri'], caffeine: 'vetem_mengjes' }),
+    );
 
     expect(result.items[0]?.timing).toEqual(['mengjes']);
   });
@@ -254,8 +277,12 @@ describe('medication and caffeine filters (docs/15 §3.4)', () => {
         block({ goalSlug: 'gjumi', ingredientSlug: 'magnez' }),
       ],
       conflicts: [
-        conflict({ aIngredientSlug: 'kafeine', bGoalSlug: 'gjumi', kind: 'timing_rule',
-          rule: { allowedSlots: ['mengjes', 'dite'] } }),
+        conflict({
+          aIngredientSlug: 'kafeine',
+          bGoalSlug: 'gjumi',
+          kind: 'timing_rule',
+          rule: { allowedSlots: ['mengjes', 'dite'] },
+        }),
       ],
     });
     const result = generateProtocol(
@@ -268,8 +295,10 @@ describe('medication and caffeine filters (docs/15 §3.4)', () => {
     );
 
     const caffeine = result.items.find((i) => i.key === 'kafeine');
-    expect(caffeine?.timing, 'the rule narrowed to morning+day, then the answer to morning')
-      .toEqual(['mengjes']);
+    expect(
+      caffeine?.timing,
+      'the rule narrowed to morning+day, then the answer to morning',
+    ).toEqual(['mengjes']);
   });
 });
 
@@ -309,7 +338,9 @@ describe('the conflict matrix (docs/15 §3.5)', () => {
     );
 
     expect(keys(result)).toEqual(['magnez']);
-    expect(result.trace.some((t) => t.kind === 'excluded_conflict' && t.subject === 'melatonin')).toBe(true);
+    expect(
+      result.trace.some((t) => t.kind === 'excluded_conflict' && t.subject === 'melatonin'),
+    ).toBe(true);
   });
 
   it('exclude against a chosen goal removes the ingredient', () => {
@@ -318,9 +349,7 @@ describe('the conflict matrix (docs/15 §3.5)', () => {
         block({ goalSlug: 'truri', ingredientSlug: 'kafeine', weight: 90 }),
         block({ goalSlug: 'truri', ingredientSlug: 'omega3', weight: 50 }),
       ],
-      conflicts: [
-        conflict({ aIngredientSlug: 'kafeine', bGoalSlug: 'gjumi', kind: 'exclude' }),
-      ],
+      conflicts: [conflict({ aIngredientSlug: 'kafeine', bGoalSlug: 'gjumi', kind: 'exclude' })],
     });
     const result = generateProtocol(
       c,
@@ -339,8 +368,11 @@ describe('the conflict matrix (docs/15 §3.5)', () => {
       blocks: [block({ goalSlug: 'truri', ingredientSlug: 'kafeine', weight: 90 })],
       conflicts: [conflict({ aIngredientSlug: 'kafeine', bGoalSlug: 'gjumi', kind: 'exclude' })],
     });
-    const result = generateProtocol(c, [product({ slug: 'k', ingredientSlugs: ['kafeine'] })],
-      answers({ goals: ['truri'] }));
+    const result = generateProtocol(
+      c,
+      [product({ slug: 'k', ingredientSlugs: ['kafeine'] })],
+      answers({ goals: ['truri'] }),
+    );
 
     expect(keys(result)).toEqual(['kafeine']);
   });
@@ -352,8 +384,12 @@ describe('the conflict matrix (docs/15 §3.5)', () => {
         block({ goalSlug: 'gjumi', ingredientSlug: 'magnez' }),
       ],
       conflicts: [
-        conflict({ aIngredientSlug: 'kafeine', bGoalSlug: 'gjumi', kind: 'timing_rule',
-          rule: { allowedSlots: ['mengjes'] } }),
+        conflict({
+          aIngredientSlug: 'kafeine',
+          bGoalSlug: 'gjumi',
+          kind: 'timing_rule',
+          rule: { allowedSlots: ['mengjes'] },
+        }),
       ],
     });
     const result = generateProtocol(
@@ -376,8 +412,11 @@ describe('the conflict matrix (docs/15 §3.5)', () => {
         conflict({ aIngredientSlug: 'zink', bGoalSlug: 'imuniteti', kind: 'caution', note }),
       ],
     });
-    const result = generateProtocol(c, [product({ slug: 'z', ingredientSlugs: ['zink'] })],
-      answers({ goals: ['imuniteti'] }));
+    const result = generateProtocol(
+      c,
+      [product({ slug: 'z', ingredientSlugs: ['zink'] })],
+      answers({ goals: ['imuniteti'] }),
+    );
 
     expect(result.items[0]?.caution).toEqual(note);
   });
@@ -389,9 +428,19 @@ describe('the conflict matrix (docs/15 §3.5)', () => {
         block({ goalSlug: 'gjumi', ingredientSlug: 'magnez', weight: 90 }),
       ],
       conflicts: [
-        conflict({ id: 'a', aIngredientSlug: 'melatonin', bIngredientSlug: 'magnez', kind: 'exclude' }),
-        conflict({ id: 'b', aIngredientSlug: 'melatonin', bGoalSlug: 'gjumi', kind: 'caution',
-          note: { sq: 'x', en: 'x' } }),
+        conflict({
+          id: 'a',
+          aIngredientSlug: 'melatonin',
+          bIngredientSlug: 'magnez',
+          kind: 'exclude',
+        }),
+        conflict({
+          id: 'b',
+          aIngredientSlug: 'melatonin',
+          bGoalSlug: 'gjumi',
+          kind: 'caution',
+          note: { sq: 'x', en: 'x' },
+        }),
       ],
     });
     const result = generateProtocol(
@@ -403,7 +452,9 @@ describe('the conflict matrix (docs/15 §3.5)', () => {
       answers(),
     );
 
-    expect(result.trace.some((t) => t.kind === 'caution_attached' && t.subject === 'melatonin')).toBe(false);
+    expect(
+      result.trace.some((t) => t.kind === 'caution_attached' && t.subject === 'melatonin'),
+    ).toBe(false);
   });
 });
 
@@ -443,8 +494,10 @@ describe('selection (docs/15 §3.6)', () => {
     });
     const result = generateProtocol(
       c,
-      [product({ slug: 'heavy', ingredientSlugs: ['heavy'] }),
-       product({ slug: 'core', ingredientSlugs: ['core'] })],
+      [
+        product({ slug: 'heavy', ingredientSlugs: ['heavy'] }),
+        product({ slug: 'core', ingredientSlugs: ['core'] }),
+      ],
       answers(),
     );
 
@@ -489,8 +542,10 @@ describe('selection (docs/15 §3.6)', () => {
     });
     const result = generateProtocol(
       c,
-      [product({ slug: 'off', ingredientSlugs: ['off'] }),
-       product({ slug: 'on', ingredientSlugs: ['on'] })],
+      [
+        product({ slug: 'off', ingredientSlugs: ['off'] }),
+        product({ slug: 'on', ingredientSlugs: ['on'] }),
+      ],
       answers(),
     );
 
@@ -503,7 +558,9 @@ describe('selection (docs/15 §3.6)', () => {
 describe('the budget (docs/15 §3.6)', () => {
   it('keeps the total under the tier', () => {
     const c = config({
-      blocks: ['a', 'b', 'c'].map((s) => block({ goalSlug: 'gjumi', ingredientSlug: s, weight: 50 })),
+      blocks: ['a', 'b', 'c'].map((s) =>
+        block({ goalSlug: 'gjumi', ingredientSlug: s, weight: 50 }),
+      ),
     });
     const result = generateProtocol(
       c,
@@ -537,8 +594,13 @@ describe('the budget (docs/15 §3.6)', () => {
   it('habits are free and survive any budget', () => {
     const c = config({
       blocks: [
-        block({ goalSlug: 'gjumi', ingredientSlug: null, habit: { sq: 'pa ekrane', en: 'no screens' },
-          weight: 80, isCore: true }),
+        block({
+          goalSlug: 'gjumi',
+          ingredientSlug: null,
+          habit: { sq: 'pa ekrane', en: 'no screens' },
+          weight: 80,
+          isCore: true,
+        }),
         block({ goalSlug: 'gjumi', ingredientSlug: 'pricey', weight: 90 }),
       ],
     });
@@ -571,9 +633,7 @@ describe('the budget (docs/15 §3.6)', () => {
     });
     const result = generateProtocol(
       c,
-      ['a', 'b', 'c', 'd'].map((s) =>
-        product({ slug: s, ingredientSlugs: [s], priceCents: 3000 }),
-      ),
+      ['a', 'b', 'c', 'd'].map((s) => product({ slug: s, ingredientSlugs: [s], priceCents: 3000 })),
       answers({ budgetCents: 4000 }),
     );
 
@@ -642,10 +702,25 @@ describe('product resolution (docs/15 §3.8)', () => {
     const result = generateProtocol(
       c,
       [
-        product({ slug: 'cheap', ingredientSlugs: ['magnez'], ratingAvg: 3, pricePerServingCents: 10 }),
-        product({ slug: 'featured', ingredientSlugs: ['magnez'], ratingAvg: 3, isFeatured: true,
-          pricePerServingCents: 40 }),
-        product({ slug: 'rated', ingredientSlugs: ['magnez'], ratingAvg: 5, pricePerServingCents: 30 }),
+        product({
+          slug: 'cheap',
+          ingredientSlugs: ['magnez'],
+          ratingAvg: 3,
+          pricePerServingCents: 10,
+        }),
+        product({
+          slug: 'featured',
+          ingredientSlugs: ['magnez'],
+          ratingAvg: 3,
+          isFeatured: true,
+          pricePerServingCents: 40,
+        }),
+        product({
+          slug: 'rated',
+          ingredientSlugs: ['magnez'],
+          ratingAvg: 5,
+          pricePerServingCents: 30,
+        }),
       ],
       answers(),
     );
@@ -658,10 +733,18 @@ describe('product resolution (docs/15 §3.8)', () => {
     const result = generateProtocol(
       c,
       [
-        product({ slug: 'small-box', ingredientSlugs: ['magnez'], priceCents: 900,
-          pricePerServingCents: 30 }),
-        product({ slug: 'big-tub', ingredientSlugs: ['magnez'], priceCents: 2200,
-          pricePerServingCents: 18 }),
+        product({
+          slug: 'small-box',
+          ingredientSlugs: ['magnez'],
+          priceCents: 900,
+          pricePerServingCents: 30,
+        }),
+        product({
+          slug: 'big-tub',
+          ingredientSlugs: ['magnez'],
+          priceCents: 2200,
+          pricePerServingCents: 18,
+        }),
       ],
       answers(),
     );
@@ -720,8 +803,13 @@ describe('product resolution (docs/15 §3.8)', () => {
 
   it('habits never resolve to a product', () => {
     const c = config({
-      blocks: [block({ goalSlug: 'gjumi', ingredientSlug: null,
-        habit: { sq: 'dritë dielli', en: 'daylight' } })],
+      blocks: [
+        block({
+          goalSlug: 'gjumi',
+          ingredientSlug: null,
+          habit: { sq: 'dritë dielli', en: 'daylight' },
+        }),
+      ],
     });
     const result = generateProtocol(c, [], answers());
 
@@ -742,7 +830,10 @@ describe('phasing (docs/15 §3.7)', () => {
     });
     const result = generateProtocol(
       c,
-      [product({ slug: 'a', ingredientSlugs: ['a'] }), product({ slug: 'b', ingredientSlugs: ['b'] })],
+      [
+        product({ slug: 'a', ingredientSlugs: ['a'] }),
+        product({ slug: 'b', ingredientSlugs: ['b'] }),
+      ],
       answers({ level: 'fillestar' }),
     );
 
@@ -759,7 +850,10 @@ describe('phasing (docs/15 §3.7)', () => {
     });
     const result = generateProtocol(
       c,
-      [product({ slug: 'a', ingredientSlugs: ['a'] }), product({ slug: 'b', ingredientSlugs: ['b'] })],
+      [
+        product({ slug: 'a', ingredientSlugs: ['a'] }),
+        product({ slug: 'b', ingredientSlugs: ['b'] }),
+      ],
       answers({ level: 'i_avancuar' }),
     );
 
@@ -847,7 +941,10 @@ describe('metrics and empty results (docs/15 §1, §6)', () => {
     });
     const result = generateProtocol(
       c,
-      [product({ slug: 'a', ingredientSlugs: ['a'] }), product({ slug: 'b', ingredientSlugs: ['b'] })],
+      [
+        product({ slug: 'a', ingredientSlugs: ['a'] }),
+        product({ slug: 'b', ingredientSlugs: ['b'] }),
+      ],
       answers({ goals: ['gjumi', 'stresi'] }),
     );
 
@@ -870,8 +967,10 @@ describe('metrics and empty results (docs/15 §1, §6)', () => {
     });
     const result = generateProtocol(
       c,
-      [product({ slug: 'ash', ingredientSlugs: ['ash'] }),
-       product({ slug: 'mag', ingredientSlugs: ['mag'] })],
+      [
+        product({ slug: 'ash', ingredientSlugs: ['ash'] }),
+        product({ slug: 'mag', ingredientSlugs: ['mag'] }),
+      ],
       answers({ goals: ['stresi'], medication: true }),
     );
 
@@ -880,8 +979,8 @@ describe('metrics and empty results (docs/15 §1, §6)', () => {
 
   it('always carries the disclaimer flag, including when gated', () => {
     expect(generateProtocol(config(), [], answers()).disclaimer).toBe(true);
-    expect(
-      generateProtocol(config(), [], answers({ restrictedLifeStage: true })).disclaimer,
-    ).toBe(true);
+    expect(generateProtocol(config(), [], answers({ restrictedLifeStage: true })).disclaimer).toBe(
+      true,
+    );
   });
 });

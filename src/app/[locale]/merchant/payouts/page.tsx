@@ -88,7 +88,10 @@ export default async function MerchantPayoutsPage({ params }: Props) {
               negative
             />
           )}
-          <Figure label={t('paidOut')} value={formatPrice(Math.abs(balance.paidOutCents), locale)} />
+          <Figure
+            label={t('paidOut')}
+            value={formatPrice(Math.abs(balance.paidOutCents), locale)}
+          />
         </dl>
       </section>
 
@@ -206,15 +209,7 @@ function kindKey(kind: string): (typeof KINDS)[number] {
     : 'adjustment';
 }
 
-function Figure({
-  label,
-  value,
-  negative,
-}: {
-  label: string;
-  value: string;
-  negative?: boolean;
-}) {
+function Figure({ label, value, negative }: { label: string; value: string; negative?: boolean }) {
   return (
     <div className="rounded-lg border border-line bg-surface p-4">
       <dt className="text-[11px] font-semibold tracking-wide text-ink-500 uppercase">{label}</dt>

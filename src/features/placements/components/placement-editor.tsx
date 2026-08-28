@@ -51,7 +51,10 @@ export function PlacementEditor({
   const [state, action] = useActionState(
     async (previous: Awaited<ReturnType<typeof savePlacement>>, formData: FormData) => {
       const submitted = Object.fromEntries(
-        [...formData.entries()].map(([key, value]) => [key, typeof value === 'string' ? value : '']),
+        [...formData.entries()].map(([key, value]) => [
+          key,
+          typeof value === 'string' ? value : '',
+        ]),
       );
       const result = await savePlacement(previous, formData);
       if (result?.ok) {
@@ -93,7 +96,9 @@ export function PlacementEditor({
       const { width } = bitmap;
       bitmap.close();
       if (width < minWidth) {
-        setUploadError(`That creative is ${width}px wide. The ${slot} slot needs at least ${minWidth}px.`);
+        setUploadError(
+          `That creative is ${width}px wide. The ${slot} slot needs at least ${minWidth}px.`,
+        );
         return;
       }
     } catch {
@@ -145,7 +150,12 @@ export function PlacementEditor({
         <input type="hidden" name="imageMobilePath" value={mobilePath} />
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field id="advertiserName" label="Advertiser" required errors={fieldErrors.advertiserName}>
+          <Field
+            id="advertiserName"
+            label="Advertiser"
+            required
+            errors={fieldErrors.advertiserName}
+          >
             <Input
               id="advertiserName"
               name="advertiserName"
@@ -251,7 +261,11 @@ export function PlacementEditor({
         {uploadError && <Alert tone="error">{uploadError}</Alert>}
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field id="targetCategorySlugs" label="Only these categories" hint="Comma separated. Empty = all pages.">
+          <Field
+            id="targetCategorySlugs"
+            label="Only these categories"
+            hint="Comma separated. Empty = all pages."
+          >
             <Input
               id="targetCategorySlugs"
               name="targetCategorySlugs"
@@ -262,7 +276,11 @@ export function PlacementEditor({
               placeholder="sports-nutrition, proteina"
             />
           </Field>
-          <Field id="targetBrandSlugs" label="Only these brand pages" hint="Comma separated. Empty = all pages.">
+          <Field
+            id="targetBrandSlugs"
+            label="Only these brand pages"
+            hint="Comma separated. Empty = all pages."
+          >
             <Input
               id="targetBrandSlugs"
               name="targetBrandSlugs"
@@ -273,7 +291,12 @@ export function PlacementEditor({
         </div>
 
         <div className="grid gap-4 sm:grid-cols-3">
-          <Field id="weight" label="Weight" hint="1–100. Higher goes first." errors={fieldErrors.weight}>
+          <Field
+            id="weight"
+            label="Weight"
+            hint="1–100. Higher goes first."
+            errors={fieldErrors.weight}
+          >
             <Input
               id="weight"
               name="weight"
@@ -404,13 +427,31 @@ function Bilingual({
       <legend className="mb-1 text-sm font-medium text-ink-900">{label}</legend>
       <label htmlFor={nameSq} className="flex flex-col gap-1 text-sm">
         <span className="text-xs text-ink-500">Albanian</span>
-        <input id={nameSq} name={nameSq} defaultValue={sq} className={cn(box, 'h-11', errors[nameSq] && 'border-error')} />
-        {errors[nameSq] && <span role="alert" className="text-xs text-error">{errors[nameSq].join(' ')}</span>}
+        <input
+          id={nameSq}
+          name={nameSq}
+          defaultValue={sq}
+          className={cn(box, 'h-11', errors[nameSq] && 'border-error')}
+        />
+        {errors[nameSq] && (
+          <span role="alert" className="text-xs text-error">
+            {errors[nameSq].join(' ')}
+          </span>
+        )}
       </label>
       <label htmlFor={nameEn} className="flex flex-col gap-1 text-sm">
         <span className="text-xs text-ink-500">English</span>
-        <input id={nameEn} name={nameEn} defaultValue={en} className={cn(box, 'h-11', errors[nameEn] && 'border-error')} />
-        {errors[nameEn] && <span role="alert" className="text-xs text-error">{errors[nameEn].join(' ')}</span>}
+        <input
+          id={nameEn}
+          name={nameEn}
+          defaultValue={en}
+          className={cn(box, 'h-11', errors[nameEn] && 'border-error')}
+        />
+        {errors[nameEn] && (
+          <span role="alert" className="text-xs text-error">
+            {errors[nameEn].join(' ')}
+          </span>
+        )}
       </label>
     </fieldset>
   );
@@ -476,8 +517,18 @@ function CreativeSlot({
       <div className="mt-3 grid gap-3 sm:grid-cols-2">
         <label htmlFor={altSqName} className="flex flex-col gap-1 text-sm">
           <span className="text-xs text-ink-500">Alt text — Albanian{path && ' *'}</span>
-          <Input id={altSqName} name={altSqName} defaultValue={altSq} maxLength={200} aria-invalid={Boolean(altError)} />
-          {altError && <span role="alert" className="text-xs text-error">{altError.join(' ')}</span>}
+          <Input
+            id={altSqName}
+            name={altSqName}
+            defaultValue={altSq}
+            maxLength={200}
+            aria-invalid={Boolean(altError)}
+          />
+          {altError && (
+            <span role="alert" className="text-xs text-error">
+              {altError.join(' ')}
+            </span>
+          )}
         </label>
         <label htmlFor={altEnName} className="flex flex-col gap-1 text-sm">
           <span className="text-xs text-ink-500">Alt text — English</span>

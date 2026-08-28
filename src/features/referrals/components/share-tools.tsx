@@ -63,7 +63,7 @@ export function ReferralShareTools({ code, shareUrl }: { code: string; shareUrl:
             `font-display` at size so it can be read aloud across a counter.
           */}
           <code
-            className="select-all rounded-sm bg-forest-50 px-3 py-2 font-display text-xl font-semibold tracking-wider text-forest-900"
+            className="rounded-sm bg-forest-50 px-3 py-2 font-display text-xl font-semibold tracking-wider text-forest-900 select-all"
             data-numeric
           >
             {code}
@@ -86,7 +86,7 @@ export function ReferralShareTools({ code, shareUrl }: { code: string; shareUrl:
           wants to know what they are about to send, and somebody on a locked-down browser where the
           clipboard is unavailable still needs a way to get it.
         */}
-        <p className="mt-2 break-all text-sm text-ink-600">{shareUrl}</p>
+        <p className="mt-2 text-sm break-all text-ink-600">{shareUrl}</p>
 
         <div className="mt-3 flex flex-wrap gap-2">
           <button type="button" onClick={nativeShare} className={secondary}>
@@ -104,10 +104,7 @@ export function ReferralShareTools({ code, shareUrl }: { code: string; shareUrl:
             WhatsApp
           </a>
 
-          <a
-            href={`viber://forward?text=${encodeURIComponent(message)}`}
-            className={secondary}
-          >
+          <a href={`viber://forward?text=${encodeURIComponent(message)}`} className={secondary}>
             <Send className="size-4" aria-hidden="true" />
             Viber
           </a>

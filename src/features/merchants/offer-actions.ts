@@ -17,11 +17,7 @@ import {
 } from '@/features/merchants/offer-schemas';
 import { getMyMerchant, type OfferStatus } from '@/features/merchants/queries';
 import { sendOfferDecided } from '@/features/merchants/email';
-import {
-  classifySkips,
-  dedupeIds,
-  type BulkOfferDecision,
-} from '@/features/merchants/decisions';
+import { classifySkips, dedupeIds, type BulkOfferDecision } from '@/features/merchants/decisions';
 import type { Json } from '@/lib/supabase/database.types';
 
 /**
@@ -288,7 +284,8 @@ export async function setOfferStatus(
       .eq('id', parsed.data.offerId)
       .maybeSingle();
 
-    const previousStatus = (before as { status: string; variant_id: string } | null)?.status ?? null;
+    const previousStatus =
+      (before as { status: string; variant_id: string } | null)?.status ?? null;
     const variantId = (before as { variant_id: string } | null)?.variant_id ?? null;
 
     const { data, error } = await supabase
@@ -487,7 +484,9 @@ async function purgeIfLive(status: string, variantId: string): Promise<void> {
       .maybeSingle();
 
     const slug = (data as { products: { slug: string } | null } | null)?.products?.slug;
-    revalidatePublic(slug ? [CACHE_TAGS.product(slug), CACHE_TAGS.products] : [CACHE_TAGS.products]);
+    revalidatePublic(
+      slug ? [CACHE_TAGS.product(slug), CACHE_TAGS.products] : [CACHE_TAGS.products],
+    );
   } catch (error) {
     // A failed purge leaves a page stale for the revalidate window; it must not fail the write.
     logger.error('purgeIfLive threw', { variantId, ...describeError(error) });
@@ -657,7 +656,10 @@ export async function decideOffersBulk(
       }),
     );
     if (slugs.size > 0) {
-      revalidatePublic([...[...slugs].map((slug) => CACHE_TAGS.product(slug)), CACHE_TAGS.products]);
+      revalidatePublic([
+        ...[...slugs].map((slug) => CACHE_TAGS.product(slug)),
+        CACHE_TAGS.products,
+      ]);
     }
 
     /*

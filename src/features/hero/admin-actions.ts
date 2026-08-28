@@ -44,7 +44,10 @@ export type HeroErrorKey =
   | 'admin.hero.errors.fileTooLarge'
   | 'admin.hero.errors.uploadFailed';
 
-export type HeroState = ActionResult<{ message?: string; path?: string; token?: string }, HeroErrorKey> | null;
+export type HeroState = ActionResult<
+  { message?: string; path?: string; token?: string },
+  HeroErrorKey
+> | null;
 
 function no(error: HeroErrorKey): HeroState {
   return fail<HeroErrorKey, { message?: string; path?: string; token?: string }>(error);
@@ -144,10 +147,16 @@ export async function saveHeroSlide(_previous: HeroState, formData: FormData): P
       return no(translate(error.message));
     }
 
-    await audit(v.id ? 'hero.slide.update' : 'hero.slide.create', 'hero_slide', v.id ?? null, null, {
-      status: v.status,
-      pinned: v.isPinned,
-    });
+    await audit(
+      v.id ? 'hero.slide.update' : 'hero.slide.create',
+      'hero_slide',
+      v.id ?? null,
+      null,
+      {
+        status: v.status,
+        pinned: v.isPinned,
+      },
+    );
 
     purge();
     return ok({ message: 'Saved.' });
@@ -208,7 +217,10 @@ export async function duplicateHeroSlide(
   }
 }
 
-export async function deleteHeroSlide(_previous: HeroState, formData: FormData): Promise<HeroState> {
+export async function deleteHeroSlide(
+  _previous: HeroState,
+  formData: FormData,
+): Promise<HeroState> {
   const gate = await requireCapability('hero.manage');
   if (!gate.ok) return no(gate.error);
 
@@ -232,7 +244,10 @@ export async function deleteHeroSlide(_previous: HeroState, formData: FormData):
   }
 }
 
-export async function toggleHeroSlide(_previous: HeroState, formData: FormData): Promise<HeroState> {
+export async function toggleHeroSlide(
+  _previous: HeroState,
+  formData: FormData,
+): Promise<HeroState> {
   const gate = await requireCapability('hero.manage');
   if (!gate.ok) return no(gate.error);
 
@@ -247,7 +262,8 @@ export async function toggleHeroSlide(_previous: HeroState, formData: FormData):
       .eq('id', parsed.data.id)
       .maybeSingle();
 
-    const next = (data as { status: string } | null)?.status === 'published' ? 'draft' : 'published';
+    const next =
+      (data as { status: string } | null)?.status === 'published' ? 'draft' : 'published';
     const { error } = await supabase
       .from('hero_slides')
       .update({ status: next })
@@ -381,7 +397,10 @@ export async function createHeroUploadUrl(
 // Carousel settings, trust strip, announcement
 // -----------------------------------------------------------------------------
 
-export async function saveHeroSettings(_previous: HeroState, formData: FormData): Promise<HeroState> {
+export async function saveHeroSettings(
+  _previous: HeroState,
+  formData: FormData,
+): Promise<HeroState> {
   const gate = await requireCapability('hero.manage');
   if (!gate.ok) return no(gate.error);
 
@@ -460,7 +479,10 @@ export async function saveTrustStrip(_previous: HeroState, formData: FormData): 
   }
 }
 
-export async function saveAnnouncement(_previous: HeroState, formData: FormData): Promise<HeroState> {
+export async function saveAnnouncement(
+  _previous: HeroState,
+  formData: FormData,
+): Promise<HeroState> {
   const gate = await requireCapability('hero.manage');
   if (!gate.ok) return no(gate.error);
 

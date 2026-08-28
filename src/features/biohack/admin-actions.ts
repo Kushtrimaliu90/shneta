@@ -183,7 +183,10 @@ export async function createDraftConfig(): Promise<BioHackState> {
   }
 }
 
-const configIdSchema = z.object({ configId: z.string().uuid(), notes: z.string().max(2000).optional() });
+const configIdSchema = z.object({
+  configId: z.string().uuid(),
+  notes: z.string().max(2000).optional(),
+});
 
 /** draft → pending_review. The point at which the product manager stops and compliance starts. */
 export async function submitConfigForReview(
@@ -407,9 +410,7 @@ export async function saveBlock(
   if (!(await assertDraft(input.configId))) return no('biohack.errors.notDraft');
 
   const habit =
-    input.habitSq || input.habitEn
-      ? { sq: input.habitSq ?? '', en: input.habitEn ?? '' }
-      : null;
+    input.habitSq || input.habitEn ? { sq: input.habitSq ?? '', en: input.habitEn ?? '' } : null;
 
   // The table's CHECK requires one or the other; catching it here gives a usable message.
   if (!input.ingredientId && !habit) return no('admin.errors.generic');
@@ -619,7 +620,13 @@ export async function deleteConflict(
       return no('admin.errors.generic');
     }
 
-    await audit('biohack_conflict.deleted', 'protocol_conflict', parsed.data.conflictId, null, null);
+    await audit(
+      'biohack_conflict.deleted',
+      'protocol_conflict',
+      parsed.data.conflictId,
+      null,
+      null,
+    );
     refresh();
     return ok({ id: parsed.data.conflictId });
   } catch (error) {

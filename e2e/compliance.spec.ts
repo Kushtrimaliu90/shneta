@@ -180,10 +180,7 @@ test.describe('faceted listings are not a crawl space', () => {
 
   test('a filtered listing is noindex, and the plain one is not', async ({ page }) => {
     await page.goto('/en/shop?brand=now-foods&goal=gjumi');
-    await expect(page.locator('meta[name="robots"]')).toHaveAttribute(
-      'content',
-      /noindex/,
-    );
+    await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', /noindex/);
 
     // The page worth indexing keeps its place.
     await page.goto('/en/shop');

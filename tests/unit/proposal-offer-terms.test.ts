@@ -62,9 +62,11 @@ describe('offer terms on a proposal', () => {
   });
 
   it('converts euros to integer cents, comma or point', () => {
-    expect(parse({ askingPriceEuro: '14,90' }).success && parse({ askingPriceEuro: '14,90' }).data)
-      .toMatchObject({ askingPriceEuro: 1490 });
-    expect(parse({ askingPriceEuro: '14.90' }).success && parse({ askingPriceEuro: '14.90' }).data)
-      .toMatchObject({ askingPriceEuro: 1490 });
+    expect(
+      parse({ askingPriceEuro: '14,90' }).success && parse({ askingPriceEuro: '14,90' }).data,
+    ).toMatchObject({ askingPriceEuro: 1490 });
+    expect(
+      parse({ askingPriceEuro: '14.90' }).success && parse({ askingPriceEuro: '14.90' }).data,
+    ).toMatchObject({ askingPriceEuro: 1490 });
   });
 });

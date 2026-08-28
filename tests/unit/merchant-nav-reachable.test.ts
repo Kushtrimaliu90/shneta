@@ -58,10 +58,9 @@ describe('the merchant portal has no unreachable pages', () => {
     join(process.cwd(), 'src/features/merchants/components/merchant-nav.tsx'),
     'utf8',
   );
-  const corpus = [
-    ...sources(APP),
-    ...sources(join(process.cwd(), 'src/features/merchants')),
-  ].join('\n');
+  const corpus = [...sources(APP), ...sources(join(process.cwd(), 'src/features/merchants'))].join(
+    '\n',
+  );
 
   it('found the routes it is supposed to be checking', () => {
     // A guard whose discovery silently returns nothing passes forever.

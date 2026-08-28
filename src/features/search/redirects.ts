@@ -27,14 +27,16 @@ export interface SearchRedirect {
  * anywhere explaining why. That is what the unit tests are guarding.
  */
 export function normalizeQuery(value: string): string {
-  return value
-    .normalize('NFD')
-    // `\p{Diacritic}` rather than a literal combining-mark range: the range is invisible in an editor,
-    // and a stray edit to characters nobody can see is not a diff anyone reviews.
-    .replace(/\p{Diacritic}/gu, '')
-    .toLowerCase()
-    .replace(/\s+/g, ' ')
-    .trim();
+  return (
+    value
+      .normalize('NFD')
+      // `\p{Diacritic}` rather than a literal combining-mark range: the range is invisible in an editor,
+      // and a stray edit to characters nobody can see is not a diff anyone reviews.
+      .replace(/\p{Diacritic}/gu, '')
+      .toLowerCase()
+      .replace(/\s+/g, ' ')
+      .trim()
+  );
 }
 
 /**

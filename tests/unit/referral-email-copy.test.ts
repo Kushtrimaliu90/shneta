@@ -15,14 +15,7 @@ import { LOCALES } from '@/lib/constants';
  * shopping. The seven templates that exist today pass; the point is the eighth.
  */
 
-const KINDS = [
-  'monthly',
-  'expiry',
-  'joined',
-  'approved',
-  'revoked',
-  'welcome',
-] as const;
+const KINDS = ['monthly', 'expiry', 'joined', 'approved', 'revoked', 'welcome'] as const;
 
 type CopyTable = (typeof COPY)['en'];
 
@@ -64,7 +57,8 @@ describe('no template can describe a referred customer’s spending (docs/17 §0
    * carry them — so one appearing here means somebody plumbed a new field through to say something the
    * design forbids.
    */
-  const FORBIDDEN_PLACEHOLDERS = /\{(amount|spend|spent|total|order|orderNumber|price|revenue|cents|email|phone|address)\}/i;
+  const FORBIDDEN_PLACEHOLDERS =
+    /\{(amount|spend|spent|total|order|orderNumber|price|revenue|cents|email|phone|address)\}/i;
 
   it('uses no placeholder that would carry an amount, an order or contact details', () => {
     for (const locale of LOCALES) {

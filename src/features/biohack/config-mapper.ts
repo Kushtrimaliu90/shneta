@@ -76,14 +76,14 @@ function readSettings(value: unknown): EngineSettings {
     maxItems: num('max_items', 5),
     minItems: num('min_items', 2),
     maxGoals: num('max_goals', 3),
-    perGoalCoreGuarantee: typeof v.per_goal_core_guarantee === 'boolean'
-      ? v.per_goal_core_guarantee
-      : true,
+    perGoalCoreGuarantee:
+      typeof v.per_goal_core_guarantee === 'boolean' ? v.per_goal_core_guarantee : true,
     durationDays: num('duration_days', 28),
     budgetTiers: Array.isArray(v.budget_tiers)
       ? v.budget_tiers.filter((t): t is number => typeof t === 'number')
       : [2000, 4000],
-    subscriptionConvert: typeof v.subscription_convert === 'boolean' ? v.subscription_convert : true,
+    subscriptionConvert:
+      typeof v.subscription_convert === 'boolean' ? v.subscription_convert : true,
   };
 }
 
@@ -98,15 +98,14 @@ export async function loadConfig(
   db: SupabaseClient,
   configId?: string,
 ): Promise<ProtocolConfig | null> {
-
-  const configQuery = db
-    .from('protocol_configs')
-    .select('id, version, status')
-    .limit(1);
+  const configQuery = db.from('protocol_configs').select('id, version, status').limit(1);
 
   const { data: configRow } = configId
     ? await configQuery.eq('id', configId).maybeSingle()
-    : await configQuery.eq('status', 'approved').order('version', { ascending: false }).maybeSingle();
+    : await configQuery
+        .eq('status', 'approved')
+        .order('version', { ascending: false })
+        .maybeSingle();
 
   if (!configRow) {
     logger.warn('No protocol config available', { configId: configId ?? 'latest-approved' });
@@ -128,7 +127,9 @@ export async function loadConfig(
       .eq('config_id', row.id),
     db
       .from('protocol_profile_rules')
-      .select('id, ingredient_id, when_profile, effect, reason_i18n, caution_i18n, active, sort_order')
+      .select(
+        'id, ingredient_id, when_profile, effect, reason_i18n, caution_i18n, active, sort_order',
+      )
       .eq('config_id', row.id),
     db.from('health_goals').select('id, slug, metrics_i18n'),
     db
@@ -197,22 +198,23 @@ export async function loadConfig(
     note_i18n: unknown;
   };
 
-  const mappedConflicts: ProtocolConflict[] = ((conflicts.data ?? []) as unknown as RawConflict[])
-    .map((c) => {
-      const rule = (c.rule ?? {}) as Record<string, unknown>;
-      return {
-        id: c.id,
-        aIngredientSlug: c.a_ingredient ? (ingredientById.get(c.a_ingredient)?.slug ?? null) : null,
-        bIngredientSlug: c.b_ingredient ? (ingredientById.get(c.b_ingredient)?.slug ?? null) : null,
-        bGoalSlug: c.b_goal ? (goalById.get(c.b_goal)?.slug ?? null) : null,
-        kind: c.kind,
-        rule: {
-          allowedSlots: stringList(rule.allowed_slots) as TimingSlot[],
-          separateSlots: rule.separate_slots === true,
-        },
-        note: pair(c.note_i18n),
-      };
-    });
+  const mappedConflicts: ProtocolConflict[] = (
+    (conflicts.data ?? []) as unknown as RawConflict[]
+  ).map((c) => {
+    const rule = (c.rule ?? {}) as Record<string, unknown>;
+    return {
+      id: c.id,
+      aIngredientSlug: c.a_ingredient ? (ingredientById.get(c.a_ingredient)?.slug ?? null) : null,
+      bIngredientSlug: c.b_ingredient ? (ingredientById.get(c.b_ingredient)?.slug ?? null) : null,
+      bGoalSlug: c.b_goal ? (goalById.get(c.b_goal)?.slug ?? null) : null,
+      kind: c.kind,
+      rule: {
+        allowedSlots: stringList(rule.allowed_slots) as TimingSlot[],
+        separateSlots: rule.separate_slots === true,
+      },
+      note: pair(c.note_i18n),
+    };
+  });
 
   /**
    * docs/15 §9 — profile rules.
@@ -233,41 +235,43 @@ export async function loadConfig(
     sort_order: number;
   };
 
-  const mappedRules: ProfileRule[] = ((profileRules.data ?? []) as unknown as RawRule[]).map((r) => {
-    const when = (r.when_profile ?? {}) as Record<string, unknown>;
-    const effect = (r.effect ?? {}) as Record<string, unknown>;
-    const ingredient = r.ingredient_id ? ingredientById.get(r.ingredient_id) : undefined;
+  const mappedRules: ProfileRule[] = ((profileRules.data ?? []) as unknown as RawRule[]).map(
+    (r) => {
+      const when = (r.when_profile ?? {}) as Record<string, unknown>;
+      const effect = (r.effect ?? {}) as Record<string, unknown>;
+      const ingredient = r.ingredient_id ? ingredientById.get(r.ingredient_id) : undefined;
 
-    const delta = effect.weight_delta;
+      const delta = effect.weight_delta;
 
-    return {
-      id: r.id,
-      ingredientSlug: ingredient?.slug ?? null,
-      ingredientName: ingredient ? pair(ingredient.name) : null,
-      when: {
-        ageBands: only(stringList(when.age_bands), AGE_BANDS),
-        sexes: only(stringList(when.sexes), SEX_BANDS),
-        weightBands: only(stringList(when.weight_bands), WEIGHT_BANDS),
-        heightBands: only(stringList(when.height_bands), HEIGHT_BANDS),
-        activity: only(stringList(when.activity), ACTIVITY_BANDS),
-        goals: stringList(when.goals),
-      },
-      effect: {
-        // Rounded and clamped: the column is jsonb, so nothing stops `1e9` or `"20"` being
-        // written into it, and a score is a small integer.
-        ...(typeof delta === 'number' && Number.isFinite(delta) && delta !== 0
-          ? { weightDelta: Math.max(-100, Math.min(100, Math.round(delta))) }
-          : {}),
-        ...(effect.exclude === true ? { exclude: true } : {}),
-        ...(effect.require === true ? { require: true } : {}),
-        ...(effect.servings_hint === true ? { servingsHint: true } : {}),
-      },
-      reason: pair(r.reason_i18n) ?? { sq: '', en: '' },
-      caution: pair(r.caution_i18n),
-      active: r.active,
-      sortOrder: r.sort_order,
-    };
-  });
+      return {
+        id: r.id,
+        ingredientSlug: ingredient?.slug ?? null,
+        ingredientName: ingredient ? pair(ingredient.name) : null,
+        when: {
+          ageBands: only(stringList(when.age_bands), AGE_BANDS),
+          sexes: only(stringList(when.sexes), SEX_BANDS),
+          weightBands: only(stringList(when.weight_bands), WEIGHT_BANDS),
+          heightBands: only(stringList(when.height_bands), HEIGHT_BANDS),
+          activity: only(stringList(when.activity), ACTIVITY_BANDS),
+          goals: stringList(when.goals),
+        },
+        effect: {
+          // Rounded and clamped: the column is jsonb, so nothing stops `1e9` or `"20"` being
+          // written into it, and a score is a small integer.
+          ...(typeof delta === 'number' && Number.isFinite(delta) && delta !== 0
+            ? { weightDelta: Math.max(-100, Math.min(100, Math.round(delta))) }
+            : {}),
+          ...(effect.exclude === true ? { exclude: true } : {}),
+          ...(effect.require === true ? { require: true } : {}),
+          ...(effect.servings_hint === true ? { servingsHint: true } : {}),
+        },
+        reason: pair(r.reason_i18n) ?? { sq: '', en: '' },
+        caution: pair(r.caution_i18n),
+        active: r.active,
+        sortOrder: r.sort_order,
+      };
+    },
+  );
 
   const metrics: ProtocolConfig['metrics'] = {};
   for (const goal of goalById.values()) {

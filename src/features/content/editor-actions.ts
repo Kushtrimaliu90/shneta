@@ -590,7 +590,9 @@ export async function restoreArticle(
     if (!data) return ok({ id: parsed.data.articleId });
 
     const slug = (data as { slug: string }).slug;
-    await audit('article.restored', 'article', parsed.data.articleId, null, { slug } as unknown as Json);
+    await audit('article.restored', 'article', parsed.data.articleId, null, {
+      slug,
+    } as unknown as Json);
 
     revalidatePublic([CACHE_TAGS.articles, CACHE_TAGS.article(slug)]);
     revalidatePath('/admin/content');
@@ -679,7 +681,10 @@ export async function deletePage(
   }
 }
 
-export async function deleteFaq(_previous: ContentState, formData: FormData): Promise<ContentState> {
+export async function deleteFaq(
+  _previous: ContentState,
+  formData: FormData,
+): Promise<ContentState> {
   const gate = await requireCapability('content.manage');
   if (!gate.ok) return contentFail(gate.error);
 

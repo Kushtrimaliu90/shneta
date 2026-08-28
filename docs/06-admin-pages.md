@@ -97,14 +97,14 @@ Six tabs behind `?tab=`, all operating on **one version**: the newest draft or p
 one exists, otherwise the approved one. Start a draft and every tab shows the draft, including the
 simulator.
 
-| Tab           | What it does                                                                                                                                                 |
-| ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Tab           | What it does                                                                                                                                                                                                       |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | **Simulator** | Any goal combination + refinements → instant generation, full raw trace. Config and catalogue are shipped to the browser and the pure engine runs there, so changing an answer costs no round trip. **No writes.** |
-| **Matrix**    | Per goal, the ranked blocks. Weight, core, phase, timing, active, and sq/en PSE + caution copy. Banned verbs are **rejected on save**, both locales (docs/13 §T10) |
-| **Conflicts** | The pair/goal rules: `exclude`, `timing_rule` (allowed slots), `caution` (note, separate slots)                                                              |
-| **Settings**  | `settings.biohack_engine` — item caps, max goals, duration, budget tiers, the per-goal core guarantee. Not versioned: these are operational dials, not copy compliance signs |
-| **Versions**  | Every version with its status. "Start a new draft" copies the approved one; draft → **Send for approval** → compliance **Approve** or **Send back**          |
-| **Analytics** | Generations, last 7 days, signed-in share, top goal combinations, per day. Two metrics docs/15 §4 asks for are absent and say so on the card — neither is recorded yet |
+| **Matrix**    | Per goal, the ranked blocks. Weight, core, phase, timing, active, and sq/en PSE + caution copy. Banned verbs are **rejected on save**, both locales (docs/13 §T10)                                                 |
+| **Conflicts** | The pair/goal rules: `exclude`, `timing_rule` (allowed slots), `caution` (note, separate slots)                                                                                                                    |
+| **Settings**  | `settings.biohack_engine` — item caps, max goals, duration, budget tiers, the per-goal core guarantee. Not versioned: these are operational dials, not copy compliance signs                                       |
+| **Versions**  | Every version with its status. "Start a new draft" copies the approved one; draft → **Send for approval** → compliance **Approve** or **Send back**                                                                |
+| **Analytics** | Generations, last 7 days, signed-in share, top goal combinations, per day. Two metrics docs/15 §4 asks for are absent and say so on the card — neither is recorded yet                                             |
 
 **Capabilities.** `biohack.view` (product_manager + compliance_manager) opens the screen;
 `biohack.manage` (product_manager) is every mutation; `compliance.approve` is approval. Split
@@ -121,17 +121,17 @@ version in the same action and purges `biohack-config` so the storefront switche
 
 ### 17.1 Profile tab (docs/15 §9)
 
-Where personalisation lives. Each row reads *for this kind of person, do this to this ingredient*,
+Where personalisation lives. Each row reads _for this kind of person, do this to this ingredient_,
 and the tab exists so the product manager who understands the nutrition can read and change it — the
 alternative was an `if` in the engine that nobody outside the repository could see.
 
-| Column   | What it holds                                                                                |
-| -------- | -------------------------------------------------------------------------------------------- |
-| Order    | Rules apply in `sort_order`, then by id, so the same profile always produces the same result   |
-| Target   | One ingredient, or every candidate                                                            |
-| Effect   | Score change (−100…100), remove, guarantee a place, or show the body-weight serving note      |
-| When     | Any combination of age / sex / weight / height / activity bands and chosen goals              |
-| Reason   | Required, both locales — the sentence the customer reads. Banned verbs rejected on save        |
+| Column | What it holds                                                                                |
+| ------ | -------------------------------------------------------------------------------------------- |
+| Order  | Rules apply in `sort_order`, then by id, so the same profile always produces the same result |
+| Target | One ingredient, or every candidate                                                           |
+| Effect | Score change (−100…100), remove, guarantee a place, or show the body-weight serving note     |
+| When   | Any combination of age / sex / weight / height / activity bands and chosen goals             |
+| Reason | Required, both locales — the sentence the customer reads. Banned verbs rejected on save      |
 
 Two things the screen does that a tidier editor would not, both deliberate:
 

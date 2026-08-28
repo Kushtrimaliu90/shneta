@@ -1,20 +1,11 @@
 'use client';
 
 import { useActionState, useMemo, useState } from 'react';
-import {
-  BulkCheckbox,
-  BulkDecideBar,
-} from '@/features/merchants/components/bulk-decide';
+import { BulkCheckbox, BulkDecideBar } from '@/features/merchants/components/bulk-decide';
 import { OfferReview } from '@/features/merchants/components/offer-review';
 import { ProposalReview } from '@/features/merchants/components/proposal-review';
-import {
-  decideOffersBulk,
-  type BulkOfferState,
-} from '@/features/merchants/offer-actions';
-import {
-  decideProposalsBulk,
-  type BulkProposalState,
-} from '@/features/merchants/proposal-actions';
+import { decideOffersBulk, type BulkOfferState } from '@/features/merchants/offer-actions';
+import { decideProposalsBulk, type BulkProposalState } from '@/features/merchants/proposal-actions';
 import { OFFER_BULK_MAX, PROPOSAL_BULK_MAX } from '@/features/merchants/decisions';
 import type { ReviewOffer } from '@/features/merchants/offer-admin-queries';
 import type { Proposal } from '@/features/merchants/proposal-queries';
@@ -127,11 +118,14 @@ export function ProposalReviewQueue({
 }) {
   const selection = useSelection(proposals);
 
-  const [state, action] = useActionState<BulkProposalState, FormData>(async (previous, formData) => {
-    const result = await decideProposalsBulk(previous, formData);
-    if (result?.ok && result.data.decided > 0) selection.clear();
-    return result;
-  }, null);
+  const [state, action] = useActionState<BulkProposalState, FormData>(
+    async (previous, formData) => {
+      const result = await decideProposalsBulk(previous, formData);
+      if (result?.ok && result.data.decided > 0) selection.clear();
+      return result;
+    },
+    null,
+  );
 
   const labelFor = (id: string) => proposals.find((proposal) => proposal.id === id)?.productName;
 

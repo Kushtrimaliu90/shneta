@@ -148,11 +148,15 @@ describe('what the form may and may not say', () => {
 
 describe('the reviewer’s decision schema', () => {
   it('accepts an approval with no note', () => {
-    expect(offerDecisionSchema.safeParse({ offerId: OFFER, decision: 'approve' }).success).toBe(true);
+    expect(offerDecisionSchema.safeParse({ offerId: OFFER, decision: 'approve' }).success).toBe(
+      true,
+    );
   });
 
   it('refuses a decision that is neither approve nor reject', () => {
-    expect(offerDecisionSchema.safeParse({ offerId: OFFER, decision: 'pause' }).success).toBe(false);
+    expect(offerDecisionSchema.safeParse({ offerId: OFFER, decision: 'pause' }).success).toBe(
+      false,
+    );
   });
 });
 

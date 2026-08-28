@@ -69,9 +69,13 @@ function cellText(value: ExcelJS.CellValue): string {
     return value.toISOString().slice(0, 10);
   }
   if (typeof value === 'object') {
-    if ('result' in value && value.result !== undefined) return cellText(value.result as ExcelJS.CellValue);
+    if ('result' in value && value.result !== undefined)
+      return cellText(value.result as ExcelJS.CellValue);
     if ('richText' in value && Array.isArray(value.richText)) {
-      return value.richText.map((part) => part.text).join('').trim();
+      return value.richText
+        .map((part) => part.text)
+        .join('')
+        .trim();
     }
     if ('text' in value && typeof value.text === 'string') return value.text.trim();
   }

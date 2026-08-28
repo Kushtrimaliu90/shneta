@@ -32,9 +32,9 @@ export default async function AdminPayoutsPage() {
       <header>
         <h1 className="font-display text-2xl font-semibold text-forest-900">Merchant payouts</h1>
         <p className="mt-1 text-sm text-ink-600">
-          A merchant is owed for a fulfilment when it has been <strong>delivered</strong> — not when it
-          shipped, because a parcel in transit can come back, and not when the order was paid, because a
-          COD order is not paid until the courier hands the cash over.
+          A merchant is owed for a fulfilment when it has been <strong>delivered</strong> — not when
+          it shipped, because a parcel in transit can come back, and not when the order was paid,
+          because a COD order is not paid until the courier hands the cash over.
         </p>
       </header>
 

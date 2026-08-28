@@ -1,8 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  merchantApplicationSchema,
-  merchantSettlementSchema,
-} from '@/features/merchants/schemas';
+import { merchantApplicationSchema, merchantSettlementSchema } from '@/features/merchants/schemas';
 
 /**
  * Bank details are required for a transfer and not asked for at all for cash (docs/16 §8).
@@ -140,9 +137,9 @@ describe('admin settlement edit', () => {
   });
 
   it('accepts switching to cash with nothing supplied', () => {
-    expect(
-      edit({ settlementMethod: 'cash', bankName: undefined, iban: undefined }).success,
-    ).toBe(true);
+    expect(edit({ settlementMethod: 'cash', bankName: undefined, iban: undefined }).success).toBe(
+      true,
+    );
   });
 
   it('still validates a malformed IBAN that is typed', () => {

@@ -1,6 +1,13 @@
 import { expect, test } from '@playwright/test';
 import { randomUUID } from 'node:crypto';
-import { createdUsers, db, deleteCreatedUsers, ipAllocator, signIn, staffUser } from './helpers/accounts';
+import {
+  createdUsers,
+  db,
+  deleteCreatedUsers,
+  ipAllocator,
+  signIn,
+  staffUser,
+} from './helpers/accounts';
 
 /**
  * docs/16 §5 — the merchant portal, the offer lifecycle, and who the customer is buying from.
@@ -266,7 +273,9 @@ test.describe('the offer lifecycle, through the screens', () => {
    * Stock is the edit a merchant makes daily, and zero is the one with a consequence: the offer stops
    * being supply. The portal has to say so on the same screen.
    */
-  test('setting stock to zero takes the offer out of the buy box, and says so', async ({ page }) => {
+  test('setting stock to zero takes the offer out of the buy box, and says so', async ({
+    page,
+  }) => {
     const merchant = await merchantAccount();
     const product = await fixtureProduct(1500);
     const service = db();
@@ -562,7 +571,6 @@ test.describe('bulk upload from a spreadsheet (docs/16 §6)', () => {
   });
 });
 
-
 /**
  * Reaching the bulk screens and the photograph uploader by clicking, with no typed URL.
  *
@@ -588,7 +596,10 @@ test.describe('finding the bulk screens (docs/16 §9.1)', () => {
     await page
       .locator('#proposal-sheet')
       .fill(['name;brand;price;stock', 'Probe Magnesium;Probe Labs;14,90;5'].join('\n'));
-    await page.getByRole('button', { name: /send|submit/i }).first().click();
+    await page
+      .getByRole('button', { name: /send|submit/i })
+      .first()
+      .click();
 
     /*
      * Submitting lands the merchant on the batch itself, with the uploader already on screen. That part

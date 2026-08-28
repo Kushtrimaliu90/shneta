@@ -152,9 +152,7 @@ export default async function AccountReferralsPage({ params }: Props) {
       </div>
 
       {/* ── The list ──────────────────────────────────────────────────────────────────── */}
-      <h3 className="mt-10 font-display text-lg font-semibold text-forest-900">
-        {t('listTitle')}
-      </h3>
+      <h3 className="mt-10 font-display text-lg font-semibold text-forest-900">{t('listTitle')}</h3>
 
       {/*
         The empty state carries no action button. docs/04 §9 wants one to say what to do next, and the
@@ -188,15 +186,7 @@ export default async function AccountReferralsPage({ params }: Props) {
   );
 }
 
-function Stat({
-  label,
-  value,
-  tone,
-}: {
-  label: string;
-  value: number;
-  tone?: 'warning';
-}) {
+function Stat({ label, value, tone }: { label: string; value: number; tone?: 'warning' }) {
   return (
     <div className="rounded-lg border border-line bg-surface p-4">
       <dt className="eyebrow">{label}</dt>
@@ -234,9 +224,7 @@ async function ReferralRow({ entry }: { entry: ReferralListEntry }) {
         <Gift className="size-4 shrink-0 text-forest-700" aria-hidden="true" />
         <div className="min-w-0">
           <p className="truncate text-sm font-medium text-ink-900">{entry.maskedName}</p>
-          <p className="text-[13px] text-ink-500">
-            {t('joinedIn', { month: entry.joinedMonth })}
-          </p>
+          <p className="text-[13px] text-ink-500">{t('joinedIn', { month: entry.joinedMonth })}</p>
         </div>
       </div>
 

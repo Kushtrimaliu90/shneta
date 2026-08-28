@@ -329,8 +329,10 @@ describe('what the buy box withholds (docs/16 §3)', () => {
   /** No price of any kind: the canonical variant price is the only customer-facing number. */
   it('no price appears anywhere in the payload', async () => {
     const row = await one(product.variantId);
-    expect(JSON.stringify(row), 'the asking price is between the merchant and BioCode')
-      .not.toContain('4137');
+    expect(
+      JSON.stringify(row),
+      'the asking price is between the merchant and BioCode',
+    ).not.toContain('4137');
     expect(Object.keys(row).some((key) => key.includes('price'))).toBe(false);
   });
 

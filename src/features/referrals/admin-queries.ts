@@ -52,7 +52,13 @@ interface LinkQueryRow {
   revoked_at: string | null;
   revoke_reason: string | null;
   extended_count: number | null;
-  referrer: { id: string; full_name: string | null; email: string; referral_code: string | null; created_at: string } | null;
+  referrer: {
+    id: string;
+    full_name: string | null;
+    email: string;
+    referral_code: string | null;
+    created_at: string;
+  } | null;
   referee: { id: string; full_name: string | null; email: string; created_at: string } | null;
 }
 
@@ -216,16 +222,21 @@ export async function listReferralEarnings(limit = 500): Promise<AdminEarningRow
     return [];
   }
 
-  return ((data ?? []) as unknown as {
-    id: string;
-    created_at: string;
-    reason: string;
-    base_cents: number;
-    points: number;
-    loyalty_transaction_id: string | null;
-    orders: { order_number: string } | null;
-    referral_links: { referrer: { email: string } | null; referee: { email: string } | null } | null;
-  }[]).map((row) => ({
+  return (
+    (data ?? []) as unknown as {
+      id: string;
+      created_at: string;
+      reason: string;
+      base_cents: number;
+      points: number;
+      loyalty_transaction_id: string | null;
+      orders: { order_number: string } | null;
+      referral_links: {
+        referrer: { email: string } | null;
+        referee: { email: string } | null;
+      } | null;
+    }[]
+  ).map((row) => ({
     id: row.id,
     createdAt: row.created_at,
     reason: row.reason,

@@ -160,7 +160,5 @@ export function hasErrorUnder(
   fieldErrors: Readonly<Record<string, string[]>>,
   prefix: string,
 ): boolean {
-  return Object.keys(fieldErrors).some(
-    (key) => key === prefix || key.startsWith(`${prefix}.`),
-  );
+  return Object.keys(fieldErrors).some((key) => key === prefix || key.startsWith(`${prefix}.`));
 }
