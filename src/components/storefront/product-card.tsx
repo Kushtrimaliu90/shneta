@@ -1,4 +1,5 @@
 import { useLocale, useTranslations } from 'next-intl';
+import { ShoppingBag } from 'lucide-react';
 import { Link } from '@/i18n/routing';
 import { pickLocale } from '@/lib/i18n';
 import type { Locale } from '@/lib/constants';
@@ -170,16 +171,26 @@ export function ProductCard({
         )}
 
         {/*
-          A full-bleed band rather than a corner pill.
+          A full-bleed band rather than a corner pill — at 2-up the stacked action buttons already
+          own the tile's right edge, and a band cannot crowd anything.
 
-          At 2-up the two stacked action buttons already own about 76 px of the tile's right edge, and a
-          badge stack in the opposite corner crowds a 152 px square. A band cannot crowd anything, reads
-          at a glance, and survives greyscale and forced-colours because it is text.
+          Styled as the DISABLED twin of the quick-add band, not as a black notice (owner,
+          2026-09-01): an unavailable product keeps its card, and where the add-to-cart control
+          would slide up it shows a permanently visible grey "out of stock" instead — same
+          geometry, `line` ground, `ink-600` text (AA on the grey; `ink-500` misses it). A real
+          `disabled` button rather than a styled <p>, so it swallows the tap that would otherwise
+          fall through to nothing and stays out of the tab order for free. Persistent on every
+          device class — a disabled state that must be hovered to be discovered is a trap.
         */}
         {!product.inStock && (
-          <p className="absolute inset-x-0 bottom-0 bg-ink-900/85 py-1.5 text-center font-ui text-[11px] font-semibold tracking-[0.06em] text-white uppercase">
+          <button
+            type="button"
+            disabled
+            className="absolute inset-x-0 bottom-0 z-10 flex h-11 cursor-not-allowed items-center justify-center gap-2 bg-line text-sm font-medium text-ink-600"
+          >
+            <ShoppingBag className="size-4" aria-hidden="true" />
             {t('outOfStock')}
-          </p>
+          </button>
         )}
 
         {/*

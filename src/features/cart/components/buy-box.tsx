@@ -212,7 +212,20 @@ export function BuyBox({
       {!soldOut && <SellerLine supply={selected.supply} />}
 
       <div className="flex flex-col gap-3">
-        <SubmitButton size="lg" block disabled={soldOut} loadingLabel={t('cart.adding')}>
+        {/*
+          Sold out wears grey, not faded forest (owner, 2026-09-01): the default disabled
+          treatment is opacity-50 over the primary fill, which still reads as a dark green
+          button that might work. `line`/`ink-600` says "not an action" at a glance — the same
+          disabled grammar the card's out-of-stock band uses — and opacity-100 keeps the label
+          legible instead of half-erased.
+        */}
+        <SubmitButton
+          size="lg"
+          block
+          disabled={soldOut}
+          loadingLabel={t('cart.adding')}
+          className={cn(soldOut && 'bg-line text-ink-600 disabled:opacity-100')}
+        >
           <ShoppingBag className="size-5" aria-hidden="true" />
           {soldOut ? t('product.outOfStockLine') : t('cart.addToCart')}
         </SubmitButton>
