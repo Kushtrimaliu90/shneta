@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -85,7 +85,42 @@ export function Carousel<T extends { id: string }>({
   className?: string;
   renderItem: (item: T, state: { active: boolean; index: number }) => React.ReactNode;
 }) {
-  const [active, setActive] = useState(0);
+  /*
+   * Active index, the index just left, and the direction of travel — one state object because the
+   * three only ever change together, and the slide transition needs all three: the incoming slide
+   * animates in from the side `dir` names, the outgoing one (`previous`) animates out the other
+   * way, and every other slide sits parked offscreen with its transition disabled so it teleports
+   * to the correct side instead of streaking across the viewport.
+   */
+  const [nav, setNav] = useState<{ active: number; previous: number | null; dir: 1 | -1 }>({
+    active: 0,
+    previous: null,
+    dir: 1,
+  });
+  const active = nav.active;
+
+  /*
+   * Which slide's ENTRY has been released. A slide can be parked on either side (it exits where
+   * the last direction sent it), so the incoming slide is first re-staged on the side the new
+   * direction names — transition off, one painted frame — and only then released to glide to
+   * centre. Without the staging frame, the returning slide of a two-slide loop glides in from
+   * the side it happened to exit toward, which reverses the push on every wrap. Double-rAF so
+   * the parked position is actually painted before the release; guarded off the first paint so
+   * the anchor slide never stages offscreen (the no-flash guarantee in hero-carousel.tsx).
+   */
+  const [entered, setEntered] = useState(0);
+  useLayoutEffect(() => {
+    if (nav.previous === null) return;
+    let second = 0;
+    const first = requestAnimationFrame(() => {
+      second = requestAnimationFrame(() => setEntered(nav.active));
+    });
+    return () => {
+      cancelAnimationFrame(first);
+      cancelAnimationFrame(second);
+    };
+  }, [nav]);
+
   const [taken, setTaken] = useState(false);
   const [hovered, setHovered] = useState(false);
   const [focused, setFocused] = useState(false);
@@ -117,7 +152,17 @@ export function Carousel<T extends { id: string }>({
   const go = useCallback(
     (next: number, manual = false) => {
       if (manual) setTaken(true);
-      setActive(((next % count) + count) % count);
+      setNav((current) => {
+        const wrapped = ((next % count) + count) % count;
+        if (wrapped === current.active) return current;
+        /*
+         * Direction from the RAW target, not the wrapped one: "next" off the last slide asks for
+         * index `count`, which is forward travel even though it wraps to 0 — and "previous" off the
+         * first asks for −1, which is backward travel to the last. Comparing wrapped indices would
+         * reverse the push exactly on the wrap, which on a two-slide hero is every second move.
+         */
+        return { active: wrapped, previous: current.active, dir: next >= current.active ? 1 : -1 };
+      });
     },
     [count],
   );
@@ -128,10 +173,11 @@ export function Carousel<T extends { id: string }>({
     if (!running) return;
     const timer = window.setInterval(
       () => {
-        setActive((current) => {
-          const next = current + 1;
+        setNav((current) => {
+          const next = current.active + 1;
           if (!loop && next >= count) return current;
-          return next % count;
+          /* Autoplay always travels forward, the wrap included. */
+          return { active: next % count, previous: current.active, dir: 1 };
         });
       },
       Math.max(3, intervalSeconds) * 1000,
@@ -228,17 +274,52 @@ export function Carousel<T extends { id: string }>({
       onTouchStart={onTouchStart}
       onTouchEnd={onTouchEnd}
     >
-      <div className="grid">
+      {/*
+        `overflow-hidden` is load-bearing now: inactive slides park a full width offscreen, and
+        without the clip they would widen the document and hand the page a horizontal scrollbar.
+      */}
+      <div className="grid overflow-hidden">
         {items.map((item, index) => {
           const isActive = index === active;
+          /* The slide on its way out — the only inactive slide that animates. */
+          const isLeaving = nav.previous === index && !isActive;
+          /* Active but not yet released: parked on the entry side for one painted frame. */
+          const isEntering = isActive && entered !== index;
+          const entrySide =
+            nav.dir === 1 ? 'motion-safe:translate-x-full' : 'motion-safe:-translate-x-full';
+          const exitSide =
+            nav.dir === 1 ? 'motion-safe:-translate-x-full' : 'motion-safe:translate-x-full';
           return (
             <div
               key={item.id}
               className={cn(
-                'col-start-1 row-start-1 transition-opacity motion-reduce:transition-none',
+                'col-start-1 row-start-1',
+                !isActive && 'pointer-events-none',
+                isActive && 'z-10',
+                /*
+                  The push (owner, 2026-09-01): the incoming slide travels in from the side the
+                  direction names while the outgoing one exits the opposite way — a full-width
+                  glide on --duration-slide (700ms; the 150/250/400 scale is sized for elements
+                  that move pixels, not viewports — see globals.css). Parked and staging slides
+                  carry transition-none so repositioning teleports offscreen instead of streaking
+                  across the viewport. `translate`, not `transform` — the Tailwind v4 gotcha
+                  product-card.tsx documents.
+                */
+                (isActive && !isEntering) || isLeaving
+                  ? 'motion-safe:transition-[translate] motion-safe:duration-[var(--duration-slide)] motion-safe:ease-[var(--ease-biocode)]'
+                  : 'motion-safe:transition-none',
                 isActive
-                  ? 'z-10 opacity-100 duration-500'
-                  : 'pointer-events-none opacity-0 duration-300',
+                  ? isEntering
+                    ? entrySide
+                    : 'motion-safe:translate-x-0'
+                  : isLeaving
+                    ? exitSide
+                    : entrySide,
+                /* Reduced motion keeps the old crossfade: opacity only, per docs/04 §8. */
+                'motion-reduce:transition-opacity',
+                isActive
+                  ? 'motion-reduce:opacity-100 motion-reduce:duration-500'
+                  : 'motion-reduce:opacity-0 motion-reduce:duration-300',
               )}
               /*
                 `inert` does what `aria-hidden` alone cannot: it takes the inactive item's links out of

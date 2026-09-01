@@ -5274,3 +5274,19 @@ Two deliberate deviations from §6's literal wording:
    the fill (track becomes white/25, arc lime-400), and on light secondary buttons an 18px
    lime-500 arc measures under 1.5:1 (arc becomes forest-700) — the same contrast-in-forest,
    brand-in-lime trade the focus ring makes (§C).
+
+## BC. The carousel pushes; a fourth motion duration for viewport travel
+
+docs/04 §8's duration scale (150/250/400ms) is sized for elements that move pixels — a 12px
+fadeUp at 400ms reads deliberate. The hero's slide change was an opacity crossfade on that scale,
+and on two dark slides it read as a blink; the owner asked for a slow lateral glide instead
+(2026-09-01). Slides now push: the incoming slide travels in from the direction of movement while
+the outgoing one exits the opposite way, on a new `--duration-slide` token (700ms) reserved for
+full-viewport travel, with `--ease-biocode` unchanged. Autoplay and the next arrow always push
+right-to-left, the loop wrap included — the incoming slide is re-staged on the entry side for one
+painted frame before its transition releases, because a two-slide loop otherwise glides the
+returning slide in from whichever side it last exited, reversing the push on every wrap.
+
+`prefers-reduced-motion` keeps the old crossfade exactly (opacity only, §8's stated fallback), and
+the slide stack gained `overflow-hidden`, which is now load-bearing: parked slides sit a full
+width offscreen and would otherwise hand the page a horizontal scrollbar.

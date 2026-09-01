@@ -94,6 +94,14 @@
   --duration-ui: 250ms;
   --duration-page: 400ms;
 
+  /*
+   * Full-viewport travel (owner, 2026-09-01; docs/13 §BC). The three durations above are sized
+   * for elements that move pixels — a 12px fadeUp at 400ms reads deliberate, but a hero slide
+   * crossing the whole viewport at 400ms reads as a flick. One token for carousel pushes, so
+   * "slow" is defined once rather than re-guessed per slider.
+   */
+  --duration-slide: 700ms;
+
   /* --- Width tiers (docs/04 §1) ------------------------------------------
    *
    * Four tiers, not one. The site had exactly two width layers — full-bleed, which in practice
