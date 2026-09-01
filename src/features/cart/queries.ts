@@ -159,20 +159,25 @@ export const getCart = cache(async (): Promise<Cart | null> => {
     });
   }
 
-  // Stock status comes from the bucketed view — exact counts are staff-only (docs/13 §B7).
+  /*
+   * Availability comes from `variant_buy_box`, NOT from `v_product_stock` (owner-reported bug,
+   * 2026-09-01). The view answers "can BioCode ship this?" — warehouse only — while the PDP,
+   * `addToCart` and checkout routing all ask the buy box, which also counts approved merchant
+   * offers (docs/16 §1). Reading the view here was the exact disagreement `addToCart`'s comment
+   * warns about, observed live: a merchant-fulfilled creatine showed "in stock · shipped by
+   * CreatinePro" on the PDP, added fine, and this page then flagged it "out of stock — remove it
+   * to continue". Every surface now asks the same oracle. One batched RPC call, bucketed status
+   * only — exact counts stay staff-only (docs/13 §B7).
+   */
   if (lines.length > 0) {
-    const { data: stock } = await client
-      .from('v_product_stock')
-      .select('variant_id, stock_status')
-      .in(
-        'variant_id',
-        lines.map((line) => line.variantId),
-      );
+    const { data: supply } = await client.rpc('variant_buy_box', {
+      p_variant_ids: lines.map((line) => line.variantId),
+    });
 
     const byVariant = new Map(
-      ((stock ?? []) as { variant_id: string; stock_status: string }[]).map((entry) => [
+      ((supply ?? []) as { variant_id: string; stock_status: string | null }[]).map((entry) => [
         entry.variant_id,
-        entry.stock_status as StockStatus,
+        (entry.stock_status ?? 'out_of_stock') as StockStatus,
       ]),
     );
 
