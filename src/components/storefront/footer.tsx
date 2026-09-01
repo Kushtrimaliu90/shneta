@@ -75,7 +75,8 @@ export async function Footer() {
   return (
     <footer className="mt-auto bg-forest-950 text-cream" data-print="hide">
       {/* The wide tier, so the footer's columns share the header's margin rather than the old 1240. */}
-      <div className="container-wide py-14 lg:py-20">
+      {/* py-16, not the original py-20: with the close consolidated, the tail air shrinks too. */}
+      <div className="container-wide py-12 lg:py-16">
         {/*
           `1.8fr` and a tighter gap, not `1.4fr` with the old one.
 
@@ -153,33 +154,44 @@ export async function Footer() {
           ))}
         </div>
 
-        <div className="mt-12 flex flex-wrap items-center gap-x-6 gap-y-3 border-t border-white/15 pt-8">
-          <span className="eyebrow text-white/50">{t('footer.payments')}</span>
-          <span className="inline-flex items-center gap-2 rounded-sm border border-white/20 px-3 py-1.5 text-xs text-white/80">
-            <Truck className="size-4" aria-hidden="true" />
-            {t('footer.codBadge')}
-          </span>
-          <span className="inline-flex items-center gap-2 rounded-sm border border-white/20 px-3 py-1.5 text-xs text-white/80">
-            <BadgeCheck className="size-4" aria-hidden="true" />
-            {t('home.trust.authentic.title')}
-          </span>
-        </div>
+        {/*
+          The close, as one block rather than three bands (owner, 2026-09-01).
 
-        {/* docs/08 §7.3 — mandatory, non-removable. */}
-        <p className="mt-8 max-w-3xl text-xs leading-relaxed text-white/55">
-          {t('footer.disclaimer')}
-        </p>
+          Payments, the disclaimer and the legal line used to be three separate one-line rows —
+          `mt-12 + pt-8`, `mt-8`, `mt-6` — which spent ~240px framing three thin lines and made
+          the footer read oversized where it should read finished. Same content, two rows: the
+          mandatory disclaimer, then © + legal links with the trust chips closing the row on the
+          right. The standalone "payment methods" label went with the bands — the chips carry
+          their own words and an icon each, and a heading over two self-describing chips was
+          furniture, not information.
+        */}
+        <div className="mt-10 border-t border-white/15 pt-6">
+          {/* docs/08 §7.3 — mandatory, non-removable. */}
+          <p className="max-w-3xl text-xs leading-relaxed text-white/55">
+            {t('footer.disclaimer')}
+          </p>
 
-        <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-white/55">
-          <span>
-            © {year} BIOCODE. {t('footer.rights')}
-          </span>
-          <Link href="/legal/terms" className="rounded-sm hover:text-white">
-            {t('footer.terms')}
-          </Link>
-          <Link href="/legal/privacy" className="rounded-sm hover:text-white">
-            {t('footer.privacy')}
-          </Link>
+          <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-3 text-xs text-white/55">
+            <span>
+              © {year} BIOCODE. {t('footer.rights')}
+            </span>
+            <Link href="/legal/terms" className="rounded-sm hover:text-white">
+              {t('footer.terms')}
+            </Link>
+            <Link href="/legal/privacy" className="rounded-sm hover:text-white">
+              {t('footer.privacy')}
+            </Link>
+            <span className="flex flex-wrap items-center gap-2 sm:ms-auto">
+              <span className="inline-flex items-center gap-2 rounded-sm border border-white/20 px-3 py-1.5 text-xs text-white/80">
+                <Truck className="size-4" aria-hidden="true" />
+                {t('footer.codBadge')}
+              </span>
+              <span className="inline-flex items-center gap-2 rounded-sm border border-white/20 px-3 py-1.5 text-xs text-white/80">
+                <BadgeCheck className="size-4" aria-hidden="true" />
+                {t('home.trust.authentic.title')}
+              </span>
+            </span>
+          </div>
         </div>
       </div>
     </footer>
