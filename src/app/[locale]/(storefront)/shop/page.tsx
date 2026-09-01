@@ -50,5 +50,11 @@ export default async function ShopPage({ params, searchParams }: Props) {
   const filters = parseFilters(await searchParams);
   const t = await getTranslations('shop');
 
-  return <ProductListingPage filters={filters} basePath="/shop" title={t('title')} />;
+  /*
+   * `compact`: /shop is the one listing whose title only repeats the nav's active pill, so the
+   * h1 folds into the toolbar row instead of spending a display-scale band on it (owner,
+   * 2026-09-01 — see the prop's comment in plp.tsx). Category, brand and goal pages keep their
+   * full identity headers.
+   */
+  return <ProductListingPage filters={filters} basePath="/shop" title={t('title')} compact />;
 }

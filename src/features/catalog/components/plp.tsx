@@ -32,6 +32,7 @@ export async function ProductListingPage({
   media,
   banner,
   intro,
+  compact = false,
   placementCategorySlug,
   placementBrandSlug,
   scopedCategory,
@@ -52,6 +53,15 @@ export async function ProductListingPage({
   /** A full-width band above the header — a brand's banner. Height discipline is the caller's. */
   banner?: ReactNode;
   intro?: LocalizedField;
+  /**
+   * Folds the h1 into the toolbar row instead of giving it its own header band (owner,
+   * 2026-09-01). For the bare `/shop` route ONLY: its title repeats what the nav's active pill
+   * already says, and at display scale that cost ~120px on the highest-traffic listing page —
+   * measured at 1080p, the first product row started ~700px down. The scoped landings
+   * (category, brand, goal) arrive from search where the h1 IS the page's identity, so they
+   * keep the display header and must not pass this. Ignores `eyebrow`/`media`/`intro`.
+   */
+  compact?: boolean;
   /**
    * The category carried by the URL **path** rather than the query, on `/shop/[category]`.
    *
@@ -111,24 +121,26 @@ export async function ProductListingPage({
     <div className="container-wide py-8 lg:py-12">
       {banner && <div className="mb-6 lg:mb-8">{banner}</div>}
 
-      <header className="mb-8">
-        {eyebrow && <p className="mb-2 eyebrow">{eyebrow}</p>}
-        <div className={cn(media && 'flex items-center gap-4 lg:gap-5')}>
-          {media}
-          <h1 className="font-display text-3xl font-semibold text-forest-900 lg:text-display-md">
-            {title}
-          </h1>
-        </div>
-        {/*
-          Phone-only. From `sm` up the count sits at the right end of the toolbar row below, where
-          it reads as a property of the controls that change it; a phone's toolbar is already full
-          with the sort rail, so there the count keeps its old spot under the h1.
-        */}
-        <p className="mt-2 text-sm text-ink-500 sm:hidden" data-numeric>
-          {t('shop.productCount', { count: result.total })}
-        </p>
-        {introText && <p className="mt-4 max-w-2xl text-ink-600">{introText}</p>}
-      </header>
+      {!compact && (
+        <header className="mb-8">
+          {eyebrow && <p className="mb-2 eyebrow">{eyebrow}</p>}
+          <div className={cn(media && 'flex items-center gap-4 lg:gap-5')}>
+            {media}
+            <h1 className="font-display text-3xl font-semibold text-forest-900 lg:text-display-md">
+              {title}
+            </h1>
+          </div>
+          {/*
+            Phone-only. From `sm` up the count sits at the right end of the toolbar row below, where
+            it reads as a property of the controls that change it; a phone's toolbar is already full
+            with the sort rail, so there the count keeps its old spot under the h1.
+          */}
+          <p className="mt-2 text-sm text-ink-500 sm:hidden" data-numeric>
+            {t('shop.productCount', { count: result.total })}
+          </p>
+          {introText && <p className="mt-4 max-w-2xl text-ink-600">{introText}</p>}
+        </header>
+      )}
 
       {/*
         The sponsored slot, between the title and the filter+grid area.
@@ -175,19 +187,40 @@ export async function ProductListingPage({
             The result count closes the row on the right from `sm` up (phones keep it under the h1),
             so the toolbar has both ends: controls left, consequence right.
 
+            In `compact` mode the h1 joins this row too — small, first, ahead of the controls — and
+            the row is allowed to wrap so a phone gets "title + count" on the first line with the
+            rail beneath, while `sm` and up keep the single line the mockup chose: title, sort,
+            count. The heading element itself never changes, only its stage.
+
             The Filters trigger is not here — it lives inside `FilterShell`, which is the flex
             container's first child and therefore sits directly above this row on mobile. Hoisting it
             into the toolbar would mean a portal or context to reach across the two columns, for one
             row of vertical space.
           */}
-          <div className="mb-4 flex items-center gap-2 border-b border-line pb-4">
+          <div
+            className={cn(
+              'mb-4 flex items-center gap-2 border-b border-line pb-4',
+              compact && 'flex-wrap gap-x-3 gap-y-2.5',
+            )}
+          >
+            {compact && (
+              <h1 className="shrink-0 font-display text-xl font-semibold text-forest-900 lg:text-2xl">
+                {title}
+              </h1>
+            )}
             {/*
               Outside the masked scroller: a label is not an option, and inside the rail its
               first glyphs sat in the mask's ramp (see `rail-fade-x` in globals.css). Out here
               it is always fully opaque and never scrolls away.
             */}
             <span className="hidden shrink-0 eyebrow sm:inline">{t('shop.sortBy')}</span>
-            <div className="no-scrollbar flex min-w-0 flex-1 flex-nowrap items-center gap-2 overflow-x-auto rail-fade-x pe-6">
+            <div
+              className={cn(
+                'no-scrollbar flex min-w-0 flex-1 flex-nowrap items-center gap-2 overflow-x-auto rail-fade-x pe-6',
+                /* Phones: the rail takes its own full-width line under the title. */
+                compact && 'order-last w-full basis-full sm:order-none sm:w-auto sm:basis-auto',
+              )}
+            >
               {SORT_OPTIONS.map((sort) => (
                 <Link
                   key={sort}
@@ -220,7 +253,17 @@ export async function ProductListingPage({
               ))}
             </div>
 
-            <p className="ml-auto hidden shrink-0 text-sm text-ink-500 sm:block" data-numeric>
+            {/*
+              In compact mode there is no header for the phone count line to live under, so the
+              count is visible at every width here — on a phone it closes the title line.
+            */}
+            <p
+              className={cn(
+                'ml-auto shrink-0 text-sm text-ink-500',
+                compact ? 'block' : 'hidden sm:block',
+              )}
+              data-numeric
+            >
               {t('shop.productCount', { count: result.total })}
             </p>
           </div>
