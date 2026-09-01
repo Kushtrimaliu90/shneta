@@ -24,3 +24,35 @@ export async function adminSignOut(): Promise<void> {
   revalidatePath('/', 'layout');
   redirect('/en/auth/sign-in');
 }
+
+/**
+ * The order-flow signals the alerts poller watches (owner, 2026-09-01): orders awaiting
+ * confirmation, fulfilments awaiting routing, and merchant-shipped fulfilments whose order has
+ * not been marked shipped yet — the one that gates the customer's dispatch email. Reads go
+ * through the caller's session, so RLS answers zeros to anyone who is not staff.
+ */
+export async function loadOrderSignals(): Promise<{
+  pendingOrders: number;
+  unassigned: number;
+  shippedInFlight: number;
+}> {
+  const supabase = await createClient();
+
+  const { data } = await supabase
+    .from('v_admin_pending')
+    .select('orders_to_confirm, unassigned_fulfilments')
+    .maybeSingle();
+  const row = data as { orders_to_confirm: number; unassigned_fulfilments: number } | null;
+
+  const { count } = await supabase
+    .from('order_fulfilments')
+    .select('id, orders!inner(status)', { count: 'exact', head: true })
+    .eq('status', 'shipped')
+    .not('orders.status', 'in', '(shipped,delivered,cancelled)');
+
+  return {
+    pendingOrders: row?.orders_to_confirm ?? 0,
+    unassigned: row?.unassigned_fulfilments ?? 0,
+    shippedInFlight: count ?? 0,
+  };
+}

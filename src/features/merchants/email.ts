@@ -730,3 +730,78 @@ export async function findLateFulfilments(now: Date): Promise<string[]> {
     return [];
   }
 }
+
+/**
+ * The operations alert when a merchant moves a fulfilment (owner, 2026-09-01).
+ *
+ * accepted / packed / shipped / cancelled all used to happen silently: the merchant's action
+ * updated the row and the admin learned of it by re-opening /admin/routing. Shipped is the one
+ * that costs money to miss — the customer's shipped email fires from the ADMIN's order
+ * transition, so an unseen merchant ship delays it — and cancelled is the one that needs
+ * re-routing. English on purpose: the admin panel is English-only in v1.
+ */
+export async function sendFulfilmentOpsAlert(
+  fulfilmentId: string,
+  status: 'accepted' | 'packed' | 'shipped' | 'cancelled',
+): Promise<void> {
+  try {
+    const { getOpsAlertRecipient } = await import('@/lib/email/recipients');
+    const to = await getOpsAlertRecipient();
+    if (!to) return;
+
+    const admin = createAdminClient();
+    const { data, error } = await admin
+      .from('order_fulfilments')
+      .select('order_id, merchants ( display_name ), orders ( order_number )')
+      .eq('id', fulfilmentId)
+      .maybeSingle();
+
+    if (error || !data) {
+      logger.error('fulfilment ops alert lookup failed', { fulfilmentId, cause: error?.message });
+      return;
+    }
+
+    const row = data as unknown as {
+      order_id: string;
+      merchants: { display_name: string } | null;
+      orders: { order_number: string } | null;
+    };
+
+    const merchant = row.merchants?.display_name ?? 'A merchant';
+    const orderNumber = row.orders?.order_number ?? fulfilmentId;
+    const link = `${clientEnv.NEXT_PUBLIC_SITE_URL}/admin/routing`;
+
+    const headline: Record<typeof status, string> = {
+      accepted: `accepted order ${orderNumber}`,
+      packed: `packed order ${orderNumber}`,
+      shipped: `shipped order ${orderNumber}`,
+      cancelled: `cancelled its part of order ${orderNumber}`,
+    };
+    const next: Record<typeof status, string> = {
+      accepted: 'No action needed — this is the acknowledgement.',
+      packed: 'The parcel is ready for the courier.',
+      shipped: 'Mark the order shipped so the customer gets their dispatch email.',
+      cancelled: 'The fulfilment needs re-routing to another supplier or BioCode stock.',
+    };
+
+    await sendEmail({
+      to,
+      subject: `${merchant} ${headline[status]}`,
+      template: `ops_fulfilment_${status}`,
+      orderId: row.order_id,
+      html: emailShell({
+        locale: 'en',
+        heading: `${merchant} ${headline[status]}`,
+        intro: next[status],
+        body: `<p style="margin:24px 0 0"><a href="${link}" style="color:#245741;font-weight:600">Open routing</a></p>`,
+        footer: 'Operations alert from biocode.fit — the address is set in /admin/settings.',
+      }),
+      text: `${merchant} ${headline[status]}. ${next[status]} ${link}`,
+    });
+  } catch (error) {
+    logger.error('sendFulfilmentOpsAlert threw', {
+      fulfilmentId,
+      cause: error instanceof Error ? error.message : String(error),
+    });
+  }
+}

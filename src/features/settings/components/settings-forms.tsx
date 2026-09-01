@@ -124,6 +124,14 @@ export function StoreForm({ settings }: { settings: StoreSettings }) {
           required
           hint="Shown on the contact page and used as the reply-to on customer emails."
         />
+        <TextField
+          name="opsEmail"
+          label="Operations email"
+          type="email"
+          defaultValue={settings.opsEmail}
+          state={state}
+          hint="New-order and merchant-progress alerts land here. Empty uses the contact email."
+        />
         <TextField name="phone" label="Phone" defaultValue={settings.phone} state={state} />
         <TextField name="address" label="Address" defaultValue={settings.address} state={state} />
         <TextField

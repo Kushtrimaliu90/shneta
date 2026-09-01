@@ -211,8 +211,26 @@ export async function GET(request: NextRequest) {
     const { data, error } = await supabase.rpc('auto_route_fulfilments');
     if (error) failures.push(`auto_route: ${error.message}`);
     else {
-      const result = (data ?? {}) as { enabled?: boolean; routed?: unknown[] };
+      const result = (data ?? {}) as {
+        enabled?: boolean;
+        routed?: { fulfilment_id?: string }[];
+      };
       summary.autoRouted = result.enabled ? (result.routed?.length ?? 0) : 0;
+
+      /*
+       * The assignment email fires from the ADMIN's manual routing action, which auto-routing
+       * bypasses entirely — so before this, switching auto_route on meant merchants stopped
+       * being told about their own orders (owner, 2026-09-01). Sequential and per-id caught:
+       * one dead address must not silence the rest of the batch.
+       */
+      for (const routed of result.routed ?? []) {
+        if (!routed.fulfilment_id) continue;
+        await sendFulfilmentAssigned(routed.fulfilment_id).catch((cause: unknown) => {
+          failures.push(
+            `auto_route email ${routed.fulfilment_id}: ${cause instanceof Error ? cause.message : String(cause)}`,
+          );
+        });
+      }
     }
   }
 

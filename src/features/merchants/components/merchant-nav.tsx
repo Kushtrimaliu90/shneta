@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { Link, usePathname } from '@/i18n/routing';
+import { FulfilmentAlerts } from '@/features/merchants/components/fulfilment-alerts';
 import { cn } from '@/lib/utils';
 
 /**
@@ -111,6 +112,8 @@ export function MerchantNav({ approved }: { approved: boolean }) {
               >
                 <item.icon className="size-4 shrink-0" aria-hidden="true" />
                 {label}
+                {/* The live count of routed orders, and the toast when it rises (one poller). */}
+                {item.key === 'orders' && <FulfilmentAlerts />}
               </Link>
             </li>
           );

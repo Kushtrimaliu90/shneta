@@ -102,6 +102,7 @@ const storeSchema = z.object({
     .optional()
     .or(z.literal('')),
   announcement: z.string().trim().max(160).optional().or(z.literal('')),
+  opsEmail: z.string().trim().email('A valid email address').optional().or(z.literal('')),
 });
 
 export async function saveStoreSettings(

@@ -1305,6 +1305,12 @@
         "attentionOrders": "{count} porosi presin përgjigjen tënde. Afati është 24 orë.",
         "balance": "Bilanci i pashlyer",
         "balanceHint": "Përfshihet në shlyerjen e radhës."
+      },
+      "alerts": {
+        "badgeLabel": "{count} porosi të reja",
+        "newAssigned": "Porosi të reja për pranim: {count}.",
+        "view": "Hapi porositë",
+        "dismiss": "Mbylle njoftimin"
       }
     },
     "offers": {

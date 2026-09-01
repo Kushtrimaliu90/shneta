@@ -7,6 +7,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { logger, describeError } from '@/lib/logger';
 import { fail, ok, type ActionResult } from '@/lib/result';
 import { getMyMerchant } from '@/features/merchants/queries';
+import { sendFulfilmentOpsAlert } from '@/features/merchants/email';
 
 /**
  * docs/16 §7 — the merchant's lane: accept, decline, pack, ship.
@@ -106,6 +107,16 @@ async function transition(
     return no('merchant.fulfilments.errors.generic');
   }
   if (!data) return no('merchant.fulfilments.errors.wrongState');
+
+  /*
+   * The other half of the chain (owner, 2026-09-01): the merchant acting is the event the
+   * admin needs to hear about — shipped gates the customer's dispatch email, cancelled needs
+   * re-routing. Fire-and-forget with its own catch: a mail failure must not fail a transition
+   * that already committed.
+   */
+  await sendFulfilmentOpsAlert(fulfilmentId, status).catch((cause: unknown) => {
+    logger.error('fulfilment ops alert failed', describeError(cause));
+  });
 
   revalidatePath('/merchant/orders');
   revalidatePath(`/merchant/orders/${fulfilmentId}`);
@@ -231,4 +242,26 @@ export async function declineFulfilment(
     logger.error('declineFulfilment threw', describeError(error));
     return no('merchant.fulfilments.errors.generic');
   }
+}
+
+/**
+ * The portal badge's number: fulfilments awaiting acceptance, for the acting merchant.
+ *
+ * A server action rather than a route so the client poller (`fulfilment-alerts.tsx`) reuses the
+ * session and the RLS the portal already stands on. Zero for anyone who is not an approved
+ * merchant — the poller only mounts inside the portal, but a badge must not be the thing that
+ * leaks a count to whoever calls the action directly.
+ */
+export async function loadMyAssignedCount(): Promise<number> {
+  const acting = await actingMerchant();
+  if (!acting.ok) return 0;
+
+  const supabase = await createClient();
+  const { count } = await supabase
+    .from('order_fulfilments')
+    .select('id', { count: 'exact', head: true })
+    .eq('merchant_id', acting.id)
+    .eq('status', 'assigned');
+
+  return count ?? 0;
 }

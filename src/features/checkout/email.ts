@@ -3,6 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { clientEnv } from '@/lib/env.client';
 import { formatPrice } from '@/lib/money';
 import { sendEmail } from '@/lib/email/send';
+import { emailShell } from '@/lib/email/layout';
 import { logger } from '@/lib/logger';
 import { DEFAULT_LOCALE, type Locale } from '@/lib/constants';
 
@@ -222,4 +223,66 @@ export async function sendOrderConfirmation(orderId: string): Promise<void> {
     template: 'order-confirmation',
     orderId: order.id,
   });
+}
+
+/**
+ * The operations alert for a new order (owner, 2026-09-01).
+ *
+ * The customer's confirmation already existed; this is the other half of the chain — without
+ * it, a new order waited for somebody to open /admin/orders. English on purpose: the admin
+ * panel is English-only in v1 (docs/01 §3), and this email is a doorbell for that panel.
+ * Recipient comes from settings (opsEmail, falling back to the contact email), so a missing
+ * address skips quietly rather than bouncing.
+ */
+export async function sendNewOrderAlert(orderId: string): Promise<void> {
+  try {
+    const { getOpsAlertRecipient } = await import('@/lib/email/recipients');
+    const to = await getOpsAlertRecipient();
+    if (!to) return;
+
+    const admin = createAdminClient();
+    const { data, error } = await admin
+      .from('orders')
+      .select('order_number, total_cents, payment_method, order_items ( quantity )')
+      .eq('id', orderId)
+      .maybeSingle();
+
+    if (error || !data) {
+      logger.error('new-order alert lookup failed', { orderId, cause: error?.message });
+      return;
+    }
+
+    const order = data as unknown as {
+      order_number: string;
+      total_cents: number;
+      payment_method: string | null;
+      order_items: { quantity: number }[];
+    };
+
+    const units = order.order_items.reduce((sum, item) => sum + item.quantity, 0);
+    const total = formatPrice(order.total_cents, 'en');
+    const link = `${clientEnv.NEXT_PUBLIC_SITE_URL}/admin/orders`;
+
+    await sendEmail({
+      to,
+      subject: `New order ${order.order_number} — ${total}`,
+      template: 'ops_new_order',
+      orderId,
+      html: emailShell({
+        locale: 'en',
+        heading: `New order ${order.order_number}`,
+        intro: `${units} unit${units === 1 ? '' : 's'}, ${total} total, ${
+          order.payment_method === 'cod' ? 'cash on delivery' : (order.payment_method ?? 'unpaid')
+        }.`,
+        body: `<p style="margin:24px 0 0"><a href="${link}" style="color:#245741;font-weight:600">Open the orders queue</a></p>`,
+        footer: 'Operations alert from biocode.fit — the address is set in /admin/settings.',
+      }),
+      text: `New order ${order.order_number}: ${units} unit(s), ${total}. ${link}`,
+    });
+  } catch (error) {
+    logger.error('sendNewOrderAlert threw', {
+      orderId,
+      cause: error instanceof Error ? error.message : String(error),
+    });
+  }
 }

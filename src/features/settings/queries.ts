@@ -19,6 +19,12 @@ export type SettingsGroup =
 export interface StoreSettings {
   name: string;
   email: string;
+  /**
+   * Where order alerts land (owner, 2026-09-01): the new-order email and the merchant
+   * accepted/packed/shipped notices. Empty falls back to `email`, so a fresh install alerts
+   * the same inbox the contact page shows rather than alerting nobody.
+   */
+  opsEmail: string;
   phone: string;
   address: string;
   instagram: string;
@@ -115,6 +121,7 @@ export async function getAllSettings(): Promise<AllSettings> {
     store: {
       name: text(store, 'name', 'BIOCODE'),
       email: text(store, 'email'),
+      opsEmail: text(store, 'opsEmail'),
       phone: text(store, 'phone'),
       address: text(store, 'address'),
       instagram: text(store, 'instagram'),

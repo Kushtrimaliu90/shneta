@@ -44,6 +44,35 @@ const UNDELIVERABLE_DOMAINS = ['example.com', 'example.net', 'example.org'] as c
  * Case- and whitespace-insensitive, and tolerant of a display name (`Name <a@b.test>`), because
  * this is the last check before a network call and the input has come through several layers.
  */
+/**
+ * Where operational alerts go: the new-order email and the merchant-progress notices.
+ *
+ * `settings.store.opsEmail`, falling back to `settings.store.email` — both edited in
+ * /admin/settings, so the inbox changes without a deploy. Read with the service client because
+ * the callers run where there is no useful session: the checkout action (a customer, or a
+ * guest), a merchant's fulfilment action, and the housekeeping cron — all sanctioned email
+ * dispatch per docs/02 §6. Returns null when neither address is set or the address could never
+ * be delivered to; callers skip the send rather than bounce it.
+ */
+export async function getOpsAlertRecipient(): Promise<string | null> {
+  const { createAdminClient } = await import('@/lib/supabase/admin');
+  const admin = createAdminClient();
+  const { data } = await admin.from('settings').select('value').eq('key', 'store').maybeSingle();
+
+  const store =
+    data?.value && typeof data.value === 'object' && !Array.isArray(data.value)
+      ? (data.value as Record<string, unknown>)
+      : {};
+
+  const candidate =
+    (typeof store.opsEmail === 'string' && store.opsEmail.trim()) ||
+    (typeof store.email === 'string' && store.email.trim()) ||
+    '';
+
+  if (!candidate || isUndeliverableRecipient(candidate)) return null;
+  return candidate;
+}
+
 export function isUndeliverableRecipient(recipient: string): boolean {
   // `angled?.[1]` rather than `angled[1]`: under `noUncheckedIndexedAccess` a capture group is
   // `string | undefined` even when the match succeeded, and the compiler is right to insist.

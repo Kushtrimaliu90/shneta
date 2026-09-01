@@ -20,7 +20,7 @@ import { createSubscriptionsFromCart } from '@/features/subscriptions/create';
 import { findActiveCart } from '@/features/cart/queries';
 import { placeOrderSchema } from '@/features/cart/schemas';
 import { mapCheckoutError, type CheckoutErrorKey } from '@/features/cart/types';
-import { sendOrderConfirmation } from '@/features/checkout/email';
+import { sendNewOrderAlert, sendOrderConfirmation } from '@/features/checkout/email';
 import { keepSubmitted } from '@/lib/keep-submitted';
 
 /**
@@ -172,6 +172,11 @@ async function placeOrderImpl(
     // docs/07 §12 — a failed email must never fail the order. Fire and forget, logged.
     await sendOrderConfirmation(result.order_id).catch((cause: unknown) => {
       logger.error('Order confirmation email failed', describeError(cause));
+    });
+    // The doorbell for the admin panel — same fire-and-forget contract as the confirmation:
+    // a mail failure must never fail an order that already exists.
+    await sendNewOrderAlert(result.order_id).catch((cause: unknown) => {
+      logger.error('New-order ops alert failed', describeError(cause));
     });
 
     redirectTo = `/checkout/success/${orderNumber}`;

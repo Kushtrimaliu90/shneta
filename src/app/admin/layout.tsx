@@ -5,6 +5,7 @@ import { getProfile } from '@/features/auth/queries';
 import { isMerchant, isStaff, roleLabel, visibleNav } from '@/features/admin/roles';
 import { AdminSidebar } from '@/features/admin/components/admin-sidebar';
 import { AdminTopbar } from '@/features/admin/components/admin-topbar';
+import { OrderAlerts } from '@/features/admin/components/order-alerts';
 import { getPendingCounts } from '@/features/admin/pending';
 import { pendingByHref, pendingQueues } from '@/features/admin/pending-queues';
 import '@/styles/globals.css';
@@ -92,6 +93,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
               pending={pending}
             />
 
+            {/* The live doorbell for order flow — see the component for why rises only. */}
+            <OrderAlerts />
             <main id="main" className="min-w-0 flex-1 px-4 py-6 lg:px-8 lg:py-8">
               {children}
             </main>

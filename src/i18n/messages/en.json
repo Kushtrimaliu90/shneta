@@ -1305,6 +1305,12 @@
         "attentionOrders": "{count} orders are waiting on your answer. The window is 24 hours.",
         "balance": "Unsettled balance",
         "balanceHint": "Included in the next settlement run."
+      },
+      "alerts": {
+        "badgeLabel": "{count} new orders",
+        "newAssigned": "New orders awaiting acceptance: {count}.",
+        "view": "Open orders",
+        "dismiss": "Dismiss notification"
       }
     },
     "offers": {
