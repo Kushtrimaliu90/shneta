@@ -85,7 +85,6 @@ export default async function CategoryPage({ params, searchParams }: Props) {
          */
         scopedCategory={slug}
         title={name}
-        intro={category.description}
         /* Targeting: a placement scoped to this category qualifies here and nowhere else. */
         placementCategorySlug={slug}
       />

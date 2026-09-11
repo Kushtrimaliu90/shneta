@@ -1,8 +1,6 @@
 import type { ReactNode } from 'react';
-import { getLocale, getTranslations } from 'next-intl/server';
+import { getTranslations } from 'next-intl/server';
 import { Link } from '@/i18n/routing';
-import { pickLocale, type LocalizedField } from '@/lib/i18n';
-import type { Locale } from '@/lib/constants';
 import { ActiveFilters } from '@/features/catalog/components/active-filters';
 import { FilterPanel } from '@/features/catalog/components/filter-panel';
 import { FilterShell } from '@/features/catalog/components/filter-shell';
@@ -31,7 +29,6 @@ export async function ProductListingPage({
   eyebrow,
   media,
   banner,
-  intro,
   compact = false,
   placementCategorySlug,
   placementBrandSlug,
@@ -43,7 +40,7 @@ export async function ProductListingPage({
   /**
    * The identity slot (docs/05 §4–§5): brand and goal pages are the PLP scoped to one thing,
    * and that thing has a face — a tagline, a logo, sometimes a banner. Slots on the shared
-   * header rather than a parallel header per page, so the h1, count and intro keep one layout
+   * header rather than a parallel header per page, so the h1 and count keep one layout
    * and a scoped page only supplies what it has.
    */
   /** One line of context directly above the h1 — a goal's tagline, rendered as an eyebrow. */
@@ -52,14 +49,13 @@ export async function ProductListingPage({
   media?: ReactNode;
   /** A full-width band above the header — a brand's banner. Height discipline is the caller's. */
   banner?: ReactNode;
-  intro?: LocalizedField;
   /**
    * Folds the h1 into the toolbar row instead of giving it its own header band (owner,
    * 2026-09-01). For the bare `/shop` route ONLY: its title repeats what the nav's active pill
    * already says, and at display scale that cost ~120px on the highest-traffic listing page —
    * measured at 1080p, the first product row started ~700px down. The scoped landings
    * (category, brand, goal) arrive from search where the h1 IS the page's identity, so they
-   * keep the display header and must not pass this. Ignores `eyebrow`/`media`/`intro`.
+   * keep the display header and must not pass this. Ignores `eyebrow`/`media`.
    */
   compact?: boolean;
   /**
@@ -81,13 +77,6 @@ export async function ProductListingPage({
   ]);
 
   const t = await getTranslations();
-  const locale = (await getLocale()) as Locale;
-  const introText = intro ? pickLocale(intro, locale) : '';
-  /*
-   * What separates a standfirst from a body: ~320 chars is three lines in the 40rem track —
-   * category and brand descriptions sit well under it, goal descriptions (150+ words) well over.
-   */
-  const standfirst = introText.length <= 320;
 
   /*
    * `filters` still drives the *query* to the database — the scoped category is a real filter and the
@@ -126,69 +115,29 @@ export async function ProductListingPage({
     <div className="container-wide py-8 lg:py-12">
       {banner && <div className="mb-6 lg:mb-8">{banner}</div>}
 
+      {/*
+        No description here, by decision (owner, 2026-09-11): the standfirst arrangement lasted
+        one day before the owner cut the text outright — the header is the page's name, and the
+        products argue the rest. The copy still lives in the database and still feeds the pages'
+        meta descriptions; only the on-page paragraph went. Recorded as docs/13 §BD.
+      */}
       {!compact && (
-        <header
-          className={cn(
-            'mb-8',
-            /*
-              Title left, intro right — an end-aligned standfirst (owner, 2026-09-11).
-
-              The intro used to sit UNDER the title at max-w-2xl, which left the right half of a
-              1680px header as dead cream: reported from /shop/vitaminat as "the text is two rows
-              and the right space is empty". Filling the void needed no new content — the page
-              already had exactly two things to say, its name and its description, so at `lg` they
-              share the width as an editorial pair: display title on the left, the paragraph as a
-              standfirst on the right, their bottom edges meeting on one line. The right track caps
-              at 40rem so the measure stays readable however wide the header runs, and the grid
-              only exists when there IS an intro — a lander without one keeps the plain stack, as
-              do phones, where the two-column arrangement has no width to live in.
-            */
-            introText && 'lg:grid lg:grid-cols-[minmax(0,1fr)_min(40rem,45%)] lg:gap-x-16',
-            /*
-              End-aligned only while the intro is standfirst-SIZED. Goal descriptions run 150+
-              words by spec (docs/05 §5) — at 40rem that is ~15 lines, and items-end would pin
-              the h1 to the bottom of that column, under ~350px of dead cream on the pages whose
-              own comment calls them the highest-value SEO landers. A long intro top-aligns
-              instead: identity anchored top-left, the body reading down the right, magazine
-              fashion. `min(40rem,45%)`, not a fixed 40rem: at the 1024px floor a fixed track
-              left the title 268px — a quarter of the width for the page's own name.
-            */
-            introText && (standfirst ? 'lg:items-end' : 'lg:items-start'),
-          )}
-        >
-          <div>
-            {eyebrow && <p className="mb-2 eyebrow">{eyebrow}</p>}
-            <div className={cn(media && 'flex items-center gap-4 lg:gap-5')}>
-              {media}
-              <h1 className="font-display text-3xl font-semibold text-forest-900 lg:text-display-md">
-                {title}
-              </h1>
-            </div>
-            {/*
-              Phone-only. From `sm` up the count sits at the right end of the toolbar row below,
-              where it reads as a property of the controls that change it; a phone's toolbar is
-              already full with the sort rail, so there the count keeps its old spot under the h1.
-            */}
-            <p className="mt-2 text-sm text-ink-500 sm:hidden" data-numeric>
-              {t('shop.productCount', { count: result.total })}
-            </p>
+        <header className="mb-8">
+          {eyebrow && <p className="mb-2 eyebrow">{eyebrow}</p>}
+          <div className={cn(media && 'flex items-center gap-4 lg:gap-5')}>
+            {media}
+            <h1 className="font-display text-3xl font-semibold text-forest-900 lg:text-display-md">
+              {title}
+            </h1>
           </div>
-          {introText && (
-            /*
-              Standfirst weight (text-lg, the about page's lead precedent) only at standfirst
-              length — fifteen lines of 18px is a wall, so long intros stay at body size.
-              `whitespace-pre-line` honours the paragraph breaks the seeded goal bodies carry,
-              which a single <p> was collapsing into one unbroken run.
-            */
-            <p
-              className={cn(
-                'mt-4 max-w-2xl whitespace-pre-line text-ink-600 lg:mt-0 lg:max-w-none lg:leading-relaxed',
-                standfirst && 'lg:text-lg',
-              )}
-            >
-              {introText}
-            </p>
-          )}
+          {/*
+            Phone-only. From `sm` up the count sits at the right end of the toolbar row below,
+            where it reads as a property of the controls that change it; a phone's toolbar is
+            already full with the sort rail, so there the count keeps its old spot under the h1.
+          */}
+          <p className="mt-2 text-sm text-ink-500 sm:hidden" data-numeric>
+            {t('shop.productCount', { count: result.total })}
+          </p>
         </header>
       )}
 

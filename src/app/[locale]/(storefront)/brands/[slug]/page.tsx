@@ -114,7 +114,6 @@ export default async function BrandPage({ params, searchParams }: Props) {
             </div>
           ) : undefined
         }
-        intro={brand.description}
         /* Targeting: a placement scoped to this brand's page qualifies here and nowhere else. */
         placementBrandSlug={slug}
       />

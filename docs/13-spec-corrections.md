@@ -5290,3 +5290,13 @@ returning slide in from whichever side it last exited, reversing the push on eve
 `prefers-reduced-motion` keeps the old crossfade exactly (opacity only, §8's stated fallback), and
 the slide stack gained `overflow-hidden`, which is now load-bearing: parked slides sit a full
 width offscreen and would otherwise hand the page a horizontal scrollbar.
+
+## BD. Lander descriptions come off the page
+
+docs/05 §2/§4/§5 put a description under the h1 on category, brand and goal pages, and for one
+day (92e5cce) it ran as an editorial standfirst beside the title. The owner then cut the on-page
+text outright (2026-09-11): the header is the page's name, and the products argue the rest. The
+copy keeps both of its remaining jobs — it still lives on the taxonomy rows, edited in the admin,
+and it still feeds each lander's meta description, which is where a 150-word goal body earns its
+keep anyway. Only the rendering went; the PLP's `intro` slot was removed with it rather than left
+as a prop nothing passes.

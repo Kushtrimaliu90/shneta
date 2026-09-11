@@ -56,8 +56,6 @@ export default async function GoalPage({ params, searchParams }: Props) {
   const filters = { ...parseFilters(await searchParams), goal: [slug] };
   const t = await getTranslations();
   const name = pickLocale(goal.name, locale);
-  const intro = pickLocale(goal.description, locale);
-  const isPlaceholder = intro.includes('[CONTENT');
 
   return (
     <>
@@ -105,7 +103,6 @@ export default async function GoalPage({ params, searchParams }: Props) {
           ) : undefined
         }
         // Suppress the placeholder rather than print "[CONTENT: replace]" at a customer.
-        intro={isPlaceholder ? undefined : goal.description}
       />
 
       {/* docs/08 §7.3 — required on goal pages, which are educational surfaces. */}
