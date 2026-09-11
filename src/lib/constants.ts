@@ -101,11 +101,12 @@ export const ISR_REVALIDATE_SECONDS = 3600;
  * is only a backstop for a change made outside the app, so a day is the right order of magnitude and
  * five minutes was two orders out.
  *
- * Why the catalogue does **not** get this number: an order depletes stock without purging
- * `CACHE_TAGS.products` — checkout calls `revalidatePath('/', 'layout')`, which does not clear a
- * tagged `unstable_cache` entry — so `in_stock` on a listing is only ever as fresh as this timer.
- * One hour is the compromise; a day would advertise sold-out stock. The real fix is purging the
- * affected `product:slug` tags when an order is placed, and then this distinction goes away.
+ * Why the catalogue does **not** get this number: history, mostly. Checkout used to call
+ * `revalidatePath('/', 'layout')`, which never cleared a tagged `unstable_cache` entry, so
+ * `in_stock` on a listing was only as fresh as this timer and one hour was the compromise.
+ * Since 2026-09-11 checkout purges `CACHE_TAGS.products` on every order — the fix this comment
+ * used to ask for — so the hour is now a backstop for stock changed outside an order (a manual
+ * inventory edit that forgets to purge). Lengthening it further is a follow-up, not a given.
  */
 export const STATIC_REVALIDATE_SECONDS = 86_400;
 

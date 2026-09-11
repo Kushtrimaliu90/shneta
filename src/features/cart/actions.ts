@@ -73,9 +73,22 @@ async function countItems(client: SupabaseClient, cartId: string): Promise<numbe
   return ((data ?? []) as { quantity: number }[]).reduce((sum, row) => sum + row.quantity, 0);
 }
 
-/** Cart totals appear in the navbar on every page, so the whole tree is revalidated. */
+/**
+ * What a cart mutation must refresh: the cart page. NOT the whole tree.
+ *
+ * This used to be `revalidatePath('/', 'layout')`, on the theory that the navbar badge shows
+ * cart totals on every page — but docs/13 §M1 moved the badge to a client fetch (`CartBadge` +
+ * `cart-events`) precisely so the shell could stay static, which makes the layout-wide purge
+ * pure cost: every add/increment/remove marked all ~174 static routes stale, and each next
+ * visit re-rendered one — the exact four-meters-one-event bill (Fluid CPU, origin transfer,
+ * ISR writes, invocations) the docs/13 §AH incident documents, now triggered per cart click
+ * instead of per crawler. Quick-add multiplied the clicks (owner cost report, 2026-09-11).
+ *
+ * `/cart` renders dynamically per request, so even this call is only a belt for the client
+ * router cache; the catalogue needs nothing — nothing on a static page shows cart state.
+ */
 function revalidateCart(): void {
-  revalidatePath('/', 'layout');
+  revalidatePath('/cart');
 }
 
 export async function addToCart(formData: FormData): Promise<CartResult> {

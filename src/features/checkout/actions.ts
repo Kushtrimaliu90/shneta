@@ -2,7 +2,7 @@
 
 import { cookies, headers } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { revalidatePath } from 'next/cache';
+import { revalidateTag } from 'next/cache';
 import { getLocale } from 'next-intl/server';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
@@ -11,6 +11,7 @@ import { limitByIp } from '@/lib/rate-limit';
 import { logger, describeError } from '@/lib/logger';
 import { fail, fromFieldErrors, ok, type ActionResult } from '@/lib/result';
 import {
+  CACHE_TAGS,
   CART_COOKIE_NAME,
   ORDER_ACCESS_COOKIE_NAME,
   ORDER_ACCESS_COOKIE_MAX_AGE_SECONDS,
@@ -185,7 +186,16 @@ async function placeOrderImpl(
     return checkoutFail('checkout.errors.generic');
   }
 
-  revalidatePath('/', 'layout');
+  /*
+   * The purge an order actually needs (owner cost report, 2026-09-11). The layout-wide
+   * `revalidatePath('/', 'layout')` this replaces marked every static route stale WITHOUT
+   * clearing the tagged data caches — the exact mismatch the CACHE_TAGS comment in
+   * lib/constants.ts records: pages re-rendered at full ISR cost and still served hour-old
+   * stock. Purging the products tag is the fix that comment names as the real one — the data
+   * cache empties, dependent pages regenerate with fresh stock on their next visit, and the
+   * bill scales with orders (rare) rather than with every page in the site.
+   */
+  revalidateTag(CACHE_TAGS.products);
   // Outside the try: redirect() signals by throwing and must not be caught.
   redirect(localizePath(redirectTo, await getLocale()));
 }
