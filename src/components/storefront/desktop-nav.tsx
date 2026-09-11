@@ -8,6 +8,7 @@ import { Link, usePathname } from '@/i18n/routing';
 import { pickLocale } from '@/lib/i18n';
 import { storageUrl } from '@/lib/storage';
 import type { Locale } from '@/lib/constants';
+import { buttonVariants } from '@/components/ui/button';
 import { isActiveNavPath, type NavLink } from '@/components/storefront/nav-links';
 import type { CategoryTile } from '@/features/catalog/queries';
 import { cn } from '@/lib/utils';
@@ -105,11 +106,13 @@ export function DesktopNav({
  *
  * ── Interactions ──
  *
- * Click toggles (an `aria-expanded` anchor to /shop, so an un-hydrated or no-JS click still
- * navigates); hover opens after ~150ms of intent and a symmetric close delay lets the pointer
- * cross the strip of header between the trigger and the panel's top edge without the panel
- * vanishing mid-journey. Esc closes, returning focus to the trigger only when focus was inside
- * the region; focus leaving the region closes; an outside click closes; a route change closes.
+ * A closed trigger opens on click; an OPEN trigger navigates to /shop (owner, 2026-09-11) —
+ * the earlier toggle read as a malfunction, since a nav item labelled with its destination is
+ * expected to go there once the panel is showing. Hover opens after ~150ms of intent and a
+ * symmetric close delay lets the pointer cross the strip of header between the trigger and the
+ * panel's top edge without the panel vanishing mid-journey. Esc closes, returning focus to the
+ * trigger only when focus was inside the region; focus leaving the region closes; an outside
+ * click closes; a route change closes.
  */
 function ShopMenuItem({
   href,
@@ -226,8 +229,7 @@ function ShopMenuItem({
         operability as a contract (buy-box.tsx, action-form.tsx, commits e3b2309/ab83cc1). A
         button whose only behaviour is a client onClick would make the most-clicked nav item a
         dead pixel until the bundle lands, and permanently without JavaScript. As an anchor, an
-        un-hydrated click falls through to normal navigation to /shop; once hydrated, onClick
-        prevents that and toggles the panel instead — same as before, minus the dead window.
+        un-hydrated click falls through to normal navigation to /shop.
       */}
       <Link
         ref={triggerRef}
@@ -235,9 +237,20 @@ function ShopMenuItem({
         aria-expanded={open}
         aria-controls={panelId}
         onClick={(event) => {
+          /*
+           * First click opens, second click ENTERS (owner, 2026-09-11). This used to toggle,
+           * and the close read as a malfunction: with the panel already open — usually from
+           * hover intent — clicking a nav item labelled with its destination collapsed it,
+           * when everything about it says "this takes me there". So the handler only
+           * intercepts the click that has opening to do: closed → open; open → fall through
+           * to normal navigation, and the route-change effect closes the panel behind it.
+           * Touch gets the classic two-tap disclosure link, keyboard gets Enter-opens /
+           * Enter-again-enters through the same path.
+           */
+          if (open) return;
           event.preventDefault();
           clearTimers();
-          setOpen((previous) => !previous);
+          setOpen(true);
         }}
         aria-current={active ? 'page' : undefined}
         className={cn(ITEM_CLASSES, active || open ? ACTIVE_CLASSES : IDLE_CLASSES)}
@@ -315,17 +328,25 @@ function ShopMenuItem({
                 })}
               </ul>
 
-              {/* The route the trigger used to be: /shop is still one click away with a keyboard. */}
-              <Link
-                href={href}
-                className="group/all mt-4 inline-flex min-h-11 items-center gap-1.5 rounded-md px-2 text-sm font-medium text-forest-700 transition-colors hover:text-forest-800"
-              >
-                {t('home.sections.allProducts')}
-                <ArrowRight
-                  className="size-4 transition-transform group-hover/all:translate-x-0.5"
-                  aria-hidden="true"
-                />
-              </Link>
+              {/*
+                The catch-all, dressed as a button rather than a whisper (owner, 2026-09-11).
+                As a quiet forest-700 text link under four columns of imagery it was reported
+                near-invisible — the discs pull every eye and a lone text row loses. A hairline
+                above gives it its own band, and the secondary button treatment gives it the
+                weight of an action without competing with the promo card's tinted ground.
+              */}
+              <div className="mt-5 border-t border-line pt-4">
+                <Link
+                  href={href}
+                  className={cn(buttonVariants({ variant: 'secondary', size: 'sm' }), 'group/all')}
+                >
+                  {t('home.sections.allProducts')}
+                  <ArrowRight
+                    className="size-4 transition-transform group-hover/all:translate-x-0.5"
+                    aria-hidden="true"
+                  />
+                </Link>
+              </div>
             </div>
 
             {/*
