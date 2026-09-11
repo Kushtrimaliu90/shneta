@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import Image from 'next/image';
 import { useLocale, useTranslations } from 'next-intl';
 import { pickLocale } from '@/lib/i18n';
 import { storageUrl } from '@/lib/storage';
@@ -9,6 +8,7 @@ import type { Locale } from '@/lib/constants';
 import type { Placement } from '@/features/placements/queries';
 import { recordAdClick, recordAdImpression } from '@/features/placements/actions';
 import { Carousel } from '@/components/shared/carousel';
+import { ArtDirectedImage } from '@/components/shared/art-directed-image';
 
 /**
  * The sponsored placement slot on the listing pages.
@@ -119,7 +119,6 @@ function PlacementSlide({
   const desktop = resolve(placement.imageDesktopPath);
   const mobile = resolve(placement.imageMobilePath) ?? desktop;
   const desktopAlt = pickLocale(placement.imageDesktopAlt, locale);
-  const mobileAlt = pickLocale(placement.imageMobileAlt, locale) || desktopAlt;
 
   const headline = pickLocale(placement.headline, locale);
   const subhead = pickLocale(placement.subhead, locale);
@@ -176,29 +175,25 @@ function PlacementSlide({
         creative fills whatever the box resolves to — see IMAGE-SPECS.md for the master to supply.
       */}
       <div className="relative aspect-[2/1] w-full sm:aspect-[4/1] lg:aspect-[5/1] lg:max-h-[12.5rem]">
-        <Image
-          src={mobile ?? desktop}
-          alt={mobileAlt}
-          fill
-          sizes="100vw"
-          priority={priority}
-          loading={priority ? undefined : 'lazy'}
-          className="object-cover sm:hidden"
-        />
-        <Image
-          src={desktop}
+        {/*
+          One download, not two (owner cost report, 2026-09-11): the stacked pair this replaces
+          fetched BOTH creatives on every PLP view — the phone downloaded the desktop crop and
+          the desktop a full-width mobile crop, preloaded when priority. The <picture> fetches
+          only the crop this viewport renders; see ArtDirectedImage.
+
+          Desktop sizes stays 1600, not 1200: the slot renders 1366px wide at 1440 and 1582 at
+          1920 and above — the container caps at 1680 — and the old 1200 value had Next upscaling
+          across a 1582px box. A soft banner is a poor advertisement for the advertiser and us.
+        */}
+        <ArtDirectedImage
+          mobileSrc={mobile ?? desktop}
+          desktopSrc={desktop}
           alt={desktopAlt}
-          fill
-          /*
-            1600, not 1200. The slot renders 1366px wide at 1440 and 1582 at 1920 and above — the
-            container caps at 1680 — so the old value had Next upscaling a 1200px file across a 1582px
-            box, and on a 2x display across 3164 device pixels. A soft banner is a poor advertisement
-            for the advertiser and for us.
-          */
-          sizes="(min-width: 1280px) 1600px, 100vw"
+          media="(min-width: 640px)"
+          mobileSizes="100vw"
+          desktopSizes="(min-width: 1280px) 1600px, 100vw"
           priority={priority}
-          loading={priority ? undefined : 'lazy'}
-          className="hidden object-cover sm:block"
+          className="absolute inset-0 size-full object-cover"
         />
 
         {/*

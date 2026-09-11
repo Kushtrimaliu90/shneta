@@ -135,7 +135,13 @@ export const signIn: FormAction = keepSubmitted(async (_prevState, formData) => 
   // failure-tolerant: it never blocks the sign-in it is attached to.
   await mergeGuestCart();
 
-  revalidatePath('/', 'layout');
+  /*
+   * Only the cart, not the tree (owner cost report, 2026-09-11): the merge above is the one
+   * thing this sign-in changed that a page could show, and /cart renders per request anyway.
+   * The old layout-wide purge marked all ~174 static routes stale per sign-in for a shell
+   * that renders no signed-in state — the docs/13 §AH bill with an auth trigger.
+   */
+  revalidatePath('/cart');
   // Outside any try/catch: redirect() signals by throwing, and catching it would swallow
   // the navigation and render a blank success state instead.
   return localizedRedirect(safeNextPath(parsed.data.next));
@@ -335,8 +341,11 @@ export const resetPassword: FormAction = keepSubmitted(async (_prevState, formDa
     return authFail('auth.errors.generic');
   }
 
-  revalidatePath('/', 'layout');
   /*
+   * No cache purge: nothing static renders auth state (the shell reads nothing
+   * request-scoped by design), and /account is dynamic. The redirect below is what
+   * refreshes the acting user's own view.
+   *
    * `/account?password=updated` unless the link said otherwise — an invited seller is sent to
    * `/merchant`, where the thing they were invited to actually is.
    */
@@ -350,7 +359,7 @@ export const resetPassword: FormAction = keepSubmitted(async (_prevState, formDa
 export async function signOut(): Promise<void> {
   const supabase = await createClient();
   await supabase.auth.signOut();
-  revalidatePath('/', 'layout');
+  // No purge — see resetPassword above; the redirect refreshes this user's own view.
   return localizedRedirect('/');
 }
 

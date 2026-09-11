@@ -52,7 +52,13 @@ export function parseFilters(params: RawSearchParams): ProductFilters {
     inStock: asFlag(params.inStock),
     onSale: asFlag(params.onSale),
     sort: isProductSort(sortRaw) ? sortRaw : undefined,
-    page: asPositiveInt(params.page) || 1,
+    /*
+     * Clamped (owner cost report, 2026-09-11): the page number is part of the data-cache key,
+     * so an uncapped value lets a bot mint one billed cache entry per invented ?page=N. Fifty
+     * pages of 24 covers a catalogue an order of magnitude larger than this one; a shopper
+     * paging past real results sees the same empty state at 50 as at 5000.
+     */
+    page: Math.min(asPositiveInt(params.page) || 1, 50),
   };
 }
 

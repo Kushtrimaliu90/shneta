@@ -6,6 +6,7 @@ import { buttonVariants } from '@/components/ui/button';
 import { storageUrl } from '@/lib/storage';
 import type { HeroSlide } from '@/features/hero/types';
 import { cn } from '@/lib/utils';
+import { ArtDirectedImage } from '@/components/shared/art-directed-image';
 
 /**
  * One hero slide.
@@ -86,7 +87,6 @@ export function HeroSlideView({
   // Falls back to the desktop crop, which is why the second slot can stay empty.
   const mobileSrc = resolveImage(slide.imageMobilePath) ?? desktopSrc;
   const desktopAlt = pickLocale(slide.imageDesktopAlt, locale);
-  const mobileAlt = pickLocale(slide.imageMobileAlt, locale) || desktopAlt;
 
   const Headline = isHeading ? 'h1' : 'p';
 
@@ -229,27 +229,24 @@ export function HeroSlideView({
               resolved a frame later than the box that contains it.
             */}
             {mobileSrc && mobileSrc !== desktopSrc ? (
-              <>
-                <Image
-                  src={mobileSrc}
-                  alt={mobileAlt}
-                  fill
-                  sizes="100vw"
-                  priority={priority}
-                  /* Slides 2+ sit behind the active one, so they wait. */
-                  loading={priority ? undefined : 'lazy'}
-                  className="object-cover lg:hidden"
-                />
-                <Image
-                  src={desktopSrc}
-                  alt={desktopAlt}
-                  fill
-                  sizes="50vw"
-                  priority={priority}
-                  loading={priority ? undefined : 'lazy'}
-                  className="hidden object-cover lg:block"
-                />
-              </>
+              /*
+                One download, not two (owner cost report, 2026-09-11). The stacked pair this
+                replaces preloaded BOTH crops on every homepage view — CSS hides pixels, not
+                requests — so each visitor paid for a full-size creative they never saw. The
+                <picture> fetches only the matching crop and the media-scoped preloads keep the
+                LCP behaviour for slide 1; see ArtDirectedImage. One fill subscriber in the box,
+                so the CLS 0.0002 note above stays satisfied.
+              */
+              <ArtDirectedImage
+                mobileSrc={mobileSrc}
+                desktopSrc={desktopSrc}
+                alt={desktopAlt}
+                media="(min-width: 1024px)"
+                mobileSizes="100vw"
+                desktopSizes="50vw"
+                priority={priority}
+                className="absolute inset-0 size-full object-cover"
+              />
             ) : (
               /*
                * One file for both breakpoints, `cover` at each. The desktop panel is now a

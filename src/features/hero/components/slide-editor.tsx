@@ -133,7 +133,16 @@ export function SlideEditor({
       );
       const { error } = await supabase.storage
         .from('content')
-        .uploadToSignedUrl(signed.data.path, signed.data.token, file);
+        .uploadToSignedUrl(signed.data.path, signed.data.token, file, {
+          /*
+           * The docs/13 §AH incident's third leg (owner cost report, 2026-09-11): without this,
+           * Supabase serves the object as no-cache and Vercel's optimizer revalidates against it
+           * on every fetch — the exact storm next.config.ts documents. Safe at a year because the
+           * path carries a fresh uuid/timestamp per upload; a replaced creative gets a new URL.
+           */
+          cacheControl: '31536000',
+          contentType: file.type,
+        });
 
       if (error) {
         setUploadError(error.message);

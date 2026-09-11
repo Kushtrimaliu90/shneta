@@ -28,7 +28,13 @@ if (dsn) {
       dsn,
       enabled: true,
       environment: process.env.NEXT_PUBLIC_VERCEL_ENV ?? process.env.NODE_ENV,
-      tracesSampleRate: 0.1,
+      /*
+       * 0.01 pre-launch (owner cost report, 2026-09-11): every trace posts through the
+       * /monitoring tunnel, i.e. a billed function invocation per sampled pageload and soft
+       * navigation. Errors stay unsampled — that is the observability that matters before
+       * launch. Revisit the rate when real traffic needs performance data.
+       */
+      tracesSampleRate: 0.01,
       sendDefaultPii: false,
       beforeSend(event) {
         if (event.user) event.user = { id: event.user.id };

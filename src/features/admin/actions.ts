@@ -20,8 +20,12 @@ export async function adminSignOut(): Promise<void> {
   const supabase = await createClient();
   await supabase.auth.signOut();
 
-  // The storefront layout renders the signed-in state too, so its cache has to go as well.
-  revalidatePath('/', 'layout');
+  /*
+   * No cache purge (owner cost report, 2026-09-11). The old comment here claimed the
+   * storefront layout renders signed-in state; it does not — docs/13 §M1 moved every
+   * per-user pixel to client fetches precisely so the shell could stay static, so the
+   * layout-wide purge invalidated ~174 routes per admin sign-out for nothing.
+   */
   redirect('/en/auth/sign-in');
 }
 

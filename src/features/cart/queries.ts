@@ -198,10 +198,28 @@ export const getCart = cache(async (): Promise<Cart | null> => {
   };
 });
 
-/** Just the badge number, so the navbar does not pay for the whole cart. */
+/**
+ * Just the badge number, so the navbar does not pay for the whole cart — now actually true
+ * (owner cost report, 2026-09-11). This used to call getCart(), which meant every page view of
+ * every visitor with a cart paid the full chain: the images join, the variant_buy_box RPC and
+ * the shipping-threshold read, to display one integer. The badge needs the same pruning rules
+ * (active variant, published product) and nothing else; sold-out lines still count — they sit
+ * in the cart until the customer removes them, and a badge that disagrees with the cart page's
+ * line count reads as a lost item.
+ */
 export const getCartItemCount = cache(async (): Promise<number> => {
-  const cart = await getCart();
-  return cart?.itemCount ?? 0;
+  const found = await findActiveCart();
+  if (!found) return 0;
+
+  const { data } = await found.client
+    .from('cart_items')
+    .select('quantity, product_variants!inner ( is_active, products!inner ( status, deleted_at ) )')
+    .eq('cart_id', found.row.id)
+    .eq('product_variants.is_active', true)
+    .eq('product_variants.products.status', 'published')
+    .is('product_variants.products.deleted_at', null);
+
+  return ((data ?? []) as { quantity: number }[]).reduce((sum, row) => sum + row.quantity, 0);
 });
 
 /**
