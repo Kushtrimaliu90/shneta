@@ -3,7 +3,7 @@ import { X } from 'lucide-react';
 import { Link } from '@/i18n/routing';
 import { pickLocale, type LocalizedField } from '@/lib/i18n';
 import type { Locale } from '@/lib/constants';
-import { buildQuery, unscopeCategory, SHOP_PATH } from '@/features/catalog/filters';
+import { buildQuery, filteredHref, unscopeCategory, SHOP_PATH } from '@/features/catalog/filters';
 import type { CategoryNode, ProductFilters } from '@/features/catalog/types';
 
 /**
@@ -68,7 +68,7 @@ export async function ActiveFilters({
    */
   const queryFilters = unscopeCategory(filters, scopedCategory);
   const remove = (change: Parameters<typeof buildQuery>[1]) =>
-    `${basePath}${buildQuery(queryFilters, change)}`;
+    filteredHref(basePath, buildQuery(queryFilters, change));
 
   for (const slug of filters.category ?? []) {
     chips.push({
@@ -77,7 +77,7 @@ export async function ActiveFilters({
       href:
         slug === scopedCategory
           ? // Off the category page entirely, keeping every other filter the visitor chose.
-            `${SHOP_PATH}${buildQuery(queryFilters, {})}`
+            filteredHref(SHOP_PATH, buildQuery(queryFilters, {}))
           : remove({ toggle: { key: 'category', value: slug } }),
     });
   }

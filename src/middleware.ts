@@ -40,8 +40,48 @@ function redirectPreservingCookies(request: NextRequest, source: NextResponse, t
   return redirect;
 }
 
+/**
+ * The landers' filter keys (owner cost report, 2026-09-18). A prerendered lander cannot read
+ * searchParams, so its filtered views moved to a dynamic `/f` sibling — and every URL from the
+ * query era (bookmarks, shared links, the odd stale index entry) still carries its filters on
+ * the base path. Left alone, such a URL would silently render the UNFILTERED page under a
+ * filtered address; this redirect carries it to the sibling instead. 308 so the method
+ * survives, matching the /finder precedent in next.config.ts.
+ */
+const LANDER_FILTER_KEYS = new Set([
+  'q',
+  'sort',
+  'page',
+  'category',
+  'brand',
+  'goal',
+  'ingredient',
+  'tag',
+  'minPrice',
+  'maxPrice',
+  'rating',
+  'inStock',
+  'onSale',
+  'type',
+]);
+
+/** Exactly the five prerendered lander shapes — one optional segment, never the /f sibling. */
+const LANDER_PATTERN = /^\/(?:shop(?:\/[^/]+)?|brands\/[^/]+|goals\/[^/]+|knowledge)$/;
+
+function landerFilterTarget(request: NextRequest): URL | null {
+  const stripped = stripLocale(request.nextUrl.pathname);
+  if (!LANDER_PATTERN.test(stripped)) return null;
+  const keys = [...request.nextUrl.searchParams.keys()];
+  if (!keys.some((key) => LANDER_FILTER_KEYS.has(key))) return null;
+  const to = request.nextUrl.clone();
+  to.pathname = `${request.nextUrl.pathname}/f`;
+  return to;
+}
 export async function middleware(request: NextRequest): Promise<NextResponse> {
   const { pathname } = request.nextUrl;
+  // Legacy filtered URLs on the prerendered landers — see landerFilterTarget above.
+  const landerTarget = landerFilterTarget(request);
+  if (landerTarget) return NextResponse.redirect(landerTarget, 308);
 
   /*
    * Before anything else, and before the session refresh: the target goes through this middleware

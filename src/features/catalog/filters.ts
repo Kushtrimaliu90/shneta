@@ -99,6 +99,18 @@ export function unscopeCategory(
  * pagination link, so toggling a filter always resets to page 1 — landing on page 4 of a
  * three-page result is the classic filter bug.
  */
+/**
+ * Where a filtered view of a lander lives: the dynamic `/f` sibling (owner cost report,
+ * 2026-09-18). The lander itself is prerendered — docs/02 §5's static tier — which it can only
+ * be if it never reads searchParams; so every link that CARRIES a query targets `basePath/f`,
+ * the always-dynamic sibling that does the reading, and a link whose query has emptied (last
+ * chip removed, sort back to relevance) returns to the bare prerendered lander. One helper so
+ * the sort rail, pagination, facet panel and chips cannot disagree about the shape.
+ */
+export function filteredHref(basePath: string, query: string): string {
+  return query ? `${basePath}/f${query}` : basePath;
+}
+
 export function buildQuery(
   current: ProductFilters,
   change: Partial<ProductFilters> & {

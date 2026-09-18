@@ -4,6 +4,7 @@ import { pickLocale, type LocalizedField } from '@/lib/i18n';
 import type { Locale } from '@/lib/constants';
 import {
   buildQuery,
+  filteredHref,
   unscopeCategory,
   DIETARY_TAGS,
   hasActiveFilters,
@@ -70,7 +71,7 @@ export async function FilterPanel({
    */
   const queryFilters = unscopeCategory(filters, scopedCategory);
   const href = (change: Parameters<typeof buildQuery>[1]) =>
-    `${basePath}${buildQuery(queryFilters, change)}`;
+    filteredHref(basePath, buildQuery(queryFilters, change));
 
   /*
    * How many options a long group shows before the rest go behind a disclosure.

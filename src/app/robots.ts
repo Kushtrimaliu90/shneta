@@ -40,6 +40,18 @@ export default function robots(): MetadataRoute.Robots {
           '/en/account',
           '/en/checkout',
           '/en/cart',
+          // The landers' dynamic /f siblings (owner cost report, 2026-09-18): every URL under
+          // them is a filtered working view whose canonical is the prerendered lander.
+          '/shop/f',
+          '/shop/*/f',
+          '/brands/*/f',
+          '/goals/*/f',
+          '/knowledge/f',
+          '/en/shop/f',
+          '/en/shop/*/f',
+          '/en/brands/*/f',
+          '/en/goals/*/f',
+          '/en/knowledge/f',
           // Not indexed per docs/08 §4: query-driven, per-user result surfaces.
           '/search',
           '/compare',

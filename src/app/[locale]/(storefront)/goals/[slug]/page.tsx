@@ -1,20 +1,18 @@
-import Image from 'next/image';
-import { getTranslations, setRequestLocale } from 'next-intl/server';
-import { notFound } from 'next/navigation';
+import { setRequestLocale } from 'next-intl/server';
 import type { Metadata } from 'next';
-import { Link } from '@/i18n/routing';
 import { resolveLocale } from '@/i18n/locale';
 import { pickLocale } from '@/lib/i18n';
-import { storageUrl } from '@/lib/storage';
-import { ProductListingPage } from '@/features/catalog/components/plp';
-import { parseFilters, type RawSearchParams } from '@/features/catalog/filters';
+import { parseFilters } from '@/features/catalog/filters';
 import { getGoalBySlug, listGoals } from '@/features/catalog/queries';
+import { GoalLander } from './goal-lander';
 
-type Props = {
-  params: Promise<{ locale: string; slug: string }>;
-  searchParams: Promise<RawSearchParams>;
-};
+type Props = { params: Promise<{ locale: string; slug: string }> };
 
+/** docs/02 §5 — the catalogue tier. */
+// Keep in sync with `ISR_REVALIDATE_SECONDS` — segment config must be a literal.
+export const revalidate = 3600;
+
+/** docs/02 §5 — all goals are prebuilt. */
 export async function generateStaticParams() {
   const goals = await listGoals();
   return goals.map((goal) => ({ slug: goal.slug }));
@@ -38,79 +36,15 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 /**
- * docs/05 §5 — goal detail: hero, the "how to approach {goal}" intro, then recommended
- * products, which is the PLP scoped to that goal.
- *
- * The intro currently renders the `[CONTENT: replace]` marker from the seed. docs/05 §5
- * requires a unique 150+ word intro per goal, and these are the highest-value SEO landing
- * pages in the site — that copy is content work, tracked in docs/14 §3.
+ * The unfiltered goal lander, PREBUILT (owner cost report, 2026-09-18): it reads no
+ * searchParams — the read is what had the site's highest-value SEO landing pages rendering on
+ * a server per view despite the generateStaticParams above. Filtered views live at `./f`;
+ * see `GoalLander`.
  */
-export default async function GoalPage({ params, searchParams }: Props) {
+export default async function GoalPage({ params }: Props) {
   const { locale: rawLocale, slug } = await params;
   const locale = resolveLocale(rawLocale);
   setRequestLocale(locale);
 
-  const goal = await getGoalBySlug(slug);
-  if (!goal) notFound();
-
-  const filters = { ...parseFilters(await searchParams), goal: [slug] };
-  const t = await getTranslations();
-  const name = pickLocale(goal.name, locale);
-
-  return (
-    <>
-      <nav aria-label={t('shop.breadcrumbs')} className="container-wide pt-6">
-        <ol className="flex flex-wrap items-center gap-1.5 text-sm text-ink-500">
-          <li>
-            <Link
-              href="/goals"
-              className="rounded-sm underline underline-offset-4 hover:text-forest-700"
-            >
-              {t('goals.title')}
-            </Link>
-          </li>
-          <li aria-hidden="true">/</li>
-          <li className="text-ink-900" aria-current="page">
-            {name}
-          </li>
-        </ol>
-      </nav>
-
-      <ProductListingPage
-        filters={filters}
-        basePath={`/goals/${slug}`}
-        title={name}
-        /*
-          docs/05 §5 — "hero (name, tagline, image)", through the PLP's header slots. The tagline
-          used to be an orphan section of its own, an eyebrow floating 32–48px above the h1 it
-          belonged to; as the header's eyebrow it sits directly on the title. The image the goals
-          index already renders joins it as compact media — these are the highest-value SEO
-          landing pages and they carried none of their own identity.
-        */
-        eyebrow={pickLocale(goal.tagline, locale) || undefined}
-        media={
-          goal.imagePath ? (
-            <span className="relative block size-14 shrink-0 overflow-hidden rounded-lg ring-1 ring-line/60 lg:size-16">
-              <Image
-                src={storageUrl('brand-assets', goal.imagePath)}
-                /* Decorative: the h1 beside it is the goal's name. */
-                alt=""
-                fill
-                sizes="64px"
-                className="object-cover"
-              />
-            </span>
-          ) : undefined
-        }
-        // Suppress the placeholder rather than print "[CONTENT: replace]" at a customer.
-      />
-
-      {/* docs/08 §7.3 — required on goal pages, which are educational surfaces. */}
-      <div className="container-wide pb-12">
-        <p className="max-w-3xl border-t border-line pt-6 text-xs leading-relaxed text-ink-500">
-          {t('footer.disclaimer')}
-        </p>
-      </div>
-    </>
-  );
+  return <GoalLander slug={slug} locale={locale} filters={parseFilters({})} />;
 }

@@ -7,6 +7,7 @@ import { FilterShell } from '@/features/catalog/components/filter-shell';
 import { ProductGrid } from '@/features/catalog/components/product-grid';
 import {
   buildQuery,
+  filteredHref,
   hasActiveFilters,
   unscopeCategory,
   SHOP_PATH,
@@ -87,8 +88,8 @@ export async function ProductListingPage({
   const queryFilters = unscopeCategory(filters, scopedCategory);
 
   const sortHref = (sort: (typeof SORT_OPTIONS)[number]) =>
-    `${basePath}${buildQuery(queryFilters, { sort })}`;
-  const pageHref = (page: number) => `${basePath}${buildQuery(queryFilters, { page })}`;
+    filteredHref(basePath, buildQuery(queryFilters, { sort }));
+  const pageHref = (page: number) => filteredHref(basePath, buildQuery(queryFilters, { page }));
   const activeSort = filters.sort ?? 'relevance';
 
   /*

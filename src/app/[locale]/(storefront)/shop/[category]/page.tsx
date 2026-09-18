@@ -1,17 +1,16 @@
-import { getTranslations, setRequestLocale } from 'next-intl/server';
-import { notFound } from 'next/navigation';
+import { setRequestLocale } from 'next-intl/server';
 import type { Metadata } from 'next';
-import { Link } from '@/i18n/routing';
 import { resolveLocale } from '@/i18n/locale';
 import { pickLocale } from '@/lib/i18n';
-import { ProductListingPage } from '@/features/catalog/components/plp';
-import { parseFilters, type RawSearchParams } from '@/features/catalog/filters';
+import { parseFilters } from '@/features/catalog/filters';
 import { getCategoryBySlug, getCategoryTree } from '@/features/catalog/queries';
+import { CategoryLander } from './category-lander';
 
-type Props = {
-  params: Promise<{ locale: string; category: string }>;
-  searchParams: Promise<RawSearchParams>;
-};
+type Props = { params: Promise<{ locale: string; category: string }> };
+
+/** docs/02 §5 — the catalogue tier. */
+// Keep in sync with `ISR_REVALIDATE_SECONDS` — segment config must be a literal.
+export const revalidate = 3600;
 
 /** docs/02 §5 — all categories are prebuilt. */
 export async function generateStaticParams() {
@@ -41,53 +40,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 /**
- * docs/05 §2 — a category page is the PLP scoped to one category, plus the localized intro.
- * The category slug is applied as a filter rather than a separate query path, so sorting and
- * the other filters compose with it.
+ * The unfiltered category lander, PREBUILT (owner cost report, 2026-09-18): it reads no
+ * searchParams — the read is what had every category view rendering on a server despite the
+ * generateStaticParams above. Filtered views live at `./f`; see `CategoryLander`.
  */
-export default async function CategoryPage({ params, searchParams }: Props) {
+export default async function CategoryPage({ params }: Props) {
   const { locale: rawLocale, category: slug } = await params;
   const locale = resolveLocale(rawLocale);
   setRequestLocale(locale);
 
-  const category = await getCategoryBySlug(slug);
-  if (!category) notFound();
-
-  const filters = { ...parseFilters(await searchParams), category: [slug] };
-  const t = await getTranslations();
-  const name = pickLocale(category.name, locale);
-
-  return (
-    <>
-      <nav aria-label={t('shop.breadcrumbs')} className="container-wide pt-6">
-        <ol className="flex flex-wrap items-center gap-1.5 text-sm text-ink-500">
-          <li>
-            <Link
-              href="/shop"
-              className="rounded-sm underline underline-offset-4 hover:text-forest-700"
-            >
-              {t('shop.title')}
-            </Link>
-          </li>
-          <li aria-hidden="true">/</li>
-          <li className="text-ink-900" aria-current="page">
-            {name}
-          </li>
-        </ol>
-      </nav>
-
-      <ProductListingPage
-        filters={filters}
-        basePath={`/shop/${slug}`}
-        /*
-         * The category is in the path, not the query. Every link on the page needs to know that:
-         * without it, removing this chip rebuilt the URL it was already on. See `unscopeCategory`.
-         */
-        scopedCategory={slug}
-        title={name}
-        /* Targeting: a placement scoped to this category qualifies here and nowhere else. */
-        placementCategorySlug={slug}
-      />
-    </>
-  );
+  return <CategoryLander slug={slug} locale={locale} filters={parseFilters({})} />;
 }

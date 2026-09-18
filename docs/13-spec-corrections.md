@@ -5300,3 +5300,24 @@ copy keeps both of its remaining jobs — it still lives on the taxonomy rows, e
 and it still feeds each lander's meta description, which is where a 150-word goal body earns its
 keep anyway. Only the rendering went; the PLP's `intro` slot was removed with it rather than left
 as a prop nothing passes.
+
+## BE. The landers split: prerendered base, dynamic `/f` sibling
+
+docs/02 §5 assigns the PLP family and the knowledge hub to the static tier, and every one of
+those routes carried `generateStaticParams` or a `revalidate` export saying so — while an
+unconditional `await searchParams` quietly opted each of them into dynamic rendering, so the
+exports were dead letters and every catalogue view was a billed server render (owner cost
+report, 2026-09-17: ~96% of a $0.92 day was Fluid CPU plus the origin transfer of those
+renders, against a $0.03 baseline earlier in the month).
+
+The split (2026-09-18): `/shop`, `/shop/[category]`, `/brands/[slug]`, `/goals/[slug]` and
+`/knowledge` no longer read searchParams and are genuinely prerendered; their filtered, sorted
+and paginated views live at a dynamic `/f` sibling that reads the query and renders the same
+shared body (`filteredHref` in catalog/filters.ts is the one place the URL shape is decided, so
+the sort rail, facet panel, chips and pagination cannot disagree). A link whose query empties
+returns to the bare lander. Legacy query URLs on the base paths 308 to the sibling via the
+middleware — without that, a bookmarked `?sort=` URL would silently render the unfiltered page
+under a filtered address. The `/f` URLs are noindex with the lander as canonical and are
+disallowed in robots.txt; the base pages' canonicals and metadata are unchanged, so the SEO
+surface the landers carry is untouched. Customer-visible change: none — identical markup, and
+the dominant unfiltered views now come from the CDN.

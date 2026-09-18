@@ -72,15 +72,17 @@ export const listPlacements = cache(
       {
         tags: [CACHE_TAGS.placements],
         /*
-         * Five minutes, not one.
-         *
-         * The reasoning for a minute stands — an advertiser paying by the day is owed a prompt start —
-         * but a minute also meant the shop pages rebuilt 1,440 times a day whether or not any campaign
-         * was scheduled to change, and the admin actions purge `CACHE_TAGS.placements` when a campaign
-         * is approved, paused or ended. So the timer governs only a start or stop that nobody
-         * triggered by hand, and five minutes is inside what "went live at 09:00" tolerates.
+         * One hour, not five minutes (owner cost report, 2026-09-18). Five minutes repeated the
+         * docs/13 §AH mistake at one remove: a route's ISR life is the SHORTEST cache used while
+         * rendering it, and this slot renders on every PLP lander — so the newly prerendered
+         * /shop, category, brand and goal pages were all dragged from their 3600s tier down to
+         * 300s, twelve scheduled rebuilds an hour across ~100 routes for a slot that changes by
+         * admin action. Those actions purge `CACHE_TAGS.placements` the moment a campaign is
+         * approved, paused or ended, so the timer only covers a scheduled start or stop nobody
+         * touched by hand — and "went live within the hour" is what a daily-billed campaign's
+         * 09:00 start actually needs; the admin can always purge by saving the campaign.
          */
-        revalidate: 300,
+        revalidate: 3600,
       },
     )();
   },
