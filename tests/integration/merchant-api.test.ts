@@ -57,6 +57,9 @@ async function createMerchant(name: string, status = 'approved'): Promise<Mercha
       contact_name: 'Owner',
       contact_email: owner.email,
       contact_phone: '+383 44 000 000',
+      // `merchants_bank_details_for_transfer` (migration 2026-08-08): the default settlement
+      // method is a bank transfer, which needs both fields; the fixture predates the rule.
+      bank_name: 'Banka Demo',
       address: { city: 'Prishtinë', country_code: 'XK' },
       status,
       commission_pct: 15,
@@ -401,6 +404,10 @@ describe('the key rows themselves', () => {
         contact_name: 'Owner',
         contact_email: pendingOwner.email,
         contact_phone: '+383 44 000 000',
+        // `merchants_bank_details_for_transfer` (migration 2026-08-08): the default settlement
+        // method is a bank transfer, which needs both fields; the fixture predates the rule.
+        iban: 'XK051000000000000000',
+        bank_name: 'Banka Demo',
         address: { city: 'Prishtinë', country_code: 'XK' },
         status: 'pending',
       })
