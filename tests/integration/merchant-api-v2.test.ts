@@ -37,6 +37,7 @@ let product: ProductFixture;
 let alpha: Merchant;
 let beta: Merchant;
 let readOnlyToken: string;
+let readOnlyKeyId: string;
 let staff: TestUser;
 let admin: TestUser;
 const users: string[] = [];
@@ -169,7 +170,9 @@ beforeAll(async () => {
   product = await createProduct({ stock: 0 });
   alpha = await createMerchant('Alpha2');
   beta = await createMerchant('Beta2');
-  readOnlyToken = (await mintKey(alpha.id, alpha.owner.id, ['offers:read', 'orders:read'])).token;
+  const readOnly = await mintKey(alpha.id, alpha.owner.id, ['offers:read', 'orders:read']);
+  readOnlyToken = readOnly.token;
+  readOnlyKeyId = readOnly.keyId;
   staff = await createUser('support');
   admin = await createUser('admin');
   users.push(staff.id, admin.id);
@@ -217,10 +220,12 @@ describe('scopes', () => {
   });
 
   it('scopes are frozen after creation and refused when unknown', async () => {
+    // The read-only key, not alpha's full one: widening a key that already holds every scope is
+    // no change at all, and the guard rightly says nothing about a statement that moves nothing.
     const { error: widen } = await alpha.owner.client
       .from('merchant_api_keys')
       .update({ scopes: [...API_SCOPES] })
-      .eq('id', alpha.keyId);
+      .eq('id', readOnlyKeyId);
     expect(widen?.message).toContain('API_KEY_FIELD_FORBIDDEN');
 
     const token = generateApiKey();

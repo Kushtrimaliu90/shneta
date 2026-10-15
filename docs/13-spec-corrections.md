@@ -5378,3 +5378,32 @@ rather than given a sibling, since it had never run anywhere.
 Two mistakes caught on the way: a `text || enum` concatenation in a trigger that Postgres resolves but
 reads as an accident, cast explicitly; and the admin being exempt from the webhook guard, which meant
 the re-enable housekeeping the guard does for a merchant had to be done by hand in the admin action.
+
+## BH. CI had not run the integration suite since September, and four things were in the way
+
+Opening the merchant API's pull request was the first time anyone looked at the Integration job's
+log in a month. It had been red on `main` since 0c1af4e, and each layer of the failure hid the next:
+
+1. **Seed 10's `DO` block was delimited with a lone `$`**, which Postgres cannot parse, so
+   `supabase db reset` died before any test ran. `check-sql` only scans `$…$` pairs and saw a
+   balanced file. Fixed with two characters.
+2. **The example keys no longer worked.** CLI 2.110 issues `sb_publishable_…` / `sb_secret_…`, and
+   with either those or the legacy demo JWTs copied in blind, PostgREST ran the suite's service client
+   as a role that could read nothing. `scripts/ci-supabase-env.ts` now probes every candidate against
+   a staff-only table after the reset and keeps the pair that answers with rows, printing each probe.
+3. **No table had any grants at all.** The probe's `42501` even for `service_role` said why: Supabase's
+   default privileges are declared _for role postgres_, the hosted project migrates as postgres, and CI
+   on CLI 2.110 does not. Migration `20260731000000_default_privileges.sql`, sorted before every other,
+   declares the same defaults for whichever role runs the migrations — a no-op on the hosted project.
+4. **Every merchant fixture predated `merchants_bank_details_for_transfer`** (2026-08-08) and set at
+   most the IBAN, so 144 inserts failed the moment the suite finally ran. Each fixture now carries both
+   fields, including the two new merchant-api suites that had copied the shape.
+
+Result on the branch: 19 of 24 files green, 499 of 519 tests, both merchant-api suites among them.
+Still red and **not** touched here, because none of it is the API's: the BioHack suite finds no
+approved protocol config in the CI seed; the merchant-emails suite imports `env.server` and CI has
+no `RESEND_API_KEY`; one purge-guard assertion; three referral-cron cases. Separately, the Dependency
+audit job fails on two critical `next` 15.5.22 advisories (fixed in 15.5.24), which is the owner's
+call.
+
+The lesson is the one docs/14 keeps re-learning: a green badge nobody has read is a red badge.
