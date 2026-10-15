@@ -38,17 +38,24 @@ const status = parseEnv(execSync('supabase status -o env', { encoding: 'utf8' })
 const example = parseEnv(readFileSync('.env.example', 'utf8'));
 console.log('supabase status keys:', Object.keys(status).join(', '));
 
-const serviceCandidates = [
-  ['status SECRET_KEY', status.SECRET_KEY],
-  ['status SERVICE_ROLE_KEY', status.SERVICE_ROLE_KEY],
-  ['example SUPABASE_SERVICE_ROLE_KEY', example.SUPABASE_SERVICE_ROLE_KEY],
-].filter(([, key]) => key);
+type Candidate = [label: string, key: string];
+const present = (entry: [string, string | undefined]): entry is Candidate => Boolean(entry[1]);
 
-const anonCandidates = [
-  ['status PUBLISHABLE_KEY', status.PUBLISHABLE_KEY],
-  ['status ANON_KEY', status.ANON_KEY],
-  ['example NEXT_PUBLIC_SUPABASE_ANON_KEY', example.NEXT_PUBLIC_SUPABASE_ANON_KEY],
-].filter(([, key]) => key);
+const serviceCandidates: Candidate[] = (
+  [
+    ['status SECRET_KEY', status.SECRET_KEY],
+    ['status SERVICE_ROLE_KEY', status.SERVICE_ROLE_KEY],
+    ['example SUPABASE_SERVICE_ROLE_KEY', example.SUPABASE_SERVICE_ROLE_KEY],
+  ] as [string, string | undefined][]
+).filter(present);
+
+const anonCandidates: Candidate[] = (
+  [
+    ['status PUBLISHABLE_KEY', status.PUBLISHABLE_KEY],
+    ['status ANON_KEY', status.ANON_KEY],
+    ['example NEXT_PUBLIC_SUPABASE_ANON_KEY', example.NEXT_PUBLIC_SUPABASE_ANON_KEY],
+  ] as [string, string | undefined][]
+).filter(present);
 
 async function probe(key: string, path: string): Promise<{ status: number; body: string }> {
   try {
