@@ -84,33 +84,14 @@ jobs:
         if: ${{ hashFiles('supabase/config.toml') != '' }}
         run: supabase start
 
-      - name: Use the keys the local stack actually issued
-        # CLI 2.110 starts the local stack with the new `sb_publishable_…` / `sb_secret_…` keys and
-        # no longer honours the legacy JWT demo keys .env.example carries. With the example keys every
-        # query answered 401, every fixture helper saw `null`, and all 24 integration files failed in
-        # `beforeAll` with "No default warehouse — did the seed run?" (it had). So the keys are read
-        # back from the running stack, whichever format it prints, and written over the example's.
+      - name: Use the keys the local stack actually honours
+        # CLI 2.110 issues the new `sb_publishable_…` / `sb_secret_…` keys, and with either those or
+        # the legacy demo keys from .env.example copied in blind, PostgREST ran the integration suite's
+        # service client as the anonymous role (every fixture failed in beforeAll). The script probes
+        # each candidate against PostgREST, keeps the pair that reaches the database with the right
+        # role, and prints every probe so a regression reads as a table.
         if: ${{ hashFiles('supabase/config.toml') != '' }}
-        run: |
-          supabase status -o env > /tmp/supabase-status.env
-          node -e '
-            const fs = require("fs");
-            const kv = Object.fromEntries(
-              fs.readFileSync("/tmp/supabase-status.env", "utf8").split("\n").filter(Boolean).map((line) => {
-                const i = line.indexOf("=");
-                return [line.slice(0, i).trim(), line.slice(i + 1).trim().replace(/^"|"$/g, "")];
-              }),
-            );
-            const anon = kv.PUBLISHABLE_KEY || kv.ANON_KEY;
-            const secret = kv.SECRET_KEY || kv.SERVICE_ROLE_KEY;
-            if (!anon || !secret) { console.error("status keys:", Object.keys(kv).join(", ")); process.exit(1); }
-            let env = fs.readFileSync(".env.local", "utf8");
-            env = env
-              .replace(/^NEXT_PUBLIC_SUPABASE_ANON_KEY=.*$/m, "NEXT_PUBLIC_SUPABASE_ANON_KEY=" + anon)
-              .replace(/^SUPABASE_SERVICE_ROLE_KEY=.*$/m, "SUPABASE_SERVICE_ROLE_KEY=" + secret);
-            fs.writeFileSync(".env.local", env);
-            console.log("anon:", anon.slice(0, 15) + "…", "service:", secret.slice(0, 10) + "…");
-          '
+        run: pnpm exec tsx scripts/ci-supabase-env.ts
 
       - name: Apply migrations and seed
         if: ${{ hashFiles('supabase/config.toml') != '' }}
