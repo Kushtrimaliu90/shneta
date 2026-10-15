@@ -5321,3 +5321,60 @@ under a filtered address. The `/f` URLs are noindex with the lander as canonical
 disallowed in robots.txt; the base pages' canonicals and metadata are unchanged, so the SEO
 surface the landers carry is untouched. Customer-visible change: none — identical markup, and
 the dominant unfiltered views now come from the CDN.
+
+## BF. The merchant API: a second door, not a second implementation
+
+The owner asked (2026-10-15) for an API a third-party merchant can use to add products and update
+stock and prices from its own system. The portal already did all of it — the bulk paste, the
+catalogue export, the proposal batches — so the API is six route handlers under `/api/v1/merchant`
+that call the same stored procedures, and the design question was only **who the call runs as**.
+
+Three options were weighed and recorded in docs/18 §1. The service role was rejected because it
+bypasses every trigger that makes "a merchant cannot approve its own offer" true and docs/16 §5 bans
+it from the merchant lane; minting a JWT for the key's creator was rejected because it binds the key
+to a person and needs the signing secret in the app. What shipped: `merchant_api_exec` verifies a
+SHA-256-hashed bearer key, writes the merchant id into a transaction-local setting, and
+`current_merchant_ids()` unions that in beside the membership lookup — so RLS, the write guards, the
+price-change demotion and the batch caps all see an API call as the merchant and nothing more. The
+route holds the anon client with no session; the credential is inside the argument.
+
+Two things worth keeping from the build. **`current_merchant_ids()` is restated**, which per the
+§X3 lesson means reading every migration that ever touched it — there was one (25), and the status
+filter it carried is preserved so suspension still applies to both routes at once. And the key
+guard allows `last_used_at` to change for anyone, because the entry point bumps it while running as
+the merchant; freezing it would have blocked the entry point itself, and a merchant forging its own
+last-used timestamp gains nothing.
+
+Not done, and said in docs/18 §7: photographs on proposals (portal only), webhooks, order and
+fulfilment endpoints, per-key scopes, a sandbox tier, an admin screen for keys.
+
+## BG. The merchant API grows to everything the portal can do
+
+The owner (2026-10-15) asked that nothing be missing from the API before it goes live. Five pieces
+followed, all on the same identity model as §BF — the key becomes the merchant for one transaction,
+and the database's own guards do the rest — and the single unapplied migration was extended in place
+rather than given a sibling, since it had never run anywhere.
+
+- **Per-key scopes.** Nine `area:verb` scopes, fixed at creation and frozen by the key guard;
+  `merchant_api_scope_for` maps every action to one, and the entry point refuses a key without it as
+  `403 insufficient_scope`, naming the scope. Order handling is off by default on the portal form
+  because it is the one scope that reaches a customer's address.
+- **Photographs on proposals.** Two SQL steps around one storage write: `proposals.image_slot` runs as
+  the merchant and mints the object path under its own prefix; the bytes go there with the service
+  client; `proposals.attach_image` runs as the merchant again through the function that re-checks
+  everything. The service client acts on no caller-supplied path and writes no row — recorded in
+  docs/02 §6.
+- **Fulfilments.** The four verbs of the merchant lane, posted as a status and judged by
+  `guard_fulfilment_transition` exactly as the portal's actions are; `delivered` stays absent. The
+  release after a decline reuses the portal's service-client step and the same docs/02 entry.
+- **Webhooks.** The database enqueues from AFTER triggers on five tables, because every event arrives
+  by several code paths and a trigger is the one place that sees them all; a five-minute cron claims
+  under `skip locked`, signs the exact bytes with HMAC-SHA256, and records outcomes with backoff and an
+  auto-disable at twenty-five consecutive failures. Secrets are stored in the clear because a hash
+  cannot sign, and a leaked one lets somebody forge a notification, never read anything.
+- **Admin.** `/admin/merchants/api` lists every key and endpoint under `p_staff_read`; revoke and
+  disable are `merchants.manage` and write an audit row.
+
+Two mistakes caught on the way: a `text || enum` concatenation in a trigger that Postgres resolves but
+reads as an accident, cast explicitly; and the admin being exempt from the webhook guard, which meant
+the re-enable housekeeping the guard does for a merchant had to be done by hand in the admin action.

@@ -6,7 +6,8 @@
     { "path": "/api/cron/housekeeping", "schedule": "30 3 * * *" },
     { "path": "/api/cron/subscriptions", "schedule": "0 5 * * *" },
     { "path": "/api/cron/payouts", "schedule": "15 4 * * *" },
-    { "path": "/api/cron/referrals", "schedule": "45 4 * * *" }
+    { "path": "/api/cron/referrals", "schedule": "45 4 * * *" },
+    { "path": "/api/cron/webhooks", "schedule": "*/5 * * * *" }
   ],
   "redirects": [
     {

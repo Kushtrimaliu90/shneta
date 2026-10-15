@@ -19,6 +19,11 @@ import type { Database } from '@/lib/supabase/database.types';
  * caller's JWT — so it is not a privilege escalation seam. It can only ever read what an
  * anonymous visitor can read. Never use it where the current user matters, and never for
  * writes. Recorded in docs/13 §G.
+ *
+ * One exception, by design: the merchant API (`features/merchants/api/exec.ts`, docs/18) calls
+ * `merchant_api_exec` through this client. The JWT on the wire is still anon and still grants
+ * nothing; the credential is the API key inside the argument, and the SQL decides what it is
+ * worth. That is the point — the API must not hold a session or the service role.
  */
 export function createPublicClient() {
   return createSupabaseClient<Database>(

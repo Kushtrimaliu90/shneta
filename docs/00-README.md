@@ -27,6 +27,8 @@ docs/
   14-launch-readiness.md        ← honest status against the launch checklist
   15-biohack-protocol-generator.md ← the BioHack Protocol Generator
   16-merchant-marketplace.md    ← the merchant marketplace (M12), shipped
+  17-referral-program.md        ← the referral programme (M13), shipped
+  18-merchant-api.md            ← the merchant API: keys, endpoints, identity through RLS
 ```
 
 **Precedence:** if documents ever conflict: `03-database.md` wins on data, `07-commerce-logic.md` wins on business rules, `02-architecture.md` wins on code structure, `CLAUDE.md` wins on conventions.

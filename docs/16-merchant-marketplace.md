@@ -792,5 +792,6 @@ Added after M12 closed, because onboarding a real merchant needs both:
 10. ~~Photographs on a proposal; approving creates a draft product carrying them~~ — **done (§9)**
 11. ~~Bulk offer _creation_ from the same paste, with a catalogue export~~ — **done (§6.1)**
 12. ~~Pasted catalogues as batches, photographs keyed by filename, promotion swept by cron~~ — **done (§9.1)**
+13. ~~A merchant API — keys on the portal, stock/price/offers/proposals over HTTPS, identity through `current_merchant_ids()`~~ — **done (docs/18)**
 
 ---

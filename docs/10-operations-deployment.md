@@ -101,7 +101,7 @@ Framework Next.js; regions: `fra1` (closest to Kosovo). Image optimization remot
 
 (05:00 UTC = 06/07:00 CET; housekeeping: abandon stale carts, cancel unpaid card orders > 24 h, purge rate_limits older than 2 d.) All cron routes verify `Authorization: Bearer CRON_SECRET`, are idempotent, and log a summary row (email_log-style or Sentry breadcrumb).
 
-**As built**, `vercel.json` carries four: `housekeeping` (03:30), `payouts` (04:15), `referrals`
+**As built**, `vercel.json` carries five — the four daily ones and `/api/cron/webhooks` every five minutes (merchant webhook delivery with backoff, docs/18 §3.6; a five-minute schedule needs a Vercel plan that allows it): `housekeeping` (03:30), `payouts` (04:15), `referrals`
 (04:45) and `subscriptions` (05:00). Spaced fifteen minutes apart so a slow run cannot overlap the next,
 and ordered cheapest-first. `review-requests` from the spec above was folded into `housekeeping`.
 
