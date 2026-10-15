@@ -29,7 +29,9 @@ function parseEnv(text: string): Record<string, string> {
   const out: Record<string, string> = {};
   for (const line of text.split('\n')) {
     const match = /^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/.exec(line);
-    if (match) out[match[1]] = match[2].trim().replace(/^["']|["']$/g, '');
+    const name = match?.[1];
+    const value = match?.[2];
+    if (name && value !== undefined) out[name] = value.trim().replace(/^["']|["']$/g, '');
   }
   return out;
 }
