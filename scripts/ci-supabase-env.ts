@@ -93,17 +93,26 @@ async function pickAnon() {
   return null;
 }
 
-const service = await pickService();
-const anon = await pickAnon();
+async function main(): Promise<void> {
+  const service = await pickService();
+  const anon = await pickAnon();
 
-if (!service || !anon) {
-  console.error('No key pair reached PostgREST with the expected role. See the probes above.');
-  process.exit(1);
+  if (!service || !anon) {
+    console.error('No key pair reached PostgREST with the expected role. See the probes above.');
+    process.exit(1);
+  }
+
+  let env = readFileSync('.env.local', 'utf8');
+  env = env
+    .replace(/^NEXT_PUBLIC_SUPABASE_ANON_KEY=.*$/m, `NEXT_PUBLIC_SUPABASE_ANON_KEY=${anon}`)
+    .replace(/^SUPABASE_SERVICE_ROLE_KEY=.*$/m, `SUPABASE_SERVICE_ROLE_KEY=${service}`);
+  writeFileSync('.env.local', env);
+  console.log(
+    `.env.local now uses anon ${anon.slice(0, 12)}… and service ${service.slice(0, 10)}…`,
+  );
 }
 
-let env = readFileSync('.env.local', 'utf8');
-env = env
-  .replace(/^NEXT_PUBLIC_SUPABASE_ANON_KEY=.*$/m, `NEXT_PUBLIC_SUPABASE_ANON_KEY=${anon}`)
-  .replace(/^SUPABASE_SERVICE_ROLE_KEY=.*$/m, `SUPABASE_SERVICE_ROLE_KEY=${service}`);
-writeFileSync('.env.local', env);
-console.log(`.env.local now uses anon ${anon.slice(0, 12)}… and service ${service.slice(0, 10)}…`);
+main().catch((error: unknown) => {
+  console.error(error);
+  process.exit(1);
+});
