@@ -93,12 +93,39 @@ async function pickAnon() {
   return null;
 }
 
+/**
+ * When no key works, the question is never the key — it is what the database thinks of the role. The
+ * runner has `psql`, and the stack prints its own `DB_URL`, so ask directly: who owns the table,
+ * who is granted what on it, and which role the migrations ran as.
+ */
+function explainGrants(): void {
+  const dbUrl = status.DB_URL;
+  if (!dbUrl) {
+    console.error('no DB_URL in supabase status; cannot inspect grants');
+    return;
+  }
+  const queries = [
+    "select tableowner from pg_tables where schemaname = 'public' and tablename = 'warehouses'",
+    "select grantee, string_agg(privilege_type, ',') from information_schema.role_table_grants where table_schema = 'public' and table_name = 'warehouses' group by grantee",
+    "select defaclrole::regrole, defaclobjtype, defaclacl from pg_default_acl where defaclnamespace = 'public'::regnamespace",
+  ];
+  for (const query of queries) {
+    try {
+      const out = execSync(`psql "${dbUrl}" -X -A -t -c "${query}"`, { encoding: 'utf8' });
+      console.error(`$ ${query}\n${out.trim() || '(no rows)'}`);
+    } catch (error) {
+      console.error(`psql failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+}
+
 async function main(): Promise<void> {
   const service = await pickService();
   const anon = await pickAnon();
 
   if (!service || !anon) {
     console.error('No key pair reached PostgREST with the expected role. See the probes above.');
+    explainGrants();
     process.exit(1);
   }
 
