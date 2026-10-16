@@ -1749,6 +1749,49 @@ export type Database = {
           },
         ]
       }
+      merchant_users: {
+        Row: {
+          created_at: string
+          merchant_id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          merchant_id: string
+          role?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          merchant_id?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "merchant_users_merchant_id_fkey"
+            columns: ["merchant_id"]
+            isOneToOne: false
+            referencedRelation: "merchants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "merchant_users_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "merchant_users_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "v_admin_customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       merchant_webhook_deliveries: {
         Row: {
           attempts: number
@@ -1875,49 +1918,6 @@ export type Database = {
             columns: ["merchant_id"]
             isOneToOne: false
             referencedRelation: "merchants"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      merchant_users: {
-        Row: {
-          created_at: string
-          merchant_id: string
-          role: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          merchant_id: string
-          role?: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          merchant_id?: string
-          role?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "merchant_users_merchant_id_fkey"
-            columns: ["merchant_id"]
-            isOneToOne: false
-            referencedRelation: "merchants"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "merchant_users_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "merchant_users_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "v_admin_customers"
             referencedColumns: ["id"]
           },
         ]
@@ -5448,7 +5448,6 @@ export type Database = {
           variant_name: string
         }[]
       }
-      claim_webhook_deliveries: { Args: { p_limit?: number }; Returns: Json }
       check_rate_limit: {
         Args: { p_key: string; p_max: number; p_window: string }
         Returns: boolean
@@ -5473,6 +5472,7 @@ export type Database = {
         Returns: Json
       }
       claim_referral_code: { Args: { p_code: string }; Returns: Json }
+      claim_webhook_deliveries: { Args: { p_limit?: number }; Returns: Json }
       contact_submit: {
         Args: {
           p_body: string
@@ -5490,6 +5490,10 @@ export type Database = {
       decide_proposal_batch: {
         Args: { p_batch_id: string; p_decision: string; p_note?: string }
         Returns: Json
+      }
+      enqueue_merchant_webhook: {
+        Args: { p_event: string; p_merchant_id: string; p_payload: Json }
+        Returns: number
       }
       expire_referral_links: { Args: never; Returns: number }
       fulfilment_candidates: {
@@ -5623,10 +5627,6 @@ export type Database = {
         Args: { p_create?: boolean; p_merchant_id: string; p_rows: Json }
         Returns: Json
       }
-      enqueue_merchant_webhook: {
-        Args: { p_event: string; p_merchant_id: string; p_payload: Json }
-        Returns: number
-      }
       merchant_fulfilment_counts: { Args: never; Returns: Json }
       merchant_fulfilment_list: { Args: { p_status?: string }; Returns: Json }
       merchant_fulfilment_view: {
@@ -5707,6 +5707,15 @@ export type Database = {
         Args: { p_subscription_id: string }
         Returns: undefined
       }
+      record_webhook_delivery: {
+        Args: {
+          p_delivery_id: string
+          p_error?: string
+          p_ok: boolean
+          p_status_code?: number
+        }
+        Returns: undefined
+      }
       redeem_loyalty_points: { Args: { p_points?: number }; Returns: Json }
       referral_links_expiring: {
         Args: { p_days: number }
@@ -5740,15 +5749,6 @@ export type Database = {
       }
       refresh_search_vocabulary: { Args: never; Returns: number }
       reindex_products_search: { Args: never; Returns: number }
-      record_webhook_delivery: {
-        Args: {
-          p_delivery_id: string
-          p_error?: string
-          p_ok: boolean
-          p_status_code?: number
-        }
-        Returns: undefined
-      }
       release_fulfilment: {
         Args: { p_fulfilment_id: string; p_reason?: string }
         Returns: undefined
@@ -5977,12 +5977,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -6006,11 +6006,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -6031,11 +6031,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -6056,11 +6056,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -6073,11 +6073,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
