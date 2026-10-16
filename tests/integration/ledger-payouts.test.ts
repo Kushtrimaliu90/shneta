@@ -48,6 +48,9 @@ async function createMerchant(
       contact_name: 'Probe',
       contact_email: `led-${stamp}@biocode.test`,
       contact_phone: '+383 44 000 000',
+      // `merchants_bank_details_for_transfer` (migration 2026-08-08): the default settlement
+      // method is a bank transfer, which needs both fields; the fixture predates the rule.
+      bank_name: 'Banka Demo',
       address: { city: 'Prishtinë', country_code: 'XK' },
       status: 'approved',
       commission_pct: options?.commissionPct ?? 20,

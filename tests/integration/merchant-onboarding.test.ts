@@ -139,6 +139,10 @@ describe('the approval transition (docs/16 §4)', () => {
         contact_name: 'Probe',
         contact_email: `probe-${Date.now()}@biocode.test`,
         contact_phone: '+383 44 000 000',
+        // `merchants_bank_details_for_transfer` (migration 2026-08-08): the default settlement
+        // method is a bank transfer, which needs both fields; the fixture predates the rule.
+        iban: 'XK051000000000000000',
+        bank_name: 'Banka Demo',
         address: { city: 'Prishtinë', country_code: 'XK' },
         status: 'pending',
       })
@@ -259,6 +263,10 @@ describe('a pending merchant can do nothing (docs/16 §4)', () => {
         contact_name: 'P',
         contact_email: owner.email,
         contact_phone: '+383 44 000 001',
+        // `merchants_bank_details_for_transfer` (migration 2026-08-08): the default settlement
+        // method is a bank transfer, which needs both fields; the fixture predates the rule.
+        iban: 'XK051000000000000000',
+        bank_name: 'Banka Demo',
         address: { city: 'Prishtinë', country_code: 'XK' },
         status: 'pending',
       })
@@ -295,6 +303,10 @@ describe('a pending merchant can do nothing (docs/16 §4)', () => {
         contact_name: 'R',
         contact_email: owner.email,
         contact_phone: '+383 44 000 002',
+        // `merchants_bank_details_for_transfer` (migration 2026-08-08): the default settlement
+        // method is a bank transfer, which needs both fields; the fixture predates the rule.
+        iban: 'XK051000000000000000',
+        bank_name: 'Banka Demo',
         address: { city: 'Prishtinë', country_code: 'XK' },
         status: 'rejected',
         rejection_note: 'No import licence supplied.',

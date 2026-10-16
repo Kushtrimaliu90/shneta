@@ -254,7 +254,7 @@ on conflict (id) do update set
  * the ledger invariant is that the movements sum to the level (docs/13 §A7). A bare UPDATE would leave
  * a warehouse whose history does not explain its shelf — and the admin stock screens read the history.
  */
-do $
+do $$
 declare
   v_warehouse uuid;
   v_variant uuid;
@@ -289,7 +289,7 @@ begin
       );
     end if;
   end loop;
-end $;
+end $$;
 
 -- -----------------------------------------------------------------------------
 -- A proposal

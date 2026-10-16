@@ -4,6 +4,7 @@ import { useTranslations } from 'next-intl';
 import {
   Banknote,
   FileText,
+  KeyRound,
   LayoutDashboard,
   Lightbulb,
   Package,
@@ -38,6 +39,7 @@ interface Item {
     | 'proposalsBulk'
     | 'payouts'
     | 'documents'
+    | 'api'
     | 'settings';
   href: string;
   icon: LucideIcon;
@@ -66,6 +68,8 @@ const ITEMS: readonly Item[] = [
   { key: 'proposalsBulk', href: '/merchant/proposals/bulk', icon: Sheet, needsApproval: true },
   { key: 'payouts', href: '/merchant/payouts', icon: Banknote },
   { key: 'documents', href: '/merchant/documents', icon: FileText },
+  /* docs/18 — keys for the merchant API. Supply-side, so it unlocks with approval like offers. */
+  { key: 'api', href: '/merchant/api', icon: KeyRound, needsApproval: true },
   { key: 'settings', href: '/merchant/settings', icon: Settings },
 ];
 

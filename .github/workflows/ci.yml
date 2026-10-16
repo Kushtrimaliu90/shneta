@@ -88,6 +88,15 @@ jobs:
         if: ${{ hashFiles('supabase/config.toml') != '' }}
         run: supabase db reset --no-seed=false
 
+      - name: Use the keys the local stack actually honours
+        # CLI 2.110 issues the new `sb_publishable_…` / `sb_secret_…` keys, and with either those or
+        # the legacy demo keys from .env.example copied in blind, PostgREST ran the integration suite's
+        # service client as the anonymous role (every fixture failed in beforeAll). The script probes
+        # each candidate against PostgREST, keeps the pair that reaches the database with the right
+        # role, and prints every probe so a regression reads as a table.
+        if: ${{ hashFiles('supabase/config.toml') != '' }}
+        run: pnpm exec tsx scripts/ci-supabase-env.ts
+
       # docs/09 §1 — RLS matrix, checkout RPC, order state machine, ledger invariant.
       # `tables_without_rls()` asserts the docs/10 §4 guarantee inside the suite, and the
       # global teardown purges the fixtures the suite creates (docs/13 §G2).

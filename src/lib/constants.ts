@@ -128,6 +128,17 @@ export const RATE_LIMITS = {
    * plus a retry is two.
    */
   merchantApply: [3, 60 * 60],
+  /*
+   * docs/18 §2 — the merchant API, per key. Ten a minute is a sync loop with headroom: a nightly
+   * push is one call, a "sync on every stock movement" integration is a handful an hour, and
+   * anything hotter is a bug in the merchant's code that should see a 429 rather than be served.
+   */
+  merchantApi: [600, 60 * 60],
+  /*
+   * Failed API authentications, per IP. The keys are 256-bit so guessing is not the threat; this
+   * keeps a scanner from costing a query per attempt, and it never touches a real key's quota.
+   */
+  merchantApiAuth: [30, 15 * 60],
   orderLookup: [10, 60 * 60],
   /*
    * docs/05 §15 — starting a social sign-in is an unauthenticated GET that costs a Supabase round trip

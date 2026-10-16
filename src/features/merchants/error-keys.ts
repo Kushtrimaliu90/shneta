@@ -43,3 +43,19 @@ export function settingsErrorLeaf(error: string): SettingsErrorLeaf {
     ? (leaf as SettingsErrorLeaf)
     : 'generic';
 }
+
+const API_KEYS = [
+  'generic',
+  'invalid',
+  'notMerchant',
+  'notApproved',
+  'tooMany',
+  'notFound',
+] as const;
+
+export type ApiErrorLeaf = (typeof API_KEYS)[number];
+
+export function apiErrorLeaf(error: string): ApiErrorLeaf {
+  const leaf = error.split('.').pop() ?? 'generic';
+  return (API_KEYS as readonly string[]).includes(leaf) ? (leaf as ApiErrorLeaf) : 'generic';
+}

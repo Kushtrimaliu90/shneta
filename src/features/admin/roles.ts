@@ -347,6 +347,13 @@ const NAV: NavSection[] = [
         capability: 'offers.review',
       },
       {
+        // docs/18 §5 — every merchant's API keys and webhook endpoints, with revoke and disable.
+        href: '/admin/merchants/api',
+        label: 'Merchant API',
+        icon: 'settings',
+        capability: 'merchants.view',
+      },
+      {
         href: '/admin/routing',
         label: 'Routing',
         icon: 'orders',
@@ -402,6 +409,7 @@ const IMPLEMENTED = new Set([
   '/admin/settings',
   '/admin/content',
   '/admin/merchants/applications',
+  '/admin/merchants/api',
   '/admin/merchants/offers',
   '/admin/merchants/proposals',
   '/admin/routing',

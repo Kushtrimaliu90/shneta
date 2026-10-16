@@ -1411,6 +1411,87 @@ export type Database = {
           },
         ]
       }
+      merchant_api_keys: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          key_hash: string
+          key_prefix: string
+          last_used_at: string | null
+          merchant_id: string
+          name: string
+          revoked_at: string | null
+          revoked_by: string | null
+          scopes: string[]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          key_hash: string
+          key_prefix: string
+          last_used_at?: string | null
+          merchant_id: string
+          name: string
+          revoked_at?: string | null
+          revoked_by?: string | null
+          scopes?: string[]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          key_hash?: string
+          key_prefix?: string
+          last_used_at?: string | null
+          merchant_id?: string
+          name?: string
+          revoked_at?: string | null
+          revoked_by?: string | null
+          scopes?: string[]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "merchant_api_keys_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "merchant_api_keys_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "v_admin_customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "merchant_api_keys_merchant_id_fkey"
+            columns: ["merchant_id"]
+            isOneToOne: false
+            referencedRelation: "merchants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "merchant_api_keys_revoked_by_fkey"
+            columns: ["revoked_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "merchant_api_keys_revoked_by_fkey"
+            columns: ["revoked_by"]
+            isOneToOne: false
+            referencedRelation: "v_admin_customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       merchant_documents: {
         Row: {
           id: string
@@ -1707,6 +1788,136 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "v_admin_customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      merchant_webhook_deliveries: {
+        Row: {
+          attempts: number
+          created_at: string
+          delivered_at: string | null
+          event: string
+          id: string
+          last_error: string | null
+          last_status_code: number | null
+          merchant_id: string
+          next_attempt_at: string
+          payload: Json
+          status: string
+          webhook_id: string
+        }
+        Insert: {
+          attempts?: number
+          created_at?: string
+          delivered_at?: string | null
+          event: string
+          id?: string
+          last_error?: string | null
+          last_status_code?: number | null
+          merchant_id: string
+          next_attempt_at?: string
+          payload: Json
+          status?: string
+          webhook_id: string
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          delivered_at?: string | null
+          event?: string
+          id?: string
+          last_error?: string | null
+          last_status_code?: number | null
+          merchant_id?: string
+          next_attempt_at?: string
+          payload?: Json
+          status?: string
+          webhook_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "merchant_webhook_deliveries_merchant_id_fkey"
+            columns: ["merchant_id"]
+            isOneToOne: false
+            referencedRelation: "merchants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "merchant_webhook_deliveries_webhook_id_fkey"
+            columns: ["webhook_id"]
+            isOneToOne: false
+            referencedRelation: "merchant_webhooks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      merchant_webhooks: {
+        Row: {
+          consecutive_failures: number
+          created_at: string
+          created_by: string | null
+          description: string | null
+          disabled_at: string | null
+          disabled_reason: string | null
+          events: string[]
+          id: string
+          merchant_id: string
+          secret: string
+          status: string
+          updated_at: string
+          url: string
+        }
+        Insert: {
+          consecutive_failures?: number
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          disabled_at?: string | null
+          disabled_reason?: string | null
+          events: string[]
+          id?: string
+          merchant_id: string
+          secret: string
+          status?: string
+          updated_at?: string
+          url: string
+        }
+        Update: {
+          consecutive_failures?: number
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          disabled_at?: string | null
+          disabled_reason?: string | null
+          events?: string[]
+          id?: string
+          merchant_id?: string
+          secret?: string
+          status?: string
+          updated_at?: string
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "merchant_webhooks_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "merchant_webhooks_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "v_admin_customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "merchant_webhooks_merchant_id_fkey"
+            columns: ["merchant_id"]
+            isOneToOne: false
+            referencedRelation: "merchants"
             referencedColumns: ["id"]
           },
         ]
@@ -5195,6 +5406,7 @@ export type Database = {
         Args: { p_ip?: string; p_reason: string; p_referrer_id: string }
         Returns: number
       }
+      api_merchant_id: { Args: never; Returns: string }
       apply_stock_movement: {
         Args: {
           p_batch_number?: string
@@ -5260,6 +5472,7 @@ export type Database = {
         Returns: Json
       }
       claim_referral_code: { Args: { p_code: string }; Returns: Json }
+      claim_webhook_deliveries: { Args: { p_limit?: number }; Returns: Json }
       contact_submit: {
         Args: {
           p_body: string
@@ -5277,6 +5490,10 @@ export type Database = {
       decide_proposal_batch: {
         Args: { p_batch_id: string; p_decision: string; p_note?: string }
         Returns: Json
+      }
+      enqueue_merchant_webhook: {
+        Args: { p_event: string; p_merchant_id: string; p_payload: Json }
+        Returns: number
       }
       expire_referral_links: { Args: never; Returns: number }
       fulfilment_candidates: {
@@ -5392,6 +5609,11 @@ export type Database = {
         Returns: undefined
       }
       mask_person_name: { Args: { p_full_name: string }; Returns: string }
+      merchant_api_exec: {
+        Args: { p_action: string; p_key: string; p_payload?: Json }
+        Returns: Json
+      }
+      merchant_api_scope_for: { Args: { p_action: string }; Returns: string }
       merchant_attach_batch_images: {
         Args: { p_assignments: Json; p_batch_id: string }
         Returns: Json
@@ -5483,6 +5705,15 @@ export type Database = {
       }
       record_subscription_success: {
         Args: { p_subscription_id: string }
+        Returns: undefined
+      }
+      record_webhook_delivery: {
+        Args: {
+          p_delivery_id: string
+          p_error?: string
+          p_ok: boolean
+          p_status_code?: number
+        }
         Returns: undefined
       }
       redeem_loyalty_points: { Args: { p_points?: number }; Returns: Json }
@@ -5746,12 +5977,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -5775,11 +6006,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -5800,11 +6031,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -5825,11 +6056,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -5842,11 +6073,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
